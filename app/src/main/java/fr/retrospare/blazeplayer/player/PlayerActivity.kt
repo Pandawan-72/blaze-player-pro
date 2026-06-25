@@ -15,9 +15,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
+import fr.retrospare.blazeplayer.data.model.MediaItem
+import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.io.File
+import javax.inject.Inject
 import kotlin.math.abs
 
 @AndroidEntryPoint
@@ -29,12 +36,15 @@ class PlayerActivity : AppCompatActivity() {
         private const val UI_HIDE_DELAY = 3000L
         private const val ZONE_SIDE_PCT = 0.28f
         private const val ZONE_SEEK_PCT = 0.78f
+        private const val SAVE_PROGRESS_INTERVAL = 5000L
     }
 
     private val viewModel: PlayerViewModel by viewModels()
     private lateinit var binding: ActivityPlayerBinding
     private lateinit var audioManager: AudioManager
     private lateinit var gestureDetector: GestureDetector
+
+    @Inject lateinit var mediaRepository: MediaRepository
 
     private val hideHandler = Handler(Looper.getMainLooper())
     private val hideRunnable = Runnable { hideUI() }
@@ -47,8 +57,10 @@ class PlayerActivity : AppCompatActivity() {
     private var initialBrightness = 0.5f
     private var initialVolume = 0
     private var maxVolume = 1
-
     private var seekStartPct = 0f
+
+    private var mediaPath = ""
+    private var mediaName = ""
 
     enum class DragZone { NONE, LEFT, RIGHT, SEEK }
 
@@ -64,35 +76,37 @@ class PlayerActivity : AppCompatActivity() {
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
-        val uri   = intent.getStringExtra(EXTRA_MEDIA_URI)   ?: return finish()
-        val title = intent.getStringExtra(EXTRA_MEDIA_TITLE) ?: ""
+        mediaPath = intent.getStringExtra(EXTRA_MEDIA_URI) ?: return finish()
+        mediaName = intent.getStringExtra(EXTRA_MEDIA_TITLE) ?: ""
 
-        binding.tvTitle.text    = title
+        binding.tvTitle.text = mediaName
         binding.tvSubtitle.text = ""
 
-        setupPlayer(uri)
+        setupPlayer(mediaPath)
         setupControls()
         setupTouchHandler()
         scheduleHideUI()
+        startSavingProgress()
     }
 
     private fun setupPlayer(uri: String) {
         viewModel.initPlayer(this)
-        binding.playerView.player         = viewModel.player
-        binding.playerView.useController  = false
+        binding.playerView.player = viewModel.player
+        binding.playerView.useController = false
         viewModel.playUri(uri)
 
         viewModel.player?.addListener(object : androidx.media3.common.Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {
-                updatePlayPauseIcon()
-            }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updatePlayPauseIcon()
                 if (isPlaying) scheduleHideUI() else cancelHideUI()
             }
+            override fun onPlaybackStateChanged(state: Int) {
+                if (state == androidx.media3.common.Player.STATE_READY) {
+                    saveToHistory()
+                }
+            }
         })
 
-        // Mise à jour de la barre de progression
         Handler(Looper.getMainLooper()).also { h ->
             val r = object : Runnable {
                 override fun run() {
@@ -104,23 +118,48 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun saveToHistory() {
+        val duration = viewModel.player?.duration?.div(1000) ?: 0
+        val ext = mediaPath.substringAfterLast('.', "").lowercase()
+        val isNetwork = mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")
+        val item = MediaItem(
+            id = mediaPath,
+            name = mediaName.ifEmpty { File(mediaPath).name },
+            path = mediaPath,
+            duration = duration,
+            extension = ext,
+            isNetwork = isNetwork,
+            lastPlayedAt = System.currentTimeMillis()
+        )
+        lifecycleScope.launch {
+            mediaRepository.saveRecentItem(item)
+        }
+    }
+
+    private fun startSavingProgress() {
+        lifecycleScope.launch {
+            while (true) {
+                delay(SAVE_PROGRESS_INTERVAL)
+                val position = viewModel.player?.currentPosition?.div(1000) ?: continue
+                if (mediaPath.isNotEmpty() && position > 0) {
+                    mediaRepository.updateProgress(mediaPath, position)
+                }
+            }
+        }
+    }
+
     private fun setupControls() {
         binding.btnBack.setOnClickListener { finish() }
-
         binding.btnPlayPause.setOnClickListener {
-            viewModel.player?.let { p ->
-                if (p.isPlaying) p.pause() else p.play()
-            }
+            viewModel.player?.let { p -> if (p.isPlaying) p.pause() else p.play() }
             scheduleHideUI()
         }
-
         binding.btnRewind.setOnClickListener {
             viewModel.player?.let { p ->
                 p.seekTo((p.currentPosition - 10_000).coerceAtLeast(0))
             }
             scheduleHideUI()
         }
-
         binding.btnForward.setOnClickListener {
             viewModel.player?.let { p ->
                 val dur = p.duration
@@ -128,24 +167,10 @@ class PlayerActivity : AppCompatActivity() {
             }
             scheduleHideUI()
         }
-
-        binding.btnSubtitles.setOnClickListener {
-            // TODO: sélecteur sous-titres
-            scheduleHideUI()
-        }
-
-        binding.btnAudio.setOnClickListener {
-            // TODO: sélecteur piste audio
-            scheduleHideUI()
-        }
-
+        binding.btnSubtitles.setOnClickListener { scheduleHideUI() }
+        binding.btnAudio.setOnClickListener { scheduleHideUI() }
         binding.btnRatio.setOnClickListener {
             viewModel.cycleAspectRatio(binding.playerView)
-            scheduleHideUI()
-        }
-
-        binding.btnCast.setOnClickListener {
-            // TODO: Chromecast
             scheduleHideUI()
         }
     }
@@ -160,74 +185,56 @@ class PlayerActivity : AppCompatActivity() {
 
         binding.root.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
-
             val w = binding.root.width.toFloat()
             val h = binding.root.height.toFloat()
 
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    dragStartX = event.x
-                    dragStartY = event.y
+                    dragStartX = event.x; dragStartY = event.y
                     isDragging = false
-                    dragZone = DragZone.NONE
-
-                    val relX = event.x / w
-                    val relY = event.y / h
+                    val relX = event.x / w; val relY = event.y / h
                     dragZone = when {
-                        relY > ZONE_SEEK_PCT  -> DragZone.SEEK
-                        relX < ZONE_SIDE_PCT  -> DragZone.LEFT
+                        relY > ZONE_SEEK_PCT -> DragZone.SEEK
+                        relX < ZONE_SIDE_PCT -> DragZone.LEFT
                         relX > (1 - ZONE_SIDE_PCT) -> DragZone.RIGHT
                         else -> DragZone.NONE
                     }
-
-                    if (dragZone == DragZone.LEFT) {
-                        initialBrightness = getCurrentBrightness()
-                    }
-                    if (dragZone == DragZone.RIGHT) {
-                        initialVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                    }
+                    if (dragZone == DragZone.LEFT) initialBrightness = getCurrentBrightness()
+                    if (dragZone == DragZone.RIGHT) initialVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
                     if (dragZone == DragZone.SEEK) {
                         val dur = viewModel.player?.duration ?: 0
                         val pos = viewModel.player?.currentPosition ?: 0
                         seekStartPct = if (dur > 0) pos.toFloat() / dur else 0f
                     }
                 }
-
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = event.x - dragStartX
-                    val dy = event.y - dragStartY
-
+                    val dx = event.x - dragStartX; val dy = event.y - dragStartY
                     if (!isDragging && (abs(dx) > 10 || abs(dy) > 10)) isDragging = true
                     if (!isDragging) return@setOnTouchListener true
-
                     when (dragZone) {
                         DragZone.LEFT -> {
-                            val delta = -dy / h
-                            val newBrightness = (initialBrightness + delta).coerceIn(0f, 1f)
-                            setBrightness(newBrightness)
-                            showBrightnessIndicator(newBrightness)
+                            val newB = (initialBrightness + (-dy / h)).coerceIn(0f, 1f)
+                            setBrightness(newB)
+                            showBrightnessIndicator(newB)
                         }
                         DragZone.RIGHT -> {
-                            val delta = -dy / h
-                            val newVol = (initialVolume + (delta * maxVolume).toInt())
-                                .coerceIn(0, maxVolume)
+                            val newVol = (initialVolume + (-dy / h * maxVolume).toInt()).coerceIn(0, maxVolume)
                             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVol, 0)
                             showVolumeIndicator(newVol.toFloat() / maxVolume)
                         }
                         DragZone.SEEK -> {
                             val dur = viewModel.player?.duration ?: 0L
                             if (dur > 0) {
-                                val delta = dx / w
-                                val newPct = (seekStartPct + delta).coerceIn(0f, 1f)
-                                val newPos = (newPct * dur).toLong()
-                                viewModel.player?.seekTo(newPos)
-                                showSeekIndicator(newPos)
+                                val newPct = (seekStartPct + dx / w).coerceIn(0f, 1f)
+                                viewModel.player?.seekTo((newPct * dur).toLong())
+                                showSeekIndicator((newPct * dur).toLong())
+                                dragStartX = event.x
+                                seekStartPct = newPct
                             }
                         }
                         DragZone.NONE -> {}
                     }
                 }
-
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     hideSideIndicators()
                     binding.seekIndicator.visibility = View.GONE
@@ -248,65 +255,50 @@ class PlayerActivity : AppCompatActivity() {
     private fun hideUI() {
         uiVisible = false
         binding.uiOverlay.animate().alpha(0f).setDuration(300)
-            .withEndAction { binding.uiOverlay.visibility = View.GONE }
-            .start()
+            .withEndAction { binding.uiOverlay.visibility = View.GONE }.start()
     }
 
     private fun scheduleHideUI() {
         cancelHideUI()
-        if (viewModel.player?.isPlaying == true) {
-            hideHandler.postDelayed(hideRunnable, UI_HIDE_DELAY)
-        }
+        if (viewModel.player?.isPlaying == true) hideHandler.postDelayed(hideRunnable, UI_HIDE_DELAY)
     }
 
     private fun cancelHideUI() = hideHandler.removeCallbacks(hideRunnable)
 
     private fun updatePlayPauseIcon() {
         val isPlaying = viewModel.player?.isPlaying == true
-        binding.ivPlayPause.setImageResource(
-            if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-        )
+        binding.ivPlayPause.setImageResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
     }
 
     private fun updateProgress() {
         val player = viewModel.player ?: return
         val duration = player.duration.takeIf { it > 0 } ?: return
         val position = player.currentPosition
-
         binding.tvCurrentTime.text = formatTime(position)
-        binding.tvTotalTime.text   = formatTime(duration)
-
+        binding.tvTotalTime.text = formatTime(duration)
         val pct = position.toFloat() / duration
         val trackW = binding.progressContainer.width
-        binding.progressFill.layoutParams.width  = (trackW * pct).toInt()
+        binding.progressFill.layoutParams.width = (trackW * pct).toInt()
         binding.progressThumb.translationX = (trackW * pct) - 6f
         binding.progressFill.requestLayout()
-
-        val buffered = player.bufferedPosition
-        binding.progressBuffer.layoutParams.width = (trackW * (buffered.toFloat() / duration)).toInt()
+        binding.progressBuffer.layoutParams.width = (trackW * (player.bufferedPosition.toFloat() / duration)).toInt()
         binding.progressBuffer.requestLayout()
     }
 
     private fun showBrightnessIndicator(value: Float) {
         binding.brightnessIndicator.visibility = View.VISIBLE
-        val pct = (value * 100).toInt()
-        binding.tvBrightness.text = "$pct%"
-        val barH = binding.brightnessIndicator
-            .findViewById<View>(R.id.brightnessBar)
-        val maxH = 52.dpToPx()
-        barH.layoutParams.height = (maxH * value).toInt()
-        barH.requestLayout()
+        binding.tvBrightness.text = "${(value * 100).toInt()}%"
+        val bar = binding.brightnessIndicator.findViewById<View>(R.id.brightnessBar)
+        bar.layoutParams.height = (52.dpToPx() * value).toInt()
+        bar.requestLayout()
     }
 
     private fun showVolumeIndicator(value: Float) {
         binding.volumeIndicator.visibility = View.VISIBLE
-        val pct = (value * 100).toInt()
-        binding.tvVolume.text = "$pct%"
-        val barV = binding.volumeIndicator
-            .findViewById<View>(R.id.volumeBar)
-        val maxH = 52.dpToPx()
-        barV.layoutParams.height = (maxH * value).toInt()
-        barV.requestLayout()
+        binding.tvVolume.text = "${(value * 100).toInt()}%"
+        val bar = binding.volumeIndicator.findViewById<View>(R.id.volumeBar)
+        bar.layoutParams.height = (52.dpToPx() * value).toInt()
+        bar.requestLayout()
     }
 
     private fun hideSideIndicators() {
@@ -322,12 +314,8 @@ class PlayerActivity : AppCompatActivity() {
     private fun getCurrentBrightness(): Float {
         val lp = window.attributes
         return if (lp.screenBrightness < 0) {
-            try {
-                Settings.System.getInt(
-                    contentResolver,
-                    Settings.System.SCREEN_BRIGHTNESS
-                ) / 255f
-            } catch (e: Exception) { 0.5f }
+            try { Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255f }
+            catch (e: Exception) { 0.5f }
         } else lp.screenBrightness
     }
 
@@ -340,26 +328,25 @@ class PlayerActivity : AppCompatActivity() {
     private fun hideSystemBars() {
         WindowInsetsControllerCompat(window, window.decorView).let { ctrl ->
             ctrl.hide(WindowInsetsCompat.Type.systemBars())
-            ctrl.systemBarsBehavior =
-                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            ctrl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
 
     private fun formatTime(ms: Long): String {
-        val totalSec = ms / 1000
-        val h = totalSec / 3600
-        val m = (totalSec % 3600) / 60
-        val s = totalSec % 60
-        return if (h > 0) "%d:%02d:%02d".format(h, m, s)
-        else "%d:%02d".format(m, s)
+        val s = ms / 1000
+        val h = s / 3600; val m = (s % 3600) / 60; val sec = s % 60
+        return if (h > 0) "%d:%02d:%02d".format(h, m, sec) else "%d:%02d".format(m, sec)
     }
 
-    private fun Int.dpToPx(): Int =
-        (this * resources.displayMetrics.density).toInt()
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
     override fun onStop() {
         super.onStop()
         viewModel.player?.pause()
+        val pos = viewModel.player?.currentPosition?.div(1000) ?: 0
+        if (mediaPath.isNotEmpty() && pos > 0) {
+            lifecycleScope.launch { mediaRepository.updateProgress(mediaPath, pos) }
+        }
     }
 
     override fun onDestroy() {

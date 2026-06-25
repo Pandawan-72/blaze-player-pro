@@ -73,7 +73,7 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.action_home_to_network)
         }
         binding.btnBrowseLocal.setOnClickListener {
-            findNavController().navigate(R.id.action_home_to_network)
+            findNavController().navigate(R.id.action_home_to_browser)
         }
         binding.heroCard.setOnClickListener {
             viewModel.lastPlayedItem.value?.let { item -> openPlayer(item) }
