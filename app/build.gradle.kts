@@ -104,6 +104,7 @@ dependencies {
 
     // SMB
     implementation(libs.smbj)
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // Material Design (Views) + AppCompat
     implementation(libs.material)

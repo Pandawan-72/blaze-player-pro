@@ -10,16 +10,13 @@
         android:name="fr.retrospare.blazeplayer.auth.LoginFragment"
         android:label="Connexion"
         tools:layout="@layout/fragment_login">
-        <action
-            android:id="@+id/action_login_to_home"
+        <action android:id="@+id/action_login_to_home"
             app:destination="@id/homeFragment"
             app:popUpTo="@id/nav_graph"
             app:popUpToInclusive="true" />
-        <action
-            android:id="@+id/action_login_to_register"
+        <action android:id="@+id/action_login_to_register"
             app:destination="@id/registerFragment" />
-        <action
-            android:id="@+id/action_login_to_forgot"
+        <action android:id="@+id/action_login_to_forgot"
             app:destination="@id/forgotPasswordFragment" />
     </fragment>
 
@@ -28,10 +25,13 @@
         android:name="fr.retrospare.blazeplayer.auth.RegisterFragment"
         android:label="Inscription"
         tools:layout="@layout/fragment_register">
-        <action
-            android:id="@+id/action_register_to_home"
+        <action android:id="@+id/action_register_to_home"
             app:destination="@id/homeFragment"
             app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+        <action android:id="@+id/action_register_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
     </fragment>
 
@@ -39,12 +39,72 @@
         android:id="@+id/forgotPasswordFragment"
         android:name="fr.retrospare.blazeplayer.auth.ForgotPasswordFragment"
         android:label="Mot de passe oublié"
-        tools:layout="@layout/fragment_forgot_password" />
+        tools:layout="@layout/fragment_forgot_password">
+        <action android:id="@+id/action_forgot_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
 
     <fragment
         android:id="@+id/homeFragment"
         android:name="fr.retrospare.blazeplayer.home.HomeFragment"
         android:label="Accueil"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home">
+        <action android:id="@+id/action_home_to_browser"
+            app:destination="@id/browserFragment" />
+        <action android:id="@+id/action_home_to_settings"
+            app:destination="@id/settingsFragment" />
+        <action android:id="@+id/action_home_to_paywall"
+            app:destination="@id/paywallFragment" />
+        <action android:id="@+id/action_home_to_player"
+            app:destination="@id/playerActivity" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/browserFragment"
+        android:name="fr.retrospare.blazeplayer.browser.BrowserFragment"
+        android:label="Navigateur"
+        tools:layout="@layout/fragment_browser">
+        <argument
+            android:name="path"
+            app:argType="string"
+            android:defaultValue="" />
+        <argument
+            android:name="isNetwork"
+            app:argType="boolean"
+            android:defaultValue="false" />
+        <action android:id="@+id/action_browser_to_player"
+            app:destination="@id/playerActivity" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="fr.retrospare.blazeplayer.settings.SettingsFragment"
+        android:label="Réglages"
+        tools:layout="@layout/fragment_settings">
+        <action android:id="@+id/action_settings_to_paywall"
+            app:destination="@id/paywallFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/paywallFragment"
+        android:name="fr.retrospare.blazeplayer.paywall.PaywallFragment"
+        android:label="Pro"
+        tools:layout="@layout/fragment_paywall" />
+
+    <activity
+        android:id="@+id/playerActivity"
+        android:name="fr.retrospare.blazeplayer.player.PlayerActivity"
+        android:label="Lecteur">
+        <argument
+            android:name="mediaPath"
+            app:argType="string"
+            android:defaultValue="" />
+        <argument
+            android:name="mediaName"
+            app:argType="string"
+            android:defaultValue="" />
+    </activity>
 
 </navigation>
