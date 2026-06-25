@@ -27,10 +27,10 @@ class PaywallFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel.checkProStatus()
-        binding.btnPurchasePro.setOnClickListener {
+        binding.btnBuyPro.setOnClickListener {
             // TODO: Lancer le flux d'achat RevenueCat
         }
-        binding.btnRestorePurchases.setOnClickListener {
+        binding.btnRestore.setOnClickListener {
             // TODO: Restaurer les achats
         }
     }

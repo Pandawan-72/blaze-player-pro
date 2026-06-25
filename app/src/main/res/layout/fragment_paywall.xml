@@ -1,40 +1,254 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center">
+    android:background="@color/background_auth">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Blaze Player Pro"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:gravity="center" />
+        android:orientation="vertical"
+        android:paddingBottom="32dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="3,99 € — Accès à vie"
-        android:textSize="20sp"
-        android:gravity="center" />
+        <!-- HEADER -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="0dp">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnPurchasePro"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="Acheter Pro — 3,99 €" />
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_surface_card"
+                android:src="@drawable/ic_arrow_back"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="Retour" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnRestorePurchases"
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="Restaurer les achats" />
+        </LinearLayout>
 
-</LinearLayout>
+        <!-- HERO -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="20dp"
+            android:paddingBottom="24dp">
+
+            <FrameLayout
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="@drawable/bg_hero_icon_green"
+                android:layout_marginBottom="18dp">
+
+                <ImageView
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_flame"
+                    android:tint="@color/green_accent"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="-6dp"
+                    android:background="@drawable/bg_pro_badge"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="3dp"
+                    android:text="PRO"
+                    android:textColor="@color/background_auth"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.05" />
+
+            </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Blaze Player Pro"
+                android:textColor="@color/on_background"
+                android:textSize="22sp"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Un seul paiement, à vie.\nAucun abonnement, aucune surprise."
+                android:textColor="@color/on_surface_variant"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.5" />
+
+        </LinearLayout>
+
+        <!-- BANDEAU ESSAI -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_trial_banner"
+            android:padding="12dp">
+
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_icon_green"
+                android:layout_marginEnd="12dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_gift"
+                    android:tint="@color/green_accent"
+                    android:contentDescription="@null" />
+
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="15 jours d'essai gratuit"
+                    android:textColor="@color/green_accent"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginBottom="2dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sans engagement · Annulable à tout moment"
+                    android:textColor="#993DD68C"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- FEATURES -->
+        <LinearLayout
+            android:id="@+id/featuresContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="20dp" />
+
+        <!-- TABLEAU COMPARATIF -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="24dp">
+
+            <!-- Header tableau -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="4dp">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="2" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Gratuit"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:letterSpacing="0.06" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Pro"
+                    android:textColor="@color/green_accent"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:letterSpacing="0.06" />
+
+            </LinearLayout>
+
+            <!-- Tableau -->
+            <LinearLayout
+                android:id="@+id/compareContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_surface_card"
+                android:clipToOutline="true" />
+
+        </LinearLayout>
+
+        <!-- CTA -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBuyPro"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Acheter Pro — 3,99 € à vie"
+                android:textSize="15sp"
+                android:textColor="@color/background_auth"
+                android:layout_marginBottom="10dp"
+                app:backgroundTint="@color/green_accent"
+                app:cornerRadius="13dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRestore"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Restaurer un achat existant"
+                android:textSize="13sp"
+                android:textColor="@color/on_surface_variant"
+                android:layout_marginBottom="14dp"
+                app:strokeColor="@color/outline_variant"
+                app:cornerRadius="13dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Paiement sécurisé via Google Play. Aucun renouvellement automatique.\nEn continuant, vous acceptez nos conditions d'utilisation et notre politique de confidentialité."
+                android:textColor="@color/text_hint"
+                android:textSize="10sp"
+                android:gravity="center"
+                android:lineSpacingMultiplier="1.6"
+                android:paddingHorizontal="8dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
