@@ -25,58 +25,49 @@ class HomeViewModel @Inject constructor(
     private val _recentLocalItems = MutableStateFlow<List<MediaItem>>(emptyList())
     val recentLocalItems: StateFlow<List<MediaItem>> = _recentLocalItems.asStateFlow()
 
-    private val _selectedTab = MutableStateFlow(0)
+    private val _showNetwork = MutableStateFlow(true)
+    val showNetwork: StateFlow<Boolean> = _showNetwork.asStateFlow()
+
+    private val _showLocal = MutableStateFlow(true)
+    val showLocal: StateFlow<Boolean> = _showLocal.asStateFlow()
+
+    private val _networkLimit = MutableStateFlow(2)
+    private val _localLimit = MutableStateFlow(2)
+
+    private var allItems: List<MediaItem> = emptyList()
 
     init {
-        loadRecentItems()
-    }
-
-    private fun loadRecentItems() {
         viewModelScope.launch {
             mediaRepository.getRecentItems().collect { items ->
-                val networkItems = items.filter { it.isNetwork }
-                val localItems = items.filter { !it.isNetwork }
-                _recentNetworkItems.value = networkItems.take(2)
-                _recentLocalItems.value = localItems.take(2)
+                allItems = items
                 _lastPlayedItem.value = items.firstOrNull()
+                applyTab(0)
             }
         }
     }
 
-    fun onTabSelected(position: Int) {
-        _selectedTab.value = position
-        viewModelScope.launch {
-            when (position) {
-                0 -> loadRecentItems()
-                1 -> loadNetworkOnly()
-                2 -> loadLocalOnly()
-                3 -> loadRecentItems()
-            }
-        }
-    }
+    fun onTabSelected(position: Int) = applyTab(position)
 
-    private fun loadNetworkOnly() {
-        viewModelScope.launch {
-            mediaRepository.getRecentItems().collect { items ->
-                _recentNetworkItems.value = items.filter { it.isNetwork }.take(2)
+    private fun applyTab(tab: Int) {
+        when (tab) {
+            0 -> { // Tous — 2 par catégorie, sections réseau + local visibles
+                _showNetwork.value = true
+                _showLocal.value = true
+                _recentNetworkItems.value = allItems.filter { it.isNetwork }.take(2)
+                _recentLocalItems.value = allItems.filter { !it.isNetwork }.take(2)
+            }
+            1 -> { // Réseau — 10 fichiers réseau, pas de local
+                _showNetwork.value = true
+                _showLocal.value = false
+                _recentNetworkItems.value = allItems.filter { it.isNetwork }.take(10)
                 _recentLocalItems.value = emptyList()
             }
-        }
-    }
-
-    private fun loadLocalOnly() {
-        viewModelScope.launch {
-            mediaRepository.getRecentItems().collect { items ->
+            2 -> { // Local — 10 fichiers locaux, pas de réseau
+                _showNetwork.value = false
+                _showLocal.value = true
                 _recentNetworkItems.value = emptyList()
-                _recentLocalItems.value = items.filter { !it.isNetwork }.take(2)
+                _recentLocalItems.value = allItems.filter { !it.isNetwork }.take(10)
             }
-        }
-    }
-
-    fun onMediaPlayed(item: MediaItem) {
-        viewModelScope.launch {
-            mediaRepository.saveRecentItem(item)
-            loadRecentItems()
         }
     }
 }

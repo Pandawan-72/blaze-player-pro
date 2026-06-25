@@ -42,8 +42,7 @@
                     android:text="BlazePlayer"
                     android:textColor="@color/on_background"
                     android:textSize="18sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.04" />
+                    android:fontFamily="sans-serif-medium" />
 
                 <ImageButton
                     android:id="@+id/btnCast"
@@ -66,18 +65,16 @@
 
             </LinearLayout>
 
-            <!-- TOP TABS PILLULES -->
+            <!-- TABS : Tous / Réseau / Local -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="16dp"
                 android:paddingTop="4dp"
-                android:scrollbars="none"
-                android:fillViewport="false">
+                android:scrollbars="none">
 
                 <LinearLayout
-                    android:id="@+id/tabContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal">
@@ -115,24 +112,10 @@
                         android:id="@+id/tabLocal"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
-                        android:layout_marginEnd="6dp"
                         android:background="@drawable/bg_tab_inactive"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
                         android:text="Local"
-                        android:textColor="@color/on_surface_variant"
-                        android:textSize="13sp"
-                        android:clickable="true"
-                        android:focusable="true" />
-
-                    <TextView
-                        android:id="@+id/tabRecent"
-                        android:layout_width="wrap_content"
-                        android:layout_height="32dp"
-                        android:background="@drawable/bg_tab_inactive"
-                        android:paddingHorizontal="16dp"
-                        android:gravity="center"
-                        android:text="Récents"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="13sp"
                         android:clickable="true"
@@ -183,8 +166,7 @@
                     android:text="SMB"
                     android:textColor="@color/green_accent"
                     android:textSize="10sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.06" />
+                    android:fontFamily="sans-serif-medium" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -250,48 +232,58 @@
 
             <!-- SECTION RÉSEAU -->
             <LinearLayout
+                android:id="@+id/sectionNetwork"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingBottom="10dp"
-                android:gravity="center_vertical">
+                android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="BIBLIOTHÈQUE RÉSEAU"
-                    android:textColor="@color/on_surface_variant"
-                    android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.08" />
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="20dp"
+                    android:paddingBottom="10dp"
+                    android:gravity="center_vertical">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnBrowseNetwork"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:text="Naviguer"
-                    android:textSize="11sp"
-                    android:textColor="@color/blue_accent"
-                    app:strokeColor="@color/blue_accent"
-                    app:cornerRadius="20dp"
-                    app:icon="@drawable/ic_folder_open"
-                    app:iconSize="13dp"
-                    app:iconTint="@color/blue_accent"
-                    app:iconGravity="textStart" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="BIBLIOTHÈQUE RÉSEAU"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="11sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.08" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnBrowseNetwork"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:text="Naviguer"
+                        android:textSize="11sp"
+                        android:textColor="@color/blue_accent"
+                        app:strokeColor="@color/blue_accent"
+                        app:cornerRadius="20dp"
+                        app:icon="@drawable/ic_folder_open"
+                        app:iconSize="13dp"
+                        app:iconTint="@color/blue_accent"
+                        app:iconGravity="textStart" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/listNetwork"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="12dp" />
 
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/listNetwork"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingHorizontal="12dp" />
-
+            <!-- DIVIDER -->
             <View
+                android:id="@+id/divider"
                 android:layout_width="match_parent"
                 android:layout_height="0.5dp"
                 android:layout_marginHorizontal="20dp"
@@ -300,47 +292,55 @@
 
             <!-- SECTION LOCAL -->
             <LinearLayout
+                android:id="@+id/sectionLocal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingHorizontal="20dp"
-                android:paddingBottom="10dp"
-                android:gravity="center_vertical">
+                android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="STOCKAGE LOCAL"
-                    android:textColor="@color/on_surface_variant"
-                    android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.08" />
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="20dp"
+                    android:paddingBottom="10dp"
+                    android:gravity="center_vertical">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnBrowseLocal"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="32dp"
-                    android:text="Naviguer"
-                    android:textSize="11sp"
-                    android:textColor="@color/green_accent"
-                    app:strokeColor="@color/green_accent"
-                    app:cornerRadius="20dp"
-                    app:icon="@drawable/ic_folder_open"
-                    app:iconSize="13dp"
-                    app:iconTint="@color/green_accent"
-                    app:iconGravity="textStart" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="STOCKAGE LOCAL"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="11sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.08" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnBrowseLocal"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:text="Naviguer"
+                        android:textSize="11sp"
+                        android:textColor="@color/green_accent"
+                        app:strokeColor="@color/green_accent"
+                        app:cornerRadius="20dp"
+                        app:icon="@drawable/ic_folder_open"
+                        app:iconSize="13dp"
+                        app:iconTint="@color/green_accent"
+                        app:iconGravity="textStart" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/listLocal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="12dp"
+                    android:paddingBottom="24dp" />
 
             </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/listLocal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingHorizontal="12dp"
-                android:paddingBottom="24dp" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

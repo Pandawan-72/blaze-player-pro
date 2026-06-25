@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.home
 
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -24,7 +25,6 @@ class HomeFragment : Fragment() {
     private val viewModel: HomeViewModel by viewModels()
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-    private var selectedTab = 0
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -43,10 +43,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupTabs() {
-        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabRecent)
+        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal)
         tabs.forEachIndexed { index, tab ->
             tab.setOnClickListener {
-                selectedTab = index
                 updateTabStyles(tabs, index)
                 viewModel.onTabSelected(index)
             }
@@ -59,11 +58,11 @@ class HomeFragment : Fragment() {
             if (index == selectedIndex) {
                 tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_active)
                 tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
-                tab.setTypeface(null, android.graphics.Typeface.BOLD)
+                tab.setTypeface(null, Typeface.BOLD)
             } else {
                 tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_inactive)
                 tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface_variant))
-                tab.setTypeface(null, android.graphics.Typeface.NORMAL)
+                tab.setTypeface(null, Typeface.NORMAL)
             }
         }
     }
@@ -100,13 +99,25 @@ class HomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.lastPlayedItem.collect { item -> updateHeroCard(item) }
+                    viewModel.lastPlayedItem.collect { updateHeroCard(it) }
                 }
                 launch {
-                    viewModel.recentNetworkItems.collect { items -> updateNetworkList(items) }
+                    viewModel.recentNetworkItems.collect { updateNetworkList(it) }
                 }
                 launch {
-                    viewModel.recentLocalItems.collect { items -> updateLocalList(items) }
+                    viewModel.recentLocalItems.collect { updateLocalList(it) }
+                }
+                launch {
+                    viewModel.showNetwork.collect { show ->
+                        binding.sectionNetwork.visibility = if (show) View.VISIBLE else View.GONE
+                        binding.divider.visibility = if (show && viewModel.showLocal.value) View.VISIBLE else View.GONE
+                    }
+                }
+                launch {
+                    viewModel.showLocal.collect { show ->
+                        binding.sectionLocal.visibility = if (show) View.VISIBLE else View.GONE
+                        binding.divider.visibility = if (show && viewModel.showNetwork.value) View.VISIBLE else View.GONE
+                    }
                 }
             }
         }
@@ -127,7 +138,7 @@ class HomeFragment : Fragment() {
 
     private fun updateNetworkList(items: List<MediaItem>) {
         binding.listNetwork.removeAllViews()
-        items.take(2).forEach { item ->
+        items.forEach { item ->
             val v = layoutInflater.inflate(R.layout.item_media_file, binding.listNetwork, false)
             bindMediaItem(v, item)
             binding.listNetwork.addView(v)
@@ -136,7 +147,7 @@ class HomeFragment : Fragment() {
 
     private fun updateLocalList(items: List<MediaItem>) {
         binding.listLocal.removeAllViews()
-        items.take(2).forEach { item ->
+        items.forEach { item ->
             val v = layoutInflater.inflate(R.layout.item_media_file, binding.listLocal, false)
             bindMediaItem(v, item)
             binding.listLocal.addView(v)
