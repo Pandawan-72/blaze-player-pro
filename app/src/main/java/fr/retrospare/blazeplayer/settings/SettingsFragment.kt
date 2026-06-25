@@ -32,6 +32,8 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupButtons() {
+        binding.btnBack.setOnClickListener { findNavController().popBackStack() }
+
         binding.btnBecomePro.setOnClickListener {
             findNavController().navigate(R.id.action_settings_to_paywall)
         }

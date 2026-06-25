@@ -4,17 +4,18 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
-import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
 import fr.retrospare.blazeplayer.data.model.MediaItem
+import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -23,6 +24,7 @@ class HomeFragment : Fragment() {
     private val viewModel: HomeViewModel by viewModels()
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+    private var selectedTab = 0
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,17 +43,29 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupTabs() {
-        val tabs = listOf("Tous", "Réseau", "Local", "Récents")
-        tabs.forEach { title ->
-            binding.tabLayout.addTab(binding.tabLayout.newTab().setText(title))
-        }
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                viewModel.onTabSelected(tab.position)
+        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabRecent)
+        tabs.forEachIndexed { index, tab ->
+            tab.setOnClickListener {
+                selectedTab = index
+                updateTabStyles(tabs, index)
+                viewModel.onTabSelected(index)
             }
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
+        }
+        updateTabStyles(tabs, 0)
+    }
+
+    private fun updateTabStyles(tabs: List<TextView>, selectedIndex: Int) {
+        tabs.forEachIndexed { index, tab ->
+            if (index == selectedIndex) {
+                tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_active)
+                tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
+                tab.setTypeface(null, android.graphics.Typeface.BOLD)
+            } else {
+                tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_inactive)
+                tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface_variant))
+                tab.setTypeface(null, android.graphics.Typeface.NORMAL)
+            }
+        }
     }
 
     private fun setupButtons() {
@@ -62,15 +76,7 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.action_home_to_browser)
         }
         binding.heroCard.setOnClickListener {
-            viewModel.lastPlayedItem.value?.let { item ->
-                openPlayer(item)
-            }
-        }
-        binding.btnCast.setOnClickListener {
-            // TODO: Chromecast picker
-        }
-        binding.btnSearch.setOnClickListener {
-            // TODO: Search
+            viewModel.lastPlayedItem.value?.let { item -> openPlayer(item) }
         }
     }
 
@@ -78,14 +84,8 @@ class HomeFragment : Fragment() {
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> true
-                R.id.nav_language -> {
-                    // TODO: Bottom sheet langue
-                    true
-                }
-                R.id.nav_subtitles -> {
-                    // TODO: Bottom sheet sous-titres
-                    true
-                }
+                R.id.nav_language -> true
+                R.id.nav_subtitles -> true
                 R.id.nav_settings -> {
                     findNavController().navigate(R.id.action_home_to_settings)
                     true
@@ -99,23 +99,14 @@ class HomeFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 launch {
-                    viewModel.lastPlayedItem.collect { item ->
-                        updateHeroCard(item)
-                    }
+                    viewModel.lastPlayedItem.collect { item -> updateHeroCard(item) }
                 }
-
                 launch {
-                    viewModel.recentNetworkItems.collect { items ->
-                        updateNetworkList(items)
-                    }
+                    viewModel.recentNetworkItems.collect { items -> updateNetworkList(items) }
                 }
-
                 launch {
-                    viewModel.recentLocalItems.collect { items ->
-                        updateLocalList(items)
-                    }
+                    viewModel.recentLocalItems.collect { items -> updateLocalList(items) }
                 }
             }
         }
@@ -126,61 +117,40 @@ class HomeFragment : Fragment() {
             binding.tvHeroTitle.text = "Aucune lecture récente"
             binding.tvHeroDuration.text = ""
             binding.tvHeroResolution.text = ""
-            binding.progressFill.layoutParams.width = 0
             return
         }
         binding.tvHeroTitle.text = item.name
         binding.tvHeroDuration.text = item.formattedDuration
         binding.tvHeroResolution.text = item.resolution ?: ""
         binding.tvHeroBadge.text = if (item.isNetwork) "SMB" else "LOCAL"
-
-        // Barre de progression
-        if (item.duration > 0 && item.lastPosition > 0) {
-            val progress = (item.lastPosition.toFloat() / item.duration * binding.progressBg.width).toInt()
-            binding.progressFill.layoutParams.width = progress
-            binding.progressFill.requestLayout()
-        }
     }
 
     private fun updateNetworkList(items: List<MediaItem>) {
         binding.listNetwork.removeAllViews()
         items.take(2).forEach { item ->
-            val itemView = layoutInflater.inflate(
-                R.layout.item_media_file, binding.listNetwork, false
-            )
-            bindMediaItem(itemView, item)
-            binding.listNetwork.addView(itemView)
+            val v = layoutInflater.inflate(R.layout.item_media_file, binding.listNetwork, false)
+            bindMediaItem(v, item)
+            binding.listNetwork.addView(v)
         }
     }
 
     private fun updateLocalList(items: List<MediaItem>) {
         binding.listLocal.removeAllViews()
         items.take(2).forEach { item ->
-            val itemView = layoutInflater.inflate(
-                R.layout.item_media_file, binding.listLocal, false
-            )
-            bindMediaItem(itemView, item)
-            binding.listLocal.addView(itemView)
+            val v = layoutInflater.inflate(R.layout.item_media_file, binding.listLocal, false)
+            bindMediaItem(v, item)
+            binding.listLocal.addView(v)
         }
     }
 
     private fun bindMediaItem(view: View, item: MediaItem) {
-        val tvName = view.findViewById<android.widget.TextView>(R.id.tvFileName)
-        val tvResolution = view.findViewById<android.widget.TextView>(R.id.tvResolution)
-        val tvFormat = view.findViewById<android.widget.TextView>(R.id.tvFormat)
-        val tvDuration = view.findViewById<android.widget.TextView>(R.id.tvDuration)
-        val btnMore = view.findViewById<android.widget.ImageButton>(R.id.btnMore)
-
-        tvName.text = item.name
-        tvResolution.text = item.resolution ?: ""
-        tvResolution.visibility = if (item.resolution != null) View.VISIBLE else View.GONE
-        tvFormat.text = item.extension.uppercase()
-        tvDuration.text = item.formattedDuration
-
+        view.findViewById<TextView>(R.id.tvFileName).text = item.name
+        view.findViewById<TextView>(R.id.tvFormat).text = item.extension.uppercase()
+        view.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
+        val tvRes = view.findViewById<TextView>(R.id.tvResolution)
+        tvRes.text = item.resolution ?: ""
+        tvRes.visibility = if (item.resolution != null) View.VISIBLE else View.GONE
         view.setOnClickListener { openPlayer(item) }
-        btnMore.setOnClickListener {
-            // TODO: Menu contextuel
-        }
     }
 
     private fun openPlayer(item: MediaItem) {
