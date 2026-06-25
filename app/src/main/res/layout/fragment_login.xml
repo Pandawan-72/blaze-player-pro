@@ -16,21 +16,33 @@
 
         <!-- Logo -->
         <ImageView
-            android:layout_width="72dp"
-            android:layout_height="72dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:layout_gravity="center_horizontal"
-            android:src="@mipmap/ic_launcher_round"
+            android:src="@mipmap/ic_launcher"
             android:contentDescription="@null" />
 
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:fontFamily="sans-serif-medium"
-            android:gravity="center"
-            android:text="Blaze Player"
-            android:textColor="@color/on_background"
-            android:textSize="30sp" />
+            android:orientation="horizontal"
+            android:gravity="center">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Blaze"
+                android:textColor="@color/on_background"
+                android:textSize="30sp"
+                android:fontFamily="sans-serif-medium" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Player"
+                android:textColor="@color/green_accent"
+                android:textSize="30sp"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"

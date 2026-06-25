@@ -29,9 +29,9 @@
 
                 <ImageView
                     android:id="@+id/ivLogo"
+                    android:src="@mipmap/ic_launcher"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:src="@mipmap/ic_launcher_round"
                     android:contentDescription="@null" />
 
                 <TextView
@@ -39,6 +39,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
+                    android:id="@+id/tvAppTitle"
                     android:text="BlazePlayer"
                     android:textColor="@color/on_background"
                     android:textSize="18sp"
