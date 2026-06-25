@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFF" android:strokeWidth="1.5"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M12,15A3,3 0,1 0,12 9A3,3 0,1 0,12 15ZM19.4,15A1.65,1.65 0,0 0,19.74 17.19L19.84,17.29A2,2 0,0 1,16.95 20.18L16.85,20.08A1.65,1.65 0,0 0,14.66 19.74A1.65,1.65 0,0 0,13 21.33V21.5A2,2 0,0 1,9 21.5V21.33A1.65,1.65 0,0 0,7.92 19.74A1.65,1.65 0,0 0,5.73 20.08L5.63,20.18A2,2 0,0 1,2.74 17.29L2.84,17.19A1.65,1.65 0,0 0,3.18 15A1.65,1.65 0,0 0,1.59 13.33H1.5A2,2 0,0 1,1.5 9.33H1.59A1.65,1.65 0,0 0,3.18 8.26A1.65,1.65 0,0 0,2.84 6.07L2.74,5.97A2,2 0,0 1,5.63 3.08L5.73,3.18A1.65,1.65 0,0 0,7.92 3.52A1.65,1.65 0,0 0,9 2.17V2A2,2 0,0 1,13 2V2.17A1.65,1.65 0,0 0,14.08 3.52A1.65,1.65 0,0 0,16.27 3.18L16.37,3.08A2,2 0,0 1,19.26 5.97L19.16,6.07A1.65,1.65 0,0 0,18.82 8.26A1.65,1.65 0,0 0,20.41 9.33H20.5A2,2 0,0 1,20.5 13.33H20.41A1.65,1.65 0,0 0,19.4 15Z" />
+</vector>
