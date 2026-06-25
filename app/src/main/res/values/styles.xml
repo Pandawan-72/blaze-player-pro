@@ -6,4 +6,18 @@
         <item name="android:paddingStart">12dp</item>
         <item name="android:paddingEnd">12dp</item>
     </style>
+
+    <style name="Widget.BlazePlayer.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemActiveIndicatorStyle">@style/Widget.BlazePlayer.BottomNavigationView.ActiveIndicator</item>
+        <item name="android:background">@color/surface</item>
+    </style>
+
+    <style name="Widget.BlazePlayer.BottomNavigationView.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@android:color/transparent</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.BlazePlayer.BottomNavigationView.ActiveIndicator</item>
+    </style>
+
+    <style name="ShapeAppearance.BlazePlayer.BottomNavigationView.ActiveIndicator" parent="">
+        <item name="cornerSize">0dp</item>
+    </style>
 </resources>
