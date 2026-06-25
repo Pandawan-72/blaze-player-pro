@@ -64,7 +64,7 @@ class BrowserViewModel @Inject constructor(
             _state.value = BrowserState.Loading
             _currentPath.value = path
             try {
-                val items = smbBrowser.listFiles(share, path)
+                val items = smbBrowser.listFiles(share, path).getOrElse { emptyList() }
                 _state.value = BrowserState.Success(applySortMode(items))
             } catch (e: Exception) {
                 _state.value = BrowserState.Error(e.message ?: "Erreur réseau")

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- HEADER -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="8dp"
+            android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_surface_card"
+                android:src="@drawable/ic_arrow_back"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="Retour"
+                android:layout_marginEnd="12dp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Chemins réseau"
+                android:textColor="@color/on_background"
+                android:textSize="20sp"
+                android:fontFamily="sans-serif-medium" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAdd"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="Ajouter"
+                android:textSize="12sp"
+                android:textColor="@color/blue_accent"
+                app:strokeColor="@color/blue_accent"
+                app:cornerRadius="20dp"
+                app:icon="@drawable/ic_play"
+                app:iconSize="13dp"
+                app:iconTint="@color/blue_accent" />
+
+        </LinearLayout>
+
+        <!-- LISTE -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="8dp"
+            android:clipToPadding="false"
+            android:scrollbars="none" />
+
+        <!-- EMPTY STATE -->
+        <TextView
+            android:id="@+id/tvEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Aucun chemin réseau configuré.\nCliquez sur Ajouter pour commencer."
+            android:textColor="@color/on_surface_variant"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:padding="32dp"
+            android:visibility="gone" />
+
+        <!-- SCAN -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_margin="16dp"
+            android:background="@drawable/bg_surface_card"
+            android:padding="12dp">
+
+            <FrameLayout
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_icon_blue"
+                android:layout_marginEnd="12dp">
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_wifi"
+                    android:tint="@color/blue_accent"
+                    android:contentDescription="@null" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Détecter le réseau"
+                    android:textColor="@color/on_surface"
+                    android:textSize="13sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Scan SMB / DLNA local"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScan"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="Scanner"
+                android:textSize="11sp"
+                android:textColor="@color/blue_accent"
+                app:strokeColor="@color/blue_accent"
+                app:cornerRadius="20dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
