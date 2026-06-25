@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <style name="Theme.BlazePlayer" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/green_accent</item>
         <item name="colorOnPrimary">@color/background</item>
@@ -19,4 +20,16 @@
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
+
+    <!-- Thème lecteur vidéo — plein écran total, fond noir -->
+    <style name="Theme.BlazePlayer.Fullscreen" parent="Theme.BlazePlayer">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item>
+        <item name="android:statusBarColor">@color/player_background</item>
+        <item name="android:navigationBarColor">@color/player_background</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
 </resources>

@@ -32,7 +32,7 @@ class RegisterFragment : Fragment() {
     private lateinit var credentialManager: CredentialManager
 
     companion object {
-        private const val WEB_CLIENT_ID = "YOUR_GOOGLE_WEB_CLIENT_ID"
+        private const val WEB_CLIENT_ID = "230500516351-ei4fl3bnee41v58al4k66h7513er1v89.apps.googleusercontent.com"
     }
 
     override fun onCreateView(
