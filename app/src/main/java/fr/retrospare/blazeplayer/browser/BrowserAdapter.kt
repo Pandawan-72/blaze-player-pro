@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
+import fr.retrospare.blazeplayer.utils.AudioArtworkHelper
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.CoroutineScope
@@ -71,11 +72,25 @@ class BrowserAdapter(
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit) {
             tvName.text = item.name
             tvFormat.text = item.extension.uppercase()
-            // Badge orange pour les fichiers audio
             val audioExts = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
-            if (item.extension.lowercase() in audioExts) {
+            val isAudio = item.extension.lowercase() in audioExts
+            if (isAudio) {
                 tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_orange)
                 tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.orange_accent))
+                // Artwork audio
+                android.os.AsyncTask.execute {
+                    val bmp = AudioArtworkHelper.getArtwork(itemView.context, item.path)
+                    (itemView.context as? android.app.Activity)?.runOnUiThread {
+                        if (bmp != null) {
+                            ivThumbnail.setImageBitmap(bmp)
+                            ivThumbnail.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                        } else {
+                            ivThumbnail.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_music_note_large)
+                            ivThumbnail.scaleType = android.widget.ImageView.ScaleType.CENTER
+                            ivThumbnail.setBackgroundColor(0xFF1A1D2E.toInt())
+                        }
+                    }
+                }
             } else {
                 tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_gray)
                 tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
