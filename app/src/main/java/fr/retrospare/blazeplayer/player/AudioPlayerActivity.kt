@@ -23,11 +23,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import fr.retrospare.blazeplayer.player.EqualizerManager
+import fr.retrospare.blazeplayer.player.EqualizerDialog
 
 @AndroidEntryPoint
 class AudioPlayerActivity : AppCompatActivity() {
 
     @Inject lateinit var mediaRepository: MediaRepository
+    private var eqManager: EqualizerManager? = null
     private lateinit var binding: ActivityAudioPlayerBinding
     private lateinit var player: ExoPlayer
     private lateinit var playlistAdapter: PlaylistAdapter
@@ -93,6 +96,12 @@ class AudioPlayerActivity : AppCompatActivity() {
             val intent = Intent(this, AudioBrowserActivity::class.java)
             pickAudio.launch(intent)
         }
+
+        binding.btnEq.setOnClickListener {
+            eqManager?.let { eq ->
+                EqualizerDialog(eq).show(supportFragmentManager, "eq")
+            }
+        }
     }
 
     private fun setupPlayer(path: String, name: String) {
@@ -101,6 +110,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         player.prepare()
         player.play()
         saveToHistory(path, name)
+        eqManager = EqualizerManager(player.audioSessionId, this).also { it.restoreLastSession() }
 
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -254,9 +264,15 @@ class AudioPlayerActivity : AppCompatActivity() {
         return "%d:%02d".format(s / 60, s % 60)
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun onBackPressed() {
+        moveTaskToBack(true)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
+        eqManager?.release()
         player.release()
     }
 }

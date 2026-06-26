@@ -23,6 +23,8 @@
 
     <!-- Wake lock lecture -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <!-- Notifications Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -87,6 +89,7 @@
             android:name=".player.AudioPlayerActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            android:enableOnBackInvokedCallback="false"
             android:theme="@style/Theme.BlazePlayer" />
 
         <activity
@@ -95,6 +98,11 @@
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.BlazePlayer.Fullscreen" />
+
+        <service
+            android:name=".player.AudioService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
     </application>
 
