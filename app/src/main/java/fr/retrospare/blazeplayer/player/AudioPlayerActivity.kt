@@ -45,7 +45,10 @@ class AudioPlayerActivity : AppCompatActivity() {
             val paths = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_PATHS) ?: return@registerForActivityResult
             val names = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_NAMES) ?: return@registerForActivityResult
             paths.forEachIndexed { i, path ->
-                playlistAdapter.addItem(PlaylistItem(path, names[i]))
+                if (::playlistAdapter.isInitialized) {
+                    playlistAdapter.addItem(PlaylistItem(path, names[i]))
+                    binding.recyclerPlaylist.scrollToPosition(playlistAdapter.itemCount - 1)
+                }
             }
         }
     }
@@ -73,7 +76,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         playlistAdapter = PlaylistAdapter(mutableListOf(initialItem)) { index ->
             currentIndex = index
             val item = playlistAdapter.getItems()[index]
-            playlistAdapter.setCurrentIndex(index)
+            playlistAdapter.setCurrentIndex(currentIndex)
             player.setMediaItem(ExoMediaItem.fromUri(Uri.parse(item.path)))
             player.prepare()
             player.play()
@@ -84,11 +87,6 @@ class AudioPlayerActivity : AppCompatActivity() {
         binding.recyclerPlaylist.apply {
             layoutManager = LinearLayoutManager(this@AudioPlayerActivity)
             adapter = playlistAdapter
-        }
-
-        binding.btnAddTrack.setOnClickListener {
-            val intent = Intent(this, AudioBrowserActivity::class.java)
-            pickAudio.launch(intent)
         }
 
         binding.btnAddFolder.setOnClickListener {
@@ -131,9 +129,21 @@ class AudioPlayerActivity : AppCompatActivity() {
     }
 
     private fun loadMetadata(path: String, fileName: String) {
+        val extImmediate = fileName.substringAfterLast('.', "")
+            .ifEmpty { path.substringAfterLast('.', "mp3") }
+            .uppercase()
+        runOnUiThread {
+            binding.tvCodec.visibility = android.view.View.VISIBLE
+            binding.tvCodec.text = extImmediate
+        }
+
         try {
             val retriever = MediaMetadataRetriever()
-            retriever.setDataSource(this, Uri.parse(path))
+            if (path.startsWith("content://")) {
+                retriever.setDataSource(this, Uri.parse(path))
+            } else {
+                retriever.setDataSource(path)
+            }
             val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
                 ?: fileName.substringBeforeLast(".")
             val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: "Artiste inconnu"
@@ -144,7 +154,9 @@ class AudioPlayerActivity : AppCompatActivity() {
             binding.tvTitle.text = title
             binding.tvArtist.text = artist
             binding.tvAlbum.text = album
+            binding.tvCodec.visibility = android.view.View.VISIBLE
             binding.tvCodec.text = ext
+            binding.tvBitrate.visibility = if (bitrate != null) android.view.View.VISIBLE else android.view.View.GONE
             binding.tvBitrate.text = if (bitrate != null) "${bitrate / 1000} kbps" else ""
 
             val art = retriever.embeddedPicture

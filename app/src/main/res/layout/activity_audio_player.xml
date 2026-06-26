@@ -135,6 +135,7 @@
                     android:id="@+id/tvCodec"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:visibility="gone"
                     android:background="@drawable/bg_badge_orange"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="2dp"
@@ -147,22 +148,13 @@
                     android:id="@+id/tvBitrate"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:visibility="gone"
                     android:background="@drawable/bg_badge_gray"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="2dp"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="11sp"
                     android:layout_marginEnd="6dp" />
-
-                <TextView
-                    android:id="@+id/tvSampleRate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_badge_gray"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:textColor="@color/on_surface_variant"
-                    android:textSize="11sp" />
 
             </LinearLayout>
 
@@ -285,22 +277,10 @@
                 android:letterSpacing="0.08" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAddTrack"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:text="+ Piste"
-                android:textSize="12sp"
-                android:textColor="#FF000000"
-                android:paddingHorizontal="14dp"
-                app:backgroundTint="@color/green_accent"
-                app:cornerRadius="20dp"
-                android:layout_marginEnd="6dp" />
-
-            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAddFolder"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
-                android:text="+ Dossier"
+                android:text="+ Piste / Dossier"
                 android:textSize="12sp"
                 android:textColor="#FF000000"
                 android:paddingHorizontal="14dp"
