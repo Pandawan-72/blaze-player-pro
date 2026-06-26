@@ -186,8 +186,14 @@ class PlayerActivity : AppCompatActivity() {
             }
             scheduleHideUI()
         }
-        binding.btnSubtitles.setOnClickListener { scheduleHideUI() }
-        binding.btnAudio.setOnClickListener { scheduleHideUI() }
+        binding.btnSubtitles.setOnClickListener {
+            scheduleHideUI()
+            showSubtitleSelector()
+        }
+        binding.btnAudio.setOnClickListener {
+            scheduleHideUI()
+            showAudioSelector()
+        }
         binding.btnRatio.setOnClickListener {
             viewModel.cycleAspectRatio(binding.playerView)
             scheduleHideUI()
@@ -366,6 +372,92 @@ class PlayerActivity : AppCompatActivity() {
         if (mediaPath.isNotEmpty() && pos > 0) {
             lifecycleScope.launch { mediaRepository.updateProgress(mediaPath, pos) }
         }
+    }
+
+    private fun showAudioSelector() {
+        val player = viewModel.player ?: return
+        val tracks = player.currentTracks
+        val audioGroups = mutableListOf<Pair<String, androidx.media3.common.Tracks.Group>>()
+
+        for (group in tracks.groups) {
+            if (group.type == androidx.media3.common.C.TRACK_TYPE_AUDIO) {
+                val format = group.getTrackFormat(0)
+                val label = format.language?.let { java.util.Locale(it).displayLanguage }
+                    ?: format.label
+                    ?: "Audio ${audioGroups.size + 1}"
+                audioGroups.add(label to group)
+            }
+        }
+
+        if (audioGroups.isEmpty()) {
+            android.widget.Toast.makeText(this, "Aucune piste audio disponible", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val items = audioGroups.map { (label, group) ->
+            "${if (group.isSelected) "✓  " else "    "}$label"
+        }.toTypedArray()
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Piste audio")
+            .setItems(items) { _, which ->
+                val group = audioGroups[which].second
+                player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                    .setOverrideForType(
+                        androidx.media3.common.TrackSelectionOverride(group.mediaTrackGroup, 0)
+                    ).build()
+            }
+            .show()
+    }
+
+    private fun showSubtitleSelector() {
+        val player = viewModel.player ?: return
+        val tracks = player.currentTracks
+        val subGroups = mutableListOf<Pair<String, androidx.media3.common.Tracks.Group>>()
+
+        for (group in tracks.groups) {
+            if (group.type == androidx.media3.common.C.TRACK_TYPE_TEXT) {
+                val format = group.getTrackFormat(0)
+                val label = format.language?.let { java.util.Locale(it).displayLanguage }
+                    ?: format.label
+                    ?: "Sous-titres ${subGroups.size + 1}"
+                subGroups.add(label to group)
+            }
+        }
+
+        val disabled = player.trackSelectionParameters.disabledTrackTypes
+            .contains(androidx.media3.common.C.TRACK_TYPE_TEXT)
+
+        val items = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+
+        items.add("${if (disabled) "✓  " else "    "}Désactivés")
+        actions.add {
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, true)
+                .build()
+        }
+
+        subGroups.forEach { (label, group) ->
+            items.add("${if (group.isSelected && !disabled) "✓  " else "    "}$label")
+            actions.add {
+                player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                    .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, false)
+                    .setOverrideForType(
+                        androidx.media3.common.TrackSelectionOverride(group.mediaTrackGroup, 0)
+                    ).build()
+            }
+        }
+
+        if (subGroups.isEmpty()) {
+            android.widget.Toast.makeText(this, "Aucun sous-titre disponible", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Sous-titres")
+            .setItems(items.toTypedArray()) { _, which -> actions[which].invoke() }
+            .show()
     }
 
     override fun onDestroy() {

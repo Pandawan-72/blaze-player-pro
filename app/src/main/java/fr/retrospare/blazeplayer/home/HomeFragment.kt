@@ -46,9 +46,11 @@ class HomeFragment : Fragment() {
         } catch (e: Exception) {
             binding.btnCast.visibility = android.view.View.GONE
         }
+        binding.btnSettings.setOnClickListener {
+            findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_settings)
+        }
         setupTabs()
         setupButtons()
-        setupBottomNav()
         observeViewModel()
     }
 
@@ -83,18 +85,6 @@ class HomeFragment : Fragment() {
         binding.heroCard.setOnClickListener { viewModel.lastPlayedItem.value?.let { PlayerRouter.open(requireContext(), it.path, it.name) } }
     }
 
-    private fun setupBottomNav() {
-        binding.bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> true
-                R.id.nav_language -> true
-                R.id.nav_subtitles -> true
-                R.id.nav_settings -> { findNavController().navigate(R.id.action_home_to_settings); true }
-                else -> false
-            }
-        }
-        binding.bottomNav.selectedItemId = R.id.nav_home
-    }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
