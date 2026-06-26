@@ -10,6 +10,10 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
+import fr.retrospare.blazeplayer.ui.ThumbnailUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class BrowserAdapter(
     private val onFolderClick: (MediaItem) -> Unit,
@@ -21,19 +25,16 @@ class BrowserAdapter(
         private const val TYPE_FILE = 1
     }
 
-    override fun getItemViewType(position: Int): Int {
-        return if (getItem(position).mimeType == "folder") TYPE_FOLDER else TYPE_FILE
-    }
+    override fun getItemViewType(position: Int): Int =
+        if (getItem(position).mimeType == "folder") TYPE_FOLDER else TYPE_FILE
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return if (viewType == TYPE_FOLDER) {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_folder, parent, false)
-            FolderViewHolder(view)
+            FolderViewHolder(LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_folder, parent, false))
         } else {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_media_file, parent, false)
-            FileViewHolder(view)
+            FileViewHolder(LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_media_file, parent, false))
         }
     }
 
@@ -48,7 +49,6 @@ class BrowserAdapter(
     class FolderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvName: TextView = view.findViewById(R.id.tvFolderName)
         private val tvCount: TextView = view.findViewById(R.id.tvFolderCount)
-
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit) {
             tvName.text = item.name
             tvCount.text = ""
@@ -63,18 +63,30 @@ class BrowserAdapter(
         private val tvDuration: TextView = view.findViewById(R.id.tvDuration)
         private val progressFill: View = view.findViewById(R.id.progressFill)
         private val btnMore: ImageView = view.findViewById(R.id.btnMore)
+        private val ivThumbnail: ImageView = view.findViewById(R.id.ivThumbnail)
+        private val ivPlayOverlay: ImageView = view.findViewById(R.id.ivPlayOverlay)
+        private val tvVideoCodec: TextView = view.findViewById(R.id.tvVideoCodec)
+        private val tvAudioCodec: TextView = view.findViewById(R.id.tvAudioCodec)
 
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit) {
             tvName.text = item.name
             tvFormat.text = item.extension.uppercase()
             tvDuration.text = item.formattedDuration
 
-            if (item.resolution != null) {
-                tvResolution.visibility = View.VISIBLE
-                tvResolution.text = item.resolution
-            } else {
-                tvResolution.visibility = View.GONE
-            }
+            // Résolution
+            tvResolution.visibility = if (item.resolution != null) View.VISIBLE else View.GONE
+            tvResolution.text = item.resolution ?: ""
+
+            // Codecs
+            if (!item.videoCodec.isNullOrEmpty()) {
+                tvVideoCodec.visibility = View.VISIBLE
+                tvVideoCodec.text = item.videoCodec
+            } else tvVideoCodec.visibility = View.GONE
+
+            if (!item.audioCodec.isNullOrEmpty()) {
+                tvAudioCodec.visibility = View.VISIBLE
+                tvAudioCodec.text = item.audioCodec
+            } else tvAudioCodec.visibility = View.GONE
 
             if (item.duration > 0 && item.lastPosition > 0) {
                 progressFill.visibility = View.VISIBLE
@@ -86,8 +98,24 @@ class BrowserAdapter(
                 progressFill.visibility = View.GONE
             }
 
+            // Reset thumbnail
+            ivThumbnail.setImageBitmap(null)
+            ivPlayOverlay.visibility = View.VISIBLE
+
+            // Charge le thumbnail si fichier local
+            if (!item.isNetwork && item.path.isNotEmpty()) {
+                CoroutineScope(Dispatchers.Main).launch {
+                    ThumbnailUtils.loadThumbnail(
+                        itemView.context, item.path, ivThumbnail
+                    )
+                    if (ivThumbnail.drawable != null) {
+                        ivPlayOverlay.visibility = View.GONE
+                    }
+                }
+            }
+
             itemView.setOnClickListener { onClick(item) }
-            btnMore.setOnClickListener { /* TODO menu contextuel */ }
+            btnMore.setOnClickListener { }
         }
     }
 

@@ -131,25 +131,30 @@
                 android:clipToOutline="true"
                 android:foreground="?attr/selectableItemBackground">
 
-                <View
+                <!-- THUMBNAIL -->
+                <ImageView
+                    android:id="@+id/ivHeroThumb"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:background="@color/surface_variant" />
+                    android:scaleType="centerCrop"
+                    android:background="@color/surface_variant"
+                    android:contentDescription="@null" />
 
-                <FrameLayout
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="center"
-                    android:background="@drawable/bg_play_button">
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center"
-                        android:layout_marginStart="3dp"
-                        android:src="@drawable/ic_play"
-                        android:contentDescription="Lecture" />
-                </FrameLayout>
+                <!-- LABEL DERNIER FICHIER LU -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|start"
+                    android:layout_margin="10dp"
+                    android:background="@drawable/bg_badge_gray"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="Dernier fichier lu"
+                    android:textColor="@color/on_background"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium" />
 
+                <!-- BADGE SOURCE -->
                 <TextView
                     android:id="@+id/tvHeroBadge"
                     android:layout_width="wrap_content"
@@ -159,12 +164,20 @@
                     android:background="@drawable/bg_badge_green"
                     android:paddingHorizontal="8dp"
                     android:paddingVertical="3dp"
-                    android:text="SMB"
+                    android:text="LOCAL"
                     android:textColor="@color/green_accent"
                     android:textSize="10sp"
                     android:fontFamily="sans-serif-medium" />
 
-                <!-- OVERLAY BAS DANS LA CARTE -->
+                <!-- BOUTON PLAY -->
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_play_circle"
+                    android:contentDescription="Lecture" />
+
+                <!-- OVERLAY BAS -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -172,8 +185,8 @@
                     android:background="@drawable/gradient_bottom"
                     android:orientation="vertical"
                     android:paddingHorizontal="14dp"
-                    android:paddingTop="32dp"
-                    android:paddingBottom="12dp">
+                    android:paddingTop="16dp"
+                    android:paddingBottom="10dp">
 
                     <TextView
                         android:id="@+id/tvHeroTitle"
@@ -181,11 +194,11 @@
                         android:layout_height="wrap_content"
                         android:text="Aucune lecture récente"
                         android:textColor="@color/on_background"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:fontFamily="sans-serif-medium"
                         android:ellipsize="end"
                         android:singleLine="true"
-                        android:layout_marginBottom="4dp" />
+                        android:layout_marginBottom="3dp" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -197,21 +210,62 @@
                             android:layout_height="wrap_content"
                             android:text=""
                             android:textColor="@color/on_surface_variant"
-                            android:textSize="11sp" />
+                            android:textSize="11sp"
+                            android:layout_marginEnd="6dp" />
                         <TextView
                             android:id="@+id/tvHeroResolution"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_badge_green"
+                            android:paddingHorizontal="5dp"
+                            android:paddingVertical="1dp"
+                            android:text=""
+                            android:textColor="@color/green_accent"
+                            android:textSize="10sp"
+                            android:fontFamily="sans-serif-medium"
+                            android:layout_marginEnd="4dp"
+                            android:visibility="gone" />
+                        <TextView
+                            android:id="@+id/tvHeroFormat"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_badge_gray"
+                            android:paddingHorizontal="5dp"
+                            android:paddingVertical="1dp"
                             android:text=""
                             android:textColor="@color/on_surface_variant"
-                            android:textSize="11sp" />
+                            android:textSize="10sp"
+                            android:layout_marginEnd="4dp"
+                            android:visibility="gone" />
+                        <TextView
+                            android:id="@+id/tvHeroVideoCodec"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_badge_blue"
+                            android:paddingHorizontal="5dp"
+                            android:paddingVertical="1dp"
+                            android:text=""
+                            android:textColor="@color/blue_accent"
+                            android:textSize="10sp"
+                            android:layout_marginEnd="4dp"
+                            android:visibility="gone" />
+                        <TextView
+                            android:id="@+id/tvHeroAudioCodec"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_badge_gray"
+                            android:paddingHorizontal="5dp"
+                            android:paddingVertical="1dp"
+                            android:text=""
+                            android:textColor="@color/on_surface_variant"
+                            android:textSize="10sp"
+                            android:visibility="gone" />
                     </LinearLayout>
 
                     <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="2dp"
-                        android:layout_marginTop="6dp">
+                        android:layout_marginTop="5dp">
                         <View
                             android:id="@+id/progressBg"
                             android:layout_width="match_parent"

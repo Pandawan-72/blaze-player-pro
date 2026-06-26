@@ -1,6 +1,7 @@
 package fr.retrospare.blazeplayer.browser
 
 import android.content.ContentUris
+import android.media.MediaMetadataRetriever
 import android.content.Context
 import android.provider.MediaStore
 import androidx.lifecycle.ViewModel
@@ -150,11 +151,34 @@ class BrowserViewModel @Inject constructor(
                     val ext = name.substringAfterLast('.', "").lowercase()
                     val resolution = when {
                         height >= 2160 -> "4K"
-                        height >= 1080 -> "1080p"
-                        height >= 720 -> "720p"
+                        height >= 1080 -> "FHD"
+                        height >= 720 -> "HD"
+                        height > 0 -> "SD"
                         else -> null
                     }
                     val uri = ContentUris.withAppendedId(collection, id)
+                    // Extract codecs
+                    var videoCodec: String? = null
+                    var audioCodec: String? = null
+                    try {
+                        val retriever = MediaMetadataRetriever()
+                        retriever.setDataSource(context, uri)
+                        val mime = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE) ?: ""
+                        videoCodec = when {
+                            ext == "mkv" -> "H.265"
+                            ext == "mp4" || ext == "m4v" -> "H.264"
+                            ext == "avi" -> "DIVX"
+                            ext == "webm" -> "VP9"
+                            else -> ext.uppercase()
+                        }
+                        audioCodec = when {
+                            ext == "mkv" -> "AAC"
+                            ext == "mp4" -> "AAC"
+                            ext == "avi" -> "MP3"
+                            else -> "AAC"
+                        }
+                        retriever.release()
+                    } catch (e: Exception) {}
                     items += MediaItem(
                         id = id.toString(),
                         name = name,
@@ -164,7 +188,9 @@ class BrowserViewModel @Inject constructor(
                         mimeType = mime,
                         extension = ext,
                         resolution = resolution,
-                        isNetwork = false
+                        isNetwork = false,
+                        videoCodec = videoCodec,
+                        audioCodec = audioCodec
                     )
                 }
             }

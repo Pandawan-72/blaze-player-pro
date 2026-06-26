@@ -12,7 +12,9 @@ data class MediaItem(
     val networkShareId: String? = null,
     val resolution: String? = null,
     val extension: String = "",
-    val mimeType: String = ""
+    val mimeType: String = "",
+    val videoCodec: String? = null,
+    val audioCodec: String? = null
 ) {
     val formattedDuration: String
         get() {

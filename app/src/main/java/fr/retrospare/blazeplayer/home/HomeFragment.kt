@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -17,6 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
+import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -26,10 +29,7 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -68,15 +68,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupButtons() {
-        binding.btnBrowseNetwork.setOnClickListener {
-            findNavController().navigate(R.id.action_home_to_network)
-        }
-        binding.btnBrowseLocal.setOnClickListener {
-            findNavController().navigate(R.id.action_home_to_browser)
-        }
-        binding.heroCard.setOnClickListener {
-            viewModel.lastPlayedItem.value?.let { item -> openPlayer(item) }
-        }
+        binding.btnBrowseNetwork.setOnClickListener { findNavController().navigate(R.id.action_home_to_network) }
+        binding.btnBrowseLocal.setOnClickListener { findNavController().navigate(R.id.action_home_to_browser) }
+        binding.heroCard.setOnClickListener { viewModel.lastPlayedItem.value?.let { openPlayer(it) } }
     }
 
     private fun setupBottomNav() {
@@ -85,10 +79,7 @@ class HomeFragment : Fragment() {
                 R.id.nav_home -> true
                 R.id.nav_language -> true
                 R.id.nav_subtitles -> true
-                R.id.nav_settings -> {
-                    findNavController().navigate(R.id.action_home_to_settings)
-                    true
-                }
+                R.id.nav_settings -> { findNavController().navigate(R.id.action_home_to_settings); true }
                 else -> false
             }
         }
@@ -98,15 +89,9 @@ class HomeFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    viewModel.lastPlayedItem.collect { updateHeroCard(it) }
-                }
-                launch {
-                    viewModel.recentNetworkItems.collect { updateNetworkList(it) }
-                }
-                launch {
-                    viewModel.recentLocalItems.collect { updateLocalList(it) }
-                }
+                launch { viewModel.lastPlayedItem.collect { updateHeroCard(it) } }
+                launch { viewModel.recentNetworkItems.collect { updateList(binding.listNetwork, it) } }
+                launch { viewModel.recentLocalItems.collect { updateList(binding.listLocal, it) } }
                 launch {
                     viewModel.showNetwork.collect { show ->
                         binding.sectionNetwork.visibility = if (show) View.VISIBLE else View.GONE
@@ -116,7 +101,7 @@ class HomeFragment : Fragment() {
                 launch {
                     viewModel.showLocal.collect { show ->
                         binding.sectionLocal.visibility = if (show) View.VISIBLE else View.GONE
-                        binding.divider.visibility = if (show && viewModel.showNetwork.value) View.VISIBLE else View.GONE
+                        binding.divider.visibility = if (viewModel.showNetwork.value && show) View.VISIBLE else View.GONE
                     }
                 }
             }
@@ -128,40 +113,73 @@ class HomeFragment : Fragment() {
             binding.tvHeroTitle.text = "Aucune lecture récente"
             binding.tvHeroDuration.text = ""
             binding.tvHeroResolution.text = ""
+            binding.tvHeroVideoCodec.visibility = View.GONE
+            binding.tvHeroAudioCodec.visibility = View.GONE
             return
         }
         binding.tvHeroTitle.text = item.name
         binding.tvHeroDuration.text = item.formattedDuration
-        binding.tvHeroResolution.text = item.resolution ?: ""
         binding.tvHeroBadge.text = if (item.isNetwork) "SMB" else "LOCAL"
-    }
 
-    private fun updateNetworkList(items: List<MediaItem>) {
-        binding.listNetwork.removeAllViews()
-        items.forEach { item ->
-            val v = layoutInflater.inflate(R.layout.item_media_file, binding.listNetwork, false)
-            bindMediaItem(v, item)
-            binding.listNetwork.addView(v)
+        // Résolution
+        val res = item.resolution
+        binding.tvHeroResolution.text = res ?: ""
+        binding.tvHeroResolution.visibility = if (!res.isNullOrEmpty()) View.VISIBLE else View.GONE
+
+        // Conteneur
+        val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }
+        binding.tvHeroFormat.text = ext.uppercase()
+        binding.tvHeroFormat.visibility = if (ext.isNotEmpty()) View.VISIBLE else View.GONE
+
+        // Codec vidéo
+        binding.tvHeroVideoCodec.text = item.videoCodec ?: ""
+        binding.tvHeroVideoCodec.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+
+        // Codec audio
+        binding.tvHeroAudioCodec.text = item.audioCodec ?: ""
+        binding.tvHeroAudioCodec.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+
+        if (!item.isNetwork && item.path.isNotEmpty()) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                ThumbnailUtils.loadThumbnail(requireContext(), item.path, binding.ivHeroThumb)
+            }
         }
     }
 
-    private fun updateLocalList(items: List<MediaItem>) {
-        binding.listLocal.removeAllViews()
+    private fun updateList(container: LinearLayout, items: List<MediaItem>) {
+        container.removeAllViews()
         items.forEach { item ->
-            val v = layoutInflater.inflate(R.layout.item_media_file, binding.listLocal, false)
-            bindMediaItem(v, item)
-            binding.listLocal.addView(v)
-        }
-    }
+            val v = layoutInflater.inflate(R.layout.item_media_file, container, false)
 
-    private fun bindMediaItem(view: View, item: MediaItem) {
-        view.findViewById<TextView>(R.id.tvFileName).text = item.name
-        view.findViewById<TextView>(R.id.tvFormat).text = item.extension.uppercase()
-        view.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
-        val tvRes = view.findViewById<TextView>(R.id.tvResolution)
-        tvRes.text = item.resolution ?: ""
-        tvRes.visibility = if (item.resolution != null) View.VISIBLE else View.GONE
-        view.setOnClickListener { openPlayer(item) }
+            v.findViewById<TextView>(R.id.tvFileName).text = item.name
+            v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
+
+            val tvFormat = v.findViewById<TextView>(R.id.tvFormat)
+            val tvRes = v.findViewById<TextView>(R.id.tvResolution)
+            val tvVideo = v.findViewById<TextView>(R.id.tvVideoCodec)
+            val tvAudio = v.findViewById<TextView>(R.id.tvAudioCodec)
+            val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
+
+            tvFormat.text = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }.uppercase()
+
+            tvRes.text = item.resolution ?: ""
+            tvRes.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
+
+            tvVideo.text = item.videoCodec ?: ""
+            tvVideo.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+
+            tvAudio.text = item.audioCodec ?: ""
+            tvAudio.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+
+            if (!item.isNetwork && item.path.isNotEmpty()) {
+                viewLifecycleOwner.lifecycleScope.launch {
+                    ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
+                }
+            }
+
+            v.setOnClickListener { openPlayer(item) }
+            container.addView(v)
+        }
     }
 
     private fun openPlayer(item: MediaItem) {
