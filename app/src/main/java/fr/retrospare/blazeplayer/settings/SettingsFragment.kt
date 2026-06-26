@@ -315,7 +315,7 @@ class SettingsFragment : Fragment() {
     private fun showLegalNotice() {
         android.app.AlertDialog.Builder(requireContext())
             .setTitle("Mentions légales")
-            .setMessage("Blaze Player\nVersion 1.0.0\n\n© 2024 Retro-Spare\nTous droits réservés.\n\nDéveloppé par Retro-Spare, Le Mans, France.")
+            .setMessage("Blaze Player\nVersion 1.0.0\n\n© 2024 Retro-Spare\nTous droits réservés.\n\nDéveloppé par Retro-Spare, Le Mans, France.\n\nCe logiciel utilise libVLC (VideoLAN) sous licence LGPL v2.1.\nhttps://www.videolan.org")
             .setPositiveButton("OK", null)
             .show()
     }
