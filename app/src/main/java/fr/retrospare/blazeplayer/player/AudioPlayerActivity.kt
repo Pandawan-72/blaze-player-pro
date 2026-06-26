@@ -10,7 +10,6 @@ import android.view.WindowManager
 import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import android.app.Activity
-import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.MediaItem as ExoMediaItem
 import androidx.media3.common.Player
@@ -66,9 +65,6 @@ class AudioPlayerActivity : AppCompatActivity() {
         val path = intent.getStringExtra("mediaPath") ?: return finish()
         val name = intent.getStringExtra("mediaName") ?: ""
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() { moveTaskToBack(true) }
-        })
         setupPlaylist(path, name)
         setupPlayer(path, name)
         loadMetadata(path, name)
@@ -185,7 +181,7 @@ class AudioPlayerActivity : AppCompatActivity() {
     }
 
     private fun setupControls() {
-        binding.btnBack.setOnClickListener { moveTaskToBack(true) }
+        binding.btnBack.setOnClickListener { finish() }
         binding.btnPlayPause.setOnClickListener {
             if (player.isPlaying) player.pause() else player.play()
         }
