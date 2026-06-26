@@ -71,6 +71,14 @@ class BrowserFragment : Fragment() {
             binding.tvSortLabel.text = viewModel.sortLabel()
         }
         binding.btnToggleView.setOnClickListener { }
+        binding.btnToggleAudio.setOnClickListener {
+            viewModel.toggleShowAudio()
+            val active = viewModel.showAudio.value
+            binding.btnToggleAudio.setColorFilter(
+                if (active) resources.getColor(R.color.green_accent, null)
+                else resources.getColor(R.color.on_surface_variant, null)
+            )
+        }
         binding.btnSearch.setOnClickListener { }
     }
 

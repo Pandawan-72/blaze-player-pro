@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <!-- Tête -->
+    <path android:fillColor="#3DD68C" android:pathData="M6,1h4v4H6z"/>
+    <!-- Corps -->
+    <path android:fillColor="#3DD68C" android:pathData="M5,5h6v4H5z"/>
+    <!-- Bras gauche levé -->
+    <path android:fillColor="#3DD68C" android:pathData="M3,4h2v2H3z"/>
+    <!-- Bras droit bas -->
+    <path android:fillColor="#3DD68C" android:pathData="M11,6h2v2h-2z"/>
+    <!-- Jambe gauche -->
+    <path android:fillColor="#3DD68C" android:pathData="M5,9h2v4H5z"/>
+    <!-- Jambe droite écartée -->
+    <path android:fillColor="#3DD68C" android:pathData="M8,9h2v3H8z"/>
+    <path android:fillColor="#3DD68C" android:pathData="M10,11h2v2h-2z"/>
+    <!-- Yeux -->
+    <path android:fillColor="#0F1117" android:pathData="M7,2h1v1H7z"/>
+    <path android:fillColor="#0F1117" android:pathData="M9,2h1v1H9z"/>
+</vector>

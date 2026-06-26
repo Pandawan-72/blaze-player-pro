@@ -45,6 +45,14 @@ class BrowserViewModel @Inject constructor(
     private val _sortMode = MutableStateFlow(SortMode.NAME_ASC)
     val sortMode: StateFlow<SortMode> = _sortMode.asStateFlow()
 
+    private val _showAudio = MutableStateFlow(false)
+    val showAudio: StateFlow<Boolean> = _showAudio.asStateFlow()
+
+    fun toggleShowAudio() {
+        _showAudio.value = !_showAudio.value
+        loadLocalFiles(_currentPath.value)
+    }
+
     enum class SortMode { NAME_ASC, NAME_DESC, DATE_DESC, SIZE_DESC }
 
     fun loadLocalFiles(path: String = "") {
@@ -52,7 +60,9 @@ class BrowserViewModel @Inject constructor(
             _state.value = BrowserState.Loading
             _currentPath.value = path
             try {
-                val items = scanLocalFiles(path)
+                val videoItems = scanLocalFiles(path)
+                val audioItems = if (_showAudio.value) scanLocalAudio(path) else emptyList()
+                val items = videoItems + audioItems
                 _state.value = BrowserState.Success(applySortMode(items))
             } catch (e: Exception) {
                 _state.value = BrowserState.Error(e.message ?: "Erreur de lecture")
@@ -103,6 +113,53 @@ class BrowserViewModel @Inject constructor(
         }
         return folders.sortedBy { it.name.lowercase() } + sortedFiles
     }
+
+    private suspend fun scanLocalAudio(path: String): List<MediaItem> =
+        withContext(Dispatchers.IO) {
+            val items = mutableListOf<MediaItem>()
+            val collection = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            val projection = arrayOf(
+                android.provider.MediaStore.Audio.Media._ID,
+                android.provider.MediaStore.Audio.Media.DISPLAY_NAME,
+                android.provider.MediaStore.Audio.Media.SIZE,
+                android.provider.MediaStore.Audio.Media.DURATION,
+                android.provider.MediaStore.Audio.Media.MIME_TYPE,
+                android.provider.MediaStore.Audio.Media.ARTIST,
+                android.provider.MediaStore.Audio.Media.ALBUM,
+                android.provider.MediaStore.Audio.Media.TITLE
+            )
+            context.contentResolver.query(
+                collection, projection, null, null,
+                android.provider.MediaStore.Audio.Media.DISPLAY_NAME
+            )?.use { cursor ->
+                val idCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
+                val nameCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DISPLAY_NAME)
+                val sizeCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.SIZE)
+                val durationCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DURATION)
+                val mimeCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.MIME_TYPE)
+
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idCol)
+                    val name = cursor.getString(nameCol) ?: continue
+                    val size = cursor.getLong(sizeCol)
+                    val duration = cursor.getLong(durationCol) / 1000
+                    val mime = cursor.getString(mimeCol) ?: "audio/*"
+                    val ext = name.substringAfterLast('.', "").lowercase()
+                    val uri = android.content.ContentUris.withAppendedId(collection, id)
+                    items += MediaItem(
+                        id = id.toString(),
+                        name = name,
+                        path = uri.toString(),
+                        size = size,
+                        duration = duration,
+                        mimeType = mime,
+                        extension = ext,
+                        isNetwork = false
+                    )
+                }
+            }
+            items
+        }
 
     private suspend fun scanLocalFiles(path: String): List<MediaItem> =
         withContext(Dispatchers.IO) {

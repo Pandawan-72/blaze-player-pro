@@ -100,10 +100,15 @@ class HomeViewModel @Inject constructor(
         val ext = item.extension.ifEmpty {
             item.name.substringAfterLast('.', "").lowercase()
         }
-        return item.copy(
-            videoCodec = videoCodecFromExt(ext),
-            audioCodec = audioCodecFromExt(ext)
-        )
+        val isAudio = ext in setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
+        return if (isAudio) {
+            item.copy(videoCodec = null, audioCodec = null)
+        } else {
+            item.copy(
+                videoCodec = videoCodecFromExt(ext),
+                audioCodec = audioCodecFromExt(ext)
+            )
+        }
     }
 
     private fun videoCodecFromExt(ext: String) = when (ext.lowercase()) {

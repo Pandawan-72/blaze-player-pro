@@ -52,4 +52,6 @@
     <color name="error_color">#E05252</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="orange_accent">#F0A500</color>
+    <color name="orange_badge_bg">#1AF0A500</color>
 </resources>

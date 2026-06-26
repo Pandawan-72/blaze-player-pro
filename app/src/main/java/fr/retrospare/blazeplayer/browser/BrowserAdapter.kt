@@ -71,6 +71,15 @@ class BrowserAdapter(
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit) {
             tvName.text = item.name
             tvFormat.text = item.extension.uppercase()
+            // Badge orange pour les fichiers audio
+            val audioExts = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
+            if (item.extension.lowercase() in audioExts) {
+                tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_orange)
+                tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.orange_accent))
+            } else {
+                tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_gray)
+                tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
+            }
             tvDuration.text = item.formattedDuration
 
             // Résolution
