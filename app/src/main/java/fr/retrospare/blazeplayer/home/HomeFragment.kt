@@ -46,6 +46,13 @@ class HomeFragment : Fragment() {
         } catch (e: Exception) {
             binding.btnCast.visibility = android.view.View.GONE
         }
+        binding.btnSearch.setOnClickListener {
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(android.R.id.content, SearchFragment())
+                .addToBackStack(null)
+                .commit()
+        }
+
         binding.btnSettings.setOnClickListener {
             findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_settings)
         }

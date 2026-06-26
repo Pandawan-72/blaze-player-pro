@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class BrowserAdapter(
+
     private val onFolderClick: (MediaItem) -> Unit,
     private val onFileClick: (MediaItem) -> Unit
 ) : ListAdapter<MediaItem, RecyclerView.ViewHolder>(DiffCallback()) {
