@@ -326,6 +326,35 @@
 
         <!-- BOUTON DÉCONNEXION -->
         <LinearLayout
+            android:id="@+id/btnClearHistory"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_surface_card"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_history"
+                android:tint="@color/on_surface_variant"
+                android:layout_marginEnd="16dp"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Effacer l'historique"
+                android:textColor="@color/on_surface"
+                android:textSize="15sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/btnLogout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

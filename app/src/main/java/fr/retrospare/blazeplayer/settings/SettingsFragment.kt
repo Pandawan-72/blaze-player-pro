@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import dagger.hilt.android.AndroidEntryPoint
@@ -33,6 +35,18 @@ class SettingsFragment : Fragment() {
 
     private fun setupButtons() {
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
+
+        binding.btnClearHistory.setOnClickListener {
+            android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Effacer l'historique")
+                .setMessage("Supprimer tous les fichiers récemment lus ?")
+                .setPositiveButton("Effacer") { _, _ ->
+                    viewModel.clearAllData()
+                    android.widget.Toast.makeText(requireContext(), "Historique effacé", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Annuler", null)
+                .show()
+        }
 
         binding.btnLogout.setOnClickListener {
             android.app.AlertDialog.Builder(requireContext())
