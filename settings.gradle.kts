@@ -1,5 +1,7 @@
 pluginManagement {
     repositories {
+        maven { url = uri("https://jitpack.io") }
+        maven { url = uri("https://videolan.github.io/vlc-android/") }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")

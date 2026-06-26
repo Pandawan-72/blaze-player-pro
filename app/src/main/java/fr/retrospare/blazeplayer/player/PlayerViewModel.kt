@@ -4,13 +4,16 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
+@UnstableApi
 @HiltViewModel
 class PlayerViewModel @Inject constructor() : ViewModel() {
 
@@ -28,7 +31,29 @@ class PlayerViewModel @Inject constructor() : ViewModel() {
 
     fun initPlayer(context: Context) {
         if (player != null) return
-        player = ExoPlayer.Builder(context).build()
+
+        // RenderersFactory avec FFmpeg pour les codecs non supportés nativement
+        val renderersFactory = DefaultRenderersFactory(context).apply {
+            setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+        }
+
+        // TrackSelector optimisé
+        val trackSelector = DefaultTrackSelector(context).apply {
+            setParameters(
+                buildUponParameters()
+                    .setPreferredAudioLanguage("fr")
+                    .setAllowAudioMixedMimeTypeAdaptiveness(true)
+                    .setAllowVideoMixedMimeTypeAdaptiveness(true)
+            )
+        }
+
+        player = ExoPlayer.Builder(context)
+            .setRenderersFactory(renderersFactory)
+            .setTrackSelector(trackSelector)
+            .build().apply {
+                // Active le décodage matériel en priorité
+                videoScalingMode = androidx.media3.common.C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+            }
     }
 
     fun playUri(uri: String) {

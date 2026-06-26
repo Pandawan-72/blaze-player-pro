@@ -16,6 +16,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.util.UnstableApi
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem

@@ -19,6 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
+import fr.retrospare.blazeplayer.player.PlayerRouter
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.launch
 
@@ -70,7 +71,7 @@ class HomeFragment : Fragment() {
     private fun setupButtons() {
         binding.btnBrowseNetwork.setOnClickListener { findNavController().navigate(R.id.action_home_to_network) }
         binding.btnBrowseLocal.setOnClickListener { findNavController().navigate(R.id.action_home_to_browser) }
-        binding.heroCard.setOnClickListener { viewModel.lastPlayedItem.value?.let { openPlayer(it) } }
+        binding.heroCard.setOnClickListener { viewModel.lastPlayedItem.value?.let { PlayerRouter.open(requireContext(), it.path, it.name) } }
     }
 
     private fun setupBottomNav() {
@@ -115,27 +116,24 @@ class HomeFragment : Fragment() {
             binding.tvHeroResolution.text = ""
             binding.tvHeroVideoCodec.visibility = View.GONE
             binding.tvHeroAudioCodec.visibility = View.GONE
+            binding.tvHeroFormat.visibility = View.GONE
             return
         }
         binding.tvHeroTitle.text = item.name
         binding.tvHeroDuration.text = item.formattedDuration
         binding.tvHeroBadge.text = if (item.isNetwork) "SMB" else "LOCAL"
 
-        // Résolution
-        val res = item.resolution
-        binding.tvHeroResolution.text = res ?: ""
-        binding.tvHeroResolution.visibility = if (!res.isNullOrEmpty()) View.VISIBLE else View.GONE
-
-        // Conteneur
         val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }
+
+        binding.tvHeroResolution.text = item.resolution ?: ""
+        binding.tvHeroResolution.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
+
         binding.tvHeroFormat.text = ext.uppercase()
         binding.tvHeroFormat.visibility = if (ext.isNotEmpty()) View.VISIBLE else View.GONE
 
-        // Codec vidéo
         binding.tvHeroVideoCodec.text = item.videoCodec ?: ""
         binding.tvHeroVideoCodec.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
 
-        // Codec audio
         binding.tvHeroAudioCodec.text = item.audioCodec ?: ""
         binding.tvHeroAudioCodec.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
 
@@ -150,6 +148,7 @@ class HomeFragment : Fragment() {
         container.removeAllViews()
         items.forEach { item ->
             val v = layoutInflater.inflate(R.layout.item_media_file, container, false)
+            val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }
 
             v.findViewById<TextView>(R.id.tvFileName).text = item.name
             v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
@@ -160,16 +159,13 @@ class HomeFragment : Fragment() {
             val tvAudio = v.findViewById<TextView>(R.id.tvAudioCodec)
             val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
 
-            tvFormat.text = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }.uppercase()
-
-            tvRes.text = item.resolution ?: ""
-            tvRes.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
-
+            tvFormat.text = ext.uppercase()
             tvVideo.text = item.videoCodec ?: ""
             tvVideo.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-
             tvAudio.text = item.audioCodec ?: ""
             tvAudio.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+            tvRes.text = item.resolution ?: ""
+            tvRes.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
 
             if (!item.isNetwork && item.path.isNotEmpty()) {
                 viewLifecycleOwner.lifecycleScope.launch {
@@ -177,17 +173,9 @@ class HomeFragment : Fragment() {
                 }
             }
 
-            v.setOnClickListener { openPlayer(item) }
+            v.setOnClickListener { PlayerRouter.open(requireContext(), item.path, item.name) }
             container.addView(v)
         }
-    }
-
-    private fun openPlayer(item: MediaItem) {
-        val bundle = Bundle().apply {
-            putString("mediaPath", item.path)
-            putString("mediaName", item.name)
-        }
-        findNavController().navigate(R.id.action_home_to_player, bundle)
     }
 
     override fun onDestroyView() {

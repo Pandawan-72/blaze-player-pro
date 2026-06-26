@@ -88,6 +88,8 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
     implementation(libs.media3.cast)
+    // LibVLC pour codecs legacy (AVI, XVID, DIVX, FLAC, DTS, etc.)
+    implementation("org.videolan.android:libvlc-all:4.0.0-eap14")
 
     // Hilt
     implementation(libs.hilt.android)

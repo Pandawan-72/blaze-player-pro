@@ -11,12 +11,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentBrowserBinding
+import fr.retrospare.blazeplayer.player.PlayerRouter
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -25,14 +25,10 @@ class BrowserFragment : Fragment() {
     private val viewModel: BrowserViewModel by viewModels()
     private var _binding: FragmentBrowserBinding? = null
     private val binding get() = _binding!!
-
     private lateinit var adapter: BrowserAdapter
     private val breadcrumbParts = mutableListOf<String>()
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentBrowserBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -53,11 +49,7 @@ class BrowserFragment : Fragment() {
                 viewModel.loadLocalFiles(item.path)
             },
             onFileClick = { item ->
-                val bundle = Bundle().apply {
-                    putString("mediaPath", item.path)
-                    putString("mediaName", item.name)
-                }
-                findNavController().navigate(R.id.action_browser_to_player, bundle)
+                PlayerRouter.open(requireContext(), item.path, item.name)
             }
         )
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -69,26 +61,17 @@ class BrowserFragment : Fragment() {
             if (breadcrumbParts.isNotEmpty()) {
                 breadcrumbParts.removeLast()
                 updateBreadcrumb()
-                viewModel.loadLocalFiles(
-                    if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last()
-                )
+                viewModel.loadLocalFiles(if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last())
             } else {
                 findNavController().popBackStack()
             }
         }
-
         binding.btnSort.setOnClickListener {
             viewModel.cycleSortMode()
             binding.tvSortLabel.text = viewModel.sortLabel()
         }
-
-        binding.btnToggleView.setOnClickListener {
-            // TODO: toggle grid/list
-        }
-
-        binding.btnSearch.setOnClickListener {
-            // TODO: search
-        }
+        binding.btnToggleView.setOnClickListener { }
+        binding.btnSearch.setOnClickListener { }
     }
 
     private fun observeViewModel() {
@@ -97,9 +80,7 @@ class BrowserFragment : Fragment() {
                 launch {
                     viewModel.state.collect { state ->
                         when (state) {
-                            is BrowserViewModel.BrowserState.Loading -> {
-                                binding.recyclerView.visibility = View.GONE
-                            }
+                            is BrowserViewModel.BrowserState.Loading -> binding.recyclerView.visibility = View.GONE
                             is BrowserViewModel.BrowserState.Success -> {
                                 binding.recyclerView.visibility = View.VISIBLE
                                 adapter.submitList(state.items)
@@ -107,18 +88,14 @@ class BrowserFragment : Fragment() {
                                 val files = state.items.count { it.mimeType != "folder" }
                                 binding.tvFileCount.text = "$folders dossiers · $files fichiers"
                             }
-                            is BrowserViewModel.BrowserState.Error -> {
-                                binding.recyclerView.visibility = View.VISIBLE
-                            }
+                            is BrowserViewModel.BrowserState.Error -> binding.recyclerView.visibility = View.VISIBLE
                         }
                     }
                 }
-
                 launch {
                     viewModel.currentPath.collect { path ->
                         binding.tvPath.text = path.ifEmpty { "/stockage/interne" }
-                        binding.tvTitle.text = if (breadcrumbParts.isEmpty()) "Vidéos"
-                        else breadcrumbParts.last()
+                        binding.tvTitle.text = if (breadcrumbParts.isEmpty()) "Vidéos" else breadcrumbParts.last()
                     }
                 }
             }
@@ -133,25 +110,17 @@ class BrowserFragment : Fragment() {
                 text = part
                 textSize = 12f
                 val isLast = index == allParts.lastIndex
-                setTextColor(
-                    if (isLast) resources.getColor(R.color.green_accent, null)
-                    else resources.getColor(R.color.on_surface_variant, null)
-                )
+                setTextColor(resources.getColor(if (isLast) R.color.green_accent else R.color.on_surface_variant, null))
                 setPadding(8, 6, 8, 6)
                 setOnClickListener {
                     if (!isLast) {
-                        repeat(allParts.size - 1 - index) {
-                            if (breadcrumbParts.isNotEmpty()) breadcrumbParts.removeLast()
-                        }
+                        repeat(allParts.size - 1 - index) { if (breadcrumbParts.isNotEmpty()) breadcrumbParts.removeLast() }
                         updateBreadcrumb()
-                        viewModel.loadLocalFiles(
-                            if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last()
-                        )
+                        viewModel.loadLocalFiles(if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last())
                     }
                 }
             }
             binding.breadcrumbContainer.addView(tv)
-
             if (index < allParts.lastIndex) {
                 val sep = TextView(requireContext()).apply {
                     text = "›"
