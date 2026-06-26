@@ -89,7 +89,8 @@
             android:name=".player.AudioPlayerActivity"
             android:exported="false"
             android:screenOrientation="portrait"
-            android:enableOnBackInvokedCallback="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="fr.retrospare.blazeplayer.audio"
             android:theme="@style/Theme.BlazePlayer" />
 
         <activity
@@ -100,9 +101,13 @@
             android:theme="@style/Theme.BlazePlayer.Fullscreen" />
 
         <service
-            android:name=".player.AudioService"
+            android:name=".player.AudioPlaybackService"
             android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService"/>
+            </intent-filter>
+        </service>
 
     </application>
 
