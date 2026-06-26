@@ -180,6 +180,33 @@ class HomeFragment : Fragment() {
             }
 
             v.setOnClickListener { PlayerRouter.open(requireContext(), item.path, item.name) }
+
+            val btnMore = v.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnMore)
+            btnMore.setOnClickListener { anchor ->
+                val popup = android.widget.PopupMenu(requireContext(), anchor)
+                popup.menu.add(0, 1, 0, "Lire")
+                popup.menu.add(0, 2, 1, "Informations")
+                popup.menu.add(0, 3, 2, "Retirer de l'historique")
+                popup.setOnMenuItemClickListener { mi ->
+                    when (mi.itemId) {
+                        1 -> { PlayerRouter.open(requireContext(), item.path, item.name); true }
+                        2 -> {
+                            val sz = android.text.format.Formatter.formatShortFileSize(requireContext(), item.size)
+                            val dur = item.duration
+                            val ds = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else "N/A"
+                            android.app.AlertDialog.Builder(requireContext())
+                                .setTitle(item.name)
+                                .setMessage("Taille : $sz  |  Duree : $ds  |  Format : ${item.extension.uppercase()}")
+                                .setPositiveButton("OK", null)
+                                .show()
+                            true
+                        }
+                        3 -> { viewModel.removeFromHistory(item); true }
+                        else -> false
+                    }
+                }
+                popup.show()
+            }
             container.addView(v)
         }
     }

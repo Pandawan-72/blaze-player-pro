@@ -151,4 +151,10 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    fun removeFromHistory(item: fr.retrospare.blazeplayer.data.model.MediaItem) {
+        viewModelScope.launch {
+            mediaRepository.removeRecentItem(item.id)
+        }
+    }
 }

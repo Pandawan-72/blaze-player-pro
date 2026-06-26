@@ -17,9 +17,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class BrowserAdapter(
-
     private val onFolderClick: (MediaItem) -> Unit,
-    private val onFileClick: (MediaItem) -> Unit
+    private val onFileClick: (MediaItem) -> Unit,
+    val onRemoveFromHistory: ((MediaItem) -> Unit)? = null
 ) : ListAdapter<MediaItem, RecyclerView.ViewHolder>(DiffCallback()) {
 
     companion object {
@@ -44,14 +44,14 @@ class BrowserAdapter(
         val item = getItem(position)
         when (holder) {
             is FolderViewHolder -> holder.bind(item, onFolderClick)
-            is FileViewHolder -> holder.bind(item, onFileClick)
+            is FileViewHolder -> holder.bind(item, onFileClick, onRemoveFromHistory)
         }
     }
 
     class FolderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvName: TextView = view.findViewById(R.id.tvFolderName)
         private val tvCount: TextView = view.findViewById(R.id.tvFolderCount)
-        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit) {
+        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null) {
             tvName.text = item.name
             tvCount.text = ""
             itemView.setOnClickListener { onClick(item) }
@@ -70,7 +70,7 @@ class BrowserAdapter(
         private val tvVideoCodec: TextView = view.findViewById(R.id.tvVideoCodec)
         private val tvAudioCodec: TextView = view.findViewById(R.id.tvAudioCodec)
 
-        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit) {
+        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null) {
             tvName.text = item.name
             tvFormat.text = item.extension.uppercase()
             val audioExts = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
@@ -140,7 +140,30 @@ class BrowserAdapter(
             }
 
             itemView.setOnClickListener { onClick(item) }
-            btnMore.setOnClickListener { }
+            btnMore.setOnClickListener { v ->
+                val popup = android.widget.PopupMenu(v.context, v)
+                popup.menu.add(0, 1, 0, "Lire")
+                popup.menu.add(0, 2, 1, "Informations")
+                                popup.setOnMenuItemClickListener { mi ->
+                    when (mi.itemId) {
+                        1 -> { onClick(item); true }
+                        2 -> {
+                            val sz = android.text.format.Formatter.formatShortFileSize(v.context, item.size)
+                            val dur = item.duration
+                            val ds = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else "N/A"
+                            val msg = "Taille : " + sz + " | Duree : " + ds + " | Format : " + item.extension.uppercase()
+                            android.app.AlertDialog.Builder(v.context)
+                                .setTitle(item.name)
+                                .setMessage(msg)
+                                .setPositiveButton("OK", null)
+                                .show()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                popup.show()
+            }
         }
     }
 

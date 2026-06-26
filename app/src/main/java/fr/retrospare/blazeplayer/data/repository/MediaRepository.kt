@@ -67,6 +67,15 @@ class MediaRepository @Inject constructor(
         }
     }
 
+    suspend fun removeRecentItem(id: String) {
+        dataStore.edit { prefs ->
+            val json = prefs[RECENT_ITEMS_KEY] ?: return@edit
+            val list = gson.fromJson(json, Array<MediaItem>::class.java).toMutableList()
+            list.removeAll { it.id == id || it.path == id }
+            prefs[RECENT_ITEMS_KEY] = gson.toJson(list)
+        }
+    }
+
     suspend fun clearHistory() {
         dataStore.edit { prefs ->
             prefs.remove(RECENT_ITEMS_KEY)

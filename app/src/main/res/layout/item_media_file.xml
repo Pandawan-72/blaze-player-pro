@@ -143,6 +143,8 @@
         android:layout_height="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ic_more_vert"
+        android:clickable="true"
+        android:focusable="true"
         android:contentDescription="Options" />
 
 </LinearLayout>
