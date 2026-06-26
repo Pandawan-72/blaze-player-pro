@@ -2,8 +2,6 @@ package fr.retrospare.blazeplayer.player
 
 import android.app.PendingIntent
 import android.content.Intent
-import android.os.Binder
-import android.os.IBinder
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
@@ -13,22 +11,10 @@ import androidx.media3.session.MediaSessionService
 class AudioPlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
-    private var exoPlayer: ExoPlayer? = null
-
-    inner class LocalBinder : Binder() {
-        fun getAudioSessionId(): Int = exoPlayer?.audioSessionId ?: 0
-    }
-
-    private val localBinder = LocalBinder()
-
-    override fun onBind(intent: Intent): IBinder {
-        super.onBind(intent)
-        return localBinder
-    }
 
     override fun onCreate() {
         super.onCreate()
-        exoPlayer = ExoPlayer.Builder(this)
+        val player = ExoPlayer.Builder(this)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -47,7 +33,7 @@ class AudioPlaybackService : MediaSessionService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaSession.Builder(this, exoPlayer!!)
+        mediaSession = MediaSession.Builder(this, player)
             .setSessionActivity(pendingIntent)
             .build()
     }

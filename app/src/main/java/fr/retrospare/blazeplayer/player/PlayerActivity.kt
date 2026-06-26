@@ -19,6 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.util.UnstableApi
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
+import fr.retrospare.blazeplayer.cast.CastManager
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
@@ -30,6 +31,7 @@ import kotlin.math.abs
 
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
+    private var castManager: CastManager? = null
 
     companion object {
         const val EXTRA_MEDIA_URI   = "mediaPath"
@@ -93,6 +95,22 @@ class PlayerActivity : AppCompatActivity() {
     private fun setupPlayer(uri: String) {
         viewModel.initPlayer(this)
         binding.playerView.player = viewModel.player
+
+        // Init Chromecast - protégé contre l'absence de Google Play Services
+        try {
+            viewModel.player?.let { exo ->
+                castManager = CastManager(this, exo) { newPlayer ->
+                    binding.playerView.player = newPlayer
+                }.also { it.init() }
+            }
+            binding.btnCast.setOnClickListener {
+                try {
+                    androidx.mediarouter.app.MediaRouteChooserDialog(this).show()
+                } catch (e: Exception) { }
+            }
+        } catch (e: Exception) {
+            binding.btnCast.visibility = android.view.View.GONE
+        }
         binding.playerView.useController = false
         viewModel.playUri(uri)
 

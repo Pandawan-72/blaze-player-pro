@@ -17,7 +17,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
-import fr.retrospare.blazeplayer.utils.AudioArtworkHelper
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
 import fr.retrospare.blazeplayer.player.PlayerRouter
@@ -38,6 +37,15 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        try {
+            binding.btnCast.setOnClickListener {
+                try {
+                    androidx.mediarouter.app.MediaRouteChooserDialog(requireContext()).show()
+                } catch (e: Exception) { }
+            }
+        } catch (e: Exception) {
+            binding.btnCast.visibility = android.view.View.GONE
+        }
         setupTabs()
         setupButtons()
         setupBottomNav()
