@@ -43,17 +43,18 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAdd"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
-                android:layout_height="32dp"
+                android:layout_height="38dp"
                 android:text="Ajouter"
                 android:textSize="12sp"
-                android:textColor="@color/blue_accent"
-                app:strokeColor="@color/blue_accent"
+                android:textColor="#FF000000"
+                android:paddingHorizontal="14dp"
+                app:backgroundTint="@color/blue_accent"
                 app:cornerRadius="20dp"
-                app:icon="@drawable/ic_play"
-                app:iconSize="13dp"
-                app:iconTint="@color/blue_accent" />
+                app:icon="@drawable/ic_add"
+                app:iconSize="14dp"
+                app:iconTint="#FF000000"
+                app:iconGravity="textStart" />
 
         </LinearLayout>
 
@@ -125,15 +126,17 @@
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnScan"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:text="Scanner"
-                android:textSize="11sp"
-                android:textColor="@color/blue_accent"
-                app:strokeColor="@color/blue_accent"
-                app:cornerRadius="20dp" />
+                    android:id="@+id/btnScan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="Scanner"
+                    android:textSize="12sp"
+                    android:textColor="#FF000000"
+                    android:paddingHorizontal="14dp"
+                    app:backgroundTint="@color/blue_accent"
+                    app:cornerRadius="20dp"
+                    app:iconSize="14dp"
+                    app:iconTint="#FF000000" />
 
         </LinearLayout>
 

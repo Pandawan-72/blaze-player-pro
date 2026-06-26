@@ -108,6 +108,7 @@ dependencies {
 
     // Material Design (Views) + AppCompat
     implementation(libs.material)
+    implementation("com.google.android.material:material:1.12.0")
     implementation(libs.appcompat)
 
     // Google Sign-In (Credential Manager)

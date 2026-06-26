@@ -17,7 +17,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
-import fr.retrospare.blazeplayer.ui.setBlazeTitle
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -38,7 +37,6 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupTabs()
-        binding.tvAppTitle.setBlazeTitle()
         setupButtons()
         setupBottomNav()
         observeViewModel()

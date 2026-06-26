@@ -34,6 +34,18 @@ class SettingsFragment : Fragment() {
     private fun setupButtons() {
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
 
+        binding.btnLogout.setOnClickListener {
+            android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Se déconnecter")
+                .setMessage("Voulez-vous vraiment vous déconnecter ?")
+                .setPositiveButton("Déconnecter") { _, _ ->
+                    com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                    findNavController().navigate(R.id.loginFragment)
+                }
+                .setNegativeButton("Annuler", null)
+                .show()
+        }
+
         binding.btnBecomePro.setOnClickListener {
             findNavController().navigate(R.id.action_settings_to_paywall)
         }

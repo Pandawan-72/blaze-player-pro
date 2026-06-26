@@ -323,6 +323,39 @@
                 android:tint="@color/on_surface_variant" android:contentDescription="@null" />
         </LinearLayout>
 
+
+        <!-- BOUTON DÉCONNEXION -->
+        <LinearLayout
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_surface_card"
+            android:padding="13dp"
+            android:clickable="true"
+            android:focusable="true">
+            <FrameLayout
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_icon_red"
+                android:layout_marginEnd="12dp">
+                <ImageView android:layout_width="18dp" android:layout_height="18dp"
+                    android:layout_gravity="center" android:src="@drawable/ic_logout"
+                    android:tint="@color/red_accent" android:contentDescription="@null" />
+            </FrameLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Se déconnecter"
+                android:textColor="@color/red_accent"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
