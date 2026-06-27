@@ -39,6 +39,8 @@ import kotlin.math.abs
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
     private var castManager: CastManager? = null
+    private var videoNotifManager: VideoNotificationManager? = null
+    private var videoThumbnail: android.graphics.Bitmap? = null
     private var playNextCalled = false
     private var resumeShown = false
 
@@ -108,6 +110,19 @@ class PlayerActivity : AppCompatActivity() {
         scheduleHideUI()
         // Sauvegarde immédiatement dans l'historique pour que updateProgress puisse trouver l'item
         saveToHistory()
+        // Stoppe l'audio si en cours
+        AudioPlaybackService.instance?.pause()
+        videoNotifManager = VideoNotificationManager(this)
+        // Extrait une miniature de la vidéo
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val retriever = android.media.MediaMetadataRetriever()
+                if (mediaPath.startsWith("content://")) retriever.setDataSource(this@PlayerActivity, android.net.Uri.parse(mediaPath))
+                else retriever.setDataSource(mediaPath)
+                videoThumbnail = retriever.getFrameAtTime(1_000_000)
+                retriever.release()
+            } catch (e: Exception) { videoThumbnail = null }
+        }
         startSavingProgress()
     }
 
@@ -276,11 +291,13 @@ class PlayerActivity : AppCompatActivity() {
                 val positionMs = viewModel.player?.currentPosition ?: continue
                 val positionSec = positionMs / 1000
                 if (mediaPath.isNotEmpty() && positionMs > 0) {
-                    // Sauvegarde dans SharedPreferences pour la reprise
                     getSharedPreferences("blaze_positions", MODE_PRIVATE)
                         .edit().putLong(mediaPath, positionMs).apply()
-                    // Sauvegarde dans l'historique
                     mediaRepository.updateProgress(mediaPath, positionSec)
+                    // Mise à jour notification vidéo
+                    val dur = viewModel.player?.duration ?: 0
+                    val playing = viewModel.player?.isPlaying == true
+                    videoNotifManager?.showNotification(mediaName, playing, positionMs, dur, videoThumbnail, PlayerActivity::class.java)
                 }
             }
         }
@@ -661,6 +678,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        videoNotifManager?.cancel()
         cancelHideUI()
         binding.playerView.player = null
         viewModel.releasePlayer()

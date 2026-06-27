@@ -333,7 +333,7 @@
                 android:id="@+id/btnAddFolder"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
-                android:text="+ Piste / Dossier"
+                android:text="Piste / Dossier"
                 app:icon="@drawable/ic_add_circle"
                 app:iconSize="16dp"
                 app:iconTint="#FF000000"

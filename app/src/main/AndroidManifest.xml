@@ -54,6 +54,15 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name=".player.AudioPlaybackService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService"/>
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".player.PlayerActivity"
             android:exported="true"
