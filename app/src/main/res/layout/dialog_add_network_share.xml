@@ -1,77 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/surface"
-    android:padding="20dp">
+    android:background="@drawable/bg_dialog">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="24dp">
 
-        <!-- TYPE SMB / DLNA / FTP -->
-        <LinearLayout
+        <!-- Titre centré custom -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/tvDialogTitle"
+            android:text="Ajouter un chemin réseau"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Type SMB / DLNA -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
             android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+            android:background="@drawable/bg_tab_group"
+            android:padding="3dp"
+            android:layout_marginBottom="20dp">
 
-            <com.google.android.material.button.MaterialButton
+            <TextView
                 android:id="@+id/btnTypeSmb"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
                 android:text="SMB"
-                android:textSize="12sp"
-                app:strokeColor="@color/blue_accent"
-                app:cornerRadius="10dp" />
+                android:gravity="center"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/blue_accent"
+                android:background="@drawable/bg_tab_selected"
+                android:clickable="true"
+                android:focusable="true" />
 
-            <com.google.android.material.button.MaterialButton
+            <TextView
                 android:id="@+id/btnTypeDlna"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
                 android:text="DLNA"
-                android:textSize="12sp"
-                app:strokeColor="@color/outline_variant"
-                app:cornerRadius="10dp" />
+                android:gravity="center"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/on_surface_variant"
+                android:clickable="true"
+                android:focusable="true" />
 
-            <com.google.android.material.button.MaterialButton
+            <TextView
                 android:id="@+id/btnTypeFtp"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
-                android:layout_weight="1"
-                android:text="FTP"
-                android:textSize="12sp"
-                app:strokeColor="@color/outline_variant"
-                app:cornerRadius="10dp" />
+                android:layout_height="match_parent"
+                android:layout_weight="0"
+                android:visibility="gone" />
 
         </LinearLayout>
 
-        <!-- NOM -->
+        <!-- Nom -->
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="Nom du chemin">
+            android:hint="Nom du chemin"
+            android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:textColor="@color/on_background" />
+                android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- IP + PORT -->
+        <!-- Hôte + Port -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -79,22 +91,22 @@
             android:layout_marginBottom="12dp">
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:layout_marginEnd="8dp"
-                android:hint="Adresse IP / Hôte">
+                android:layout_weight="3"
+                android:hint="Adresse IP / Hôte"
+                android:layout_marginEnd="8dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etHost"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textNoSuggestions"
-                    android:textColor="@color/on_background" />
+                    android:inputType="textUri"
+                    android:maxLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -104,82 +116,86 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="number"
-                    android:hint="445"
-                    android:textColor="@color/on_background" />
+                    android:maxLines="1"
+                    android:text="445" />
             </com.google.android.material.textfield.TextInputLayout>
 
         </LinearLayout>
 
-        <!-- DOSSIER PARTAGÉ -->
+        <!-- Dossier partagé -->
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="Dossier partagé">
+            android:hint="Dossier partagé (ex: videos)"
+            android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etShareName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:textColor="@color/on_background" />
+                android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- IDENTIFIANT -->
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#22FFFFFF"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Identifiant -->
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="Identifiant (optionnel)">
+            android:hint="Identifiant (optionnel)"
+            android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etUsername"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="text"
-                android:textColor="@color/on_background" />
+                android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- MOT DE PASSE -->
+        <!-- Mot de passe -->
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
             android:hint="Mot de passe (optionnel)"
-            app:endIconMode="password_toggle">
+            android:layout_marginBottom="20dp"
+            app:passwordToggleEnabled="true">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPassword"
-                android:textColor="@color/on_background" />
+                android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- PAR DÉFAUT -->
+        <!-- Défaut -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="@drawable/bg_trial_banner"
-            android:padding="12dp">
-
+            android:background="@drawable/bg_setting_item"
+            android:padding="16dp">
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Définir comme chemin par défaut"
+                android:text="Chemin par défaut"
                 android:textColor="@color/on_surface"
-                android:textSize="13sp" />
-
-            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:textSize="14sp" />
+            <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/switchDefault"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:theme="@style/Theme.BlazePlayer" />
-
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
     </LinearLayout>
+
 </ScrollView>

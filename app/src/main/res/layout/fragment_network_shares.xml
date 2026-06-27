@@ -47,13 +47,13 @@
                 android:layout_height="38dp"
                 android:text="Ajouter"
                 android:textSize="12sp"
-                android:textColor="#FF000000"
+                android:textColor="#000000"
                 android:paddingHorizontal="14dp"
                 app:backgroundTint="@color/blue_accent"
                 app:cornerRadius="20dp"
-                app:icon="@drawable/ic_add"
-                app:iconSize="14dp"
-                app:iconTint="#FF000000"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="#000000"
                 app:iconGravity="textStart" />
 
         </LinearLayout>

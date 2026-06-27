@@ -90,13 +90,27 @@ class PlayerActivity : AppCompatActivity() {
         binding.tvTotalTime.text = "0:00:00"
 
         // Init libVLC
-        libVLC = LibVLC(this, arrayListOf(
+        val vlcOptions = arrayListOf(
             "--no-drop-late-frames",
             "--no-skip-frames",
             "--rtsp-tcp",
             "--avcodec-hw=any",
-            "--audio-resampler=soxr"
-        ))
+            "--audio-resampler=soxr",
+            "--smb-user=",
+            "--smb-pwd=",
+            "--network-caching=1500"
+        )
+        // Si SMB avec credentials dans l'URL, les passe à VLC
+        if (mediaPath.startsWith("smb://") && mediaPath.contains("@")) {
+            try {
+                val userInfo = mediaPath.substringAfter("smb://").substringBefore("@")
+                val user = userInfo.substringBefore(":").let { java.net.URLDecoder.decode(it, "UTF-8") }
+                val pass = if (userInfo.contains(":")) userInfo.substringAfter(":").let { java.net.URLDecoder.decode(it, "UTF-8") } else ""
+                vlcOptions.add("--smb-user=$user")
+                vlcOptions.add("--smb-pwd=$pass")
+            } catch (e: Exception) {}
+        }
+        libVLC = LibVLC(this, vlcOptions)
         mediaPlayer = MediaPlayer(libVLC)
 
         // MÉTHODE OFFICIELLE : attachViews avec VLCVideoLayout
@@ -138,11 +152,15 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun playMedia(path: String) {
-        val media = if (path.startsWith("content://")) {
-            val fd = contentResolver.openFileDescriptor(Uri.parse(path), "r")?.fileDescriptor ?: return
-            Media(libVLC, fd)
-        } else {
-            Media(libVLC, Uri.parse(path))
+        val media = when {
+            path.startsWith("content://") -> {
+                val fd = contentResolver.openFileDescriptor(Uri.parse(path), "r")?.fileDescriptor ?: return
+                Media(libVLC, fd)
+            }
+            path.startsWith("smb://") || path.startsWith("ftp://") || path.startsWith("http://") || path.startsWith("https://") -> {
+                Media(libVLC, Uri.parse(path))
+            }
+            else -> Media(libVLC, Uri.parse(path))
         }
         mediaPlayer.media = media
         media.release()

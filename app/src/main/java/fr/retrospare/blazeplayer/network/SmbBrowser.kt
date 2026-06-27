@@ -118,11 +118,12 @@ class SmbBrowser @Inject constructor() {
 
     private fun buildSmbUri(share: NetworkShare, path: String): String {
         val cleanPath = path.replace("\\", "/")
-        return if (!share.username.isNullOrEmpty()) {
-            "smb://${share.host}/${share.shareName}/$cleanPath"
-        } else {
-            "smb://${share.host}/${share.shareName}/$cleanPath"
-        }
+        val auth = if (!share.username.isNullOrEmpty()) {
+            val pass = share.password?.let { ":${java.net.URLEncoder.encode(it, "UTF-8")}" } ?: ""
+            "${java.net.URLEncoder.encode(share.username, "UTF-8")}$pass@"
+        } else ""
+        val port = if (share.port != null && share.port != 445) ":${share.port}" else ""
+        return "smb://$auth${share.host}$port/${share.shareName}/$cleanPath"
     }
 
     private fun getMimeType(ext: String): String = when (ext) {

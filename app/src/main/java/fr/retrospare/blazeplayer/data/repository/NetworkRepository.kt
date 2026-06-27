@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import fr.retrospare.blazeplayer.data.model.NetworkShare
 import fr.retrospare.blazeplayer.data.model.ShareType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
@@ -54,6 +55,10 @@ class NetworkRepository @Inject constructor(
             val current = getSharesList(prefs).filter { it.id != id }
             prefs[SHARES_KEY] = gson.toJson(current)
         }
+    }
+
+    suspend fun getShareById(id: String): NetworkShare? {
+        return getShares().first().find { it.id == id }
     }
 
     suspend fun getDefaultShare(): NetworkShare? {

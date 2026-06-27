@@ -12,6 +12,7 @@ import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.network.SmbBrowser
 import fr.retrospare.blazeplayer.data.model.NetworkShare
+import fr.retrospare.blazeplayer.data.repository.NetworkRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +25,8 @@ import javax.inject.Inject
 class BrowserViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val mediaRepository: MediaRepository,
-    private val smbBrowser: SmbBrowser
+    private val smbBrowser: SmbBrowser,
+    private val networkRepository: NetworkRepository
 ) : ViewModel() {
 
     sealed class BrowserState {
@@ -73,6 +75,22 @@ class BrowserViewModel @Inject constructor(
             }
         }
     }
+
+    fun loadNetworkFilesById(shareId: String, path: String = "") {
+        viewModelScope.launch {
+            _state.value = BrowserState.Loading
+            try {
+                val share = networkRepository.getShareById(shareId)
+                if (share == null) { _state.value = BrowserState.Error("Partage introuvable"); return@launch }
+                currentShare = share
+                loadNetworkFiles(share, path)
+            } catch (e: Exception) {
+                _state.value = BrowserState.Error(e.message ?: "Erreur")
+            }
+        }
+    }
+
+    var currentShare: NetworkShare? = null
 
     fun loadNetworkFiles(share: NetworkShare, path: String = "") {
         viewModelScope.launch {

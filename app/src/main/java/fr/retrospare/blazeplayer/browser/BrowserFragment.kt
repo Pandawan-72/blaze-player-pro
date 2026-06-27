@@ -38,7 +38,15 @@ class BrowserFragment : Fragment() {
         setupRecyclerView()
         setupButtons()
         observeViewModel()
-        viewModel.loadLocalFiles()
+        val shareId = arguments?.getString("shareId")
+        val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
+        val initPath = arguments?.getString("path") ?: ""
+
+        if (isNetwork && !shareId.isNullOrEmpty()) {
+            viewModel.loadNetworkFilesById(shareId, initPath)
+        } else {
+            viewModel.loadLocalFiles()
+        }
     }
 
     private fun setupRecyclerView() {
@@ -46,7 +54,12 @@ class BrowserFragment : Fragment() {
             onFolderClick = { item ->
                 breadcrumbParts.add(item.name)
                 updateBreadcrumb()
-                viewModel.loadLocalFiles(item.path)
+                val share = viewModel.currentShare
+                if (share != null) {
+                    viewModel.loadNetworkFiles(share, item.path)
+                } else {
+                    viewModel.loadLocalFiles(item.path)
+                }
             },
             onFileClick = { item ->
                 PlayerRouter.open(requireContext(), item.path, item.name)
@@ -61,7 +74,13 @@ class BrowserFragment : Fragment() {
             if (breadcrumbParts.isNotEmpty()) {
                 breadcrumbParts.removeAt(breadcrumbParts.lastIndex)
                 updateBreadcrumb()
-                viewModel.loadLocalFiles(if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last())
+                val share = viewModel.currentShare
+                val path = if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last()
+                if (share != null) {
+                    viewModel.loadNetworkFiles(share, path)
+                } else {
+                    viewModel.loadLocalFiles(path)
+                }
             } else {
                 findNavController().popBackStack()
             }
