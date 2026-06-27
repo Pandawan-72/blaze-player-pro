@@ -2,6 +2,8 @@ package fr.retrospare.blazeplayer.home
 
 import android.content.ContentUris
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.withContext
 import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View

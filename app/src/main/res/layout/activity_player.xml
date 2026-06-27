@@ -7,10 +7,21 @@
     android:keepScreenOn="true">
 
     <!-- VLCVideoLayout : la méthode officielle libVLC 3.x -->
-    <org.videolan.libvlc.util.VLCVideoLayout
-        android:id="@+id/playerView"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:gravity="center">
+        <androidx.media3.ui.AspectRatioFrameLayout
+            android:id="@+id/aspectRatioFrame"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center">
+            <SurfaceView
+                android:id="@+id/playerView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </androidx.media3.ui.AspectRatioFrameLayout>
+    </FrameLayout>
 
     <!-- UI OVERLAY -->
     <LinearLayout
@@ -87,8 +98,8 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            android:paddingTop="48dp"
-            android:paddingBottom="20dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="12dp"
             android:background="@drawable/gradient_bottom">
 
             <!-- Wrapper pour éviter que le thumb soit rogné -->
@@ -112,7 +123,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:layout_marginTop="4dp"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="8dp">
                 <TextView android:id="@+id/tvCurrentTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0:00:00" android:textColor="#FFFFFF" android:textSize="12sp" android:fontFamily="monospace" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" / " android:textColor="#55FFFFFF" android:textSize="12sp" />
                 <TextView android:id="@+id/tvTotalTime" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="0:00:00" android:textColor="#55FFFFFF" android:textSize="12sp" android:fontFamily="monospace" />

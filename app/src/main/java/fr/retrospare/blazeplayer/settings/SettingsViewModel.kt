@@ -11,7 +11,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltViewModel
@@ -56,13 +55,19 @@ class SettingsViewModel @Inject constructor(
         val KEY_SORT_MODE        = intPreferencesKey("sort_mode")
     }
 
-    private fun getInt(key: Preferences.Key<Int>, default: Int): Int = runBlocking {
-        dataStore.data.first()[key] ?: default
+    private var prefsCache: Preferences? = null
+
+    init {
+        viewModelScope.launch {
+            dataStore.data.collect { prefs -> prefsCache = prefs }
+        }
     }
 
-    private fun getBool(key: Preferences.Key<Boolean>, default: Boolean): Boolean = runBlocking {
-        dataStore.data.first()[key] ?: default
-    }
+    private fun getInt(key: Preferences.Key<Int>, default: Int): Int =
+        prefsCache?.get(key) ?: default
+
+    private fun getBool(key: Preferences.Key<Boolean>, default: Boolean): Boolean =
+        prefsCache?.get(key) ?: default
 
     private fun setInt(key: Preferences.Key<Int>, value: Int) = viewModelScope.launch {
         dataStore.edit { it[key] = value }
@@ -127,13 +132,16 @@ class SettingsViewModel @Inject constructor(
 
     fun getResumeMode() = getInt(KEY_RESUME_MODE, 1)
     fun setResumeMode(v: Int) = setInt(KEY_RESUME_MODE, v)
-    fun getAutoPlay() = getBool(KEY_AUTO_PLAY, true)
+    fun getAutoPlay() = getBool(KEY_AUTO_PLAY, false)
     fun setAutoPlay(v: Boolean) = setBool(KEY_AUTO_PLAY, v)
     fun getSpeedIndex() = getInt(KEY_SPEED_INDEX, 3)
     fun setSpeedIndex(v: Int) = setInt(KEY_SPEED_INDEX, v)
     fun getSeekTimeIndex() = getInt(KEY_SEEK_TIME_INDEX, 1)
     fun setSeekTimeIndex(v: Int) = setInt(KEY_SEEK_TIME_INDEX, v)
     fun getOrientationIndex() = getInt(KEY_ORIENTATION, 0)
+    suspend fun getOrientationIndexAsync(): Int {
+        return dataStore.data.first()[KEY_ORIENTATION] ?: 0
+    }
     fun setOrientationIndex(v: Int) = setInt(KEY_ORIENTATION, v)
     fun getPip() = getBool(KEY_PIP, false)
     fun setPip(v: Boolean) = setBool(KEY_PIP, v)

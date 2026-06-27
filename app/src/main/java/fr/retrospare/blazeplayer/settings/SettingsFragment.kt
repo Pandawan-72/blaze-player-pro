@@ -1,6 +1,8 @@
 package fr.retrospare.blazeplayer.settings
 
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -72,14 +74,17 @@ class SettingsFragment : Fragment() {
             "Durée de l'avance rapide"
         ) { viewModel.setSeekTimeIndex(it) }
 
-        setupChoice(
-            binding.settingOrientation.root,
-            R.drawable.ic_settings,
-            "Orientation par défaut",
-            listOf("Automatique", "Portrait", "Paysage"),
-            viewModel.getOrientationIndex(),
-            "Orientation par défaut"
-        ) { viewModel.setOrientationIndex(it) }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val orientIdx = viewModel.getOrientationIndexAsync()
+            setupChoice(
+                binding.settingOrientation.root,
+                R.drawable.ic_settings,
+                "Orientation par défaut",
+                listOf("Automatique", "Portrait", "Paysage"),
+                orientIdx,
+                "Orientation par défaut"
+            ) { viewModel.setOrientationIndex(it) }
+        }
 
         setupToggle(
             binding.settingPip.root,

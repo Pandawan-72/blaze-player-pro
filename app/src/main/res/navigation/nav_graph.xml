@@ -42,6 +42,7 @@
         <action android:id="@+id/action_home_to_paywall" app:destination="@id/paywallFragment" />
         <action android:id="@+id/action_home_to_player" app:destination="@id/playerActivity" />
         <action android:id="@+id/action_home_to_network" app:destination="@id/networkSharesFragment" />
+        <action android:id="@+id/action_home_to_search" app:destination="@id/searchFragment" />
     </fragment>
 
     <fragment android:id="@+id/browserFragment"
@@ -79,5 +80,10 @@
         <argument android:name="mediaPath" app:argType="string" android:defaultValue="" />
         <argument android:name="mediaName" app:argType="string" android:defaultValue="" />
     </activity>
+
+    <fragment android:id="@+id/searchFragment"
+        android:name="fr.retrospare.blazeplayer.home.SearchFragment"
+        android:label="Recherche"
+        tools:layout="@layout/fragment_search" />
 
 </navigation>
