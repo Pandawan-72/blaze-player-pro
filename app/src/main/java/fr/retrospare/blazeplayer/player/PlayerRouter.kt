@@ -22,7 +22,7 @@ object PlayerRouter {
         }
         val intent = when {
             ext in AUDIO_FORMATS -> Intent(context, AudioPlayerActivity::class.java)
-            ext in VLC_FORMATS -> Intent(context, VlcPlayerActivity::class.java)
+            ext in VLC_FORMATS -> Intent(context, PlayerActivity::class.java)
             else -> Intent(context, PlayerActivity::class.java)
         }.apply {
             putExtra("mediaPath", path)

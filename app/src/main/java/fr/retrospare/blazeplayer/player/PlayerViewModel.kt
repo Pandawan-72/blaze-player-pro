@@ -2,80 +2,77 @@ package fr.retrospare.blazeplayer.player
 
 import android.content.Context
 import android.net.Uri
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import androidx.lifecycle.ViewModel
-import androidx.media3.common.MediaItem
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.DefaultRenderersFactory
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.Media
+import org.videolan.libvlc.MediaPlayer
 
-@UnstableApi
-@HiltViewModel
-class PlayerViewModel @Inject constructor() : ViewModel() {
+class PlayerViewModel : ViewModel() {
 
-    var player: ExoPlayer? = null
+    var libVLC: LibVLC? = null
+        private set
+    var player: MediaPlayer? = null
         private set
 
-    private val ratios = listOf(
-        AspectRatioFrameLayout.RESIZE_MODE_FIT,
-        AspectRatioFrameLayout.RESIZE_MODE_FILL,
-        AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-        AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH,
-        AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT
-    )
-    private var currentRatioIndex = 0
+    private val scaleTypes = listOf("", "16:9", "4:3", "1:1", "fill")
+    private var scaleIndex = 0
 
     fun initPlayer(context: Context) {
         if (player != null) return
+        libVLC = LibVLC(context, arrayListOf(
+            "--no-drop-late-frames",
+            "--no-skip-frames",
+            "--rtsp-tcp",
+            "--avcodec-hw=any",
+            "--audio-resampler=soxr"
+        ))
+        player = MediaPlayer(libVLC)
+    }
 
-        // RenderersFactory avec FFmpeg pour les codecs non supportés nativement
-        val renderersFactory = DefaultRenderersFactory(context).apply {
-            setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-        }
-
-        // TrackSelector optimisé
-        val trackSelector = DefaultTrackSelector(context).apply {
-            setParameters(
-                buildUponParameters()
-                    .setPreferredAudioLanguage("fr")
-                    .setAllowAudioMixedMimeTypeAdaptiveness(true)
-                    .setAllowVideoMixedMimeTypeAdaptiveness(true)
-            )
-        }
-
-        player = ExoPlayer.Builder(context)
-            .setRenderersFactory(renderersFactory)
-            .setTrackSelector(trackSelector)
-            .build().apply {
-                // Active le décodage matériel en priorité
-                videoScalingMode = androidx.media3.common.C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+    fun playUri(path: String, context: Context) {
+        val vlc = libVLC ?: return
+        val p = player ?: return
+        val media = try {
+            if (path.startsWith("content://")) {
+                val fd = context.contentResolver.openFileDescriptor(Uri.parse(path), "r")?.fileDescriptor ?: return
+                Media(vlc, fd)
+            } else {
+                Media(vlc, Uri.parse(path))
             }
+        } catch (e: Exception) { return }
+        p.media = media
+        media.release()
+        p.play()
     }
 
-    fun playUri(uri: String) {
-        val player = player ?: return
-        val mediaItem = MediaItem.fromUri(Uri.parse(uri))
-        player.setMediaItem(mediaItem)
-        player.prepare()
-        player.play()
+    fun attachSurface(surfaceView: SurfaceView, holder: SurfaceHolder) {
+        val p = player ?: return
+        val vout = p.vlcVout
+        vout.setVideoSurface(holder.surface, holder)
+        if (!vout.areViewsAttached()) vout.attachViews()
     }
 
-    fun cycleAspectRatio(playerView: PlayerView) {
-        currentRatioIndex = (currentRatioIndex + 1) % ratios.size
-        playerView.resizeMode = ratios[currentRatioIndex]
+    fun updateSurfaceSize(w: Int, h: Int) {
+        player?.vlcVout?.setWindowSize(w, h)
     }
 
-    fun releasePlayer() {
-        player?.release()
-        player = null
+    fun detachSurface() {
+        try { player?.vlcVout?.detachViews() } catch (e: Exception) {}
+    }
+
+    fun cycleAspectRatio() {
+        scaleIndex = (scaleIndex + 1) % scaleTypes.size
+        player?.aspectRatio = scaleTypes[scaleIndex].ifEmpty { null }
     }
 
     override fun onCleared() {
         super.onCleared()
-        releasePlayer()
+        detachSurface()
+        player?.release()
+        libVLC?.release()
+        player = null
+        libVLC = null
     }
 }
