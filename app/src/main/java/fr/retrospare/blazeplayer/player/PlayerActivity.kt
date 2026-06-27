@@ -2,6 +2,7 @@ package fr.retrospare.blazeplayer.player
 
 import android.content.Context
 import android.media.AudioManager
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -18,12 +19,18 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.util.UnstableApi
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.cast.CastManager
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import java.io.File
 import javax.inject.Inject
@@ -32,6 +39,8 @@ import kotlin.math.abs
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
     private var castManager: CastManager? = null
+    private var playNextCalled = false
+    private var resumeShown = false
 
     companion object {
         const val EXTRA_MEDIA_URI   = "mediaPath"
@@ -48,6 +57,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var gestureDetector: GestureDetector
 
     @Inject lateinit var mediaRepository: MediaRepository
+    @Inject lateinit var dataStore: DataStore<Preferences>
 
     private val hideHandler = Handler(Looper.getMainLooper())
     private val hideRunnable = Runnable { hideUI() }
@@ -66,6 +76,13 @@ class PlayerActivity : AppCompatActivity() {
     private var mediaName = ""
 
     enum class DragZone { NONE, LEFT, RIGHT, SEEK }
+
+
+    private fun <T> getPref(key: Preferences.Key<T>, default: T): T {
+        return kotlinx.coroutines.runBlocking {
+            dataStore.data.first()[key] ?: default
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,6 +106,8 @@ class PlayerActivity : AppCompatActivity() {
         setupControls()
         setupTouchHandler()
         scheduleHideUI()
+        // Sauvegarde immédiatement dans l'historique pour que updateProgress puisse trouver l'item
+        saveToHistory()
         startSavingProgress()
     }
 
@@ -96,7 +115,74 @@ class PlayerActivity : AppCompatActivity() {
         viewModel.initPlayer(this)
         binding.playerView.player = viewModel.player
 
-        // Init Chromecast - protégé contre l'absence de Google Play Services
+        // Labels avance/recul selon réglage
+        lifecycleScope.launch {
+            kotlinx.coroutines.delay(200)
+            val seekLabels = listOf("5", "10", "15", "30", "60")
+            val seekLabel = seekLabels.getOrElse(getPref(intPreferencesKey("seek_time_index"), 1)) { "10" }
+            binding.tvRewindLabel.text = "-${seekLabel}s"
+            binding.tvForwardLabel.text = "+${seekLabel}s"
+        }
+
+        // Met à jour les labels des boutons selon le réglage
+        val seekLabels = listOf("5", "10", "15", "30", "60")
+        val seekLabel = seekLabels.getOrElse(getPref(intPreferencesKey("seek_time_index"), 1)) { "10" }
+        binding.btnRewind.contentDescription = "-${seekLabel}s"
+        binding.btnForward.contentDescription = "+${seekLabel}s"
+
+        // Orientation
+        requestedOrientation = when (getPref(intPreferencesKey("orientation"), 0)) {
+            1 -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            2 -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            else -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        }
+        val speedMap = listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+        viewModel.player?.setPlaybackSpeed(speedMap.getOrElse(getPref(intPreferencesKey("speed_index"), 3)) { 1.0f })
+
+        // Langue et sous-titres
+        val langCodes = listOf("", "fr", "en", "es", "de", "it", "ja")
+        val audioLang = langCodes.getOrElse(getPref(intPreferencesKey("audio_lang"), 0)) { "" }
+        val subLang = langCodes.getOrElse(getPref(intPreferencesKey("subtitle_lang"), 0)) { "" }
+        val showSubs = getPref(booleanPreferencesKey("subtitles_default"), true)
+
+        val trackParams = viewModel.player?.trackSelectionParameters?.buildUpon()
+            ?.setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, !showSubs)
+            ?.apply { if (audioLang.isNotEmpty()) setPreferredAudioLanguage(audioLang) }
+            ?.apply { if (subLang.isNotEmpty()) setPreferredTextLanguage(subLang) }
+            ?.build()
+        trackParams?.let { viewModel.player?.trackSelectionParameters = it }
+
+        // Reprendre la lecture
+        val resumeMode = getPref(intPreferencesKey("resume_mode"), 1)
+        if (resumeMode != 2) {
+            val posPrefs = getSharedPreferences("blaze_positions", MODE_PRIVATE)
+            val savedPositionMs = posPrefs.getLong(mediaPath, 0L)
+            if (savedPositionMs > 3000L) {
+                lifecycleScope.launch {
+                    kotlinx.coroutines.delay(800)
+                    when (resumeMode) {
+                        0 -> viewModel.player?.seekTo(savedPositionMs)
+                        1 -> {
+                            val min = savedPositionMs / 60000
+                            val sec = (savedPositionMs / 1000) % 60
+                            runOnUiThread {
+                                android.app.AlertDialog.Builder(this@PlayerActivity)
+                                    .setTitle("Reprendre la lecture")
+                                    .setMessage("Reprendre depuis %d:%02d ?".format(min, sec))
+                                    .setPositiveButton("Reprendre") { _, _ -> viewModel.player?.seekTo(savedPositionMs) }
+                                    .setNegativeButton("Depuis le début", null)
+                                    .show()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+
+        // Init Chromecast
         try {
             viewModel.player?.let { exo ->
                 castManager = CastManager(this, exo) { newPlayer ->
@@ -120,10 +206,38 @@ class PlayerActivity : AppCompatActivity() {
                 if (isPlaying) scheduleHideUI() else cancelHideUI()
             }
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == androidx.media3.common.Player.STATE_READY) {
-                    saveToHistory()
+                when (state) {
+                    androidx.media3.common.Player.STATE_READY -> {
+                        val resumeMode = getPref(intPreferencesKey("resume_mode"), 1)
+                        if (resumeMode != 2 && !resumeShown) {
+                            val savedMs = getSharedPreferences("blaze_positions", MODE_PRIVATE).getLong(mediaPath, 0L)
+                            if (savedMs > 3000L && (viewModel.player?.currentPosition ?: 0L) < 1000L) {
+                                resumeShown = true
+                                when (resumeMode) {
+                                    0 -> viewModel.player?.seekTo(savedMs)
+                                    1 -> runOnUiThread {
+                                        android.app.AlertDialog.Builder(this@PlayerActivity)
+                                            .setTitle("Reprendre la lecture")
+                                            .setMessage("Reprendre depuis %d:%02d ?".format(savedMs/60000, (savedMs/1000)%60))
+                                            .setPositiveButton("Reprendre") { _, _ -> viewModel.player?.seekTo(savedMs) }
+                                            .setNegativeButton("Depuis le début", null)
+                                            .show()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    androidx.media3.common.Player.STATE_ENDED -> {
+                        val autoPlay = getPref(booleanPreferencesKey("auto_play"), true)
+                        if (autoPlay && !playNextCalled) {
+                            playNextCalled = true
+                            playNextFile()
+                        }
+                    }
                 }
             }
+
+
         })
 
         Handler(Looper.getMainLooper()).also { h ->
@@ -159,9 +273,14 @@ class PlayerActivity : AppCompatActivity() {
         lifecycleScope.launch {
             while (true) {
                 delay(SAVE_PROGRESS_INTERVAL)
-                val position = viewModel.player?.currentPosition?.div(1000) ?: continue
-                if (mediaPath.isNotEmpty() && position > 0) {
-                    mediaRepository.updateProgress(mediaPath, position)
+                val positionMs = viewModel.player?.currentPosition ?: continue
+                val positionSec = positionMs / 1000
+                if (mediaPath.isNotEmpty() && positionMs > 0) {
+                    // Sauvegarde dans SharedPreferences pour la reprise
+                    getSharedPreferences("blaze_positions", MODE_PRIVATE)
+                        .edit().putLong(mediaPath, positionMs).apply()
+                    // Sauvegarde dans l'historique
+                    mediaRepository.updateProgress(mediaPath, positionSec)
                 }
             }
         }
@@ -175,14 +294,16 @@ class PlayerActivity : AppCompatActivity() {
         }
         binding.btnRewind.setOnClickListener {
             viewModel.player?.let { p ->
-                p.seekTo((p.currentPosition - 10_000).coerceAtLeast(0))
+                val seekMs = listOf(5_000L, 10_000L, 15_000L, 30_000L, 60_000L).getOrElse(getPref(intPreferencesKey("seek_time_index"), 1)) { 10_000L }
+                p.seekTo((p.currentPosition - seekMs).coerceAtLeast(0))
             }
             scheduleHideUI()
         }
         binding.btnForward.setOnClickListener {
             viewModel.player?.let { p ->
                 val dur = p.duration
-                if (dur > 0) p.seekTo((p.currentPosition + 10_000).coerceAtMost(dur))
+                val seekMs = listOf(5_000L, 10_000L, 15_000L, 30_000L, 60_000L).getOrElse(getPref(intPreferencesKey("seek_time_index"), 1)) { 10_000L }
+                if (dur > 0) p.seekTo((p.currentPosition + seekMs).coerceAtMost(dur))
             }
             scheduleHideUI()
         }
@@ -365,6 +486,11 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun onBackPressed() {
+        super.onBackPressed()
+    }
+
     override fun onStop() {
         super.onStop()
         viewModel.player?.pause()
@@ -458,6 +584,79 @@ class PlayerActivity : AppCompatActivity() {
             .setTitle("Sous-titres")
             .setItems(items.toTypedArray()) { _, which -> actions[which].invoke() }
             .show()
+    }
+
+    private fun playNextFile() {
+        if (mediaPath.isEmpty()) return
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val collection = android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                val proj = arrayOf(
+                    android.provider.MediaStore.Video.Media._ID,
+                    android.provider.MediaStore.Video.Media.DISPLAY_NAME,
+                    android.provider.MediaStore.Video.Media.DATA
+                )
+
+                // Trouve le DATA path via l'ID dans l'URI
+                val currentId = android.content.ContentUris.parseId(android.net.Uri.parse(mediaPath))
+                var currentDataPath = ""
+                var currentName = ""
+                contentResolver.query(
+                    collection, proj,
+                    "${android.provider.MediaStore.Video.Media._ID} = ?",
+                    arrayOf(currentId.toString()), null
+                )?.use { c ->
+                    if (c.moveToFirst()) {
+                        currentDataPath = c.getString(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DATA)) ?: ""
+                        currentName = c.getString(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DISPLAY_NAME)) ?: ""
+                    }
+                }
+
+                if (currentDataPath.isEmpty()) return@launch
+
+                val parentPath = java.io.File(currentDataPath).parent ?: return@launch
+
+                contentResolver.query(
+                    collection, proj,
+                    "${android.provider.MediaStore.Video.Media.DATA} LIKE ? AND ${android.provider.MediaStore.Video.Media.DATA} NOT LIKE ?",
+                    arrayOf("$parentPath/%", "$parentPath/%/%"),
+                    android.provider.MediaStore.Video.Media.DISPLAY_NAME
+                )?.use { c ->
+                    val list = mutableListOf<Pair<String, String>>()
+                    val idCol = c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media._ID)
+                    val nameCol = c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DISPLAY_NAME)
+                    while (c.moveToNext()) {
+                        val id = c.getLong(idCol)
+                        val name = c.getString(nameCol) ?: continue
+                        val uri = android.content.ContentUris.withAppendedId(collection, id).toString()
+                        list.add(uri to name)
+                    }
+                    val idx = list.indexOfFirst { it.second == currentName }
+                    if (idx >= 0 && idx < list.size - 1) {
+                        val next = list[idx + 1]
+                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            mediaPath = next.first
+                            mediaName = next.second
+                            resumeShown = true // Pas de popup reprendre pour lecture auto
+                            viewModel.playUri(next.first)
+                            saveToHistory()
+                            playNextCalled = false
+                        }
+                    }
+                }
+            } catch (e: Exception) { }
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val pip = getPref(booleanPreferencesKey("pip"), false)
+            if (pip && viewModel.player?.isPlaying == true) {
+                val params = android.app.PictureInPictureParams.Builder().build()
+                enterPictureInPictureMode(params)
+            }
+        }
     }
 
     override fun onDestroy() {

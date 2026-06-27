@@ -196,8 +196,8 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     private fun navigateFolderBack() {
         if (folderHistory.size > 1) {
-            folderHistory.removeLast()
-            loadFolderBrowser(folderHistory.removeLast())
+            folderHistory.removeAt(folderHistory.lastIndex)
+            loadFolderBrowser(folderHistory.removeAt(folderHistory.lastIndex))
         } else {
             folderHistory.clear()
             loadFolderBrowser("/sdcard")

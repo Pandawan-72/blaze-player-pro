@@ -67,9 +67,22 @@ class HomeFragment : Fragment() {
             tab.setOnClickListener {
                 updateTabStyles(tabs, index)
                 viewModel.onTabSelected(index)
+                updateSectionTitles(index)
             }
         }
         updateTabStyles(tabs, 0)
+        updateSectionTitles(0)
+    }
+
+    private fun updateSectionTitles(tabIndex: Int) {
+        when (tabIndex) {
+            0 -> {
+                binding.tvSectionNetwork.text = "HISTORIQUE RÉSEAU (3 DERNIERS)"
+                binding.tvSectionLocal.text = "HISTORIQUE LOCAL (3 DERNIERS)"
+            }
+            1 -> binding.tvSectionNetwork.text = "HISTORIQUE RÉSEAU"
+            2 -> binding.tvSectionLocal.text = "HISTORIQUE LOCAL"
+        }
     }
 
     private fun updateTabStyles(tabs: List<TextView>, selectedIndex: Int) {

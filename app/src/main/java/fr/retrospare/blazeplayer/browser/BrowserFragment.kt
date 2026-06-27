@@ -59,7 +59,7 @@ class BrowserFragment : Fragment() {
     private fun setupButtons() {
         binding.btnBack.setOnClickListener {
             if (breadcrumbParts.isNotEmpty()) {
-                breadcrumbParts.removeLast()
+                breadcrumbParts.removeAt(breadcrumbParts.lastIndex)
                 updateBreadcrumb()
                 viewModel.loadLocalFiles(if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last())
             } else {
@@ -71,6 +71,12 @@ class BrowserFragment : Fragment() {
             binding.tvSortLabel.text = viewModel.sortLabel()
         }
         binding.btnToggleView.setOnClickListener { }
+        // Applique les préférences settings
+        val prefs = requireContext().getSharedPreferences("datastore-preferences", android.content.Context.MODE_PRIVATE)
+        if (prefs.getBoolean("show_audio", false) != viewModel.showAudio.value) {
+            viewModel.toggleShowAudio()
+        }
+
         binding.btnToggleAudio.setOnClickListener {
             viewModel.toggleShowAudio()
             val active = viewModel.showAudio.value
@@ -103,7 +109,7 @@ class BrowserFragment : Fragment() {
                 launch {
                     viewModel.currentPath.collect { path ->
                         binding.tvPath.text = path.ifEmpty { "/stockage/interne" }
-                        binding.tvTitle.text = if (breadcrumbParts.isEmpty()) "Vidéos" else breadcrumbParts.last()
+                        binding.tvTitle.text = if (breadcrumbParts.isEmpty()) "Mes fichiers locaux" else breadcrumbParts.last()
                     }
                 }
             }
@@ -122,7 +128,7 @@ class BrowserFragment : Fragment() {
                 setPadding(8, 6, 8, 6)
                 setOnClickListener {
                     if (!isLast) {
-                        repeat(allParts.size - 1 - index) { if (breadcrumbParts.isNotEmpty()) breadcrumbParts.removeLast() }
+                        repeat(allParts.size - 1 - index) { if (breadcrumbParts.isNotEmpty()) breadcrumbParts.removeAt(breadcrumbParts.lastIndex) }
                         updateBreadcrumb()
                         viewModel.loadLocalFiles(if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last())
                     }

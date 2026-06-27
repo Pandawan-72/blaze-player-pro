@@ -4,11 +4,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.switchmaterial.SwitchMaterial
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.databinding.FragmentSettingsBinding
@@ -16,333 +18,226 @@ import fr.retrospare.blazeplayer.databinding.FragmentSettingsBinding
 @AndroidEntryPoint
 class SettingsFragment : Fragment() {
 
-    private val viewModel: SettingsViewModel by viewModels()
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
+    private val viewModel: SettingsViewModel by viewModels()
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupButtons()
+        binding.btnBack.setOnClickListener { findNavController().popBackStack() }
+        binding.btnBecomePro.setOnClickListener { }
+        setupSettings()
+        setupLogout()
     }
 
-    private fun setupButtons() {
-        binding.btnBack.setOnClickListener { findNavController().popBackStack() }
+    private fun setupSettings() {
+        // LECTURE
+        setupChoice(
+            binding.settingResume.root,
+            R.drawable.ic_play,
+            "Reprendre la lecture",
+            listOf("Toujours", "Demander", "Jamais"),
+            viewModel.getResumeMode(),
+            "Reprendre la lecture"
+        ) { viewModel.setResumeMode(it) }
 
-        binding.btnClearHistory.setOnClickListener {
+        setupToggle(
+            binding.settingAutoPlay.root,
+            R.drawable.ic_skip_next,
+            "Lecture automatique suivante",
+            "Lire automatiquement le fichier suivant",
+            viewModel.getAutoPlay()
+        ) { viewModel.setAutoPlay(it) }
+
+        setupChoice(
+            binding.settingSpeed.root,
+            R.drawable.ic_settings,
+            "Vitesse de lecture",
+            listOf("0.25x", "0.5x", "0.75x", "1x (normal)", "1.25x", "1.5x", "2x"),
+            viewModel.getSpeedIndex(),
+            "Vitesse de lecture"
+        ) { viewModel.setSpeedIndex(it) }
+
+        setupChoice(
+            binding.settingSeekTime.root,
+            R.drawable.ic_forward_10,
+            "Durée de l'avance rapide",
+            listOf("5 secondes", "10 secondes", "15 secondes", "30 secondes", "60 secondes"),
+            viewModel.getSeekTimeIndex(),
+            "Durée de l'avance rapide"
+        ) { viewModel.setSeekTimeIndex(it) }
+
+        setupChoice(
+            binding.settingOrientation.root,
+            R.drawable.ic_settings,
+            "Orientation par défaut",
+            listOf("Automatique", "Portrait", "Paysage"),
+            viewModel.getOrientationIndex(),
+            "Orientation par défaut"
+        ) { viewModel.setOrientationIndex(it) }
+
+        setupToggle(
+            binding.settingPip.root,
+            R.drawable.ic_settings,
+            "PiP automatique",
+            "Passer en Picture-in-Picture lors du changement d'app",
+            viewModel.getPip()
+        ) { viewModel.setPip(it) }
+
+        setupToggle(
+            binding.settingGestures.root,
+            R.drawable.ic_settings,
+            "Contrôles gestuels",
+            "Luminosité, volume et avance par glissement",
+            viewModel.getGestures()
+        ) { viewModel.setGestures(it) }
+
+        // AUDIO
+        setupChoice(
+            binding.settingAudioLang.root,
+            R.drawable.ic_language,
+            "Langue audio préférée",
+            listOf("Pas de préférence", "Français", "Anglais", "Espagnol", "Allemand", "Italien", "Japonais"),
+            viewModel.getAudioLangIndex(),
+            "Langue audio préférée"
+        ) { viewModel.setAudioLangIndex(it) }
+
+        setupToggle(
+            binding.settingRememberVolume.root,
+            R.drawable.ic_settings,
+            "Mémoriser le volume",
+            "Retenir le niveau de volume entre les lectures",
+            viewModel.getRememberVolume()
+        ) { viewModel.setRememberVolume(it) }
+
+        // SOUS-TITRES
+        setupToggle(
+            binding.settingSubtitleDefault.root,
+            R.drawable.ic_subtitles,
+            "Afficher les sous-titres",
+            "Activer les sous-titres par défaut",
+            viewModel.getSubtitlesDefault()
+        ) { viewModel.setSubtitlesDefault(it) }
+
+        setupChoice(
+            binding.settingSubtitleLang.root,
+            R.drawable.ic_language,
+            "Langue des sous-titres",
+            listOf("Pas de préférence", "Français", "Anglais", "Espagnol", "Allemand", "Italien", "Japonais"),
+            viewModel.getSubtitleLangIndex(),
+            "Langue des sous-titres préférée"
+        ) { viewModel.setSubtitleLangIndex(it) }
+
+        // RÉSEAU
+        setupToggle(
+            binding.settingChromecast.root,
+            R.drawable.ic_cast,
+            "Chromecast",
+            "Activer le support Chromecast",
+            viewModel.getChromecast()
+        ) { viewModel.toggleChromecast() }
+
+        // INTERFACE
+        setupToggle(
+            binding.settingShowHidden.root,
+            R.drawable.ic_settings,
+            "Afficher les fichiers cachés",
+            "Fichiers commençant par un point (.)",
+            viewModel.getShowHidden()
+        ) { viewModel.setShowHidden(it) }
+
+        setupToggle(
+            binding.settingShowAudio.root,
+            R.drawable.ic_audio,
+            "Afficher les fichiers audio",
+            "Inclure la musique dans le navigateur",
+            viewModel.getShowAudio()
+        ) { viewModel.setShowAudio(it) }
+
+        // DONNÉES
+        setupAction(
+            binding.settingClearHistory.root,
+            R.drawable.ic_history,
+            "Effacer l'historique",
+            "Supprimer tous les fichiers récemment lus"
+        ) {
             android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Effacer l'historique")
                 .setMessage("Supprimer tous les fichiers récemment lus ?")
                 .setPositiveButton("Effacer") { _, _ ->
                     viewModel.clearAllData()
-                    android.widget.Toast.makeText(requireContext(), "Historique effacé", android.widget.Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Historique effacé", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Annuler", null)
                 .show()
         }
 
+        // À PROPOS
+        setupAction(
+            binding.settingAbout.root,
+            R.drawable.ic_settings,
+            "À propos",
+            "Blaze Player v0.0.2 — Retro-Spare"
+        ) {
+            android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Blaze Player")
+                .setMessage("Version 0.0.2\n\nDéveloppé par Retro-Spare\n\nCe lecteur utilise la bibliothèque libVLC sous licence LGPL v2.1")
+                .setPositiveButton("OK", null)
+                .show()
+        }
+    }
+
+    private fun setupToggle(view: View, icon: Int, title: String, subtitle: String, value: Boolean, onChange: (Boolean) -> Unit) {
+        view.findViewById<ImageView>(R.id.ivIcon).setImageResource(icon)
+        view.findViewById<TextView>(R.id.tvTitle).text = title
+        view.findViewById<TextView>(R.id.tvSubtitle).apply { text = subtitle; visibility = View.VISIBLE }
+        val sw = view.findViewById<SwitchMaterial>(R.id.switchToggle)
+        sw.visibility = View.VISIBLE
+        sw.isChecked = value
+        sw.setOnCheckedChangeListener { _, checked -> onChange(checked) }
+        view.setOnClickListener { sw.isChecked = !sw.isChecked }
+    }
+
+    private fun setupChoice(view: View, icon: Int, title: String, choices: List<String>, selectedIndex: Int, dialogTitle: String, onSelected: (Int) -> Unit) {
+        view.findViewById<ImageView>(R.id.ivIcon).setImageResource(icon)
+        view.findViewById<TextView>(R.id.tvTitle).text = title
+        val tvSub = view.findViewById<TextView>(R.id.tvSubtitle)
+        tvSub.text = choices.getOrElse(selectedIndex) { choices[0] }
+        tvSub.visibility = View.VISIBLE
+        view.findViewById<ImageView>(R.id.ivChevron).visibility = View.VISIBLE
+        view.setOnClickListener {
+            SettingsDialog.showChoice(requireContext(), dialogTitle, choices, selectedIndex) { idx ->
+                tvSub.text = choices[idx]
+                onSelected(idx)
+            }
+        }
+    }
+
+    private fun setupAction(view: View, icon: Int, title: String, subtitle: String, onClick: () -> Unit) {
+        view.findViewById<ImageView>(R.id.ivIcon).setImageResource(icon)
+        view.findViewById<TextView>(R.id.tvTitle).text = title
+        view.findViewById<TextView>(R.id.tvSubtitle).apply { text = subtitle; visibility = View.VISIBLE }
+        view.findViewById<ImageView>(R.id.ivChevron).visibility = View.VISIBLE
+        view.setOnClickListener { onClick() }
+    }
+
+    private fun setupLogout() {
         binding.btnLogout.setOnClickListener {
             android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Se déconnecter")
                 .setMessage("Voulez-vous vraiment vous déconnecter ?")
                 .setPositiveButton("Déconnecter") { _, _ ->
                     com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
-                    findNavController().navigate(R.id.loginFragment)
+                    requireActivity().finish()
                 }
                 .setNegativeButton("Annuler", null)
                 .show()
         }
-
-        binding.btnBecomePro.setOnClickListener {
-            findNavController().navigate(R.id.action_settings_to_paywall)
-        }
-
-        binding.btnSectionPlayback.setOnClickListener {
-            showPlaybackSettings()
-        }
-
-        binding.btnSectionDecoding.setOnClickListener {
-            showDecodingSettings()
-        }
-
-        binding.btnSectionSubtitles.setOnClickListener {
-            showSubtitlesSettings()
-        }
-
-        binding.btnSectionNetwork.setOnClickListener {
-            showNetworkSettings()
-        }
-
-        binding.btnSectionInterface.setOnClickListener {
-            showInterfaceSettings()
-        }
-
-        binding.btnSectionAbout.setOnClickListener {
-            showAboutSettings()
-        }
-    }
-
-    private fun showPlaybackSettings() {
-        val entries = arrayOf("Ajuster", "Remplir", "Étirer", "Original")
-        val speeds = arrayOf("0.5×", "0.75×", "1×", "1.25×", "1.5×", "2×")
-
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Lecture")
-            .setItems(arrayOf(
-                "Ratio par défaut",
-                "Vitesse de lecture",
-                "Reprendre la lecture",
-                "Durée saut court",
-                "Durée saut long",
-                "Rotation automatique"
-            )) { _, which ->
-                when (which) {
-                    0 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Ratio par défaut")
-                        .setSingleChoiceItems(entries, viewModel.getDefaultRatio()) { d, i ->
-                            viewModel.setDefaultRatio(i)
-                            d.dismiss()
-                        }.show()
-                    1 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Vitesse de lecture")
-                        .setSingleChoiceItems(speeds, viewModel.getDefaultSpeed()) { d, i ->
-                            viewModel.setDefaultSpeed(i)
-                            d.dismiss()
-                        }.show()
-                    2 -> viewModel.toggleResumePlayback()
-                    3 -> showDurationPicker("Saut court (secondes)", viewModel.getShortSkip()) {
-                        viewModel.setShortSkip(it)
-                    }
-                    4 -> showDurationPicker("Saut long (secondes)", viewModel.getLongSkip()) {
-                        viewModel.setLongSkip(it)
-                    }
-                    5 -> viewModel.toggleAutoRotate()
-                }
-            }
-            .show()
-    }
-
-    private fun showDecodingSettings() {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Décodage")
-            .setItems(arrayOf(
-                "Décodage matériel",
-                "HDR (Pro)",
-                "Mode décodage"
-            )) { _, which ->
-                when (which) {
-                    0 -> viewModel.toggleHardwareDecode()
-                    1 -> viewModel.toggleHdr()
-                    2 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Mode décodage")
-                        .setSingleChoiceItems(
-                            arrayOf("Auto", "Logiciel", "Matériel forcé"),
-                            viewModel.getDecodeMode()
-                        ) { d, i ->
-                            viewModel.setDecodeMode(i)
-                            d.dismiss()
-                        }.show()
-                }
-            }
-            .show()
-    }
-
-    private fun showSubtitlesSettings() {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Sous-titres")
-            .setItems(arrayOf(
-                "Taille du texte",
-                "Fond sous-titres",
-                "Décalage par défaut",
-                "Support ASS/SSA (Pro)"
-            )) { _, which ->
-                when (which) {
-                    0 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Taille du texte")
-                        .setSingleChoiceItems(
-                            arrayOf("Petite", "Moyenne", "Grande", "Très grande"),
-                            viewModel.getSubtitleSize()
-                        ) { d, i ->
-                            viewModel.setSubtitleSize(i)
-                            d.dismiss()
-                        }.show()
-                    1 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Fond sous-titres")
-                        .setSingleChoiceItems(
-                            arrayOf("Ombre", "Fond semi-transparent", "Aucun"),
-                            viewModel.getSubtitleBackground()
-                        ) { d, i ->
-                            viewModel.setSubtitleBackground(i)
-                            d.dismiss()
-                        }.show()
-                    2 -> showDurationPicker("Décalage (ms)", viewModel.getSubtitleDelay()) {
-                        viewModel.setSubtitleDelay(it)
-                    }
-                    3 -> viewModel.toggleAssSupport()
-                }
-            }
-            .show()
-    }
-
-    private fun showNetworkSettings() {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Réseau")
-            .setItems(arrayOf(
-                "Wi-Fi uniquement",
-                "Taille du cache réseau",
-                "Chromecast (Pro)"
-            )) { _, which ->
-                when (which) {
-                    0 -> viewModel.toggleWifiOnly()
-                    1 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Cache réseau")
-                        .setSingleChoiceItems(
-                            arrayOf("8 Mo", "16 Mo", "32 Mo", "64 Mo", "128 Mo"),
-                            viewModel.getCacheSize()
-                        ) { d, i ->
-                            viewModel.setCacheSize(i)
-                            d.dismiss()
-                        }.show()
-                    2 -> viewModel.toggleChromecast()
-                }
-            }
-            .show()
-    }
-
-    private fun showInterfaceSettings() {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Interface")
-            .setItems(arrayOf(
-                "Thème",
-                "Langue de l'interface",
-                "Vue navigateur par défaut",
-                "Tri par défaut"
-            )) { _, which ->
-                when (which) {
-                    0 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Thème")
-                        .setSingleChoiceItems(
-                            arrayOf("Sombre", "Clair", "Système"),
-                            viewModel.getTheme()
-                        ) { d, i ->
-                            viewModel.setTheme(i)
-                            d.dismiss()
-                        }.show()
-                    1 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Langue")
-                        .setSingleChoiceItems(
-                            arrayOf("Français", "English", "Español", "Deutsch",
-                                "Italiano", "Português", "日本語", "中文"),
-                            viewModel.getLanguage()
-                        ) { d, i ->
-                            viewModel.setLanguage(i)
-                            d.dismiss()
-                        }.show()
-                    2 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Vue navigateur")
-                        .setSingleChoiceItems(
-                            arrayOf("Liste", "Grille"),
-                            viewModel.getBrowserView()
-                        ) { d, i ->
-                            viewModel.setBrowserView(i)
-                            d.dismiss()
-                        }.show()
-                    3 -> android.app.AlertDialog.Builder(requireContext())
-                        .setTitle("Tri par défaut")
-                        .setSingleChoiceItems(
-                            arrayOf("Nom A–Z", "Nom Z–A", "Date récente", "Taille"),
-                            viewModel.getSortMode()
-                        ) { d, i ->
-                            viewModel.setSortMode(i)
-                            d.dismiss()
-                        }.show()
-                }
-            }
-            .show()
-    }
-
-    private fun showAboutSettings() {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("À propos")
-            .setItems(arrayOf(
-                "Version : 1.0.0",
-                "Noter l'application",
-                "Contacter le support",
-                "Mentions légales",
-                "Effacer les données locales"
-            )) { _, which ->
-                when (which) {
-                    1 -> openPlayStore()
-                    2 -> sendSupportEmail()
-                    3 -> showLegalNotice()
-                    4 -> confirmClearData()
-                }
-            }
-            .show()
-    }
-
-    private fun showDurationPicker(title: String, current: Int, onResult: (Int) -> Unit) {
-        val values = (5..120 step 5).map { it.toString() + "s" }.toTypedArray()
-        val currentIdx = ((current / 5) - 1).coerceIn(0, values.lastIndex)
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle(title)
-            .setSingleChoiceItems(values, currentIdx) { d, i ->
-                onResult((i + 1) * 5)
-                d.dismiss()
-            }
-            .show()
-    }
-
-    private fun openPlayStore() {
-        try {
-            startActivity(
-                android.content.Intent(
-                    android.content.Intent.ACTION_VIEW,
-                    android.net.Uri.parse("market://details?id=${requireContext().packageName}")
-                )
-            )
-        } catch (e: Exception) {
-            startActivity(
-                android.content.Intent(
-                    android.content.Intent.ACTION_VIEW,
-                    android.net.Uri.parse("https://play.google.com/store/apps/details?id=${requireContext().packageName}")
-                )
-            )
-        }
-    }
-
-    private fun sendSupportEmail() {
-        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
-            data = android.net.Uri.parse("mailto:support@retro-spare.fr")
-            putExtra(android.content.Intent.EXTRA_SUBJECT, "Blaze Player - Support")
-        }
-        startActivity(intent)
-    }
-
-    private fun showLegalNotice() {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Mentions légales")
-            .setMessage("Blaze Player\nVersion 1.0.0\n\n© 2024 Retro-Spare\nTous droits réservés.\n\nDéveloppé par Retro-Spare, Le Mans, France.\n\nCe logiciel utilise libVLC (VideoLAN) sous licence LGPL v2.1.\nhttps://www.videolan.org")
-            .setPositiveButton("OK", null)
-            .show()
-    }
-
-    private fun confirmClearData() {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Effacer les données")
-            .setMessage("Cela supprimera l'historique de lecture, le cache et les identifiants réseau. Cette action est irréversible.")
-            .setPositiveButton("Effacer") { _, _ ->
-                viewModel.clearAllData()
-            }
-            .setNegativeButton("Annuler", null)
-            .show()
     }
 
     override fun onDestroyView() {

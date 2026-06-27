@@ -7,6 +7,14 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        create("release") {
+            storeFile = file("../blaze-player.keystore")
+            storePassword = "123456"
+            keyAlias = "blaze-player"
+            keyPassword = "123456"
+        }
+    }
     namespace = "fr.retrospare.blazeplayer"
     compileSdk {
         version = release(36) {
@@ -18,8 +26,8 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "0.0.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -28,6 +36,7 @@ android {
             optimization {
                 enable = false
             }
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

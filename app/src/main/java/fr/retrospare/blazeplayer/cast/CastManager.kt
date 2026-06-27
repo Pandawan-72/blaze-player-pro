@@ -21,7 +21,9 @@ class CastManager(
     private val castStateListener = CastStateListener { state ->
         when (state) {
             CastState.CONNECTED -> switchToRemotePlayer()
-            CastState.NOT_CONNECTED, CastState.NO_DEVICES_AVAILABLE -> switchToLocalPlayer()
+            // Ne pas appeler switchToLocalPlayer automatiquement - seulement si on était en train de caster
+            CastState.NOT_CONNECTED -> if (currentPlayer != localPlayer) switchToLocalPlayer()
+            CastState.NO_DEVICES_AVAILABLE -> { } // Ignorer
         }
     }
 

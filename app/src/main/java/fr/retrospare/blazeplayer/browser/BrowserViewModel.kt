@@ -60,9 +60,13 @@ class BrowserViewModel @Inject constructor(
             _state.value = BrowserState.Loading
             _currentPath.value = path
             try {
-                val videoItems = scanLocalFiles(path)
-                val audioItems = if (_showAudio.value) scanLocalAudio(path) else emptyList()
-                val items = videoItems + audioItems
+                val items = if (path.isEmpty()) {
+                    scanRootFolders()
+                } else {
+                    val videoItems = scanLocalFiles(path)
+                    val audioItems = if (_showAudio.value) scanLocalAudio(path) else emptyList()
+                    videoItems + audioItems
+                }
                 _state.value = BrowserState.Success(applySortMode(items))
             } catch (e: Exception) {
                 _state.value = BrowserState.Error(e.message ?: "Erreur de lecture")
@@ -160,6 +164,24 @@ class BrowserViewModel @Inject constructor(
             }
             items
         }
+
+
+    private suspend fun scanRootFolders(): List<MediaItem> = withContext(Dispatchers.IO) {
+        val root = android.os.Environment.getExternalStorageDirectory()
+        root.listFiles()
+            ?.filter { it.isDirectory && it.name.first() != '.' }
+            ?.sortedBy { it.name }
+            ?.map { dir ->
+                MediaItem(
+                    id = dir.absolutePath,
+                    name = dir.name,
+                    path = dir.absolutePath,
+                    mimeType = "folder",
+                    extension = "",
+                    isNetwork = false
+                )
+            } ?: emptyList()
+    }
 
     private suspend fun scanLocalFiles(path: String): List<MediaItem> =
         withContext(Dispatchers.IO) {

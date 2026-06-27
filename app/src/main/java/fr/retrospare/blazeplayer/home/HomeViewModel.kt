@@ -134,8 +134,8 @@ class HomeViewModel @Inject constructor(
             0 -> {
                 _showNetwork.value = true
                 _showLocal.value = true
-                _recentNetworkItems.value = allItems.filter { it.isNetwork }.take(2)
-                _recentLocalItems.value = allItems.filter { !it.isNetwork }.take(2)
+                _recentNetworkItems.value = allItems.filter { it.isNetwork }.take(3)
+                _recentLocalItems.value = allItems.filter { !it.isNetwork }.take(3)
             }
             1 -> {
                 _showNetwork.value = true

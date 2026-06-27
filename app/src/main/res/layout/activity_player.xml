@@ -232,6 +232,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:id="@+id/tvRewindLabel"
                             android:text="−10s"
                             android:textColor="@color/on_surface_variant"
                             android:textSize="8sp"
@@ -276,6 +277,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:id="@+id/tvForwardLabel"
                             android:text="+10s"
                             android:textColor="@color/on_surface_variant"
                             android:textSize="8sp"
