@@ -238,6 +238,10 @@ class SettingsFragment : Fragment() {
                 .setMessage("Voulez-vous vraiment vous déconnecter ?")
                 .setPositiveButton("Déconnecter") { _, _ ->
                     com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+                    // Navigue vers login et vide la back stack
+                    val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.MainActivity::class.java)
+                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
                     requireActivity().finish()
                 }
                 .setNegativeButton("Annuler", null)

@@ -146,7 +146,18 @@ class AudioPlayerFragment : Fragment() {
             pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
         }
         binding.btnEq.setOnClickListener {
+            // Initialise EQ si pas encore fait
+            if (eqManager == null) {
+                val service = AudioPlaybackService.instance
+                val sessionId = service?.exoPlayer?.audioSessionId ?: 0
+                if (sessionId != 0) {
+                    try {
+                        eqManager = EqualizerManager(sessionId, requireContext())
+                    } catch (e: Exception) {}
+                }
+            }
             eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
+                ?: android.widget.Toast.makeText(requireContext(), "Lance une piste d'abord", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

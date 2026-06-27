@@ -39,7 +39,8 @@ class MainActivity : AppCompatActivity() {
         // Applique le padding top/bottom pour éviter les barres système
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(0, systemBars.top, 0, systemBars.bottom)
+            // Applique seulement le bas pour la barre nav, le haut est géré par chaque fragment
+            view.setPadding(0, 0, 0, systemBars.bottom)
             insets
         }
         setupNavigation()

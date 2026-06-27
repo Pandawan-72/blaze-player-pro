@@ -39,7 +39,7 @@ class AudioPlaybackService : Service() {
     var onNext: (() -> Unit)? = null
     var onPlaybackChanged: ((Boolean) -> Unit)? = null
 
-    private var exoPlayer: ExoPlayer? = null
+    var exoPlayer: ExoPlayer? = null
     private var currentArtwork: Bitmap? = null
     private var mediaSession: MediaSessionCompat? = null
     private var audioManager: AudioManager? = null
