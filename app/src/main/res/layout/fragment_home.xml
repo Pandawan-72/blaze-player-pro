@@ -8,6 +8,7 @@
     android:fitsSystemWindows="true">
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginBottom="64dp">
@@ -123,9 +124,19 @@
                         android:background="@drawable/bg_tab_inactive"
                         android:paddingHorizontal="16dp"
                         android:gravity="center"
-                        android:text="Local"
-                        android:textColor="@color/on_surface_variant"
+                        android:text="Local" />
+
+                    <TextView
+                        android:id="@+id/tabAudio"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:gravity="center"
+                        android:paddingHorizontal="16dp"
+                        android:text="Blaze Audio"
                         android:textSize="13sp"
+                        android:background="@drawable/bg_tab_inactive"
+                        android:layout_marginStart="6dp"
+                        android:textColor="@color/on_surface_variant"
                         android:clickable="true"
                         android:focusable="true" />
 
@@ -409,5 +420,11 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <FrameLayout
+        android:id="@+id/audioContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

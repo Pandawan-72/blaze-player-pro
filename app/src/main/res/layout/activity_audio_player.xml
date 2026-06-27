@@ -201,32 +201,59 @@
 
         </LinearLayout>
 
-        <!-- CONTRÔLES -->
+        <!-- LIGNE EQ + CONTRÔLES + SHUFFLE/REPEAT -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center"
-            android:paddingBottom="16dp">
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="4dp">
 
+            <!-- EQ -->
+            <ImageButton
+                android:id="@+id/btnEq"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_equalizer"
+                android:tint="@color/purple_accent"
+                android:contentDescription="Equalizer" />
+
+            <!-- SLEEP TIMER -->
+            <ImageButton
+                android:id="@+id/btnSleepTimer"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_sleep_timer"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="Sleep Timer" />
+
+            <!-- SPACER -->
+            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+
+            <!-- PREV -->
             <ImageButton
                 android:id="@+id/btnPrev"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_skip_previous"
                 android:tint="@color/on_background"
                 android:contentDescription="Précédent" />
 
+            <!-- REWIND -->
             <ImageButton
                 android:id="@+id/btnRewind"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_replay_10"
                 android:tint="@color/on_background"
                 android:contentDescription="-10s" />
 
+            <!-- PLAY/PAUSE -->
             <ImageButton
                 android:id="@+id/btnPlayPause"
                 android:layout_width="64dp"
@@ -235,25 +262,50 @@
                 android:src="@drawable/ic_pause"
                 android:tint="@color/background"
                 android:contentDescription="Lecture/Pause"
-                android:layout_marginHorizontal="8dp" />
+                android:layout_marginHorizontal="4dp" />
 
+            <!-- FORWARD -->
             <ImageButton
                 android:id="@+id/btnForward"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_forward_10"
                 android:tint="@color/on_background"
                 android:contentDescription="+10s" />
 
+            <!-- NEXT -->
             <ImageButton
                 android:id="@+id/btnNext"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_skip_next"
                 android:tint="@color/on_background"
                 android:contentDescription="Suivant" />
+
+            <!-- SPACER -->
+            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+
+            <!-- REPEAT -->
+            <ImageButton
+                android:id="@+id/btnRepeat"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_repeat"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="Répéter" />
+
+            <!-- SHUFFLE -->
+            <ImageButton
+                android:id="@+id/btnShuffle"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_shuffle"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="Aléatoire" />
 
         </LinearLayout>
 
@@ -264,6 +316,7 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp"
+            android:paddingTop="8dp"
             android:paddingBottom="6dp">
 
             <TextView
@@ -277,30 +330,14 @@
                 android:letterSpacing="0.08" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEq"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:text="EQ"
-            app:icon="@drawable/ic_equalizer"
-            app:iconSize="16dp"
-            app:iconTint="#FF000000"
-            app:iconGravity="textStart"
-            android:textSize="12sp"
-            android:textColor="#FF000000"
-            android:paddingHorizontal="14dp"
-            app:backgroundTint="@color/purple_accent"
-            app:cornerRadius="20dp"
-            android:layout_marginEnd="8dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddFolder"
+                android:id="@+id/btnAddFolder"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
                 android:text="+ Piste / Dossier"
-            app:icon="@drawable/ic_add_circle"
-            app:iconSize="16dp"
-            app:iconTint="#FF000000"
-            app:iconGravity="textStart"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="#FF000000"
+                app:iconGravity="textStart"
                 android:textSize="12sp"
                 android:textColor="#FF000000"
                 android:paddingHorizontal="14dp"

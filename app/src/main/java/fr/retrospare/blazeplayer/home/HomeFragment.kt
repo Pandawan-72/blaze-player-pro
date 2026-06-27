@@ -20,6 +20,7 @@ import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
 import fr.retrospare.blazeplayer.player.PlayerRouter
+import fr.retrospare.blazeplayer.player.AudioPlayerFragment
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.launch
 
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 class HomeFragment : Fragment() {
 
     private val viewModel: HomeViewModel by viewModels()
+    private var audioPlayerFragment: AudioPlayerFragment? = null
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
@@ -62,16 +64,63 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupTabs() {
-        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal)
+        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
         tabs.forEachIndexed { index, tab ->
             tab.setOnClickListener {
                 updateTabStyles(tabs, index)
-                viewModel.onTabSelected(index)
-                updateSectionTitles(index)
+                if (index == 3) {
+                    showAudioTab()
+                } else {
+                    hideAudioTab()
+                    viewModel.onTabSelected(index)
+                    updateSectionTitles(index)
+                }
             }
         }
         updateTabStyles(tabs, 0)
         updateSectionTitles(0)
+    }
+
+    private fun showAudioTab() {
+        binding.scrollContent.visibility = android.view.View.GONE
+        binding.audioContainer.visibility = android.view.View.VISIBLE
+        if (audioPlayerFragment == null) {
+            audioPlayerFragment = AudioPlayerFragment()
+            childFragmentManager.beginTransaction()
+                .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!)
+                .commitAllowingStateLoss()
+        }
+    }
+
+    fun returnToHome() {
+        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
+        updateTabStyles(tabs, 0)
+        hideAudioTab()
+        viewModel.onTabSelected(0)
+        updateSectionTitles(0)
+    }
+
+    private fun hideAudioTab() {
+        binding.scrollContent.visibility = android.view.View.VISIBLE
+        binding.audioContainer.visibility = android.view.View.GONE
+    }
+
+    fun openAudioPlayer(path: String, name: String) {
+        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
+        updateTabStyles(tabs, 3)
+        showAudioTab()
+        audioPlayerFragment?.playPath(path, name)
+            ?: run {
+                audioPlayerFragment = AudioPlayerFragment().apply {
+                    arguments = android.os.Bundle().apply {
+                        putString("mediaPath", path)
+                        putString("mediaName", name)
+                    }
+                }
+                childFragmentManager.beginTransaction()
+                    .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!)
+                    .commit()
+            }
     }
 
     private fun updateSectionTitles(tabIndex: Int) {
