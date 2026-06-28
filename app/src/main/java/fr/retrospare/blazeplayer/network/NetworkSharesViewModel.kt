@@ -63,20 +63,24 @@ class NetworkSharesViewModel @Inject constructor(
     private val _scannedShares = kotlinx.coroutines.flow.MutableStateFlow<List<fr.retrospare.blazeplayer.data.model.NetworkShare>>(emptyList())
     val scannedShares: kotlinx.coroutines.flow.StateFlow<List<fr.retrospare.blazeplayer.data.model.NetworkShare>> = _scannedShares.asStateFlow()
 
+    private val _discoveredDevices = kotlinx.coroutines.flow.MutableStateFlow<List<NetworkScanner.DiscoveredDevice>>(emptyList())
+    val discoveredDevices: kotlinx.coroutines.flow.StateFlow<List<NetworkScanner.DiscoveredDevice>> = _discoveredDevices.asStateFlow()
+
+    private val _isScanning = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val isScanning: kotlinx.coroutines.flow.StateFlow<Boolean> = _isScanning.asStateFlow()
+
     fun scanNetwork() {
         viewModelScope.launch {
-            _scanState.value = ScanState.Scanning
-            _scannedShares.value = emptyList()
-            val found = mutableListOf<fr.retrospare.blazeplayer.data.model.NetworkShare>()
+            _isScanning.value = true
+            _discoveredDevices.value = emptyList()
+            val found = mutableListOf<NetworkScanner.DiscoveredDevice>()
             try {
-                networkScanner.scan().collect { device: fr.retrospare.blazeplayer.data.model.NetworkShare ->
+                networkScanner.scan().collect { device ->
                     found.add(device)
-                    _scannedShares.value = found.toList()
+                    _discoveredDevices.value = found.toList()
                 }
-                _scanState.value = ScanState.Results(found)
-            } catch (e: Exception) {
-                _scanState.value = ScanState.Error(e.message ?: "Erreur scan")
-            }
+            } catch (e: Exception) {}
+            _isScanning.value = false
         }
     }
 

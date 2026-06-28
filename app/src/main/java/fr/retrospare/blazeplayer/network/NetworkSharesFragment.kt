@@ -1,12 +1,11 @@
 package fr.retrospare.blazeplayer.network
 
-import android.app.AlertDialog
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -28,25 +27,38 @@ class NetworkSharesFragment : Fragment() {
     private val viewModel: NetworkSharesViewModel by viewModels()
     private var _binding: FragmentNetworkSharesBinding? = null
     private val binding get() = _binding!!
-    private lateinit var adapter: NetworkSharesAdapter
+    private lateinit var savedAdapter: NetworkSharesAdapter
+    private lateinit var discoveredAdapter: DiscoveredDeviceAdapter
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentNetworkSharesBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupRecyclerView()
+        // Applique les insets système
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+            view.setPadding(0, bars.top, 0, 0)
+            insets
+        }
+        setupRecyclerViews()
         setupButtons()
         observeViewModel()
+        viewModel.scanNetwork() // Scan automatique à l'ouverture
     }
 
-    private fun setupRecyclerView() {
-        adapter = NetworkSharesAdapter(
+    private fun setupRecyclerViews() {
+        // Adapteur des appareils découverts
+        discoveredAdapter = DiscoveredDeviceAdapter { device ->
+            showDeviceConfig(device)
+        }
+        binding.recyclerDiscovered.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerDiscovered.adapter = discoveredAdapter
+
+        // Adapteur des chemins sauvegardés
+        savedAdapter = NetworkSharesAdapter(
             onBrowse = { share ->
                 val bundle = Bundle().apply {
                     putString("shareId", share.id)
@@ -60,32 +72,60 @@ class NetworkSharesFragment : Fragment() {
             onDelete = { share -> confirmDelete(share) }
         )
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        binding.recyclerView.adapter = adapter
+        binding.recyclerView.adapter = savedAdapter
     }
 
     private fun setupButtons() {
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
         binding.btnAdd.setOnClickListener { showAddEditDialog(null) }
-        binding.btnScan.setOnClickListener {
-            Toast.makeText(requireContext(), "Scan réseau en cours...", Toast.LENGTH_SHORT).show()
-            showScanDialog()
-        }
+        binding.btnScan.setOnClickListener { viewModel.scanNetwork() }
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                // Chemins sauvegardés
                 launch {
                     viewModel.shares.collect { shares ->
-                        adapter.submitList(shares)
-                        binding.tvEmpty.visibility =
-                            if (shares.isEmpty()) View.VISIBLE else View.GONE
+                        savedAdapter.submitList(shares)
+                        binding.tvEmpty.visibility = if (shares.isEmpty()) View.VISIBLE else View.GONE
                     }
                 }
+
+                // Appareils découverts
+                launch {
+                    viewModel.discoveredDevices.collect { devices ->
+                        discoveredAdapter.submitList(devices)
+                        val visible = devices.isNotEmpty()
+                        binding.tvSectionDiscovered.visibility = if (visible) View.VISIBLE else View.GONE
+                        binding.recyclerDiscovered.visibility = if (visible) View.VISIBLE else View.GONE
+                        if (devices.isNotEmpty()) {
+                            binding.tvSubtitle.text = "${devices.size} appareil(s) trouvé(s)"
+                        }
+                        // Message bas dynamique
+                        if (!viewModel.isScanning.value) {
+                            binding.tvEmpty.text = if (devices.isEmpty()) "Aucun appareil réseau détecté." else "Cliquez sur un appareil pour l'explorer."
+                            binding.tvEmpty.visibility = View.VISIBLE
+                        }
+                    }
+                }
+
+                // Scan en cours
+                launch {
+                    viewModel.isScanning.collect { scanning ->
+                        binding.progressBar.visibility = if (scanning) View.VISIBLE else View.GONE
+                        binding.btnScan.isEnabled = !scanning
+                        binding.btnScan.alpha = if (scanning) 0.5f else 1f
+                        binding.tvSubtitle.text = if (scanning) "Scan en cours..." else "Scan terminé"
+                    }
+                }
+
+                // Messages
                 launch {
                     viewModel.message.collect { msg ->
                         msg?.let {
-                            Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(requireContext(), it, android.widget.Toast.LENGTH_SHORT).show()
                             viewModel.clearMessage()
                         }
                     }
@@ -94,12 +134,73 @@ class NetworkSharesFragment : Fragment() {
         }
     }
 
+    private fun showDeviceConfig(device: NetworkScanner.DiscoveredDevice) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_network_connect, null)
+        val tvName = dialogView.findViewById<android.widget.TextView>(R.id.tvDeviceName)
+        val tvIp = dialogView.findViewById<android.widget.TextView>(R.id.tvDeviceIp)
+        val tvBadge = dialogView.findViewById<android.widget.TextView>(R.id.tvTypeBadge)
+        val layoutShare = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.layoutShare)
+        val etShare = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etShare)
+        val etUsername = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etUsername)
+        val etPassword = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPassword)
+
+        tvName.text = device.name
+        tvIp.text = device.ip
+        tvBadge.text = device.type.name
+        tvBadge.setBackgroundResource(if (device.type == ShareType.DLNA) R.drawable.bg_badge_green else R.drawable.bg_badge_blue)
+
+        if (device.type == ShareType.DLNA) {
+            layoutShare.visibility = android.view.View.GONE
+        } else {
+            // Charge les partages SMB disponibles
+            viewLifecycleOwner.lifecycleScope.launch {
+                val shares = viewModel.listShares(device.ip, null, null)
+                if (shares.isNotEmpty()) {
+                    etShare.setText(shares.first())
+                    if (shares.size > 1) {
+                        etShare.setOnClickListener {
+                            AlertDialog.Builder(requireContext())
+                                .setTitle("Choisir un partage")
+                                .setItems(shares.toTypedArray()) { _: DialogInterface, j: Int ->
+                                    etShare.setText(shares[j])
+                                }.show()
+                        }
+                    }
+                }
+            }
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(null)
+            .setView(dialogView)
+            .setPositiveButton("Ajouter aux favoris") { _, _ ->
+                val share = NetworkShare(
+                    id = "${device.type.name.lowercase()}_${device.ip}",
+                    name = device.name,
+                    host = device.ip,
+                    port = if (device.type == ShareType.SMB) 445 else null,
+                    shareName = etShare.text?.toString() ?: "",
+                    username = etUsername.text?.toString()?.takeIf { it.isNotEmpty() },
+                    password = etPassword.text?.toString()?.takeIf { it.isNotEmpty() },
+                    type = device.type
+                )
+                viewModel.saveShare(share)
+                android.widget.Toast.makeText(requireContext(), "${device.name} ajouté aux favoris", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Annuler", null)
+            .create().also { d ->
+                d.show()
+                d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
+            }
+    }
+
     private fun showAddEditDialog(existing: NetworkShare?) {
-        val dialogBinding = DialogAddNetworkShareBinding.inflate(layoutInflater)
-        dialogBinding.tvDialogTitle.text = if (existing == null) "Ajouter un chemin réseau" else "Modifier le chemin"
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_network_share, null)
+        val dialogBinding = DialogAddNetworkShareBinding.bind(dialogView)
         var selectedType = ShareType.SMB
 
-        // Pré-remplir si édition
+        dialogBinding.tvDialogTitle.text = if (existing == null) "Ajouter un chemin réseau" else "Modifier le chemin"
+
         existing?.let {
             dialogBinding.etName.setText(it.name)
             dialogBinding.etHost.setText(it.host)
@@ -111,23 +212,14 @@ class NetworkSharesFragment : Fragment() {
             selectedType = it.type
         }
 
-        // Sélecteur de type
         fun updateTypeButtons(type: ShareType) {
             selectedType = type
-            listOf(
-                dialogBinding.btnTypeSmb to ShareType.SMB,
-                dialogBinding.btnTypeDlna to ShareType.DLNA
-            ).forEach { (btn, t) ->
-                val selected = t == type
-                btn.setTextColor(
-                    if (selected) resources.getColor(R.color.blue_accent, null)
-                    else resources.getColor(R.color.on_surface_variant, null)
-                )
-                btn.setBackgroundResource(
-                    if (selected) R.drawable.bg_tab_selected
-                    else android.R.color.transparent
-                )
-            }
+            listOf(dialogBinding.btnTypeSmb to ShareType.SMB, dialogBinding.btnTypeDlna to ShareType.DLNA)
+                .forEach { (btn, t) ->
+                    val selected = t == type
+                    btn.setTextColor(if (selected) resources.getColor(R.color.blue_accent, null) else resources.getColor(R.color.on_surface_variant, null))
+                    btn.setBackgroundResource(if (selected) R.drawable.bg_tab_selected else android.R.color.transparent)
+                }
         }
         updateTypeButtons(selectedType)
         dialogBinding.btnTypeSmb.setOnClickListener { updateTypeButtons(ShareType.SMB) }
@@ -135,34 +227,31 @@ class NetworkSharesFragment : Fragment() {
 
         AlertDialog.Builder(requireContext())
             .setTitle(null)
-            .setView(dialogBinding.root)
+            .setView(dialogView)
             .setPositiveButton("Sauvegarder") { _, _ ->
                 val name = dialogBinding.etName.text.toString().trim()
                 val host = dialogBinding.etHost.text.toString().trim()
                 val shareName = dialogBinding.etShareName.text.toString().trim()
-                val port = dialogBinding.etPort.text.toString().toIntOrNull()
-                val username = dialogBinding.etUsername.text.toString().trim().ifEmpty { null }
-                val password = dialogBinding.etPassword.text.toString().ifEmpty { null }
-                val isDefault = dialogBinding.switchDefault.isChecked
-
-                if (name.isEmpty() || host.isEmpty() || shareName.isEmpty()) {
-                    Toast.makeText(requireContext(), "Nom, hôte et dossier sont requis", Toast.LENGTH_SHORT).show()
+                if (name.isEmpty() || host.isEmpty()) {
+                    android.widget.Toast.makeText(requireContext(), "Nom et hôte requis", android.widget.Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-
                 val share = existing?.copy(
-                    name = name, host = host, port = port,
-                    shareName = shareName, username = username,
-                    password = password, type = selectedType,
-                    isDefault = isDefault
-                ) ?: viewModel.createShare(
-                    name, host, port, shareName, username, password, selectedType, isDefault
-                )
+                    name = name, host = host,
+                    port = dialogBinding.etPort.text.toString().toIntOrNull(),
+                    shareName = shareName,
+                    username = dialogBinding.etUsername.text.toString().takeIf { it.isNotEmpty() },
+                    password = dialogBinding.etPassword.text.toString().takeIf { it.isNotEmpty() },
+                    type = selectedType,
+                    isDefault = dialogBinding.switchDefault.isChecked
+                ) ?: viewModel.createShare(name, host, dialogBinding.etPort.text.toString().toIntOrNull(), shareName,
+                    dialogBinding.etUsername.text.toString().takeIf { it.isNotEmpty() },
+                    dialogBinding.etPassword.text.toString().takeIf { it.isNotEmpty() },
+                    selectedType, dialogBinding.switchDefault.isChecked)
                 viewModel.saveShare(share)
             }
             .setNegativeButton("Annuler", null)
-            .create()
-            .also { d ->
+            .create().also { d ->
                 d.show()
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
             }
@@ -181,81 +270,4 @@ class NetworkSharesFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-    private fun showScanDialog() {
-        val dialogView = layoutInflater.inflate(android.R.layout.simple_list_item_1, null)
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Recherche sur le réseau local...")
-            .setView(android.widget.ProgressBar(requireContext()).apply { isIndeterminate = true })
-            .setNegativeButton("Annuler", null)
-            .create()
-        dialog.show()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.scanNetwork()
-            viewModel.scannedShares.collect { devices ->
-                if (devices.isEmpty()) return@collect
-                dialog.dismiss()
-
-                val names = devices.map { "${it.type.name}  ${it.name}  (${it.host})" }.toTypedArray()
-                androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                    .setTitle("Appareils détectés")
-                    .setItems(names) { _, i ->
-                        val device = devices[i]
-                        showShareConfig(device)
-                    }
-                    .setNegativeButton("Annuler", null)
-                    .show()
-            }
-        }
-    }
-
-    private fun showShareConfig(device: fr.retrospare.blazeplayer.data.model.NetworkShare) {
-        val view = layoutInflater.inflate(fr.retrospare.blazeplayer.R.layout.dialog_add_network_share, null)
-        val binding = fr.retrospare.blazeplayer.databinding.DialogAddNetworkShareBinding.bind(view)
-
-        // Pré-remplit les champs connus
-        binding.etName.setText(device.name)
-        binding.etHost.setText(device.host)
-        binding.etHost.isEnabled = false
-        binding.etPort.setText((device.port ?: 445).toString())
-
-        // Si DLNA, masque les champs SMB
-        val isSmb = device.type == fr.retrospare.blazeplayer.data.model.ShareType.SMB
-
-        // Charge les shares disponibles si SMB
-        if (isSmb) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                val shares = viewModel.listShares(device.host, null, null)
-                if (shares.isNotEmpty()) {
-                    binding.etShareName.setText(shares.first())
-                    // Propose le choix si plusieurs
-                    if (shares.size > 1) {
-                        binding.etShareName.setOnClickListener {
-                            androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                                .setTitle("Choisir un partage")
-                                .setItems(shares.toTypedArray()) { _: android.content.DialogInterface, j: Int ->
-                                    binding.etShareName.setText(shares[j])
-                                }.show()
-                        }
-                    }
-                }
-            }
-        }
-
-        androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Configurer ${device.name}")
-            .setView(view)
-            .setPositiveButton("Enregistrer") { _, _ ->
-                val share = device.copy(
-                    name = binding.etName.text.toString(),
-                    shareName = binding.etShareName.text.toString(),
-                    username = binding.etUsername.text.toString().takeIf { it.isNotEmpty() },
-                    password = binding.etPassword.text.toString().takeIf { it.isNotEmpty() }
-                )
-                viewModel.saveShare(share)
-            }
-            .setNegativeButton("Annuler", null)
-            .show()
-    }
-
 }
