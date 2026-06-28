@@ -2,6 +2,8 @@
 <resources>
 
     <style name="Theme.BlazePlayer" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:fontFamily">@font/oswald</item>
+        <item name="fontFamily">@font/oswald</item>
         <item name="colorPrimary">@color/green_accent</item>
         <item name="colorOnPrimary">@color/background</item>
         <item name="colorPrimaryContainer">@color/green_container</item>

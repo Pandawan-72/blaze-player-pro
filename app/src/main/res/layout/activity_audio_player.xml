@@ -325,6 +325,7 @@
                 android:letterSpacing="0.08" />
 
             <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
                 android:id="@+id/btnCleanPlaylist"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
@@ -341,6 +342,7 @@
                 app:iconGravity="textStart" />
 
             <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
                 android:id="@+id/btnAddFolder"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"

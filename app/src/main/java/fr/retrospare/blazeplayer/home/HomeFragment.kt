@@ -1,6 +1,7 @@
 package fr.retrospare.blazeplayer.home
 
 import android.graphics.Typeface
+import androidx.core.content.res.ResourcesCompat
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -174,11 +175,13 @@ class HomeFragment : Fragment() {
             if (index == selectedIndex) {
                 tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_active)
                 tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
-                tab.setTypeface(null, Typeface.BOLD)
+                val oswald = ResourcesCompat.getFont(requireContext(), fr.retrospare.blazeplayer.R.font.oswald)
+                tab.typeface = oswald
             } else {
                 tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_inactive)
                 tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface_variant))
-                tab.setTypeface(null, Typeface.NORMAL)
+                val oswald = ResourcesCompat.getFont(requireContext(), fr.retrospare.blazeplayer.R.font.oswald)
+                tab.typeface = oswald
             }
         }
     }

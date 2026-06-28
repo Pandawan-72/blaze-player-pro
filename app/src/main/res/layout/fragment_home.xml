@@ -99,7 +99,8 @@
                         android:text="Tous"
                         android:textColor="@color/green_accent"
                         android:textSize="13sp"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="@font/oswald"
+                        android:includeFontPadding="false"
                         android:clickable="true"
                         android:focusable="true" />
 
@@ -114,6 +115,8 @@
                         android:text="Réseau"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="13sp"
+                        android:fontFamily="@font/oswald"
+                        android:includeFontPadding="false"
                         android:clickable="true"
                         android:focusable="true" />
 
@@ -133,10 +136,12 @@
                         android:gravity="center"
                         android:paddingHorizontal="16dp"
                         android:text="Blaze Audio"
-                        android:textSize="13sp"
                         android:background="@drawable/bg_tab_inactive"
                         android:layout_marginStart="6dp"
                         android:textColor="@color/on_surface_variant"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/oswald"
+                        android:includeFontPadding="false"
                         android:clickable="true"
                         android:focusable="true" />
 
@@ -175,7 +180,7 @@
                     android:text="Dernier fichier lu"
                     android:textColor="@color/on_background"
                     android:textSize="10sp"
-                    android:fontFamily="sans-serif-medium" />
+                    android:fontFamily="@font/oswald" />
 
                 <!-- BADGE SOURCE -->
                 <TextView
@@ -190,7 +195,7 @@
                     android:text="LOCAL"
                     android:textColor="@color/green_accent"
                     android:textSize="10sp"
-                    android:fontFamily="sans-serif-medium" />
+                    android:fontFamily="@font/oswald" />
 
                 <!-- BOUTON PLAY -->
                 <ImageView
@@ -218,7 +223,7 @@
                         android:text="Aucune lecture récente"
                         android:textColor="@color/on_background"
                         android:textSize="13sp"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="@font/oswald"
                         android:ellipsize="end"
                         android:singleLine="true"
                         android:layout_marginBottom="3dp" />
@@ -245,7 +250,7 @@
                             android:text=""
                             android:textColor="@color/green_accent"
                             android:textSize="10sp"
-                            android:fontFamily="sans-serif-medium"
+                            android:fontFamily="@font/oswald"
                             android:layout_marginEnd="4dp"
                             android:visibility="gone" />
                         <TextView
@@ -327,10 +332,11 @@
                         android:text="HISTORIQUE RÉSEAU (3 DERNIERS)"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="11sp"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="@font/oswald"
                         android:letterSpacing="0.08" />
 
                     <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
                         android:id="@+id/btnBrowseNetwork"
                         android:layout_width="wrap_content"
                         android:layout_height="38dp"
@@ -388,10 +394,11 @@
                         android:text="HISTORIQUE LOCAL (3 DERNIERS)"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="11sp"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="@font/oswald"
                         android:letterSpacing="0.08" />
 
                     <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
                         android:id="@+id/btnBrowseLocal"
                         android:layout_width="wrap_content"
                         android:layout_height="38dp"

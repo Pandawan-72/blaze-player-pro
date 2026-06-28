@@ -38,6 +38,7 @@
             android:fontFamily="sans-serif-medium" />
 
         <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
             android:id="@+id/btnAddAll"
             android:layout_width="wrap_content"
             android:layout_height="38dp"
@@ -54,6 +55,7 @@
             app:cornerRadius="20dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
             android:id="@+id/btnConfirm"
             android:layout_width="wrap_content"
             android:layout_height="38dp"
@@ -79,6 +81,7 @@
         android:paddingBottom="12dp">
 
         <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
             android:id="@+id/btnLocal"
             android:layout_width="wrap_content"
             android:layout_height="38dp"
@@ -91,6 +94,7 @@
             android:layout_marginEnd="8dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
             android:id="@+id/btnNetwork"
             android:layout_width="wrap_content"
             android:layout_height="38dp"
@@ -103,6 +107,7 @@
             android:layout_marginEnd="8dp" />
 
         <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
             android:id="@+id/btnFolder"
             android:layout_width="wrap_content"
             android:layout_height="38dp"
