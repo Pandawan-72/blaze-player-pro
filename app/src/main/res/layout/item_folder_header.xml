@@ -69,6 +69,8 @@
             android:textSize="11sp"
             android:textColor="#FF000000"
             android:paddingHorizontal="12dp"
+            android:includeFontPadding="false"
+            android:gravity="center"
             app:backgroundTint="@color/green_accent"
             app:cornerRadius="20dp" />
 

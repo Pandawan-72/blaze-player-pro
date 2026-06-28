@@ -92,6 +92,8 @@
             android:layout_marginTop="28dp"
             android:text="Se connecter"
             android:textSize="16sp"
+            android:includeFontPadding="false"
+            android:gravity="center"
             app:backgroundTint="@color/green_accent"
             app:cornerRadius="12dp" />
 

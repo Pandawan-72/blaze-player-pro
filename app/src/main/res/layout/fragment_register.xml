@@ -110,6 +110,8 @@
             android:layout_marginTop="32dp"
             android:text="Créer mon compte"
             android:textSize="16sp"
+            android:includeFontPadding="false"
+            android:gravity="center"
             app:backgroundTint="@color/green_accent"
             app:cornerRadius="12dp" />
 
