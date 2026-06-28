@@ -26,8 +26,8 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.4.0-alpha"
+        versionCode = 7
+        versionName = "0.6.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

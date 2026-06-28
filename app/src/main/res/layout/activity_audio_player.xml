@@ -120,11 +120,10 @@
         <!-- CODEC + BITRATE sous artiste -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="28dp"
             android:orientation="horizontal"
             android:gravity="center"
-            android:paddingHorizontal="24dp"
-            android:paddingBottom="8dp">
+            android:paddingHorizontal="24dp">
 
             <TextView
                 android:id="@+id/tvCodec"
