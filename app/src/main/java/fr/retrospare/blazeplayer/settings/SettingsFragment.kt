@@ -148,16 +148,7 @@ class SettingsFragment : Fragment() {
             viewModel.getShowHidden()
         ) { viewModel.setShowHidden(it) }
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            val showAudio = viewModel.getShowAudioAsync()
-            setupToggle(
-                binding.settingShowAudio.root,
-                R.drawable.ic_audio,
-                "Afficher les fichiers audio",
-                "Inclure la musique dans le navigateur",
-                showAudio
-            ) { viewModel.setShowAudio(it) }
-        }
+
 
         // DONNÉES
         setupAction(

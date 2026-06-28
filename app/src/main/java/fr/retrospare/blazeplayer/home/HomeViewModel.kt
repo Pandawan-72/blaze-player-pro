@@ -42,9 +42,11 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             mediaRepository.getRecentItems().collect { items ->
+                // Filtre les fichiers audio - ils sont gérés par Blaze Audio
+                val videoOnly = items.filter { !it.mimeType.startsWith("audio/") }
                 // Enrichit chaque item avec les métadonnées MediaStore
                 val enriched = withContext(Dispatchers.IO) {
-                    items.map { enrichWithMediaStore(it) }
+                    videoOnly.map { enrichWithMediaStore(it) }
                 }
                 allItems = enriched
                 _lastPlayedItem.value = enriched.firstOrNull()

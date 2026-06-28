@@ -60,6 +60,7 @@
 
         <ImageButton
             android:id="@+id/btnToggleAudio"
+            android:visibility="gone"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_marginStart="8dp"

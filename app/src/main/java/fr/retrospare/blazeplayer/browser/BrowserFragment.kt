@@ -76,12 +76,8 @@ class BrowserFragment : Fragment() {
             ?.setOnClickListener {
                 val selected = adapter.getSelectedItems()
                 if (selected.isNotEmpty()) {
-                    val sharedVm = androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
                     selected.forEach { item ->
-                        val audioExts = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
-                        if (item.extension.lowercase() in audioExts) {
-                            sharedVm.addToPlaylist(item.path, item.name)
-                        }
+                        PlayerRouter.open(requireContext(), item.path, item.name)
                     }
                     adapter.clearSelection()
                     binding.toolbarSelection.visibility = android.view.View.GONE
@@ -109,12 +105,7 @@ class BrowserFragment : Fragment() {
             onFileClick = { item ->
                 // DEBUG
                 android.widget.Toast.makeText(requireContext(), "clic fichier audioPickMode=$audioPickMode args=${arguments?.keySet()}", android.widget.Toast.LENGTH_LONG).show()
-                if (audioPickMode) {
-                    val cb = requireActivity() as? AudioPickCallback
-                    cb?.onFilePicked(item.path, item.name)
-                } else {
-                    PlayerRouter.open(requireContext(), item.path, item.name)
-                }
+                PlayerRouter.open(requireContext(), item.path, item.name)
             }
         )
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
