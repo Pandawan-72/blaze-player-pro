@@ -133,7 +133,7 @@ class AudioPlayerFragment : Fragment() {
             return
         }
         // Charge la playlist sauvegardée
-        val saved = loadPlaylist()
+        val saved = loadPlaylist().distinctBy { it.name } // supprime les doublons
         val items = saved.toMutableList().also { list ->
             if (path.isNotEmpty() && list.none { it.path == path }) list.add(PlaylistItem(path, name))
         }.ifEmpty { if (path.isNotEmpty()) mutableListOf(PlaylistItem(path, name)) else mutableListOf() }
@@ -151,9 +151,12 @@ class AudioPlayerFragment : Fragment() {
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
             adapter = playlistAdapter
         }
-        binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
-        binding.btnAddFolder.setOnClickListener {
-            pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
+        // N'enregistre les listeners qu'une seule fois
+        if (!binding.btnAddFolder.hasOnClickListeners()) {
+            binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
+            binding.btnAddFolder.setOnClickListener {
+                pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
+            }
         }
         binding.btnEq.setOnClickListener {
             // Initialise EQ si pas encore fait
