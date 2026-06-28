@@ -45,6 +45,7 @@ class SettingsViewModel @Inject constructor(
         val KEY_GESTURES         = booleanPreferencesKey("gestures")
         val KEY_AUDIO_LANG       = intPreferencesKey("audio_lang")
         val KEY_REMEMBER_VOLUME  = booleanPreferencesKey("remember_volume")
+        val KEY_SAVED_VOLUME     = intPreferencesKey("saved_volume")
         val KEY_SUBTITLES_DEFAULT = booleanPreferencesKey("subtitles_default")
         val KEY_SUBTITLE_LANG    = intPreferencesKey("subtitle_lang")
         val KEY_SHOW_HIDDEN      = booleanPreferencesKey("show_hidden")
@@ -148,6 +149,7 @@ class SettingsViewModel @Inject constructor(
     fun getGestures() = getBool(KEY_GESTURES, true)
     fun setGestures(v: Boolean) = setBool(KEY_GESTURES, v)
     fun getAudioLangIndex() = getInt(KEY_AUDIO_LANG, 0)
+    suspend fun getAudioLangIndexAsync(): Int = dataStore.data.first()[KEY_AUDIO_LANG] ?: 0
     fun setAudioLangIndex(v: Int) = setInt(KEY_AUDIO_LANG, v)
     fun getRememberVolume() = getBool(KEY_REMEMBER_VOLUME, false)
     fun setRememberVolume(v: Boolean) = setBool(KEY_REMEMBER_VOLUME, v)
@@ -159,6 +161,7 @@ class SettingsViewModel @Inject constructor(
     fun getShowHidden() = getBool(KEY_SHOW_HIDDEN, false)
     fun setShowHidden(v: Boolean) = setBool(KEY_SHOW_HIDDEN, v)
     fun getShowAudio() = getBool(KEY_SHOW_AUDIO, false)
+    suspend fun getShowAudioAsync(): Boolean = dataStore.data.first()[KEY_SHOW_AUDIO] ?: false
     fun setShowAudio(v: Boolean) = setBool(KEY_SHOW_AUDIO, v)
 
     fun removeFromHistory(item: fr.retrospare.blazeplayer.data.model.MediaItem) {

@@ -13,6 +13,7 @@ import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.lifecycle.lifecycleScope
@@ -52,6 +53,10 @@ class PlayerActivity : AppCompatActivity() {
     private var prefAutoPlay = true
     private var prefSeekIndex = 1
     private var prefPip = false
+    private var prefAudioLangIndex = 0
+    private var prefRememberVolume = false
+    private var prefSubtitlesDefault = false
+    private var prefSubtitleLangIndex = 0
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private val hideRunnable = Runnable { hideUI() }
@@ -106,6 +111,34 @@ class PlayerActivity : AppCompatActivity() {
             prefAutoPlay = prefs[booleanPreferencesKey("auto_play")] ?: true
             prefSeekIndex = prefs[intPreferencesKey("seek_time_index")] ?: 1
             prefPip = prefs[booleanPreferencesKey("pip")] ?: false
+            prefAudioLangIndex = prefs[intPreferencesKey("audio_lang")] ?: 0
+            prefRememberVolume = prefs[booleanPreferencesKey("remember_volume")] ?: false
+            prefSubtitlesDefault = prefs[booleanPreferencesKey("subtitles_default")] ?: false
+            prefSubtitleLangIndex = prefs[intPreferencesKey("subtitle_lang")] ?: 0
+
+            // Applique sous-titres
+            val subLangCodes = listOf(null, "fra", "eng", "spa", "deu", "ita", "jpn", "por", "nld", "rus", "zho")
+            val subLang = subLangCodes.getOrNull(prefSubtitleLangIndex)
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, !prefSubtitlesDefault)
+                .apply { if (subLang != null) setPreferredTextLanguage(subLang) }
+                .build()
+
+            // Restaure le volume mémorisé
+            if (prefRememberVolume) {
+                val savedVol = prefs[intPreferencesKey("saved_volume")] ?: -1
+                if (savedVol >= 0) audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, savedVol, 0)
+            }
+
+            // Applique la langue audio préférée
+            val langCodes = listOf(null, "fra", "eng", "spa", "deu", "ita", "jpn", "por", "nld", "rus", "zho")
+            val preferredLang = langCodes.getOrNull(prefAudioLangIndex)
+            if (preferredLang != null) {
+                player.trackSelectionParameters = player.trackSelectionParameters
+                    .buildUpon()
+                    .setPreferredAudioLanguage(preferredLang)
+                    .build()
+            }
             // orientation gérée en synchrone au démarrage
             // Applique vitesse de lecture
             val speeds = listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
@@ -308,6 +341,13 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         if (isInPictureInPictureMode) return
+        // Sauvegarde le volume si option activée
+        if (prefRememberVolume) {
+            val vol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+            lifecycleScope.launch {
+                dataStore.edit { it[intPreferencesKey("saved_volume")] = vol }
+            }
+        }
         val pos = player.currentPosition
         if (mediaPath.isNotEmpty() && pos > 0) {
             getSharedPreferences("blaze_positions", MODE_PRIVATE)

@@ -261,14 +261,47 @@ class HomeFragment : Fragment() {
                     when (mi.itemId) {
                         1 -> { PlayerRouter.open(requireContext(), item.path, item.name); true }
                         2 -> {
-                            val sz = android.text.format.Formatter.formatShortFileSize(requireContext(), item.size)
-                            val dur = item.duration
-                            val ds = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else "N/A"
-                            android.app.AlertDialog.Builder(requireContext())
-                                .setTitle(item.name)
-                                .setMessage("Taille : $sz  |  Duree : $ds  |  Format : ${item.extension.uppercase()}")
-                                .setPositiveButton("OK", null)
-                                .show()
+                            // Lit les infos depuis MediaStore
+                            viewLifecycleOwner.lifecycleScope.launch {
+                                val info = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    try {
+                                        val uri = android.net.Uri.parse(item.path)
+                                        val proj = arrayOf(
+                                            android.provider.MediaStore.Video.Media.SIZE,
+                                            android.provider.MediaStore.Video.Media.DURATION,
+                                            android.provider.MediaStore.Video.Media.WIDTH,
+                                            android.provider.MediaStore.Video.Media.HEIGHT,
+                                            android.provider.MediaStore.Video.Media.MIME_TYPE
+                                        )
+                                        requireContext().contentResolver.query(uri, proj, null, null, null)?.use { c ->
+                                            if (c.moveToFirst()) {
+                                                val size = c.getLong(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.SIZE))
+                                                val dur = c.getLong(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DURATION)) / 1000
+                                                val w = c.getInt(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.WIDTH))
+                                                val h = c.getInt(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.HEIGHT))
+                                                val mime = c.getString(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.MIME_TYPE)) ?: ""
+                                                Triple(size, dur, "$w×$h")
+                                            } else null
+                                        }
+                                    } catch (e: Exception) { null }
+                                }
+                                val sz = android.text.format.Formatter.formatShortFileSize(requireContext(), info?.first ?: item.size)
+                                val dur = info?.second ?: item.duration
+                                val ds = if (dur > 0) "%d:%02d:%02d".format(dur / 3600, (dur % 3600) / 60, dur % 60) else "N/A"
+                                val res = info?.third ?: ""
+                                val ext = item.extension.uppercase()
+                                val videoCodec = when (item.extension.lowercase()) {
+                                    "mkv" -> "H.265"; "mp4", "m4v" -> "H.264"
+                                    "avi" -> "DIVX"; "webm" -> "VP9"; else -> ext
+                                }
+                                android.app.AlertDialog.Builder(requireContext())
+                                    .setTitle(item.name)
+                                    .setMessage(
+                                        "Taille : $sz\nDuree : $ds\nResolution : $res\nConteneur : $ext\nCodec video : $videoCodec"
+                                    )
+                                    .setPositiveButton("OK", null)
+                                    .show()
+                            }
                             true
                         }
                         3 -> { viewModel.removeFromHistory(item); true }

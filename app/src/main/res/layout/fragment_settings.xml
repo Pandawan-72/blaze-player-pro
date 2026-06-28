@@ -137,23 +137,6 @@
             <View android:layout_width="match_parent" android:layout_height="0.5dp"
                 android:background="#1FFFFFFF" android:layout_marginVertical="8dp" />
 
-            <!-- SECTION RÉSEAU -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="RÉSEAU"
-                android:textColor="@color/green_accent"
-                android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
-                android:letterSpacing="0.1"
-                android:paddingHorizontal="16dp"
-                android:paddingBottom="4dp" />
-
-            <include android:id="@+id/settingChromecast" layout="@layout/item_setting" />
-
-            <View android:layout_width="match_parent" android:layout_height="0.5dp"
-                android:background="#1FFFFFFF" android:layout_marginVertical="8dp" />
-
             <!-- SECTION INTERFACE -->
             <TextView
                 android:layout_width="match_parent"

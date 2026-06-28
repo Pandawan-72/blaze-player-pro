@@ -97,14 +97,18 @@ class SettingsFragment : Fragment() {
 
 
         // AUDIO
-        setupChoice(
-            binding.settingAudioLang.root,
-            R.drawable.ic_language,
-            "Langue audio préférée",
-            listOf("Pas de préférence", "Français", "Anglais", "Espagnol", "Allemand", "Italien", "Japonais"),
-            viewModel.getAudioLangIndex(),
-            "Langue audio préférée"
-        ) { viewModel.setAudioLangIndex(it) }
+        val audioLangs = listOf("Pas de préférence", "Français", "Anglais", "Espagnol", "Allemand", "Italien", "Japonais", "Portugais", "Néerlandais", "Russe", "Chinois")
+        viewLifecycleOwner.lifecycleScope.launch {
+            val idx = viewModel.getAudioLangIndexAsync()
+            setupChoice(
+                binding.settingAudioLang.root,
+                R.drawable.ic_language,
+                "Langue audio préférée",
+                audioLangs,
+                idx,
+                "Langue audio préférée"
+            ) { viewModel.setAudioLangIndex(it) }
+        }
 
         setupToggle(
             binding.settingRememberVolume.root,
@@ -127,19 +131,13 @@ class SettingsFragment : Fragment() {
             binding.settingSubtitleLang.root,
             R.drawable.ic_language,
             "Langue des sous-titres",
-            listOf("Pas de préférence", "Français", "Anglais", "Espagnol", "Allemand", "Italien", "Japonais"),
+            listOf("Pas de préférence", "Français", "Anglais", "Espagnol", "Allemand", "Italien", "Japonais", "Portugais", "Néerlandais", "Russe", "Chinois"),
             viewModel.getSubtitleLangIndex(),
             "Langue des sous-titres préférée"
         ) { viewModel.setSubtitleLangIndex(it) }
 
         // RÉSEAU
-        setupToggle(
-            binding.settingChromecast.root,
-            R.drawable.ic_cast,
-            "Chromecast",
-            "Activer le support Chromecast",
-            viewModel.getChromecast()
-        ) { viewModel.toggleChromecast() }
+
 
         // INTERFACE
         setupToggle(
@@ -150,13 +148,16 @@ class SettingsFragment : Fragment() {
             viewModel.getShowHidden()
         ) { viewModel.setShowHidden(it) }
 
-        setupToggle(
-            binding.settingShowAudio.root,
-            R.drawable.ic_audio,
-            "Afficher les fichiers audio",
-            "Inclure la musique dans le navigateur",
-            viewModel.getShowAudio()
-        ) { viewModel.setShowAudio(it) }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val showAudio = viewModel.getShowAudioAsync()
+            setupToggle(
+                binding.settingShowAudio.root,
+                R.drawable.ic_audio,
+                "Afficher les fichiers audio",
+                "Inclure la musique dans le navigateur",
+                showAudio
+            ) { viewModel.setShowAudio(it) }
+        }
 
         // DONNÉES
         setupAction(
@@ -209,8 +210,10 @@ class SettingsFragment : Fragment() {
         tvSub.text = choices.getOrElse(selectedIndex) { choices[0] }
         tvSub.visibility = View.VISIBLE
         view.findViewById<ImageView>(R.id.ivChevron).visibility = View.VISIBLE
+        var currentIndex = selectedIndex
         view.setOnClickListener {
-            SettingsDialog.showChoice(requireContext(), dialogTitle, choices, selectedIndex) { idx ->
+            SettingsDialog.showChoice(requireContext(), dialogTitle, choices, currentIndex) { idx ->
+                currentIndex = idx
                 tvSub.text = choices[idx]
                 onSelected(idx)
             }

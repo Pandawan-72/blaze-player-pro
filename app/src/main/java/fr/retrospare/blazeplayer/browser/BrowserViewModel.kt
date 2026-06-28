@@ -14,7 +14,13 @@ import fr.retrospare.blazeplayer.network.SmbBrowser
 import fr.retrospare.blazeplayer.data.model.NetworkShare
 import fr.retrospare.blazeplayer.data.repository.NetworkRepository
 import kotlinx.coroutines.Dispatchers
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -23,6 +29,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
+    private val dataStore: DataStore<Preferences>,
     @ApplicationContext private val context: Context,
     private val mediaRepository: MediaRepository,
     private val smbBrowser: SmbBrowser,
@@ -49,6 +56,20 @@ class BrowserViewModel @Inject constructor(
 
     private val _showAudio = MutableStateFlow(false)
     val showAudio: StateFlow<Boolean> = _showAudio.asStateFlow()
+    private val _showHidden = MutableStateFlow(false)
+    val showHidden: StateFlow<Boolean> = _showHidden.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            dataStore.data.collect { prefs ->
+                _showAudio.value = prefs[booleanPreferencesKey("show_audio")] ?: false
+                _showHidden.value = prefs[booleanPreferencesKey("show_hidden")] ?: false
+            }
+        }
+    }
+
+    fun isShowAudioFromSettings(): Boolean = 
+        runBlocking { dataStore.data.first()[booleanPreferencesKey("show_audio")] ?: false }
 
     fun toggleShowAudio() {
         _showAudio.value = !_showAudio.value
@@ -240,6 +261,8 @@ class BrowserViewModel @Inject constructor(
                     val id = cursor.getLong(idCol)
                     val name = cursor.getString(nameCol) ?: continue
                     val filePath = cursor.getString(dataCol) ?: continue
+                    // Filtre les fichiers cachés si option désactivée
+                    if (!_showHidden.value && name.startsWith(".")) continue
                     val size = cursor.getLong(sizeCol)
                     val duration = cursor.getLong(durationCol) / 1000
                     val mime = cursor.getString(mimeCol) ?: "video/*"
@@ -254,28 +277,21 @@ class BrowserViewModel @Inject constructor(
                         else -> null
                     }
                     val uri = ContentUris.withAppendedId(collection, id)
-                    // Extract codecs
-                    var videoCodec: String? = null
-                    var audioCodec: String? = null
-                    try {
-                        val retriever = MediaMetadataRetriever()
-                        retriever.setDataSource(context, uri)
-                        val mime = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE) ?: ""
-                        videoCodec = when {
-                            ext == "mkv" -> "H.265"
-                            ext == "mp4" || ext == "m4v" -> "H.264"
-                            ext == "avi" -> "DIVX"
-                            ext == "webm" -> "VP9"
-                            else -> ext.uppercase()
-                        }
-                        audioCodec = when {
-                            ext == "mkv" -> "AAC"
-                            ext == "mp4" -> "AAC"
-                            ext == "avi" -> "MP3"
-                            else -> "AAC"
-                        }
-                        retriever.release()
-                    } catch (e: Exception) {}
+                    // Codecs par extension - pas de MediaMetadataRetriever pour éviter OOM
+                    val videoCodec: String? = when (ext) {
+                        "mkv" -> "H.265"
+                        "mp4", "m4v" -> "H.264"
+                        "avi" -> "DIVX"
+                        "webm" -> "VP9"
+                        "ts", "mts" -> "H.264"
+                        else -> ext.uppercase()
+                    }
+                    val audioCodec: String? = when (ext) {
+                        "mkv" -> "AAC"
+                        "mp4", "m4v" -> "AAC"
+                        "avi" -> "MP3"
+                        else -> "AAC"
+                    }
                     items += MediaItem(
                         id = id.toString(),
                         name = name,
