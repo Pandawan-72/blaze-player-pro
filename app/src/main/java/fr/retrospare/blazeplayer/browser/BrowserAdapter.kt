@@ -40,6 +40,11 @@ class BrowserAdapter(
         }
     }
 
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        super.onViewRecycled(holder)
+        if (holder is FileViewHolder) holder.thumbnailJob?.cancel()
+    }
+
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = getItem(position)
         when (holder) {
@@ -61,6 +66,8 @@ class BrowserAdapter(
     class FileViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvName: TextView = view.findViewById(R.id.tvFileName)
         private val tvResolution: TextView = view.findViewById(R.id.tvResolution)
+        private val scope = kotlinx.coroutines.MainScope()
+        var thumbnailJob: kotlinx.coroutines.Job? = null
         private val tvFormat: TextView = view.findViewById(R.id.tvFormat)
         private val tvDuration: TextView = view.findViewById(R.id.tvDuration)
         private val progressFill: View = view.findViewById(R.id.progressFill)
@@ -78,20 +85,7 @@ class BrowserAdapter(
             if (isAudio) {
                 tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_orange)
                 tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.orange_accent))
-                // Artwork audio
-                android.os.AsyncTask.execute {
-                    val bmp = AudioArtworkHelper.getArtwork(itemView.context, item.path)
-                    (itemView.context as? android.app.Activity)?.runOnUiThread {
-                        if (bmp != null) {
-                            ivThumbnail.setImageBitmap(bmp)
-                            ivThumbnail.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
-                        } else {
-                            ivThumbnail.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_music_note_large)
-                            ivThumbnail.scaleType = android.widget.ImageView.ScaleType.CENTER
-                            ivThumbnail.setBackgroundColor(0xFF1A1D2E.toInt())
-                        }
-                    }
-                }
+                // Artwork audio chargé via ThumbnailUtils (cache LRU)
             } else {
                 tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_gray)
                 tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
@@ -124,18 +118,14 @@ class BrowserAdapter(
             }
 
             // Reset thumbnail
+            thumbnailJob?.cancel()
             ivThumbnail.setImageBitmap(null)
             ivPlayOverlay.visibility = View.VISIBLE
 
             // Charge le thumbnail si fichier local
             if (!item.isNetwork && item.path.isNotEmpty()) {
-                kotlinx.coroutines.MainScope().launch {
-                    ThumbnailUtils.loadThumbnail(
-                        itemView.context, item.path, ivThumbnail
-                    )
-                    if (ivThumbnail.drawable != null) {
-                        ivPlayOverlay.visibility = View.GONE
-                    }
+                thumbnailJob = scope.launch {
+                    ThumbnailUtils.loadThumbnail(itemView.context, item.path, ivThumbnail)
                 }
             }
 

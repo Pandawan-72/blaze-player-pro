@@ -18,7 +18,7 @@ object ThumbnailUtils {
     )
 
     // Cache LRU limité à 20MB
-    private val cache = object : LruCache<String, Bitmap>(20 * 1024 * 1024) {
+    private val cache = object : LruCache<String, Bitmap>(15 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
 
@@ -78,7 +78,7 @@ object ThumbnailUtils {
 
                 withContext(Dispatchers.Main) {
                     if (bitmap != null) {
-                        val scaled = scaleBitmap(bitmap)
+                        val scaled = scaleBitmap(bitmap, 128)
                         cache.put(path, scaled)
                         imageView.setImageBitmap(scaled)
                         imageView.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -96,7 +96,7 @@ object ThumbnailUtils {
                     retriever.setDataSource(context, Uri.parse(path))
                     val bitmap = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
                     bitmap?.let {
-                        val scaled = scaleBitmap(it, 320)
+                        val scaled = scaleBitmap(it, 160)
                         cache.put(path, scaled)
                         withContext(Dispatchers.Main) {
                             imageView.setImageBitmap(scaled)

@@ -56,6 +56,7 @@ class BrowserViewModel @Inject constructor(
 
     private val _showAudio = MutableStateFlow(false)
     val showAudio: StateFlow<Boolean> = _showAudio.asStateFlow()
+    private val _audioOnlyMode = MutableStateFlow(false)
     private val _showHidden = MutableStateFlow(false)
     val showHidden: StateFlow<Boolean> = _showHidden.asStateFlow()
 
@@ -64,6 +65,30 @@ class BrowserViewModel @Inject constructor(
             dataStore.data.collect { prefs ->
                 _showAudio.value = prefs[booleanPreferencesKey("show_audio")] ?: false
                 _showHidden.value = prefs[booleanPreferencesKey("show_hidden")] ?: false
+            }
+        }
+    }
+
+    fun setAudioOnlyMode(v: Boolean) { _audioOnlyMode.value = v }
+
+    fun loadNetworkShares() {
+        viewModelScope.launch {
+            _state.value = BrowserState.Loading
+            val shares = networkRepository.getShares().first()
+            if (shares.isEmpty()) {
+                _state.value = BrowserState.Error("Aucun chemin réseau configuré")
+            } else {
+                val items = shares.map { share ->
+                    fr.retrospare.blazeplayer.data.model.MediaItem(
+                        id = share.id,
+                        name = share.name,
+                        path = share.id,
+                        extension = "",
+                        mimeType = "network",
+                        isNetwork = true
+                    )
+                }
+                _state.value = BrowserState.Success(items)
             }
         }
     }
@@ -86,8 +111,8 @@ class BrowserViewModel @Inject constructor(
                 val items = if (path.isEmpty()) {
                     scanRootFolders()
                 } else {
-                    val videoItems = scanLocalFiles(path)
-                    val audioItems = if (_showAudio.value) scanLocalAudio(path) else emptyList()
+                    val videoItems = if (_audioOnlyMode.value) emptyList() else scanLocalFiles(path)
+                    val audioItems = if (_showAudio.value || _audioOnlyMode.value) scanLocalAudio(path) else emptyList()
                     videoItems + audioItems
                 }
                 _state.value = BrowserState.Success(applySortMode(items))
@@ -261,7 +286,6 @@ class BrowserViewModel @Inject constructor(
                     val id = cursor.getLong(idCol)
                     val name = cursor.getString(nameCol) ?: continue
                     val filePath = cursor.getString(dataCol) ?: continue
-                    // Filtre les fichiers cachés si option désactivée
                     if (!_showHidden.value && name.startsWith(".")) continue
                     val size = cursor.getLong(sizeCol)
                     val duration = cursor.getLong(durationCol) / 1000
@@ -269,6 +293,11 @@ class BrowserViewModel @Inject constructor(
                     val width = cursor.getInt(widthCol)
                     val height = cursor.getInt(heightCol)
                     val ext = name.substringAfterLast('.', "").lowercase()
+                    // En mode audioOnly : affiche UNIQUEMENT les fichiers audio
+                    if (_audioOnlyMode.value) {
+                        val audioExts = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
+                        if (ext !in audioExts) continue
+                    }
                     val resolution = when {
                         height >= 2160 -> "4K"
                         height >= 1080 -> "FHD"

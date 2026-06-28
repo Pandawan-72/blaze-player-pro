@@ -346,10 +346,26 @@
                 app:iconGravity="textStart" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddNetwork"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="Réseau"
+                app:icon="@drawable/ic_wifi"
+                app:iconSize="14dp"
+                app:iconTint="#FFFFFF"
+                app:iconGravity="textStart"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:paddingHorizontal="12dp"
+                android:layout_marginEnd="6dp"
+                app:backgroundTint="#33FFFFFF"
+                app:cornerRadius="20dp" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAddFolder"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"
-                android:text="Piste / Dossier"
+                android:text="Local"
                 app:icon="@drawable/ic_add_circle"
                 app:iconSize="16dp"
                 app:iconTint="#FF000000"

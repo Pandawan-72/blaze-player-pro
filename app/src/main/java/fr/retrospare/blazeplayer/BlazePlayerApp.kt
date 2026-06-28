@@ -23,4 +23,11 @@ class BlazePlayerApp : Application() {
             ).build()
         )
     }
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
+            fr.retrospare.blazeplayer.ui.ThumbnailUtils.clearCache()
+            fr.retrospare.blazeplayer.utils.AudioArtworkHelper.clearCache()
+        }
+    }
 }

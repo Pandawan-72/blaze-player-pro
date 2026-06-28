@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class BrowserFragment : Fragment() {
+    private var audioPickMode = false
 
     private val viewModel: BrowserViewModel by viewModels()
     private var _binding: FragmentBrowserBinding? = null
@@ -35,17 +36,25 @@ class BrowserFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        audioPickMode = arguments?.getBoolean("audioPickMode") ?: false
+        val audioOnlyMode = arguments?.getBoolean("audioOnlyMode") ?: false
+        val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
+        if (audioOnlyMode) {
+            viewModel.setAudioOnlyMode(true)
+            // Titre correct selon le type de navigateur
+            binding.tvTitle.text = if (isNetwork) "Réseau" else "Mes fichiers audio"
+        }
+
         setupRecyclerView()
         setupButtons()
         observeViewModel()
         val shareId = arguments?.getString("shareId")
-        val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
         val initPath = arguments?.getString("path") ?: ""
 
-        if (isNetwork && !shareId.isNullOrEmpty()) {
-            viewModel.loadNetworkFilesById(shareId, initPath)
-        } else {
-            viewModel.loadLocalFiles()
+        when {
+            isNetwork && !shareId.isNullOrEmpty() -> viewModel.loadNetworkFilesById(shareId, initPath)
+            isNetwork -> viewModel.loadNetworkShares() // Affiche la liste des partages réseau
+            else -> viewModel.loadLocalFiles()
         }
     }
 
@@ -55,14 +64,23 @@ class BrowserFragment : Fragment() {
                 breadcrumbParts.add(item.name)
                 updateBreadcrumb()
                 val share = viewModel.currentShare
-                if (share != null) {
-                    viewModel.loadNetworkFiles(share, item.path)
-                } else {
-                    viewModel.loadLocalFiles(item.path)
+                when {
+                    share != null -> viewModel.loadNetworkFiles(share, item.path)
+                    item.mimeType == "network" -> {
+                        // Clic sur un favori réseau — charge ses fichiers
+                        viewModel.loadNetworkFilesById(item.id, "")
+                    }
+                    else -> viewModel.loadLocalFiles(item.path)
                 }
             },
             onFileClick = { item ->
-                PlayerRouter.open(requireContext(), item.path, item.name)
+                if (audioPickMode) {
+                    // Mode sélection audio : notifie AudioPickActivity
+                    (requireActivity() as? fr.retrospare.blazeplayer.player.AudioPickActivity)
+                        ?.onFilePicked(item.path, item.name)
+                } else {
+                    PlayerRouter.open(requireContext(), item.path, item.name)
+                }
             }
         )
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -82,7 +100,13 @@ class BrowserFragment : Fragment() {
                     viewModel.loadLocalFiles(path)
                 }
             } else {
-                findNavController().popBackStack()
+                // Si on est dans AudioPickActivity, on ferme l'Activity
+                val activity = requireActivity()
+                if (activity is fr.retrospare.blazeplayer.player.AudioPickActivity) {
+                    activity.finish()
+                } else {
+                    findNavController().popBackStack()
+                }
             }
         }
         binding.btnSort.setOnClickListener {
@@ -139,7 +163,14 @@ class BrowserFragment : Fragment() {
                 launch {
                     viewModel.currentPath.collect { path ->
                         binding.tvPath.text = path.ifEmpty { "/stockage/interne" }
-                        binding.tvTitle.text = if (breadcrumbParts.isEmpty()) "Mes fichiers locaux" else breadcrumbParts.last()
+                        val audioOnly = arguments?.getBoolean("audioOnlyMode") ?: false
+                        val isNet = arguments?.getBoolean("isNetwork", false) ?: false
+                        binding.tvTitle.text = when {
+                            breadcrumbParts.isNotEmpty() -> breadcrumbParts.last()
+                            audioOnly && isNet -> "Réseau"
+                            audioOnly -> "Mes fichiers audio"
+                            else -> "Mes fichiers locaux"
+                        }
                     }
                 }
             }

@@ -81,7 +81,7 @@ class AudioPlayerFragment : Fragment() {
         startProgressUpdate()
         startDancerAnimation()
 
-        requireContext().startForegroundService(Intent(requireContext(), AudioPlaybackService::class.java))
+        requireContext().startService(Intent(requireContext(), AudioPlaybackService::class.java))
 
         val path = arguments?.getString("mediaPath") ?: ""
         val name = arguments?.getString("mediaName") ?: ""
@@ -151,9 +151,24 @@ class AudioPlayerFragment : Fragment() {
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
             adapter = playlistAdapter
         }
+        // Observe les ajouts depuis le navigateur
+        val sharedVm = androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
+        viewLifecycleOwner.lifecycleScope.launch {
+            sharedVm.addToPlaylist.collect { (path, name) ->
+                setupPlaylist(path, name)
+                savePlaylist()
+            }
+        }
         binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
         binding.btnAddFolder.setOnClickListener {
-            pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
+            val intent = android.content.Intent(requireContext(), AudioPickActivity::class.java)
+            intent.putExtra("isNetwork", false)
+            pickAudio.launch(intent)
+        }
+        binding.btnAddNetwork.setOnClickListener {
+            val intent = android.content.Intent(requireContext(), AudioPickActivity::class.java)
+            intent.putExtra("isNetwork", true)
+            pickAudio.launch(intent)
         }
         binding.btnEq.setOnClickListener {
             // Initialise EQ si pas encore fait

@@ -49,6 +49,7 @@
         android:name="fr.retrospare.blazeplayer.browser.BrowserFragment"
         android:label="Navigateur"
         tools:layout="@layout/fragment_browser">
+        <argument android:name="audioPickMode" app:argType="boolean" android:defaultValue="false" />
         <argument android:name="path" app:argType="string" android:defaultValue="" />
         <argument android:name="isNetwork" app:argType="boolean" android:defaultValue="false" />
         <argument android:name="shareId" app:argType="string" android:defaultValue="" />

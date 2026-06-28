@@ -172,7 +172,8 @@ class AudioPlayerActivity : AppCompatActivity() {
 
             val art = retriever.embeddedPicture
             if (art != null) {
-                val bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size)
+                val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = 2 }
+                val bitmap = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size, opts)
                 binding.ivArtwork.setImageBitmap(bitmap)
             }
             retriever.release()

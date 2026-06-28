@@ -233,7 +233,12 @@ class PlayerActivity : AppCompatActivity() {
                 val r = android.media.MediaMetadataRetriever()
                 if (mediaPath.startsWith("content://")) r.setDataSource(this@PlayerActivity, android.net.Uri.parse(mediaPath))
                 else r.setDataSource(mediaPath)
-                videoThumbnail = r.getFrameAtTime(1_000_000)
+                val frame = r.getFrameAtTime(1_000_000)
+                videoThumbnail = frame?.let {
+                    val scale = 256f / maxOf(it.width, it.height)
+                    if (scale < 1f) android.graphics.Bitmap.createScaledBitmap(it, (it.width*scale).toInt(), (it.height*scale).toInt(), true).also { _ -> it.recycle() }
+                    else it
+                }
                 r.release()
                 // Rafraîchit la notification avec la miniature
                 mediaSession?.let {
