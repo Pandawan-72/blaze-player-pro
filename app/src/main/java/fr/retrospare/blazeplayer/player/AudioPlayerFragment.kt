@@ -14,6 +14,7 @@ import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import android.app.Activity
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.data.model.MediaItem as AppMediaItem
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
@@ -33,6 +34,7 @@ class AudioPlayerFragment : Fragment() {
     private val binding get() = _binding!!
     private var eqManager: EqualizerManager? = null
     private lateinit var playlistAdapter: PlaylistAdapter
+    private val sharedAudioVm: fr.retrospare.blazeplayer.home.SharedAudioViewModel by activityViewModels()
     private val handler = Handler(Looper.getMainLooper())
     private var isSeekBarTracking = false
     private var currentIndex = 0
@@ -75,7 +77,15 @@ class AudioPlayerFragment : Fragment() {
             (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
         }
 
-        setupPlaylist("", "")
+        val vmTracks = sharedAudioVm.playlist.value
+        if (vmTracks.isNotEmpty()) {
+            // Restaure depuis ViewModel
+            val items = vmTracks.map { PlaylistItem(it.path, it.name) }.toMutableList()
+            val vmIndex = sharedAudioVm.currentIndex.value
+            setupPlaylistWithItems(items, vmIndex)
+        } else {
+            setupPlaylist("", "")
+        }
         setupControls()
         setupSeekBar()
         startProgressUpdate()
@@ -122,6 +132,35 @@ class AudioPlayerFragment : Fragment() {
             )
         }
         svc.play(path, name)
+    }
+
+    private fun setupPlaylistWithItems(items: MutableList<PlaylistItem>, savedIndex: Int) {
+        playlistAdapter = PlaylistAdapter(items) { index ->
+            currentIndex = index
+            val item = playlistAdapter.getItems()[index]
+            playlistAdapter.setCurrentIndex(currentIndex)
+            savePlaylist()
+            doPlay(item.path, item.name)
+            loadMetadata(item.path, item.name)
+        }
+        currentIndex = savedIndex.coerceAtMost((items.size - 1).coerceAtLeast(0))
+        playlistAdapter.setCurrentIndex(currentIndex)
+        binding.recyclerPlaylist.apply {
+            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+            adapter = playlistAdapter
+        }
+        binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
+        binding.btnAddFolder.setOnClickListener {
+            pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
+        }
+        binding.btnEq.setOnClickListener {
+            if (eqManager == null) {
+                val service = AudioPlaybackService.instance
+                val sessionId = service?.exoPlayer?.audioSessionId ?: 0
+                if (sessionId != 0) try { eqManager = EqualizerManager(sessionId, requireContext()) } catch (e: Exception) {}
+            }
+            eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
+        }
     }
 
     private fun setupPlaylist(path: String, name: String) {
@@ -384,6 +423,13 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Sync playlist vers ViewModel avant destruction de la vue
+        if (::playlistAdapter.isInitialized) {
+            sharedAudioVm.setPlaylist(
+                playlistAdapter.getItems().map { fr.retrospare.blazeplayer.home.AudioTrack(it.path, it.name) }
+            )
+            sharedAudioVm.setCurrentIndex(currentIndex)
+        }
         _binding = null
     }
 

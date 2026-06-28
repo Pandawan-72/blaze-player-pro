@@ -110,12 +110,14 @@ class HomeFragment : Fragment() {
             audioPlayerFragment = fr.retrospare.blazeplayer.player.AudioPlayerFragment()
             childFragmentManager.beginTransaction()
                 .add(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!, "blaze_audio")
+                .setMaxLifecycle(audioPlayerFragment!!, androidx.lifecycle.Lifecycle.State.RESUMED)
                 .commitAllowingStateLoss()
         } else {
             audioPlayerFragment = existing as? fr.retrospare.blazeplayer.player.AudioPlayerFragment
-            if (existing.isHidden) {
-                childFragmentManager.beginTransaction().show(existing).commitAllowingStateLoss()
-            }
+            childFragmentManager.beginTransaction()
+                .setMaxLifecycle(existing, androidx.lifecycle.Lifecycle.State.RESUMED)
+                .show(existing)
+                .commitAllowingStateLoss()
         }
     }
 
@@ -182,8 +184,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupButtons() {
-        binding.btnBrowseNetwork.setOnClickListener { findNavController().navigate(R.id.action_home_to_network) }
-        binding.btnBrowseLocal.setOnClickListener { findNavController().navigate(R.id.action_home_to_browser) }
+        binding.btnBrowseNetwork.setOnClickListener {
+            audioPlayerFragment?.savePlaylist()
+            findNavController().navigate(R.id.action_home_to_network)
+        }
+        binding.btnBrowseLocal.setOnClickListener {
+            audioPlayerFragment?.savePlaylist()
+            findNavController().navigate(R.id.action_home_to_browser)
+        }
         binding.heroCard.setOnClickListener { viewModel.lastPlayedItem.value?.let { PlayerRouter.open(requireContext(), it.path, it.name) } }
     }
 
