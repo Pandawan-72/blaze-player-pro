@@ -159,6 +159,8 @@
             android:textSize="12sp"
             android:textColor="#000000"
             android:paddingHorizontal="14dp"
+            android:includeFontPadding="false"
+            android:gravity="center"
             app:backgroundTint="@color/blue_accent"
             app:cornerRadius="18dp"
             app:icon="@drawable/ic_add_circle"

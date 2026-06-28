@@ -67,9 +67,9 @@ class AudioPlaybackService : Service() {
                 }
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == Player.STATE_ENDED) {
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                             onNext?.invoke()
-                        }
+                        }, 300)
                     }
                 }
             })

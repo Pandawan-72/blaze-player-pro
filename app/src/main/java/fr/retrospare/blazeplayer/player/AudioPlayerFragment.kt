@@ -123,8 +123,8 @@ class AudioPlayerFragment : Fragment() {
             return
         }
         android.util.Log.d("BlazeAudio", "calling svc.play()")
-        svc.onPrev = { playPrev() }
-        svc.onNext = { playNext() }
+        svc.onPrev = { handler.post { playPrev() } }
+        svc.onNext = { handler.post { playNext() } }
         svc.onPlaybackChanged = { playing ->
             _binding?.btnPlayPause?.setImageResource(
                 if (playing) fr.retrospare.blazeplayer.R.drawable.ic_pause
@@ -149,6 +149,20 @@ class AudioPlayerFragment : Fragment() {
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
             adapter = playlistAdapter
         }
+        // Branche les callbacks du service une seule fois
+        handler.postDelayed({
+            AudioPlaybackService.instance?.let { svc ->
+                svc.onPrev = { handler.post { playPrev() } }
+                svc.onNext = { handler.post { playNext() } }
+                svc.onPlaybackChanged = { playing ->
+                    _binding?.btnPlayPause?.setImageResource(
+                        if (playing) fr.retrospare.blazeplayer.R.drawable.ic_pause
+                        else fr.retrospare.blazeplayer.R.drawable.ic_play
+                    )
+                }
+            }
+        }, 500)
+
         binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
         binding.btnAddFolder.setOnClickListener {
             pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
@@ -326,13 +340,23 @@ class AudioPlayerFragment : Fragment() {
             }
             currentIndex < items.size - 1 -> {
                 currentIndex++
-                val item = items[currentIndex]; playlistAdapter.setCurrentIndex(currentIndex)
-                doPlay(item.path, item.name); loadMetadata(item.path, item.name)
+                val item = items[currentIndex]
+                playlistAdapter.setCurrentIndex(currentIndex)
+                loadMetadata(item.path, item.name)
+                handler.postDelayed({
+                    doPlay(item.path, item.name)
+                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500)
+                }, 100)
             }
             repeatMode == 1 -> {
                 currentIndex = 0
-                val item = items[0]; playlistAdapter.setCurrentIndex(0)
-                doPlay(item.path, item.name); loadMetadata(item.path, item.name)
+                val item = items[0]
+                playlistAdapter.setCurrentIndex(0)
+                loadMetadata(item.path, item.name)
+                handler.postDelayed({
+                    doPlay(item.path, item.name)
+                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500)
+                }, 100)
             }
         }
     }
