@@ -267,6 +267,15 @@ class AudioPlayerFragment : Fragment() {
     }
 
     private fun setupControls() {
+        val bottomSheet = com.google.android.material.bottomsheet.BottomSheetBehavior.from(binding.playlistSheet)
+        bottomSheet.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
+        binding.btnPlaylistSheet.setOnClickListener {
+            bottomSheet.state = if (bottomSheet.state == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN)
+                com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+            else
+                com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
+        }
+
         binding.btnPlayPause.setOnClickListener {
             val svc = AudioPlaybackService.instance ?: run {
 
@@ -314,14 +323,14 @@ class AudioPlayerFragment : Fragment() {
                     sleepTimerJob?.cancel()
                     val minutes = when (which) { 0->5L; 1->15L; 2->30L; 3->60L; else->0L }
                     if (minutes > 0) {
-                        binding.btnSleepTimer.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent))
+                        (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent))
                         sleepTimerJob = viewLifecycleOwner.lifecycleScope.launch {
                             delay(minutes * 60 * 1000)
                             AudioPlaybackService.instance?.pause()
-                            _binding?.btnSleepTimer?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
+                            (_binding?.btnSleepTimer?.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
                         }
                     } else {
-                        binding.btnSleepTimer.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
+                        (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
                     }
                 }.show()
         }
@@ -332,11 +341,18 @@ class AudioPlayerFragment : Fragment() {
         if (items.isEmpty()) return
         val svc = AudioPlaybackService.instance
         when {
-            repeatMode == 2 -> { svc?.seekTo(0); svc?.resume() }
+            repeatMode == 2 -> {
+                val item = items[currentIndex]
+                handler.postDelayed({ doPlay(item.path, item.name)
+                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500) }, 100)
+            }
             isShuffled -> {
                 currentIndex = (0 until items.size).filter { it != currentIndex }.randomOrNull() ?: 0
-                val item = items[currentIndex]; playlistAdapter.setCurrentIndex(currentIndex)
-                doPlay(item.path, item.name); loadMetadata(item.path, item.name)
+                val item = items[currentIndex]
+                playlistAdapter.setCurrentIndex(currentIndex)
+                loadMetadata(item.path, item.name)
+                handler.postDelayed({ doPlay(item.path, item.name)
+                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500) }, 100)
             }
             currentIndex < items.size - 1 -> {
                 currentIndex++
@@ -366,11 +382,18 @@ class AudioPlayerFragment : Fragment() {
         if (items.isEmpty()) return
         val svc = AudioPlaybackService.instance
         when {
-            repeatMode == 2 -> { svc?.seekTo(0); svc?.resume() }
+            repeatMode == 2 -> {
+                val item = items[currentIndex]
+                handler.postDelayed({ doPlay(item.path, item.name)
+                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500) }, 100)
+            }
             isShuffled -> {
                 currentIndex = (0 until items.size).filter { it != currentIndex }.randomOrNull() ?: 0
-                val item = items[currentIndex]; playlistAdapter.setCurrentIndex(currentIndex)
-                doPlay(item.path, item.name); loadMetadata(item.path, item.name)
+                val item = items[currentIndex]
+                playlistAdapter.setCurrentIndex(currentIndex)
+                loadMetadata(item.path, item.name)
+                handler.postDelayed({ doPlay(item.path, item.name)
+                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500) }, 100)
             }
             currentIndex > 0 -> {
                 currentIndex--

@@ -1,18 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background"
-    android:orientation="vertical">
+    android:background="@color/background">
+
+    <!-- CONTENU PRINCIPAL -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingBottom="80dp">
 
         <!-- HEADER -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="4dp">
+            android:paddingHorizontal="16dp">
 
             <ImageButton
                 android:id="@+id/btnBack"
@@ -29,75 +34,65 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
-                android:text="En lecture"
+                android:text="EN LECTURE"
                 android:textColor="@color/on_surface_variant"
-                android:textSize="12sp"
-                android:letterSpacing="0.1" />
+                android:textSize="11sp"
+                android:fontFamily="@font/oswald"
+                android:letterSpacing="0.15" />
+
+            <ImageButton
+                android:id="@+id/btnPlaylistSheet"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_layout_list"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="Playlist" />
 
         </RelativeLayout>
 
-        <!-- ARTWORK + BONHOMMES -->
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="220dp"
-            android:layout_marginTop="16dp">
-
-            <!-- Cover carrée centrée -->
-            <ImageView
-                android:id="@+id/ivArtwork"
-                android:layout_width="180dp"
-                android:layout_height="180dp"
-                android:layout_centerInParent="true"
-                android:background="@drawable/bg_artwork"
-                android:scaleType="centerCrop"
-                android:clipToOutline="true"
-                android:outlineProvider="background"
-                android:contentDescription="@null" />
-
-            <!-- Bonhomme féminin gauche centré verticalement -->
-            <ImageView
-                android:id="@+id/ivPixelCharLeft"
-                android:layout_width="52dp"
-                android:layout_height="52dp"
-                android:layout_centerVertical="true"
-                android:layout_toLeftOf="@id/ivArtwork"
-                android:layout_marginRight="8dp"
-                android:src="@drawable/pixel_dancer_f1"
-                android:contentDescription="@null" />
-
-            <!-- Bonhomme masculin droite centré verticalement -->
-            <ImageView
-                android:id="@+id/ivPixelChar"
-                android:layout_width="52dp"
-                android:layout_height="52dp"
-                android:layout_centerVertical="true"
-                android:layout_toRightOf="@id/ivArtwork"
-                android:layout_marginLeft="8dp"
-                android:src="@drawable/pixel_dancer_1"
-                android:contentDescription="@null" />
-
-        </RelativeLayout>
-
-        <!-- MÉTADONNÉES -->
+        <!-- ARTWORK carré centré -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="28dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp">
+            android:gravity="center"
+            android:paddingTop="8dp">
+
+            <ImageView
+                android:id="@+id/ivArtwork"
+                android:layout_width="280dp"
+                android:layout_height="280dp"
+                android:scaleType="centerCrop"
+                android:background="@drawable/bg_thumbnail"
+                android:clipToOutline="true" />
+
+        </LinearLayout>
+
+
+
+        <!-- TITRE + ARTISTE centrés -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="24dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp">
 
             <TextView
                 android:id="@+id/tvTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Titre inconnu"
-                android:textColor="@color/on_background"
-                android:textSize="20sp"
-                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/on_surface"
+                android:textSize="22sp"
+                android:fontFamily="@font/oswald"
                 android:ellipsize="end"
                 android:singleLine="true"
-                android:layout_marginBottom="4dp" />
+                android:gravity="center" />
 
             <TextView
                 android:id="@+id/tvArtist"
@@ -106,62 +101,166 @@
                 android:text="Artiste inconnu"
                 android:textColor="@color/green_accent"
                 android:textSize="14sp"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:layout_marginBottom="2dp" />
+                android:fontFamily="@font/oswald"
+                android:layout_marginTop="4dp"
+                android:gravity="center" />
 
             <TextView
                 android:id="@+id/tvAlbum"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text=""
                 android:textColor="@color/on_surface_variant"
                 android:textSize="12sp"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:layout_marginBottom="8dp" />
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tvCodec"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    android:background="@drawable/bg_badge_orange"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:textColor="@color/orange_accent"
-                    android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:layout_marginEnd="6dp" />
-
-                <TextView
-                    android:id="@+id/tvBitrate"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    android:background="@drawable/bg_badge_gray"
-                    android:paddingHorizontal="8dp"
-                    android:paddingVertical="2dp"
-                    android:textColor="@color/on_surface_variant"
-                    android:textSize="11sp"
-                    android:layout_marginEnd="6dp" />
-
-            </LinearLayout>
+                android:fontFamily="@font/oswald"
+                android:gravity="center"
+                android:visibility="gone" />
 
         </LinearLayout>
 
-        <!-- BARRE DE PROGRESSION -->
+        <!-- CODEC + BITRATE sous artiste -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/tvCodec"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_blue"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:textSize="11sp"
+                android:textColor="@color/blue_accent"
+                android:fontFamily="@font/oswald"
+                android:text="MP3"
+                android:visibility="gone"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/tvBitrate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="11sp"
+                android:fontFamily="@font/oswald"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- BOUTONS SECONDAIRES : EQ / SLEEP / CODEC / BITRATE -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="8dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:id="@+id/btnEq">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_equalizer"
+                    android:tint="@color/on_surface_variant"
+                    android:contentDescription="EQ" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Égaliseur"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/oswald"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground"
+                android:id="@+id/btnSleepTimer">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_timer"
+                    android:tint="@color/on_surface_variant"
+                    android:contentDescription="Timer" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Minuteur"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="10sp"
+                    android:fontFamily="@font/oswald"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
+
+
+
+
+
+        </LinearLayout>
+
+        <!-- BONHOMMES sous les contrôles -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="64dp">
+
+            <ImageView
+                android:id="@+id/ivPixelCharLeft"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:visibility="gone"
+                android:src="@drawable/pixel_dancer_f1"
+                android:contentDescription="@null" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/ivPixelChar"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:visibility="gone"
+                android:src="@drawable/pixel_dancer_1"
+                android:contentDescription="@null" />
+
+        </LinearLayout>
+
+        <!-- SEEKBAR -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="28dp"
-            android:paddingBottom="8dp">
+            android:paddingHorizontal="24dp">
 
             <SeekBar
                 android:id="@+id/seekBar"
@@ -177,12 +276,14 @@
 
                 <TextView
                     android:id="@+id/tvCurrentTime"
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:text="0:00"
                     android:textColor="@color/on_surface_variant"
-                    android:textSize="11sp" />
+                    android:textSize="11sp"
+                    android:fontFamily="@font/oswald" />
+
+                <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
 
                 <TextView
                     android:id="@+id/tvTotalTime"
@@ -190,109 +291,21 @@
                     android:layout_height="wrap_content"
                     android:text="0:00"
                     android:textColor="@color/on_surface_variant"
-                    android:textSize="11sp" />
+                    android:textSize="11sp"
+                    android:fontFamily="@font/oswald" />
 
             </LinearLayout>
 
         </LinearLayout>
 
-        <!-- LIGNE EQ + CONTRÔLES + SHUFFLE/REPEAT -->
+        <!-- CONTRÔLES PRINCIPAUX -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="88dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingBottom="4dp">
+            android:gravity="center"
+            android:paddingHorizontal="16dp">
 
-            <!-- EQ -->
-            <ImageButton
-                android:id="@+id/btnEq"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_equalizer"
-                android:tint="@color/purple_accent"
-                android:contentDescription="Equalizer" />
-
-            <!-- SLEEP TIMER -->
-            <ImageButton
-                android:id="@+id/btnSleepTimer"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_sleep_timer"
-                android:tint="@color/on_surface_variant"
-                android:contentDescription="Sleep Timer" />
-
-            <!-- SPACER -->
-            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-
-            <!-- PREV -->
-            <ImageButton
-                android:id="@+id/btnPrev"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_skip_previous"
-                android:tint="@color/on_background"
-                android:contentDescription="Précédent" />
-
-            <!-- REWIND -->
-            <ImageButton
-                android:id="@+id/btnRewind"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_replay_10"
-                android:tint="@color/on_background"
-                android:contentDescription="-10s" />
-
-            <!-- PLAY/PAUSE -->
-            <ImageButton
-                android:id="@+id/btnPlayPause"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:background="@drawable/bg_play_audio"
-                android:src="@drawable/ic_pause"
-                android:tint="@color/background"
-                android:contentDescription="Lecture/Pause"
-                android:layout_marginHorizontal="4dp" />
-
-            <!-- FORWARD -->
-            <ImageButton
-                android:id="@+id/btnForward"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_forward_10"
-                android:tint="@color/on_background"
-                android:contentDescription="+10s" />
-
-            <!-- NEXT -->
-            <ImageButton
-                android:id="@+id/btnNext"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_skip_next"
-                android:tint="@color/on_background"
-                android:contentDescription="Suivant" />
-
-            <!-- SPACER -->
-            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
-
-            <!-- REPEAT -->
-            <ImageButton
-                android:id="@+id/btnRepeat"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_repeat"
-                android:tint="@color/on_surface_variant"
-                android:contentDescription="Répéter" />
-
-            <!-- SHUFFLE -->
             <ImageButton
                 android:id="@+id/btnShuffle"
                 android:layout_width="40dp"
@@ -302,17 +315,101 @@
                 android:tint="@color/on_surface_variant"
                 android:contentDescription="Aléatoire" />
 
+            <ImageButton
+                android:id="@+id/btnPrev"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_skip_previous"
+                android:tint="@color/on_surface"
+                android:contentDescription="Précédent" />
+
+            <ImageButton
+                android:id="@+id/btnRewind"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_replay_10"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="-10s"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/btnPlayPause"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_play_button"
+                android:src="@drawable/ic_play"
+                android:tint="@color/background"
+                android:padding="16dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="Lecture/Pause" />
+
+            <ImageButton
+                android:id="@+id/btnForward"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_forward_10"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="+10s"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/btnNext"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_skip_next"
+                android:tint="@color/on_surface"
+                android:contentDescription="Suivant" />
+
+            <ImageButton
+                android:id="@+id/btnRepeat"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_repeat"
+                android:tint="@color/on_surface_variant"
+                android:contentDescription="Répéter" />
+
         </LinearLayout>
 
-        <!-- PLAYLIST HEADER -->
+
+
+    </LinearLayout>
+
+    <!-- BOTTOM SHEET PLAYLIST -->
+    <LinearLayout
+        android:id="@+id/playlistSheet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_bottom_sheet"
+        android:elevation="8dp"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+        app:behavior_peekHeight="0dp"
+        app:behavior_hideable="true"
+        app:behavior_skipCollapsed="true">
+
+        <!-- Handle -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="#44FFFFFF" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="6dp">
+            android:paddingBottom="8dp">
 
             <TextView
                 android:layout_width="0dp"
@@ -321,53 +418,36 @@
                 android:text="LISTE DE LECTURE"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
-                android:letterSpacing="0.08" />
+                android:fontFamily="@font/oswald"
+                android:letterSpacing="0.1" />
 
-            <com.google.android.material.button.MaterialButton
-            android:includeFontPadding="false"
-                android:id="@+id/btnCleanPlaylist"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:text="Nettoyer"
-                android:textSize="12sp"
-                android:textColor="#FFFFFF"
-                android:paddingHorizontal="12dp"
-                android:layout_marginEnd="8dp"
-                app:backgroundTint="#33FFFFFF"
-                app:cornerRadius="20dp"
-                app:icon="@drawable/ic_close"
-                app:iconSize="14dp"
-                app:iconTint="#FFFFFF"
-                app:iconGravity="textStart" />
-
-            <com.google.android.material.button.MaterialButton
-            android:includeFontPadding="false"
+            <ImageButton
                 android:id="@+id/btnAddFolder"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:text="Piste / Dossier"
-                app:icon="@drawable/ic_add_circle"
-                app:iconSize="16dp"
-                app:iconTint="#FF000000"
-                app:iconGravity="textStart"
-                android:textSize="12sp"
-                android:textColor="#FF000000"
-                android:paddingHorizontal="14dp"
-                app:backgroundTint="@color/blue_accent"
-                app:cornerRadius="20dp" />
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_add_circle"
+                android:tint="@color/green_accent"
+                android:contentDescription="Ajouter" />
+
+            <ImageButton
+                android:id="@+id/btnCleanPlaylist"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_remove_circle"
+                android:tint="#FF4444"
+                android:contentDescription="Nettoyer"
+                android:layout_marginStart="4dp" />
 
         </LinearLayout>
 
-        <!-- PLAYLIST -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerPlaylist"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:paddingHorizontal="8dp"
-            android:paddingBottom="24dp"
-            android:clipToPadding="false"
-            android:nestedScrollingEnabled="false" />
+            android:layout_height="320dp"
+            android:overScrollMode="never" />
 
-</LinearLayout>
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

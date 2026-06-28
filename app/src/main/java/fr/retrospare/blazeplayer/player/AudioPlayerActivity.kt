@@ -196,12 +196,6 @@ class AudioPlayerActivity : AppCompatActivity() {
         binding.btnPlayPause.setOnClickListener {
             if (player.isPlaying) player.pause() else player.play()
         }
-        binding.btnRewind.setOnClickListener {
-            player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0))
-        }
-        binding.btnForward.setOnClickListener {
-            player.seekTo((player.currentPosition + 10_000).coerceAtMost(player.duration))
-        }
         binding.btnPrev.setOnClickListener {
             if (currentIndex > 0) {
                 currentIndex--
