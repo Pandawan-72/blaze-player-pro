@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.settings
 
+
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -173,7 +174,7 @@ class SettingsFragment : Fragment() {
             binding.settingAbout.root,
             R.drawable.ic_settings,
             "À propos",
-            "Blaze Player v0.0.2 — Retro-Spare"
+            "Blaze Player v0.4.0-alpha — Retro-Spare"
         ) {
             android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Blaze Player")

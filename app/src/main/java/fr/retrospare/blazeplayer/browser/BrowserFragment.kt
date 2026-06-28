@@ -138,18 +138,7 @@ class BrowserFragment : Fragment() {
             viewModel.cycleSortMode()
             binding.tvSortLabel.text = viewModel.sortLabel()
         }
-        var isGridView = false
-        binding.btnToggleView.setOnClickListener {
-            isGridView = !isGridView
-            binding.recyclerView.layoutManager = if (isGridView) {
-                androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2)
-            } else {
-                androidx.recyclerview.widget.LinearLayoutManager(requireContext())
-            }
-            binding.btnToggleView.setImageResource(
-                if (isGridView) R.drawable.ic_layout_list else R.drawable.ic_layout_list
-            )
-        }
+
         // showAudio et showHidden sont chargés automatiquement depuis DataStore dans le ViewModel
 
         // Si le paramètre global est activé, l'icone est non cliquable

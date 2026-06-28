@@ -17,30 +17,30 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class BrowserAdapter(
-    private val onFolderClick: (MediaItem) -> Unit,
-    private val onFileClick: (MediaItem) -> Unit,
+    val onFolderClick: (MediaItem) -> Unit,
+    val onFileClick: (MediaItem) -> Unit,
     val onRemoveFromHistory: ((MediaItem) -> Unit)? = null
 ) : ListAdapter<MediaItem, RecyclerView.ViewHolder>(DiffCallback()) {
 
     companion object {
         private const val TYPE_FOLDER = 0
         private const val TYPE_FILE = 1
+        private const val TYPE_FILE_GRID = 2
     }
 
     override fun getItemViewType(position: Int): Int =
-        if (getItem(position).mimeType == "folder") TYPE_FOLDER else TYPE_FILE
+if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYPE_FILE_GRID else TYPE_FILE
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == TYPE_FOLDER) {
-            FolderViewHolder(LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_folder, parent, false))
-        } else {
-            FileViewHolder(LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_media_file, parent, false))
+        return when (viewType) {
+            TYPE_FOLDER -> FolderViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_folder, parent, false))
+            TYPE_FILE_GRID -> FileViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_media_file_grid, parent, false))
+            else -> FileViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_media_file, parent, false))
         }
     }
 
     private val selectedItems = mutableSetOf<String>()
+    var isGridMode = false
     var selectionMode = false
     var onSelectionChanged: ((Set<String>) -> Unit)? = null
     private var fullList: List<fr.retrospare.blazeplayer.data.model.MediaItem> = emptyList()

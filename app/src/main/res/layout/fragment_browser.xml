@@ -79,15 +79,6 @@
             android:tint="@color/on_surface_variant"
             android:contentDescription="Rechercher" />
 
-        <ImageButton
-            android:id="@+id/btnToggleView"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_surface_card"
-            android:src="@drawable/ic_layout_list"
-            android:tint="@color/on_surface_variant"
-            android:contentDescription="Changer la vue" />
 
     </LinearLayout>
 
