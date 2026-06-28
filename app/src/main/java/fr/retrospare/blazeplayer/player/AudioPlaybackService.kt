@@ -173,7 +173,8 @@ class AudioPlaybackService : Service() {
                     android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size)
                 }
                 retriever.release()
-                updateNotification()
+                // Force refresh notif avec la cover
+                android.os.Handler(android.os.Looper.getMainLooper()).post { updateNotification() }
             } catch (e: Exception) {}
         }.start()
     }

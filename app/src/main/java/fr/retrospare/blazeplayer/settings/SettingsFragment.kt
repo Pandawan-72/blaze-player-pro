@@ -94,13 +94,7 @@ class SettingsFragment : Fragment() {
             viewModel.getPip()
         ) { viewModel.setPip(it) }
 
-        setupToggle(
-            binding.settingGestures.root,
-            R.drawable.ic_settings,
-            "Contrôles gestuels",
-            "Luminosité, volume et avance par glissement",
-            viewModel.getGestures()
-        ) { viewModel.setGestures(it) }
+
 
         // AUDIO
         setupChoice(

@@ -19,13 +19,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
 import androidx.media3.ui.AspectRatioFrameLayout
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -36,11 +36,15 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
 
+    companion object {
+        var instance: java.lang.ref.WeakReference<PlayerActivity>? = null
+    }
+
     @Inject lateinit var dataStore: DataStore<Preferences>
     @Inject lateinit var mediaRepository: MediaRepository
 
     private lateinit var binding: ActivityPlayerBinding
-    private lateinit var player: ExoPlayer
+    lateinit var player: ExoPlayer
     private lateinit var audioManager: AudioManager
 
     private var prefSpeedIndex = 3
@@ -57,6 +61,8 @@ class PlayerActivity : AppCompatActivity() {
     private var resumeHandled = false
     private var playNextCalled = false
     private var seekBarDragging = false
+    private var mediaSession: MediaSession? = null
+    private var videoThumbnail: android.graphics.Bitmap? = null
     private var zoneTouching = false
     private var gestureStartY = 0f
     private var initialBrightness = 0.5f
@@ -66,12 +72,14 @@ class PlayerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or WindowManager.LayoutParams.FLAG_FULLSCREEN)
-        // Orientation : lit depuis DataStore de façon bloquante avant le layout
-        val orientIdx = runBlocking { dataStore.data.first()[intPreferencesKey("orientation")] ?: 0 }
-        requestedOrientation = when (orientIdx) {
-            1 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            2 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            else -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        // Orientation async - sans bloquer le main thread
+        lifecycleScope.launch {
+            val orientIdx = dataStore.data.first()[intPreferencesKey("orientation")] ?: 0
+            requestedOrientation = when (orientIdx) {
+                1 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                2 -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                else -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+            }
         }
 
         binding = ActivityPlayerBinding.inflate(layoutInflater)
@@ -83,6 +91,7 @@ class PlayerActivity : AppCompatActivity() {
             insets
         }
 
+        instance = java.lang.ref.WeakReference(this)
         mediaPath = intent.getStringExtra("mediaPath") ?: return finish()
         mediaName = intent.getStringExtra("mediaName") ?: File(mediaPath).name
 
@@ -132,6 +141,13 @@ class PlayerActivity : AppCompatActivity() {
         binding.tvTotalTime.text = "0:00:00"
 
         // Listener
+        // MediaSession pour notification système
+        mediaSession = MediaSession.Builder(this, player)
+            .setId("BlazeVideo")
+            .build()
+        // Notifie le service pour afficher la notification
+        VideoPlaybackService.showNotification(this, player, mediaName, mediaSession!!)
+
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 runOnUiThread {
@@ -178,6 +194,22 @@ class PlayerActivity : AppCompatActivity() {
         startProgressLoop()
         saveHistory()
         scheduleHide()
+        // Extrait miniature vidéo en arrière-plan
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val r = android.media.MediaMetadataRetriever()
+                if (mediaPath.startsWith("content://")) r.setDataSource(this@PlayerActivity, android.net.Uri.parse(mediaPath))
+                else r.setDataSource(mediaPath)
+                videoThumbnail = r.getFrameAtTime(1_000_000)
+                r.release()
+                // Rafraîchit la notification avec la miniature
+                mediaSession?.let {
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        VideoPlaybackService.showNotification(this@PlayerActivity, player, mediaName, it, videoThumbnail)
+                    }
+                }
+            } catch (e: Exception) {}
+        }
     }
 
     private var currentRatioIndex = 0
@@ -265,8 +297,17 @@ class PlayerActivity : AppCompatActivity() {
     }
 
 
+    override fun onPause() {
+        super.onPause()
+        // Déclenche PiP quand l'utilisateur quitte l'app
+        if (prefPip && player.isPlaying) {
+            enterPipIfEnabled()
+        }
+    }
+
     override fun onStop() {
         super.onStop()
+        if (isInPictureInPictureMode) return
         val pos = player.currentPosition
         if (mediaPath.isNotEmpty() && pos > 0) {
             getSharedPreferences("blaze_positions", MODE_PRIVATE)
@@ -281,6 +322,10 @@ class PlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         uiHandler.removeCallbacksAndMessages(null)
+        instance = null
+        VideoPlaybackService.cancelNotification(this)
+        mediaSession?.release()
+        mediaSession = null
         player.release()
     }
 
@@ -554,9 +599,40 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
-            && prefPip && player.isPlaying) {
-            enterPictureInPictureMode(android.app.PictureInPictureParams.Builder().build())
+        enterPipIfEnabled()
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            binding.uiOverlay.visibility = android.view.View.GONE
+            binding.touchZoneLeft.visibility = android.view.View.GONE
+            binding.touchZoneRight.visibility = android.view.View.GONE
+        } else {
+            showUI()
+        }
+    }
+
+    private fun enterPipIfEnabled() {
+        if (!prefPip) return
+        if (!player.isPlaying) return
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            try {
+                val videoSize = player.videoSize
+                val rational = if (videoSize.width > 0 && videoSize.height > 0) {
+                    // Ratio video réel, limité entre 0.418 et 2.39 (limites Android)
+                    val r = android.util.Rational(videoSize.width, videoSize.height)
+                    val float = videoSize.width.toFloat() / videoSize.height
+                    if (float < 0.418f) android.util.Rational(1, 2)
+                    else if (float > 2.39f) android.util.Rational(239, 100)
+                    else r
+                } else android.util.Rational(16, 9)
+
+                val params = android.app.PictureInPictureParams.Builder()
+                    .setAspectRatio(rational)
+                    .build()
+                enterPictureInPictureMode(params)
+            } catch (e: Exception) {}
         }
     }
 }
