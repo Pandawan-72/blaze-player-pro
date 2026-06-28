@@ -300,7 +300,7 @@
         <!-- CONTRÔLES PRINCIPAUX -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="88dp"
+            android:layout_height="96dp"
             android:orientation="horizontal"
             android:gravity="center"
             android:paddingHorizontal="16dp">

@@ -103,8 +103,8 @@
 
         <activity
             android:name=".player.AudioPlayerActivity"
-            android:exported="false"
             android:screenOrientation="portrait"
+            android:exported="false"
             android:enableOnBackInvokedCallback="false"
             android:theme="@style/Theme.BlazePlayer" />
 

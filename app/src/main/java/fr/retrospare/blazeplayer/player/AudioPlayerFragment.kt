@@ -131,7 +131,7 @@ class AudioPlayerFragment : Fragment() {
                 else fr.retrospare.blazeplayer.R.drawable.ic_play
             )
         }
-        svc.play(path, name)
+        handler.post { svc.play(path, name) }
     }
 
     private fun setupPlaylistWithItems(items: MutableList<PlaylistItem>, savedIndex: Int) {
@@ -140,8 +140,8 @@ class AudioPlayerFragment : Fragment() {
             val item = playlistAdapter.getItems()[index]
             playlistAdapter.setCurrentIndex(currentIndex)
             savePlaylist()
-            doPlay(item.path, item.name)
             loadMetadata(item.path, item.name)
+            doPlay(item.path, item.name)
         }
         currentIndex = savedIndex.coerceAtMost((items.size - 1).coerceAtLeast(0))
         playlistAdapter.setCurrentIndex(currentIndex)
@@ -186,7 +186,7 @@ class AudioPlayerFragment : Fragment() {
             return
         }
         // Charge la playlist sauvegardée
-        val saved = loadPlaylist().distinctBy { it.name } // supprime les doublons
+        val saved = loadPlaylist().distinctBy { it.path } // supprime les doublons par path
         val items = saved.toMutableList().also { list ->
             if (path.isNotEmpty() && list.none { it.path == path }) list.add(PlaylistItem(path, name))
         }.ifEmpty { if (path.isNotEmpty()) mutableListOf(PlaylistItem(path, name)) else mutableListOf() }
@@ -195,8 +195,11 @@ class AudioPlayerFragment : Fragment() {
             val item = playlistAdapter.getItems()[index]
             playlistAdapter.setCurrentIndex(currentIndex)
             savePlaylist()
-            doPlay(item.path, item.name)
             loadMetadata(item.path, item.name)
+            handler.postDelayed({
+                doPlay(item.path, item.name)
+                handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500)
+            }, 100)
         }
         val savedIndex = requireContext().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE).getInt("index", 0)
         playlistAdapter.setCurrentIndex(savedIndex.coerceAtMost(items.size - 1).coerceAtLeast(0))

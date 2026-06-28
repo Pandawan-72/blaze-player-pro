@@ -68,7 +68,7 @@ class PlaylistAdapter(
                     if (isPlaying) R.color.green_accent else R.color.on_surface
                 )
             )
-            itemView.setOnClickListener { onItemClick(adapterPosition) }
+            itemView.setOnClickListener { val pos = adapterPosition; if (pos != RecyclerView.NO_ID.toInt()) onItemClick(pos) }
         }
     }
 }

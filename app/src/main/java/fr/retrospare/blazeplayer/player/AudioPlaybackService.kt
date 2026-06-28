@@ -37,6 +37,7 @@ class AudioPlaybackService : Service() {
 
     var onPrev: (() -> Unit)? = null
     var onNext: (() -> Unit)? = null
+    var suppressNextEvent = false
     var onPlaybackChanged: ((Boolean) -> Unit)? = null
 
     var exoPlayer: ExoPlayer? = null
@@ -67,9 +68,12 @@ class AudioPlaybackService : Service() {
                 }
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == Player.STATE_ENDED) {
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            onNext?.invoke()
-                        }, 300)
+                        if (!suppressNextEvent) {
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                onNext?.invoke()
+                            }, 300)
+                        }
+                        suppressNextEvent = false
                     }
                 }
             })
@@ -105,12 +109,13 @@ class AudioPlaybackService : Service() {
         currentTitle = title
         loadArtwork(path)
 
+        suppressNextEvent = true
         val uri = Uri.parse(path)
         val mediaItem = MediaItem.fromUri(uri)
         exoPlayer?.apply {
-            setMediaItem(mediaItem)
+            playWhenReady = true
+            setMediaItem(MediaItem.fromUri(uri))
             prepare()
-            play()
         }
 
         requestAudioFocus()
