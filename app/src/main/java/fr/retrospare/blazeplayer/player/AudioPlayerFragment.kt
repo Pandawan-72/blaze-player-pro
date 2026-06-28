@@ -71,6 +71,7 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         binding.btnBack.visibility = View.VISIBLE
         binding.btnBack.setOnClickListener {
@@ -473,6 +474,7 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         // Sync playlist vers ViewModel avant destruction de la vue
         if (::playlistAdapter.isInitialized) {
             sharedAudioVm.setPlaylist(
