@@ -57,6 +57,7 @@ class AudioBrowserActivity : AppCompatActivity() {
 
         binding.btnBack.setOnClickListener { finish() }
         binding.btnConfirm.setOnClickListener { confirmSelection() }
+        binding.btnAddAll.setOnClickListener { addAllVisible() }
         binding.btnLocal.setOnClickListener { switchMode(Mode.LOCAL) }
         binding.btnNetwork.setOnClickListener { switchMode(Mode.NETWORK) }
         binding.btnFolder.setOnClickListener { switchMode(Mode.FOLDER) }
@@ -247,6 +248,18 @@ class AudioBrowserActivity : AppCompatActivity() {
             ?: emptyList()
     }
 
+    private fun addAllVisible() {
+        // Ajoute toutes les pistes visibles dans la liste courante
+        val allItems = (binding.recyclerAudio.adapter as? AudioBrowserAdapter)?.getAllItems() ?: return
+        allItems.forEach { (path, name) ->
+            if (selectedItems.none { it.first == path }) {
+                selectedItems.add(Pair(path, name))
+            }
+        }
+        updateCounter()
+        confirmSelection()
+    }
+
     private fun confirmSelection() {
         if (selectedItems.isEmpty()) {
             finish()
@@ -281,6 +294,7 @@ class AudioBrowserAdapter(
     }
 
     override fun getItemCount() = items.size
+    fun getAllItems() = items.map { Pair(it.path, it.name) }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvTitle: TextView = view.findViewById(R.id.tvAudioTitle)
@@ -386,8 +400,8 @@ class FolderBrowserAdapter(
         when (getItemViewType(position)) {
             TYPE_HEADER -> {
                 val folderName = currentPath.substringAfterLast("/")
-                holder.itemView.findViewById<TextView>(R.id.tvFolderPath)?.text = currentPath
-                holder.itemView.findViewById<TextView>(R.id.tvFolderName2)?.text = folderName.ifEmpty { "Racine" }
+                holder.itemView.findViewById<TextView>(R.id.tvFolderPath)?.text = currentPath.replace("/sdcard", "Local")
+                holder.itemView.findViewById<TextView>(R.id.tvFolderName2)?.text = if (folderName.isEmpty() || folderName == "sdcard") "Stockage local" else folderName
                 holder.itemView.findViewById<View>(R.id.btnAddAllFolder)?.setOnClickListener {
                     onAddAll(files)
                 }

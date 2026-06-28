@@ -151,24 +151,9 @@ class AudioPlayerFragment : Fragment() {
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
             adapter = playlistAdapter
         }
-        // Observe les ajouts depuis le navigateur
-        val sharedVm = androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
-        viewLifecycleOwner.lifecycleScope.launch {
-            sharedVm.addToPlaylist.collect { (path, name) ->
-                setupPlaylist(path, name)
-                savePlaylist()
-            }
-        }
         binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
         binding.btnAddFolder.setOnClickListener {
-            val intent = android.content.Intent(requireContext(), AudioPickActivity::class.java)
-            intent.putExtra("isNetwork", false)
-            pickAudio.launch(intent)
-        }
-        binding.btnAddNetwork.setOnClickListener {
-            val intent = android.content.Intent(requireContext(), AudioPickActivity::class.java)
-            intent.putExtra("isNetwork", true)
-            pickAudio.launch(intent)
+            pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
         }
         binding.btnEq.setOnClickListener {
             // Initialise EQ si pas encore fait
@@ -406,7 +391,7 @@ class AudioPlayerFragment : Fragment() {
         eqManager?.release()
 
     }
-    private fun savePlaylist() {
+    fun savePlaylist() {
         val items = if (::playlistAdapter.isInitialized) playlistAdapter.getItems() else return
         val prefs = requireContext().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
         val json = org.json.JSONArray().apply {

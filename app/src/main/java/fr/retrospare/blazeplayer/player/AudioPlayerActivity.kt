@@ -4,6 +4,9 @@ import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.view.WindowCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import android.os.Handler
 import android.os.Looper
@@ -62,6 +65,12 @@ class AudioPlayerActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         binding = ActivityAudioPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            view.setPadding(0, bars.top, 0, 0)
+            insets
+        }
 
         val path = intent.getStringExtra("mediaPath") ?: return finish()
         val name = intent.getStringExtra("mediaName") ?: ""
@@ -91,11 +100,6 @@ class AudioPlayerActivity : AppCompatActivity() {
         binding.recyclerPlaylist.apply {
             layoutManager = LinearLayoutManager(this@AudioPlayerActivity)
             adapter = playlistAdapter
-        }
-
-        binding.btnAddFolder.setOnClickListener {
-            val intent = Intent(this, AudioBrowserActivity::class.java)
-            pickAudio.launch(intent)
         }
 
         binding.btnEq.setOnClickListener {
@@ -183,7 +187,12 @@ class AudioPlayerActivity : AppCompatActivity() {
     }
 
     private fun setupControls() {
-        binding.btnBack.setOnClickListener { finish() }
+        binding.btnBack.setOnClickListener {
+            val intent = android.content.Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
+            intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+            startActivity(intent)
+            finish()
+        }
         binding.btnPlayPause.setOnClickListener {
             if (player.isPlaying) player.pause() else player.play()
         }
@@ -267,7 +276,16 @@ class AudioPlayerActivity : AppCompatActivity() {
     }
 
     @Suppress("OVERRIDE_DEPRECATION")
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        val intent = android.content.Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
+        intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+        startActivity(intent)
+        finish()
+        return
+    }
+
+    fun onBackPressedUnused() {
         moveTaskToBack(true)
     }
 

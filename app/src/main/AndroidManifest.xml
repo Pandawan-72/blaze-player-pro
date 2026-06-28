@@ -55,6 +55,11 @@
         </activity>
 
         <service
+            android:name=".player.BlazeAudioService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+
+        <service
             android:name=".player.AudioPlaybackService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true">

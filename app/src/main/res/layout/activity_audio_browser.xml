@@ -38,10 +38,26 @@
             android:fontFamily="sans-serif-medium" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddAll"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:text="Tout ajouter"
+            app:icon="@drawable/ic_add_circle"
+            app:iconSize="16dp"
+            app:iconTint="#FF000000"
+            app:iconGravity="textStart"
+            android:textSize="12sp"
+            android:textColor="#FF000000"
+            android:paddingHorizontal="12dp"
+            android:layout_marginEnd="6dp"
+            app:backgroundTint="@color/orange_accent"
+            app:cornerRadius="20dp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnConfirm"
             android:layout_width="wrap_content"
             android:layout_height="38dp"
-            android:text="Ajouter pistes"
+            android:text="Pistes"
             app:icon="@drawable/ic_add_circle"
             app:iconSize="16dp"
             app:iconTint="#FF000000"
@@ -92,9 +108,9 @@
             android:layout_height="38dp"
             android:text="📂 Dossiers"
             android:textSize="12sp"
-            android:textColor="#FF000000"
+            android:textColor="#000000"
             android:paddingHorizontal="14dp"
-            app:backgroundTint="@color/orange_accent"
+            app:backgroundTint="#FFB3C6"
             app:cornerRadius="20dp" />
 
     </LinearLayout>

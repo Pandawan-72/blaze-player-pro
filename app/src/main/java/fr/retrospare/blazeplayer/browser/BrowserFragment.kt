@@ -48,6 +48,7 @@ class BrowserFragment : Fragment() {
         setupRecyclerView()
         setupButtons()
         observeViewModel()
+        setupSelectionToolbar()
         val shareId = arguments?.getString("shareId")
         val initPath = arguments?.getString("path") ?: ""
 
@@ -58,7 +59,39 @@ class BrowserFragment : Fragment() {
         }
     }
 
+    private fun setupSelectionToolbar() {
+        binding.root.findViewById<android.widget.ImageButton>(R.id.btnCancelSelection)
+            ?.setOnClickListener {
+                adapter.clearSelection()
+                binding.toolbarSelection.visibility = android.view.View.GONE
+            }
+        binding.root.findViewById<android.widget.ImageButton>(R.id.btnSelectAll)
+            ?.setOnClickListener {
+                adapter.selectAll()
+                val count = adapter.itemCount
+                binding.tvSelectionCount.text = "$count sélectionné(s)"
+                adapter.onSelectionChanged?.invoke(adapter.getSelectedItems().map { it.id }.toSet())
+            }
+        binding.root.findViewById<android.widget.Button>(R.id.btnAddSelected)
+            ?.setOnClickListener {
+                val selected = adapter.getSelectedItems()
+                if (selected.isNotEmpty()) {
+                    val sharedVm = androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
+                    selected.forEach { item ->
+                        val audioExts = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
+                        if (item.extension.lowercase() in audioExts) {
+                            sharedVm.addToPlaylist(item.path, item.name)
+                        }
+                    }
+                    adapter.clearSelection()
+                    binding.toolbarSelection.visibility = android.view.View.GONE
+                }
+            }
+    }
+
+
     private fun setupRecyclerView() {
+        // Toolbar sélection multiple
         adapter = BrowserAdapter(
             onFolderClick = { item ->
                 breadcrumbParts.add(item.name)
@@ -74,10 +107,11 @@ class BrowserFragment : Fragment() {
                 }
             },
             onFileClick = { item ->
+                // DEBUG
+                android.widget.Toast.makeText(requireContext(), "clic fichier audioPickMode=$audioPickMode args=${arguments?.keySet()}", android.widget.Toast.LENGTH_LONG).show()
                 if (audioPickMode) {
-                    // Mode sélection audio : notifie AudioPickActivity
-                    (requireActivity() as? fr.retrospare.blazeplayer.player.AudioPickActivity)
-                        ?.onFilePicked(item.path, item.name)
+                    val cb = requireActivity() as? AudioPickCallback
+                    cb?.onFilePicked(item.path, item.name)
                 } else {
                     PlayerRouter.open(requireContext(), item.path, item.name)
                 }
@@ -113,7 +147,18 @@ class BrowserFragment : Fragment() {
             viewModel.cycleSortMode()
             binding.tvSortLabel.text = viewModel.sortLabel()
         }
-        binding.btnToggleView.setOnClickListener { }
+        var isGridView = false
+        binding.btnToggleView.setOnClickListener {
+            isGridView = !isGridView
+            binding.recyclerView.layoutManager = if (isGridView) {
+                androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2)
+            } else {
+                androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+            }
+            binding.btnToggleView.setImageResource(
+                if (isGridView) R.drawable.ic_layout_list else R.drawable.ic_layout_list
+            )
+        }
         // showAudio et showHidden sont chargés automatiquement depuis DataStore dans le ViewModel
 
         // Si le paramètre global est activé, l'icone est non cliquable
@@ -139,7 +184,28 @@ class BrowserFragment : Fragment() {
                 viewModel.toggleShowAudio()
             }
         }
-        binding.btnSearch.setOnClickListener { }
+        binding.btnSearch.setOnClickListener {
+            val searchView = binding.root.findViewById<android.widget.EditText>(R.id.etSearch)
+            val searchVisible = searchView?.visibility == android.view.View.VISIBLE
+            if (searchVisible) {
+                binding.root.findViewById<android.widget.EditText>(R.id.etSearch).visibility = android.view.View.GONE
+                binding.root.findViewById<android.widget.EditText>(R.id.etSearch).text?.clear()
+                adapter.filter("")
+            } else {
+                val et = binding.root.findViewById<android.widget.EditText>(R.id.etSearch)
+                et.visibility = android.view.View.VISIBLE
+                et.requestFocus()
+                val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.showSoftInput(et, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
+        binding.root.findViewById<android.widget.EditText>(R.id.etSearch)?.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                adapter.filter(s?.toString() ?: "")
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
     }
 
     private fun observeViewModel() {
@@ -151,7 +217,7 @@ class BrowserFragment : Fragment() {
                             is BrowserViewModel.BrowserState.Loading -> binding.recyclerView.visibility = View.GONE
                             is BrowserViewModel.BrowserState.Success -> {
                                 binding.recyclerView.visibility = View.VISIBLE
-                                adapter.submitList(state.items)
+                                adapter.setFullList(state.items)
                                 val folders = state.items.count { it.mimeType == "folder" }
                                 val files = state.items.count { it.mimeType != "folder" }
                                 binding.tvFileCount.text = "$folders dossiers · $files fichiers"

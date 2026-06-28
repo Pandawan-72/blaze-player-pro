@@ -56,8 +56,6 @@ class AudioPlaybackService : Service() {
         super.onCreate()
         instance = this
         createNotificationChannel()
-        // Démarre en foreground immédiatement pour éviter ForegroundServiceDidNotStartInTimeException
-        startForeground(NOTIF_ID, buildEmptyNotification())
 
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             addListener(object : Player.Listener {
@@ -92,8 +90,6 @@ class AudioPlaybackService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Garantit startForeground même si onCreate a eu un délai
-        try { startForeground(NOTIF_ID, buildEmptyNotification()) } catch (e: Exception) {}
         when (intent?.action) {
             ACTION_PLAY -> play()
             ACTION_PAUSE -> pause()
@@ -174,8 +170,7 @@ class AudioPlaybackService : Service() {
                 }
                 val art = retriever.embeddedPicture
                 currentArtwork = art?.let {
-                    android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size,
-                        android.graphics.BitmapFactory.Options().apply { inSampleSize = 4 })
+                    android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size)
                 }
                 retriever.release()
                 // Force refresh notif avec la cover
@@ -231,19 +226,6 @@ class AudioPlaybackService : Service() {
             .build()
 
         startForeground(NOTIF_ID, notif)
-    }
-
-    private fun buildEmptyNotification(): android.app.Notification {
-        val openIntent = android.app.PendingIntent.getActivity(
-            this, 0, packageManager.getLaunchIntentForPackage(packageName),
-            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        return androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Blaze Audio")
-            .setContentText("En attente...")
-            .setSmallIcon(R.drawable.ic_music_note_large)
-            .setContentIntent(openIntent)
-            .build()
     }
 
     private fun createNotificationChannel() {

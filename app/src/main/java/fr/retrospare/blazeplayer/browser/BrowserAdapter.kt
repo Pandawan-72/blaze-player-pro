@@ -40,6 +40,34 @@ class BrowserAdapter(
         }
     }
 
+    private val selectedItems = mutableSetOf<String>()
+    var selectionMode = false
+    var onSelectionChanged: ((Set<String>) -> Unit)? = null
+    private var fullList: List<fr.retrospare.blazeplayer.data.model.MediaItem> = emptyList()
+    private var currentQuery = ""
+
+    fun getSelectedItems() = currentList.filter { selectedItems.contains(it.id) }
+    fun clearSelection() { selectedItems.clear(); selectionMode = false; notifyDataSetChanged() }
+    fun selectAll() { selectedItems.addAll(currentList.map { it.id }); notifyDataSetChanged() }
+
+    fun setFullList(list: List<fr.retrospare.blazeplayer.data.model.MediaItem>) {
+        fullList = list
+        applyFilter()
+    }
+
+    fun filter(query: String) {
+        currentQuery = query
+        applyFilter()
+    }
+
+    private fun applyFilter() {
+        val filtered = if (currentQuery.isEmpty()) fullList
+        else fullList.filter { it.name.contains(currentQuery, ignoreCase = true) }
+        // Force le refresh en soumettant null puis la nouvelle liste
+        super.submitList(null)
+        super.submitList(filtered)
+    }
+
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         super.onViewRecycled(holder)
         if (holder is FileViewHolder) holder.thumbnailJob?.cancel()
@@ -49,21 +77,48 @@ class BrowserAdapter(
         val item = getItem(position)
         when (holder) {
             is FolderViewHolder -> holder.bind(item, onFolderClick)
-            is FileViewHolder -> holder.bind(item, onFileClick, onRemoveFromHistory)
+            is FileViewHolder -> holder.bind(item, onFileClick, onRemoveFromHistory, selectionMode, selectedItems, onSelectionChanged)
         }
     }
 
-    class FolderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    inner class FolderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvName: TextView = view.findViewById(R.id.tvFolderName)
         private val tvCount: TextView = view.findViewById(R.id.tvFolderCount)
-        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null) {
+        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             tvName.text = item.name
             tvCount.text = ""
-            itemView.setOnClickListener { onClick(item) }
+            // Checkbox visibilité
+            val checkbox = itemView.findViewById<android.widget.CheckBox>(fr.retrospare.blazeplayer.R.id.checkboxSelect)
+            checkbox?.visibility = if (isSelectionMode) android.view.View.VISIBLE else android.view.View.GONE
+            checkbox?.isChecked = selected.contains(item.id)
+            checkbox?.setOnCheckedChangeListener(null)
+            checkbox?.setOnCheckedChangeListener { _, checked ->
+                if (checked) selected.add(item.id) else selected.remove(item.id)
+                onSelectionChanged?.invoke(selected.toSet())
+            }
+            itemView.setOnClickListener {
+                if (isSelectionMode) {
+                    val checked = !selected.contains(item.id)
+                    if (checked) selected.add(item.id) else selected.remove(item.id)
+                    checkbox?.isChecked = checked
+                    onSelectionChanged?.invoke(selected.toSet())
+                } else {
+                    onClick(item)
+                }
+            }
+            itemView.setOnLongClickListener {
+                if (!selectionMode) {
+                    selectionMode = true
+                    selectedItems.add(item.id)
+                    notifyDataSetChanged()
+                    onSelectionChanged?.invoke(selectedItems.toSet())
+                }
+                true
+            }
         }
     }
 
-    class FileViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    inner class FileViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvName: TextView = view.findViewById(R.id.tvFileName)
         private val tvResolution: TextView = view.findViewById(R.id.tvResolution)
         private val scope = kotlinx.coroutines.MainScope()
@@ -77,7 +132,7 @@ class BrowserAdapter(
         private val tvVideoCodec: TextView = view.findViewById(R.id.tvVideoCodec)
         private val tvAudioCodec: TextView = view.findViewById(R.id.tvAudioCodec)
 
-        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null) {
+        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             tvName.text = item.name
             tvFormat.text = item.extension.uppercase()
             val audioExts = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")

@@ -64,6 +64,18 @@ class HomeFragment : Fragment() {
         setupTabs()
         setupButtons()
         observeViewModel()
+        // Switche vers Blaze Audio quand un fichier audio est ajouté depuis le navigateur
+        val sharedAudioVm = androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
+        viewLifecycleOwner.lifecycleScope.launch {
+            sharedAudioVm.pendingTracks.collect { tracks ->
+                if (tracks.isNotEmpty()) {
+                    val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
+                    currentTabIndex = 3
+                    updateTabStyles(tabs, 3)
+                    showAudioTab()
+                }
+            }
+        }
     }
 
     private fun setupTabs() {
@@ -92,11 +104,18 @@ class HomeFragment : Fragment() {
     private fun showAudioTab() {
         binding.scrollContent.visibility = android.view.View.GONE
         binding.audioContainer.visibility = android.view.View.VISIBLE
-        if (audioPlayerFragment == null) {
-            audioPlayerFragment = AudioPlayerFragment()
+        // Récupère le fragment existant par tag
+        val existing = childFragmentManager.findFragmentByTag("blaze_audio")
+        if (existing == null) {
+            audioPlayerFragment = fr.retrospare.blazeplayer.player.AudioPlayerFragment()
             childFragmentManager.beginTransaction()
-                .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!)
+                .add(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!, "blaze_audio")
                 .commitAllowingStateLoss()
+        } else {
+            audioPlayerFragment = existing as? fr.retrospare.blazeplayer.player.AudioPlayerFragment
+            if (existing.isHidden) {
+                childFragmentManager.beginTransaction().show(existing).commitAllowingStateLoss()
+            }
         }
     }
 
@@ -111,6 +130,12 @@ class HomeFragment : Fragment() {
     private fun hideAudioTab() {
         binding.scrollContent.visibility = android.view.View.VISIBLE
         binding.audioContainer.visibility = android.view.View.GONE
+        audioPlayerFragment?.let { frag ->
+            // Sauvegarde avant de cacher
+            if (!frag.isHidden) {
+                childFragmentManager.beginTransaction().hide(frag).commitAllowingStateLoss()
+            }
+        }
     }
 
     fun openAudioPlayer(path: String, name: String) {
