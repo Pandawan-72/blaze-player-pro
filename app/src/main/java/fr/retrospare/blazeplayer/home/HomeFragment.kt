@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 class HomeFragment : Fragment() {
 
     private val viewModel: HomeViewModel by viewModels()
+    private var currentTabIndex = 0
     private var audioPlayerFragment: AudioPlayerFragment? = null
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -39,6 +40,7 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        currentTabIndex = viewModel.currentTabIndex.value
         try {
             binding.btnCast.setOnClickListener {
                 try {
@@ -68,6 +70,7 @@ class HomeFragment : Fragment() {
         val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
         tabs.forEachIndexed { index, tab ->
             tab.setOnClickListener {
+                currentTabIndex = index
                 updateTabStyles(tabs, index)
                 if (index == 3) {
                     showAudioTab()
@@ -78,8 +81,12 @@ class HomeFragment : Fragment() {
                 }
             }
         }
-        updateTabStyles(tabs, 0)
-        updateSectionTitles(0)
+        // Restaure l'onglet actif depuis le ViewModel
+        val activeTab = viewModel.currentTabIndex.value
+        updateTabStyles(tabs, activeTab)
+        updateSectionTitles(activeTab)
+        if (activeTab == 3) showAudioTab()
+        else hideAudioTab()
     }
 
     private fun showAudioTab() {
@@ -272,6 +279,11 @@ class HomeFragment : Fragment() {
             }
             container.addView(v)
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("tab_index", currentTabIndex)
     }
 
     override fun onDestroyView() {

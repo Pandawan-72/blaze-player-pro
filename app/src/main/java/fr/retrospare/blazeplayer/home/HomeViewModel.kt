@@ -127,7 +127,13 @@ class HomeViewModel @Inject constructor(
         else -> "AAC"
     }
 
-    fun onTabSelected(position: Int) = applyTab(position)
+    private val _currentTabIndex = MutableStateFlow(0)
+    val currentTabIndex: StateFlow<Int> = _currentTabIndex.asStateFlow()
+
+    fun onTabSelected(position: Int) {
+        _currentTabIndex.value = position
+        applyTab(position)
+    }
 
     private fun applyTab(tab: Int) {
         when (tab) {

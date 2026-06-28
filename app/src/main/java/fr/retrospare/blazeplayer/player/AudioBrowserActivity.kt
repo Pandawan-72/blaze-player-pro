@@ -3,6 +3,7 @@ package fr.retrospare.blazeplayer.player
 import android.content.ContentUris
 import android.content.Intent
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
 import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
@@ -82,14 +83,14 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun loadLocalFiles() {
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleScope.launch {
             val items = withContext(Dispatchers.IO) { scanLocalAudio() }
             showFileList(items)
         }
     }
 
     private fun loadNetworkShares() {
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleScope.launch {
             val shares = networkRepository.getShares().first()
             if (shares.isEmpty()) {
                 Toast.makeText(this@AudioBrowserActivity, "Aucun chemin réseau configuré", Toast.LENGTH_SHORT).show()
@@ -108,7 +109,7 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun browseNetworkShare(share: NetworkShare, path: String) {
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleScope.launch {
             binding.tvSelected.text = "Chargement..."
             val result = withContext(Dispatchers.IO) { smbBrowser.listFiles(share, path) }
             result.onSuccess { items ->
@@ -144,7 +145,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                 binding.recyclerAudio.adapter = combinedAdapter
                 updateCounter()
             }.onFailure {
-                Toast.makeText(this@AudioBrowserActivity, "Erreur : ${it.message}", Toast.LENGTH_SHORT).show()
+
             }
         }
     }
@@ -206,7 +207,7 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     private fun loadFolderBrowser(path: String) {
         folderHistory.add(path)
-        CoroutineScope(Dispatchers.Main).launch {
+        lifecycleScope.launch {
             val folders = withContext(Dispatchers.IO) { scanFolders(path) }
             val audioFiles = withContext(Dispatchers.IO) { scanFolderAudio(path) }
             binding.tvSelected.text = "${audioFiles.size} piste(s) dans ce dossier"

@@ -330,6 +330,22 @@
                 android:letterSpacing="0.08" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCleanPlaylist"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="Nettoyer"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:paddingHorizontal="12dp"
+                android:layout_marginEnd="8dp"
+                app:backgroundTint="#33FFFFFF"
+                app:cornerRadius="20dp"
+                app:icon="@drawable/ic_close"
+                app:iconSize="14dp"
+                app:iconTint="#FFFFFF"
+                app:iconGravity="textStart" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAddFolder"
                 android:layout_width="wrap_content"
                 android:layout_height="38dp"

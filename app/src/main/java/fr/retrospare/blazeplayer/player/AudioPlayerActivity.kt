@@ -4,6 +4,7 @@ import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
 import android.os.Handler
 import android.os.Looper
 import android.view.WindowManager
@@ -133,7 +134,7 @@ class AudioPlayerActivity : AppCompatActivity() {
             isNetwork = false,
             lastPlayedAt = System.currentTimeMillis()
         )
-        CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             mediaRepository.saveRecentItem(item)
         }
     }

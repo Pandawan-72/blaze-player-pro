@@ -57,7 +57,7 @@ class SearchFragment : Fragment() {
                     binding.tvCount.text = ""
                     return true
                 }
-                searchJob = CoroutineScope(Dispatchers.Main).launch {
+                searchJob = viewLifecycleOwner.lifecycleScope.launch {
                     delay(300)
                     val results = searchMedia(q)
                     adapter.submitList(results)

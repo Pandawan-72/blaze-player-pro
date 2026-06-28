@@ -129,7 +129,7 @@ class BrowserAdapter(
 
             // Charge le thumbnail si fichier local
             if (!item.isNetwork && item.path.isNotEmpty()) {
-                CoroutineScope(Dispatchers.Main).launch {
+                kotlinx.coroutines.MainScope().launch {
                     ThumbnailUtils.loadThumbnail(
                         itemView.context, item.path, ivThumbnail
                     )

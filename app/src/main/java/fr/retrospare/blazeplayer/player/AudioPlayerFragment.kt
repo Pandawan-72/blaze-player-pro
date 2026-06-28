@@ -4,6 +4,7 @@ import android.content.Intent
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
@@ -56,6 +57,7 @@ class AudioPlayerFragment : Fragment() {
             paths.forEachIndexed { i, path ->
                 playlistAdapter.addItem(PlaylistItem(path, names[i]))
                 binding.recyclerPlaylist.scrollToPosition(playlistAdapter.itemCount - 1)
+                savePlaylist()
             }
         }
     }
@@ -126,22 +128,30 @@ class AudioPlayerFragment : Fragment() {
         if (::playlistAdapter.isInitialized) {
             if (path.isNotEmpty() && playlistAdapter.getItems().none { it.path == path }) {
                 playlistAdapter.addItem(PlaylistItem(path, name))
+                savePlaylist()
             }
             return
         }
-        val items = if (path.isNotEmpty()) mutableListOf(PlaylistItem(path, name)) else mutableListOf()
+        // Charge la playlist sauvegardée
+        val saved = loadPlaylist()
+        val items = saved.toMutableList().also { list ->
+            if (path.isNotEmpty() && list.none { it.path == path }) list.add(PlaylistItem(path, name))
+        }.ifEmpty { if (path.isNotEmpty()) mutableListOf(PlaylistItem(path, name)) else mutableListOf() }
         playlistAdapter = PlaylistAdapter(items) { index ->
             currentIndex = index
             val item = playlistAdapter.getItems()[index]
             playlistAdapter.setCurrentIndex(currentIndex)
+            savePlaylist()
             doPlay(item.path, item.name)
             loadMetadata(item.path, item.name)
         }
-        playlistAdapter.setCurrentIndex(0)
+        val savedIndex = requireContext().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE).getInt("index", 0)
+        playlistAdapter.setCurrentIndex(savedIndex.coerceAtMost(items.size - 1).coerceAtLeast(0))
         binding.recyclerPlaylist.apply {
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
             adapter = playlistAdapter
         }
+        binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
         binding.btnAddFolder.setOnClickListener {
             pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
         }
@@ -157,7 +167,7 @@ class AudioPlayerFragment : Fragment() {
                 }
             }
             eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
-                ?: android.widget.Toast.makeText(requireContext(), "Lance une piste d'abord", android.widget.Toast.LENGTH_SHORT).show()
+
         }
     }
 
@@ -166,14 +176,14 @@ class AudioPlayerFragment : Fragment() {
         val item = AppMediaItem(id = path, name = name, path = path,
             extension = ext, mimeType = "audio/$ext",
             isNetwork = false, lastPlayedAt = System.currentTimeMillis())
-        CoroutineScope(Dispatchers.IO).launch { mediaRepository.saveRecentItem(item) }
+        viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) { mediaRepository.saveRecentItem(item) }
     }
 
     private fun loadMetadata(path: String, fileName: String) {
         val ext = fileName.substringAfterLast(".", "mp3").uppercase()
         _binding?.tvCodec?.text = ext
         _binding?.tvCodec?.visibility = View.VISIBLE
-        CoroutineScope(Dispatchers.IO).launch {
+        viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 val retriever = MediaMetadataRetriever()
                 if (path.startsWith("content://")) retriever.setDataSource(requireContext(), Uri.parse(path))
@@ -185,7 +195,7 @@ class AudioPlayerFragment : Fragment() {
                 val art = retriever.embeddedPicture
                 retriever.release()
                 val bitmap = art?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
-                CoroutineScope(Dispatchers.Main).launch {
+                viewLifecycleOwner.lifecycleScope.launch {
                     _binding?.tvTitle?.text = title
                     _binding?.tvArtist?.text = artist
                     _binding?.tvAlbum?.text = album
@@ -195,7 +205,7 @@ class AudioPlayerFragment : Fragment() {
                     if (bitmap != null) _binding?.ivArtwork?.setImageBitmap(bitmap)
                 }
             } catch (e: Exception) {
-                CoroutineScope(Dispatchers.Main).launch { _binding?.tvTitle?.text = fileName }
+                viewLifecycleOwner.lifecycleScope.launch { _binding?.tvTitle?.text = fileName }
             }
         }
     }
@@ -203,10 +213,10 @@ class AudioPlayerFragment : Fragment() {
     private fun setupControls() {
         binding.btnPlayPause.setOnClickListener {
             val svc = AudioPlaybackService.instance ?: run {
-                android.widget.Toast.makeText(requireContext(), "svc null", android.widget.Toast.LENGTH_SHORT).show()
+
                 return@setOnClickListener
             }
-            android.widget.Toast.makeText(requireContext(), "isPlaying=${svc.isPlaying}", android.widget.Toast.LENGTH_SHORT).show()
+
             if (svc.isPlaying) svc.pause() else svc.resume()
         }
         binding.btnRewind.setOnClickListener {
@@ -249,7 +259,7 @@ class AudioPlayerFragment : Fragment() {
                     val minutes = when (which) { 0->5L; 1->15L; 2->30L; 3->60L; else->0L }
                     if (minutes > 0) {
                         binding.btnSleepTimer.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent))
-                        sleepTimerJob = CoroutineScope(Dispatchers.Main).launch {
+                        sleepTimerJob = viewLifecycleOwner.lifecycleScope.launch {
                             delay(minutes * 60 * 1000)
                             AudioPlaybackService.instance?.pause()
                             _binding?.btnSleepTimer?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
@@ -381,4 +391,55 @@ class AudioPlayerFragment : Fragment() {
         eqManager?.release()
 
     }
+    private fun savePlaylist() {
+        val items = if (::playlistAdapter.isInitialized) playlistAdapter.getItems() else return
+        val prefs = requireContext().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
+        val json = org.json.JSONArray().apply {
+            items.forEach { item ->
+                put(org.json.JSONObject().put("path", item.path).put("name", item.name))
+            }
+        }
+        prefs.edit().putString("items", json.toString()).putInt("index", currentIndex).apply()
+    }
+
+    private fun loadPlaylist(): List<PlaylistItem> {
+        val prefs = requireContext().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
+        val json = prefs.getString("items", null) ?: return emptyList()
+        return try {
+            val arr = org.json.JSONArray(json)
+            (0 until arr.length()).map { i ->
+                val obj = arr.getJSONObject(i)
+                PlaylistItem(obj.getString("path"), obj.getString("name"))
+            }
+        } catch (e: Exception) { emptyList() }
+    }
+
+    private fun showCleanDialog() {
+        val items = if (::playlistAdapter.isInitialized) playlistAdapter.getItems().toList() else return
+        if (items.isEmpty()) {
+            android.widget.Toast.makeText(requireContext(), "Liste déjà vide", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val checked = BooleanArray(items.size) { false }
+        val names = items.map { it.name }.toTypedArray()
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Nettoyer la liste")
+            .setMultiChoiceItems(names, checked) { _, i, isChecked -> checked[i] = isChecked }
+            .setPositiveButton("Retirer sélection") { _, _ ->
+                val toRemove = items.filterIndexed { i, _ -> checked[i] }
+                if (toRemove.isEmpty()) return@setPositiveButton
+                toRemove.forEach { playlistAdapter.removeItem(it) }
+                savePlaylist()
+            }
+            .setNeutralButton("Tout effacer") { _, _ ->
+                playlistAdapter.clearAll()
+                savePlaylist()
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
+    }
+
+
 }

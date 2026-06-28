@@ -31,6 +31,17 @@ class PlaylistAdapter(
 
     fun getItems() = items.toList()
 
+    fun removeItem(item: PlaylistItem) {
+        val idx = items.indexOf(item)
+        if (idx >= 0) { items.removeAt(idx); notifyItemRemoved(idx) }
+    }
+
+    fun clearAll() {
+        val size = items.size
+        items.clear()
+        notifyItemRangeRemoved(0, size)
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_playlist, parent, false)
