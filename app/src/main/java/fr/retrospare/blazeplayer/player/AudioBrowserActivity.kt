@@ -70,8 +70,6 @@ class AudioBrowserActivity : AppCompatActivity() {
         binding.btnLocal.alpha = if (mode == Mode.LOCAL) 1f else 0.5f
         binding.btnNetwork.alpha = if (mode == Mode.NETWORK) 1f else 0.5f
 
-        binding.btnLocal.alpha = if (mode == Mode.LOCAL) 1f else 0.5f
-        binding.btnNetwork.alpha = if (mode == Mode.NETWORK) 1f else 0.5f
         binding.btnFolder.alpha = if (mode == Mode.FOLDER) 1f else 0.5f
         when (mode) {
             Mode.LOCAL -> loadLocalFiles()

@@ -1,10 +1,10 @@
 package fr.retrospare.blazeplayer.player
 
-import android.content.Intent
-import android.media.MediaMetadataRetriever
+import android.app.Activity
+import android.content.ComponentName
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
-import androidx.lifecycle.lifecycleScope
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
@@ -12,14 +12,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
-import android.app.Activity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
-import fr.retrospare.blazeplayer.data.model.MediaItem as AppMediaItem
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.databinding.ActivityAudioPlayerBinding
-import kotlinx.coroutines.CoroutineScope
+import fr.retrospare.blazeplayer.home.SharedAudioViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -32,16 +38,17 @@ class AudioPlayerFragment : Fragment() {
     @Inject lateinit var mediaRepository: MediaRepository
     private var _binding: ActivityAudioPlayerBinding? = null
     private val binding get() = _binding!!
-    private var eqManager: EqualizerManager? = null
+    private val sharedVm: SharedAudioViewModel by activityViewModels()
+
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var controller: MediaController? = null
+
     private lateinit var playlistAdapter: PlaylistAdapter
-    private val sharedAudioVm: fr.retrospare.blazeplayer.home.SharedAudioViewModel by activityViewModels()
     private val handler = Handler(Looper.getMainLooper())
     private var isSeekBarTracking = false
-    private var currentIndex = 0
-    private var dancerFrame = 0
-    private var isShuffled = false
-    private var repeatMode = 0
     private var sleepTimerJob: Job? = null
+    private var eqManager: EqualizerManager? = null
+    private var dancerFrame = 0
 
     private val dancerFrames = listOf(
         fr.retrospare.blazeplayer.R.drawable.pixel_dancer_1,
@@ -52,17 +59,31 @@ class AudioPlayerFragment : Fragment() {
         fr.retrospare.blazeplayer.R.drawable.pixel_dancer_f2
     )
 
+    // ── Ajout de fichiers depuis le navigateur ─────────────────────────────────
     private val pickAudio = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val paths = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_PATHS) ?: return@registerForActivityResult
             val names = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_NAMES) ?: return@registerForActivityResult
-            paths.forEachIndexed { i, path ->
-                playlistAdapter.addItem(PlaylistItem(path, names[i]))
-                binding.recyclerPlaylist.scrollToPosition(playlistAdapter.itemCount - 1)
-                savePlaylist()
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                val mediaItems = paths.mapIndexed { i, path ->
+                    AudioRepository.buildMediaItemWithMetadata(requireContext(), path, names[i])
+                }
+                launch(Dispatchers.Main) {
+                    paths.forEachIndexed { i, path -> playlistAdapter.addItem(PlaylistItem(path, names[i])) }
+                    controller?.addMediaItems(mediaItems)
+                    if (controller?.playbackState == Player.STATE_IDLE ||
+                        controller?.playbackState == Player.STATE_ENDED) {
+                        controller?.prepare()
+                        controller?.play()
+                    }
+                    savePlaylist()
+                    binding.recyclerPlaylist.scrollToPosition(playlistAdapter.itemCount - 1)
+                }
             }
         }
     }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = ActivityAudioPlayerBinding.inflate(inflater, container, false)
@@ -73,204 +94,194 @@ class AudioPlayerFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
-        binding.btnBack.visibility = View.VISIBLE
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
+            val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+            v.setPadding(0, bars.top, 0, 0)
+            insets
+        }
+
         binding.btnBack.setOnClickListener {
             (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
         }
 
-        val vmTracks = sharedAudioVm.playlist.value
-        if (vmTracks.isNotEmpty()) {
-            // Restaure depuis ViewModel
-            val items = vmTracks.map { PlaylistItem(it.path, it.name) }.toMutableList()
-            val vmIndex = sharedAudioVm.currentIndex.value
-            setupPlaylistWithItems(items, vmIndex)
-        } else {
-            setupPlaylist("", "")
-        }
+        initPlaylistUi()
         setupControls()
         setupSeekBar()
         startProgressUpdate()
         startDancerAnimation()
-
-        requireContext().startService(Intent(requireContext(), AudioPlaybackService::class.java))
-
-        val path = arguments?.getString("mediaPath") ?: ""
-        val name = arguments?.getString("mediaName") ?: ""
-        if (path.isNotEmpty()) handler.postDelayed({ doPlay(path, name) }, 500)
+        connectMediaController()
     }
 
-    private fun requestNotificationPermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            if (requireContext().checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 100)
-            }
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden) {
+            syncPlaylist()
+            syncMetadata()
+            syncButtons()
         }
     }
 
-    fun playPath(path: String, name: String) {
-        requestNotificationPermission()
-        setupPlaylist(path, name)
-        loadMetadata(path, name)
-        saveToHistory(path, name)
-        handler.postDelayed({ doPlay(path, name) }, 300)
+    override fun onDestroyView() {
+        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        handler.removeCallbacksAndMessages(null)
+        sleepTimerJob?.cancel()
+        eqManager?.release()
+        savePlaylist()
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controller = null
+        _binding = null
+        super.onDestroyView()
     }
 
-    private fun doPlay(path: String, name: String, retries: Int = 0) {
-        android.util.Log.d("BlazeAudio", "doPlay retry=$retries instance=${AudioPlaybackService.instance}")
-        val svc = AudioPlaybackService.instance
-        if (svc == null) {
-            if (retries < 10) handler.postDelayed({ doPlay(path, name, retries + 1) }, 300)
-            return
-        }
-        android.util.Log.d("BlazeAudio", "calling svc.play()")
-        svc.onPrev = { handler.post { playPrev() } }
-        svc.onNext = { handler.post { playNext() } }
-        svc.onPlaybackChanged = { playing ->
-            _binding?.btnPlayPause?.setImageResource(
-                if (playing) fr.retrospare.blazeplayer.R.drawable.ic_pause
-                else fr.retrospare.blazeplayer.R.drawable.ic_play
-            )
-        }
-        handler.post { svc.play(path, name) }
+    // ── MediaController ────────────────────────────────────────────────────────
+
+    private fun connectMediaController() {
+        val token = SessionToken(requireContext(), ComponentName(requireContext(), BlazePlayerService::class.java))
+        controllerFuture = MediaController.Builder(requireContext(), token).buildAsync()
+        controllerFuture?.addListener({
+            controller = controllerFuture?.get()
+            onControllerReady()
+        }, MoreExecutors.directExecutor())
     }
 
-    private fun setupPlaylistWithItems(items: MutableList<PlaylistItem>, savedIndex: Int) {
-        playlistAdapter = PlaylistAdapter(items) { index ->
-            currentIndex = index
-            val item = playlistAdapter.getItems()[index]
-            playlistAdapter.setCurrentIndex(currentIndex)
-            savePlaylist()
-            loadMetadata(item.path, item.name)
-            doPlay(item.path, item.name)
-        }
-        currentIndex = savedIndex.coerceAtMost((items.size - 1).coerceAtLeast(0))
-        playlistAdapter.setCurrentIndex(currentIndex)
-        binding.recyclerPlaylist.apply {
-            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
-            adapter = playlistAdapter
-        }
-        // Branche les callbacks du service une seule fois
-        handler.postDelayed({
-            AudioPlaybackService.instance?.let { svc ->
-                svc.onPrev = { handler.post { playPrev() } }
-                svc.onNext = { handler.post { playNext() } }
-                svc.onPlaybackChanged = { playing ->
-                    _binding?.btnPlayPause?.setImageResource(
-                        if (playing) fr.retrospare.blazeplayer.R.drawable.ic_pause
-                        else fr.retrospare.blazeplayer.R.drawable.ic_play
-                    )
+    private fun onControllerReady() {
+        val ctrl = controller ?: return
+
+        // Charge la playlist sauvegardée dans ExoPlayer si vide
+        if (ctrl.mediaItemCount == 0) {
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                val (savedItems, savedIndex) = AudioRepository.load(requireContext())
+                if (savedItems.isNotEmpty()) {
+                    val mediaItems = savedItems.map { AudioRepository.buildMediaItemWithMetadata(requireContext(), it.path, it.name) }
+                    launch(Dispatchers.Main) {
+                        savedItems.forEach { playlistAdapter.addItem(it) }
+                        ctrl.setMediaItems(mediaItems, savedIndex.coerceIn(0, savedItems.size - 1), 0L)
+                        ctrl.prepare()
+                        syncPlaylist()
+                        syncMetadata()
+                        syncButtons()
+                    }
                 }
             }
-        }, 500)
-
-        binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
-        binding.btnAddFolder.setOnClickListener {
-            pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
+        } else {
+            syncPlaylist()
+            syncMetadata()
+            syncButtons()
         }
-        binding.btnEq.setOnClickListener {
-            if (eqManager == null) {
-                val service = AudioPlaybackService.instance
-                val sessionId = service?.exoPlayer?.audioSessionId ?: 0
-                if (sessionId != 0) try { eqManager = EqualizerManager(sessionId, requireContext()) } catch (e: Exception) {}
+
+        // Pending tracks depuis SharedViewModel
+        val pending = sharedVm.consumePendingTracks()
+        if (pending.isNotEmpty()) {
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                pending.forEach { track ->
+                    if (playlistAdapter.getItems().none { it.path == track.path }) {
+                        val mediaItem = AudioRepository.buildMediaItemWithMetadata(requireContext(), track.path, track.name)
+                        launch(Dispatchers.Main) {
+                            playlistAdapter.addItem(PlaylistItem(track.path, track.name))
+                            ctrl.addMediaItem(mediaItem)
+                        }
+                    }
+                }
+                launch(Dispatchers.Main) {
+                    ctrl.prepare()
+                    ctrl.play()
+                    savePlaylist()
+                }
             }
-            eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
         }
-    }
 
-    private fun setupPlaylist(path: String, name: String) {
-        if (::playlistAdapter.isInitialized) {
-            if (path.isNotEmpty() && playlistAdapter.getItems().none { it.path == path }) {
-                playlistAdapter.addItem(PlaylistItem(path, name))
+        // Listener natif Media3 - source unique de vérité
+        ctrl.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                syncButtons()
+            }
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                syncSelection()
+                syncMetadata()
                 savePlaylist()
             }
-            return
+
+            override fun onEvents(player: Player, events: Player.Events) {
+                if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)) {
+                    syncButtons()
+                }
+            }
+        })
+    }
+
+    // ── Sync UI depuis MediaController (source unique) ─────────────────────────
+
+    private fun syncPlaylist() {
+        val ctrl = controller ?: return
+        if (!::playlistAdapter.isInitialized) return
+        // Si adapter vide mais controller a items, recharge depuis repository
+        if (playlistAdapter.getItems().isEmpty() && ctrl.mediaItemCount > 0) {
+            val (savedItems, _) = AudioRepository.load(requireContext())
+            savedItems.forEach { item ->
+                if (playlistAdapter.getItems().none { it.path == item.path })
+                    playlistAdapter.addItem(item)
+            }
         }
-        // Charge la playlist sauvegardée
-        val saved = loadPlaylist().distinctBy { it.path } // supprime les doublons par path
-        val items = saved.toMutableList().also { list ->
-            if (path.isNotEmpty() && list.none { it.path == path }) list.add(PlaylistItem(path, name))
-        }.ifEmpty { if (path.isNotEmpty()) mutableListOf(PlaylistItem(path, name)) else mutableListOf() }
-        playlistAdapter = PlaylistAdapter(items) { index ->
-            currentIndex = index
-            val item = playlistAdapter.getItems()[index]
-            playlistAdapter.setCurrentIndex(currentIndex)
-            savePlaylist()
-            loadMetadata(item.path, item.name)
-            handler.postDelayed({
-                doPlay(item.path, item.name)
-                handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500)
-            }, 100)
+        syncSelection()
+    }
+
+    private fun syncSelection() {
+        val ctrl = controller ?: return
+        if (!::playlistAdapter.isInitialized) return
+        playlistAdapter.setCurrentIndex(ctrl.currentMediaItemIndex)
+    }
+
+    private fun syncMetadata() {
+        val ctrl = controller ?: return
+        val mediaItem = ctrl.currentMediaItem ?: return
+        val meta = mediaItem.mediaMetadata
+
+        // Lit directement depuis MediaMetadata - pas de MediaMetadataRetriever
+        _binding?.tvTitle?.text = meta.title?.toString()?.ifEmpty { null }
+            ?: mediaItem.localConfiguration?.uri?.lastPathSegment ?: "Titre inconnu"
+        _binding?.tvArtist?.text = meta.artist?.toString() ?: "Artiste inconnu"
+        _binding?.tvAlbum?.text = meta.albumTitle?.toString() ?: ""
+
+        val ext = (mediaItem.localConfiguration?.uri?.lastPathSegment ?: "").substringAfterLast(".", "").uppercase()
+        if (ext.isNotEmpty()) {
+            _binding?.tvCodec?.text = ext
+            _binding?.tvCodec?.visibility = View.VISIBLE
         }
-        val savedIndex = requireContext().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE).getInt("index", 0)
-        playlistAdapter.setCurrentIndex(savedIndex.coerceAtMost(items.size - 1).coerceAtLeast(0))
+
+        // Artwork depuis MediaMetadata
+        val artworkData = meta.artworkData
+        if (artworkData != null) {
+            val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size)
+            _binding?.ivArtwork?.setImageBitmap(bitmap)
+        } else {
+            _binding?.ivArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_thumbnail)
+        }
+    }
+
+    private fun syncButtons() {
+        _binding?.btnPlayPause?.setImageResource(
+            if (controller?.isPlaying == true) fr.retrospare.blazeplayer.R.drawable.ic_pause
+            else fr.retrospare.blazeplayer.R.drawable.ic_play
+        )
+    }
+
+    // ── Playlist UI ───────────────────────────────────────────────────────────
+
+    private fun initPlaylistUi() {
+        playlistAdapter = PlaylistAdapter(mutableListOf()) { index ->
+            controller?.seekToDefaultPosition(index)
+            controller?.play()
+        }
         binding.recyclerPlaylist.apply {
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
             adapter = playlistAdapter
         }
-        // N'enregistre les listeners qu'une seule fois
-        if (!binding.btnAddFolder.hasOnClickListeners()) {
-            binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
-            binding.btnAddFolder.setOnClickListener {
-                pickAudio.launch(Intent(requireContext(), AudioBrowserActivity::class.java))
-            }
+        binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
+        binding.btnAddFolder.setOnClickListener {
+            pickAudio.launch(android.content.Intent(requireContext(), AudioBrowserActivity::class.java))
         }
-        binding.btnEq.setOnClickListener {
-            // Initialise EQ si pas encore fait
-            if (eqManager == null) {
-                val service = AudioPlaybackService.instance
-                val sessionId = service?.exoPlayer?.audioSessionId ?: 0
-                if (sessionId != 0) {
-                    try {
-                        eqManager = EqualizerManager(sessionId, requireContext())
-                    } catch (e: Exception) {}
-                }
-            }
-            eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
 
-        }
-    }
-
-    private fun saveToHistory(path: String, name: String) {
-        val ext = name.substringAfterLast(".", "").lowercase()
-        val item = AppMediaItem(id = path, name = name, path = path,
-            extension = ext, mimeType = "audio/$ext",
-            isNetwork = false, lastPlayedAt = System.currentTimeMillis())
-        viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) { mediaRepository.saveRecentItem(item) }
-    }
-
-    private fun loadMetadata(path: String, fileName: String) {
-        val ext = fileName.substringAfterLast(".", "mp3").uppercase()
-        _binding?.tvCodec?.text = ext
-        _binding?.tvCodec?.visibility = View.VISIBLE
-        viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val retriever = MediaMetadataRetriever()
-                if (path.startsWith("content://")) retriever.setDataSource(requireContext(), Uri.parse(path))
-                else retriever.setDataSource(path)
-                val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: fileName.substringBeforeLast(".")
-                val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: "Artiste inconnu"
-                val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM) ?: ""
-                val bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull()
-                val art = retriever.embeddedPicture
-                retriever.release()
-                val bitmap = art?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
-                viewLifecycleOwner.lifecycleScope.launch {
-                    _binding?.tvTitle?.text = title
-                    _binding?.tvArtist?.text = artist
-                    _binding?.tvAlbum?.text = album
-                    _binding?.tvCodec?.text = ext
-                    _binding?.tvBitrate?.visibility = if (bitrate != null) View.VISIBLE else View.GONE
-                    _binding?.tvBitrate?.text = if (bitrate != null) "${bitrate / 1000} kbps" else ""
-                    if (bitmap != null) _binding?.ivArtwork?.setImageBitmap(bitmap)
-                }
-            } catch (e: Exception) {
-                viewLifecycleOwner.lifecycleScope.launch { _binding?.tvTitle?.text = fileName }
-            }
-        }
-    }
-
-    private fun setupControls() {
         val bottomSheet = com.google.android.material.bottomsheet.BottomSheetBehavior.from(binding.playlistSheet)
         bottomSheet.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
         binding.btnPlaylistSheet.setOnClickListener {
@@ -279,44 +290,86 @@ class AudioPlayerFragment : Fragment() {
             else
                 com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
         }
+    }
 
-        binding.btnPlayPause.setOnClickListener {
-            val svc = AudioPlaybackService.instance ?: run {
+    fun savePlaylist() {
+        val ctx = context ?: return
+        if (!::playlistAdapter.isInitialized) return
+        val items = playlistAdapter.getItems()
+        if (items.isEmpty()) return
+        val idx = controller?.currentMediaItemIndex ?: 0
+        AudioRepository.save(ctx, items, idx)
+    }
 
-                return@setOnClickListener
+    fun addTrack(path: String, name: String) {
+        if (!::playlistAdapter.isInitialized) return
+        if (playlistAdapter.getItems().any { it.path == path }) return
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val mediaItem = AudioRepository.buildMediaItemWithMetadata(requireContext(), path, name)
+            launch(Dispatchers.Main) {
+                playlistAdapter.addItem(PlaylistItem(path, name))
+                controller?.addMediaItem(mediaItem)
+                if (controller?.playbackState == Player.STATE_IDLE) {
+                    controller?.prepare()
+                    controller?.play()
+                }
+                savePlaylist()
             }
-
-            if (svc.isPlaying) svc.pause() else svc.resume()
         }
+    }
+
+    // ── Contrôles ─────────────────────────────────────────────────────────────
+
+    private fun setupControls() {
+        binding.btnPlayPause.setOnClickListener {
+            val ctrl = controller ?: return@setOnClickListener
+            if (ctrl.isPlaying) ctrl.pause()
+            else {
+                if (ctrl.playbackState == Player.STATE_IDLE) ctrl.prepare()
+                ctrl.play()
+            }
+        }
+        binding.btnPrev.setOnClickListener { controller?.seekToPreviousMediaItem() }
+        binding.btnNext.setOnClickListener { controller?.seekToNextMediaItem() }
         binding.btnRewind.setOnClickListener {
-            val svc = AudioPlaybackService.instance ?: return@setOnClickListener
-            svc.seekTo((svc.currentPosition - 10_000).coerceAtLeast(0))
+            controller?.seekTo((controller!!.currentPosition - 10_000).coerceAtLeast(0))
         }
         binding.btnForward.setOnClickListener {
-            val svc = AudioPlaybackService.instance ?: return@setOnClickListener
-            svc.seekTo((svc.currentPosition + 10_000).coerceAtMost(svc.duration))
+            controller?.seekTo((controller!!.currentPosition + 10_000).coerceAtMost(controller!!.duration))
         }
-        binding.btnPrev.setOnClickListener { playPrev() }
-        binding.btnNext.setOnClickListener { playNext() }
 
+        var repeatMode = 0
+        binding.btnRepeat.setOnClickListener {
+            repeatMode = (repeatMode + 1) % 3
+            when (repeatMode) {
+                0 -> { controller?.repeatMode = Player.REPEAT_MODE_OFF
+                    binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat)
+                    binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant)) }
+                1 -> { controller?.repeatMode = Player.REPEAT_MODE_ALL
+                    binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat)
+                    binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)) }
+                2 -> { controller?.repeatMode = Player.REPEAT_MODE_ONE
+                    binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat_one)
+                    binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)) }
+            }
+        }
+
+        var isShuffled = false
         binding.btnShuffle.setOnClickListener {
             isShuffled = !isShuffled
+            controller?.shuffleModeEnabled = isShuffled
             binding.btnShuffle.setColorFilter(
                 if (isShuffled) requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)
                 else requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant)
             )
         }
 
-        binding.btnRepeat.setOnClickListener {
-            repeatMode = (repeatMode + 1) % 3
-            when (repeatMode) {
-                0 -> { binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat)
-                    binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant)) }
-                1 -> { binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat)
-                    binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)) }
-                2 -> { binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat_one)
-                    binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)) }
+        binding.btnEq.setOnClickListener {
+            if (eqManager == null) {
+                val sessionId = BlazePlayerService.instance?.getAudioSessionId() ?: 0
+                if (sessionId != 0) try { eqManager = EqualizerManager(sessionId, requireContext()) } catch (e: Exception) {}
             }
+            eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
         }
 
         binding.btnSleepTimer.setOnClickListener {
@@ -327,109 +380,37 @@ class AudioPlayerFragment : Fragment() {
                     sleepTimerJob?.cancel()
                     val minutes = when (which) { 0->5L; 1->15L; 2->30L; 3->60L; else->0L }
                     if (minutes > 0) {
-                        (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent))
+                        (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)
+                            ?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent))
                         sleepTimerJob = viewLifecycleOwner.lifecycleScope.launch {
                             delay(minutes * 60 * 1000)
-                            AudioPlaybackService.instance?.pause()
-                            (_binding?.btnSleepTimer?.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
+                            controller?.pause()
+                            (_binding?.btnSleepTimer?.getChildAt(0) as? android.widget.ImageView)
+                                ?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
                         }
                     } else {
-                        (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
+                        (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)
+                            ?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
                     }
                 }.show()
         }
     }
 
-    private fun playNext() {
-        val items = playlistAdapter.getItems()
-        if (items.isEmpty()) return
-        val svc = AudioPlaybackService.instance
-        when {
-            repeatMode == 2 -> {
-                val item = items[currentIndex]
-                handler.postDelayed({ doPlay(item.path, item.name)
-                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500) }, 100)
-            }
-            isShuffled -> {
-                currentIndex = (0 until items.size).filter { it != currentIndex }.randomOrNull() ?: 0
-                val item = items[currentIndex]
-                playlistAdapter.setCurrentIndex(currentIndex)
-                loadMetadata(item.path, item.name)
-                handler.postDelayed({ doPlay(item.path, item.name)
-                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500) }, 100)
-            }
-            currentIndex < items.size - 1 -> {
-                currentIndex++
-                val item = items[currentIndex]
-                playlistAdapter.setCurrentIndex(currentIndex)
-                loadMetadata(item.path, item.name)
-                handler.postDelayed({
-                    doPlay(item.path, item.name)
-                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500)
-                }, 100)
-            }
-            repeatMode == 1 -> {
-                currentIndex = 0
-                val item = items[0]
-                playlistAdapter.setCurrentIndex(0)
-                loadMetadata(item.path, item.name)
-                handler.postDelayed({
-                    doPlay(item.path, item.name)
-                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500)
-                }, 100)
-            }
-        }
-    }
-
-    private fun playPrev() {
-        val items = playlistAdapter.getItems()
-        if (items.isEmpty()) return
-        val svc = AudioPlaybackService.instance
-        when {
-            repeatMode == 2 -> {
-                val item = items[currentIndex]
-                handler.postDelayed({ doPlay(item.path, item.name)
-                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500) }, 100)
-            }
-            isShuffled -> {
-                currentIndex = (0 until items.size).filter { it != currentIndex }.randomOrNull() ?: 0
-                val item = items[currentIndex]
-                playlistAdapter.setCurrentIndex(currentIndex)
-                loadMetadata(item.path, item.name)
-                handler.postDelayed({ doPlay(item.path, item.name)
-                    handler.postDelayed({ AudioPlaybackService.instance?.play() }, 500) }, 100)
-            }
-            currentIndex > 0 -> {
-                currentIndex--
-                val item = items[currentIndex]; playlistAdapter.setCurrentIndex(currentIndex)
-                doPlay(item.path, item.name); loadMetadata(item.path, item.name)
-            }
-            repeatMode == 1 -> {
-                currentIndex = items.size - 1
-                val item = items[currentIndex]; playlistAdapter.setCurrentIndex(currentIndex)
-                doPlay(item.path, item.name); loadMetadata(item.path, item.name)
-            }
-        }
-    }
+    // ── SeekBar ────────────────────────────────────────────────────────────────
 
     private fun setupSeekBar() {
         binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    val svc = AudioPlaybackService.instance ?: return
-                    val dur = svc.duration
-                    if (dur > 0) {
-                        val targetMs = dur * progress / 100
-                        svc.seekTo(targetMs)
-                    }
+                    val dur = controller?.duration ?: 0L
+                    if (dur > 0) controller?.seekTo(dur * progress / 100)
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar) { isSeekBarTracking = true }
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 isSeekBarTracking = false
-                val svc = AudioPlaybackService.instance ?: return
-                val dur = svc.duration
-                if (dur > 0) svc.seekTo(dur * seekBar.progress / 100)
+                val dur = controller?.duration ?: 0L
+                if (dur > 0) controller?.seekTo(dur * seekBar.progress / 100)
             }
         })
     }
@@ -437,11 +418,11 @@ class AudioPlayerFragment : Fragment() {
     private fun startProgressUpdate() {
         handler.post(object : Runnable {
             override fun run() {
-                val svc = AudioPlaybackService.instance
-                val dur = svc?.duration ?: 0
-                if (!isSeekBarTracking && dur > 0 && svc != null) {
-                    _binding?.seekBar?.progress = ((svc.currentPosition * 100) / dur).toInt()
-                    _binding?.tvCurrentTime?.text = formatTime(svc.currentPosition)
+                val ctrl = controller
+                val dur = ctrl?.duration ?: 0L
+                if (!isSeekBarTracking && dur > 0 && ctrl != null) {
+                    _binding?.seekBar?.progress = ((ctrl.currentPosition * 100) / dur).toInt()
+                    _binding?.tvCurrentTime?.text = formatTime(ctrl.currentPosition)
                     _binding?.tvTotalTime?.text = formatTime(dur)
                 }
                 handler.postDelayed(this, 500)
@@ -449,10 +430,12 @@ class AudioPlayerFragment : Fragment() {
         })
     }
 
+    // ── Dancer ─────────────────────────────────────────────────────────────────
+
     private fun startDancerAnimation() {
         handler.post(object : Runnable {
             override fun run() {
-                if (AudioPlaybackService.instance?.isPlaying == true) {
+                if (controller?.isPlaying == true) {
                     dancerFrame = (dancerFrame + 1) % dancerFrames.size
                     _binding?.ivPixelChar?.setImageResource(dancerFrames[dancerFrame])
                     _binding?.ivPixelCharLeft?.setImageResource(dancerFFrames[(dancerFrame + 1) % dancerFFrames.size])
@@ -462,85 +445,41 @@ class AudioPlayerFragment : Fragment() {
         })
     }
 
+    // ── Utils ──────────────────────────────────────────────────────────────────
+
     private fun formatTime(ms: Long): String {
         val s = ms / 1000; return "%d:%02d".format(s / 60, s % 60)
     }
 
-    fun stopPlayback() { AudioPlaybackService.instance?.stop() }
-
-    fun returnToHome() {
-        (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-        // Sync playlist vers ViewModel avant destruction de la vue
-        if (::playlistAdapter.isInitialized) {
-            sharedAudioVm.setPlaylist(
-                playlistAdapter.getItems().map { fr.retrospare.blazeplayer.home.AudioTrack(it.path, it.name) }
-            )
-            sharedAudioVm.setCurrentIndex(currentIndex)
-        }
-        _binding = null
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        handler.removeCallbacksAndMessages(null)
-        sleepTimerJob?.cancel()
-        eqManager?.release()
-
-    }
-    fun savePlaylist() {
-        val items = if (::playlistAdapter.isInitialized) playlistAdapter.getItems() else return
-        val prefs = requireContext().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
-        val json = org.json.JSONArray().apply {
-            items.forEach { item ->
-                put(org.json.JSONObject().put("path", item.path).put("name", item.name))
-            }
-        }
-        prefs.edit().putString("items", json.toString()).putInt("index", currentIndex).apply()
-    }
-
-    private fun loadPlaylist(): List<PlaylistItem> {
-        val prefs = requireContext().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
-        val json = prefs.getString("items", null) ?: return emptyList()
-        return try {
-            val arr = org.json.JSONArray(json)
-            (0 until arr.length()).map { i ->
-                val obj = arr.getJSONObject(i)
-                PlaylistItem(obj.getString("path"), obj.getString("name"))
-            }
-        } catch (e: Exception) { emptyList() }
-    }
-
     private fun showCleanDialog() {
-        val items = if (::playlistAdapter.isInitialized) playlistAdapter.getItems().toList() else return
+        if (!::playlistAdapter.isInitialized) return
+        val items = playlistAdapter.getItems().toList()
         if (items.isEmpty()) {
             android.widget.Toast.makeText(requireContext(), "Liste déjà vide", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-
         val checked = BooleanArray(items.size) { false }
-        val names = items.map { it.name }.toTypedArray()
-
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Nettoyer la liste")
-            .setMultiChoiceItems(names, checked) { _, i, isChecked -> checked[i] = isChecked }
+            .setMultiChoiceItems(items.map { it.name }.toTypedArray(), checked) { _, i, c -> checked[i] = c }
             .setPositiveButton("Retirer sélection") { _, _ ->
-                val toRemove = items.filterIndexed { i, _ -> checked[i] }
-                if (toRemove.isEmpty()) return@setPositiveButton
-                toRemove.forEach { playlistAdapter.removeItem(it) }
+                items.forEachIndexed { i, item ->
+                    if (checked[i]) {
+                        val idx = playlistAdapter.getItems().indexOfFirst { it.path == item.path }
+                        if (idx >= 0) {
+                            playlistAdapter.removeItem(item)
+                            controller?.removeMediaItem(idx)
+                        }
+                    }
+                }
                 savePlaylist()
             }
             .setNeutralButton("Tout effacer") { _, _ ->
                 playlistAdapter.clearAll()
-                savePlaylist()
+                controller?.clearMediaItems()
+                AudioRepository.clear(requireContext())
             }
             .setNegativeButton("Annuler", null)
             .show()
     }
-
-
 }

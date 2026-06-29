@@ -10,28 +10,34 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences("eq_prefs", Context.MODE_PRIVATE)
 
-    val equalizer: Equalizer = Equalizer(0, audioSessionId).apply { enabled = true }
-    val bassBoost: BassBoost = BassBoost(0, audioSessionId).apply { enabled = true }
-    val virtualizer: Virtualizer = Virtualizer(0, audioSessionId).apply { enabled = true }
+    val equalizer: Equalizer? = try {
+        Equalizer(0, audioSessionId).apply { enabled = true }
+    } catch (_: Exception) { null }
+    val bassBoost: BassBoost? = try {
+        BassBoost(0, audioSessionId).apply { enabled = true }
+    } catch (_: Exception) { null }
+    val virtualizer: Virtualizer? = try {
+        Virtualizer(0, audioSessionId).apply { enabled = true }
+    } catch (_: Exception) { null }
 
-    val numBands: Int get() = equalizer.numberOfBands.toInt()
-    val minLevel: Int get() = equalizer.bandLevelRange[0].toInt()
-    val maxLevel: Int get() = equalizer.bandLevelRange[1].toInt()
+    val numBands: Int get() = equalizer?.numberOfBands.toInt()
+    val minLevel: Int get() = equalizer?.bandLevelRange[0].toInt()
+    val maxLevel: Int get() = equalizer?.bandLevelRange[1].toInt()
 
-    fun getBandFreq(band: Int): Int = equalizer.getCenterFreq(band.toShort()) / 1000
-    fun getBandLevel(band: Int): Int = equalizer.getBandLevel(band.toShort()).toInt()
+    fun getBandFreq(band: Int): Int = equalizer?.getCenterFreq(band.toShort()) / 1000
+    fun getBandLevel(band: Int): Int = equalizer?.getBandLevel(band.toShort()).toInt()
     fun setBandLevel(band: Int, level: Int) {
-        equalizer.setBandLevel(band.toShort(), level.toShort())
+        equalizer?.setBandLevel(band.toShort(), level.toShort())
         saveCustomBand(band, level)
     }
 
     fun setBassBoost(strength: Int) {
-        bassBoost.setStrength(strength.toShort())
+        bassBoost?.setStrength(strength.toShort())
         prefs.edit().putInt("bass_boost", strength).apply()
     }
 
     fun setVirtualizer(strength: Int) {
-        virtualizer.setStrength(strength.toShort())
+        virtualizer?.setStrength(strength.toShort())
         prefs.edit().putInt("virtualizer", strength).apply()
     }
 
@@ -59,14 +65,14 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
         }
         val bass = getSavedBassBoost()
         val virt = getSavedVirtualizer()
-        if (bass > 0) setBassBoost(bass)
-        if (virt > 0) setVirtualizer(virt)
+        setBassBoost(bass)
+        setVirtualizer(virt)
     }
 
     fun applyCustom() {
         for (band in 0 until numBands) {
             val level = prefs.getInt("custom_band_$band", 0)
-            equalizer.setBandLevel(band.toShort(), level.toShort())
+            equalizer?.setBandLevel(band.toShort(), level.toShort())
         }
     }
 
@@ -94,14 +100,14 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
         val levels = presets[name] ?: return
         val bandsToSet = minOf(levels.size, numBands)
         for (i in 0 until bandsToSet) {
-            equalizer.setBandLevel(i.toShort(), levels[i].toShort())
+            equalizer?.setBandLevel(i.toShort(), levels[i].toShort())
         }
         savePreset(name)
     }
 
     fun release() {
-        equalizer.release()
-        bassBoost.release()
-        virtualizer.release()
+        equalizer?.release()
+        bassBoost?.release()
+        virtualizer?.release()
     }
 }

@@ -25,7 +25,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Notifications Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -40,8 +39,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.BlazePlayer"
-        android:hardwareAccelerated="true"
-        android:largeHeap="true">
+        android:hardwareAccelerated="true">
 
         <activity
             android:name=".MainActivity"
@@ -57,14 +55,9 @@
         </activity>
 
         <service
-            android:name=".player.BlazeAudioService"
+            android:name=".player.BlazePlayerService"
             android:foregroundServiceType="mediaPlayback"
-            android:exported="false" />
-
-        <service
-            android:name=".player.AudioPlaybackService"
-            android:foregroundServiceType="mediaPlayback"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService"/>
             </intent-filter>
@@ -116,18 +109,9 @@
             android:screenOrientation="fullSensor"
             android:theme="@style/Theme.BlazePlayer.Fullscreen" />
 
-        <service
-            android:name=".player.AudioService"
-            android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
-
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
             android:value="fr.retrospare.blazeplayer.cast.CastOptionsProvider" />
-        <activity
-            android:name=".player.AudioPickActivity"
-            android:exported="false"
-            android:theme="@style/Theme.BlazePlayer" />
 
         <receiver android:name=".player.VideoNotificationReceiver" android:exported="false" />
     </application>

@@ -11,6 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:paddingBottom="80dp">
 
         <!-- HEADER -->
@@ -66,7 +68,7 @@
                 android:layout_width="280dp"
                 android:layout_height="280dp"
                 android:scaleType="centerCrop"
-                android:background="@drawable/bg_thumbnail"
+                android:background="@color/surface_variant"
                 android:clipToOutline="true" />
 
         </LinearLayout>
@@ -300,12 +302,13 @@
         <!-- CONTRÔLES PRINCIPAUX -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="80dp"
+            android:layout_height="100dp"
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="horizontal"
             android:gravity="center"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="8dp">
 
             <ImageButton
                 android:id="@+id/btnShuffle"

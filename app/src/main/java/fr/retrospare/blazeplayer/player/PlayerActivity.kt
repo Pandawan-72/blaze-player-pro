@@ -150,7 +150,6 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         // Stop audio si actif
-        try { AudioPlaybackService.instance?.pause() } catch (e: Exception) {}
 
         // Init ExoPlayer
         player = ExoPlayer.Builder(this).build()

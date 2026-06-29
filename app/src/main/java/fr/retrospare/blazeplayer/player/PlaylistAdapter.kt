@@ -8,8 +8,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
 
-data class PlaylistItem(val path: String, val name: String)
-
 class PlaylistAdapter(
     private val items: MutableList<PlaylistItem>,
     private val onItemClick: (Int) -> Unit

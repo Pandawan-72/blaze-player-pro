@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.os.Bundle
 import androidx.core.view.WindowCompat
 import androidx.core.view.ViewCompat
@@ -17,6 +19,7 @@ import fr.retrospare.blazeplayer.databinding.ActivityMainBinding
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    private val handler = Handler(Looper.getMainLooper())
 
     private lateinit var binding: ActivityMainBinding
 
@@ -32,6 +35,17 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.getBooleanExtra("openBlazeAudio", false)) {
+            handler.postDelayed({ openBlazeAudio() }, 300)
+        }
+    }
+
+    private fun openBlazeAudio() {
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+        val homeFragment = navHost?.childFragmentManager?.fragments
+            ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
+            ?.firstOrNull()
+        homeFragment?.switchToAudioTab()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

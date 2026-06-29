@@ -125,13 +125,7 @@ class BrowserFragment : Fragment() {
                     viewModel.loadLocalFiles(path)
                 }
             } else {
-                // Si on est dans AudioPickActivity, on ferme l'Activity
-                val activity = requireActivity()
-                if (activity is fr.retrospare.blazeplayer.player.AudioPickActivity) {
-                    activity.finish()
-                } else {
-                    findNavController().popBackStack()
-                }
+                findNavController().popBackStack()
             }
         }
         binding.btnSort.setOnClickListener {

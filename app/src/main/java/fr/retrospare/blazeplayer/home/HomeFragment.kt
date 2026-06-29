@@ -152,7 +152,7 @@ class HomeFragment : Fragment() {
         val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
         updateTabStyles(tabs, 3)
         showAudioTab()
-        audioPlayerFragment?.playPath(path, name)
+        audioPlayerFragment?.addTrack(path, name)
             ?: run {
                 audioPlayerFragment = AudioPlayerFragment().apply {
                     arguments = android.os.Bundle().apply {
