@@ -287,6 +287,6 @@ class AudioPlayerActivity : AppCompatActivity() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
         eqManager?.release()
-        player.release()
+        if (::player.isInitialized) player.release()
     }
 }

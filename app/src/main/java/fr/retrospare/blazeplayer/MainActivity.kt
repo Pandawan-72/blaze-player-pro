@@ -3,6 +3,7 @@ package fr.retrospare.blazeplayer
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.content.Intent
 import android.os.Bundle
 import androidx.core.view.WindowCompat
 import androidx.core.view.ViewCompat
@@ -26,6 +27,11 @@ class MainActivity : AppCompatActivity() {
         if (!allGranted) {
             showPermissionRationale()
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

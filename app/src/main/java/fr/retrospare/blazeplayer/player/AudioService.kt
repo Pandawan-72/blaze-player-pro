@@ -97,9 +97,10 @@ class AudioService : Service() {
     private fun buildNotification(title: String, artist: String, playing: Boolean): Notification {
         val openIntent = PendingIntent.getActivity(
             this, 0,
-            Intent(this, AudioPlayerActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-            },
+            Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java).apply {
+                flags = android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("openBlazeAudio", true)
+                            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 

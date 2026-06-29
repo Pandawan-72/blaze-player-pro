@@ -300,7 +300,9 @@
         <!-- CONTRÔLES PRINCIPAUX -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="96dp"
+            android:layout_height="80dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:orientation="horizontal"
             android:gravity="center"
             android:paddingHorizontal="16dp">

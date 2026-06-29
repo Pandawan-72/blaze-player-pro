@@ -122,6 +122,13 @@ class HomeFragment : Fragment() {
         }
     }
 
+    fun switchToAudioTab() {
+        val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
+        currentTabIndex = 3
+        updateTabStyles(tabs, 3)
+        showAudioTab()
+    }
+
     fun returnToHome() {
         val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
         updateTabStyles(tabs, 0)
