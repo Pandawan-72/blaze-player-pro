@@ -24,7 +24,7 @@ class UserRepository @Inject constructor(
         private val KEY_PLAYER_THEME = stringPreferencesKey("player_theme")
     }
 
-    val isProFlow: Flow<Boolean> = dataStore.data.map { it[KEY_IS_PRO] ?: false }
+    val isProFlow: Flow<Boolean> = dataStore.data.map { true } // TODO: RevenueCat en production
 
     val subtitleLanguageFlow: Flow<String> = dataStore.data.map {
         it[KEY_SUBTITLE_LANGUAGE] ?: "auto"

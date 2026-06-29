@@ -139,23 +139,19 @@ class HomeViewModel @Inject constructor(
 
     private fun applyTab(tab: Int) {
         when (tab) {
-            0 -> {
-                _showNetwork.value = true
-                _showLocal.value = true
-                _recentNetworkItems.value = allItems.filter { it.isNetwork }.take(3)
-                _recentLocalItems.value = allItems.filter { !it.isNetwork }.take(3)
-            }
             1 -> {
-                _showNetwork.value = true
-                _showLocal.value = false
-                _recentNetworkItems.value = allItems.filter { it.isNetwork }.take(10)
-                _recentLocalItems.value = emptyList()
+                // Onglet Local (index UI 1)
+                _recentLocalItems.value = allItems.filter { !it.isNetwork }
+                _recentNetworkItems.value = emptyList()
             }
             2 -> {
-                _showNetwork.value = false
-                _showLocal.value = true
+                // Onglet Réseau (index UI 2)
+                _recentNetworkItems.value = allItems.filter { it.isNetwork }
+                _recentLocalItems.value = emptyList()
+            }
+            else -> {
+                _recentLocalItems.value = allItems.filter { !it.isNetwork }
                 _recentNetworkItems.value = emptyList()
-                _recentLocalItems.value = allItems.filter { !it.isNetwork }.take(10)
             }
         }
     }

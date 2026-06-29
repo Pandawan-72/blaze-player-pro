@@ -187,9 +187,9 @@
             <View android:layout_width="match_parent" android:layout_height="1dp"
                 android:background="#1FFFFFFF" android:layout_marginVertical="16dp" />
 
-            <!-- DÉCONNEXION -->
+            <!-- RESTAURER ACHATS -->
             <LinearLayout
-                android:id="@+id/btnLogout"
+                android:id="@+id/btnRestorePurchases"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:orientation="horizontal"
@@ -202,17 +202,18 @@
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@drawable/ic_logout"
-                    android:tint="#E05252"
+                    android:src="@drawable/ic_refresh"
+                    android:tint="@color/green_accent"
                     android:contentDescription="@null"
                     android:layout_marginEnd="16dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Se déconnecter"
-                    android:textColor="#E05252"
-                    android:textSize="15sp" />
+                    android:text="Restaurer les achats"
+                    android:textColor="@color/green_accent"
+                    android:textSize="15sp"
+                    android:fontFamily="@font/oswald" />
 
             </LinearLayout>
 

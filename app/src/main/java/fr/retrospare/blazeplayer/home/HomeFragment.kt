@@ -70,7 +70,7 @@ class HomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             sharedAudioVm.pendingTracks.collect { tracks ->
                 if (tracks.isNotEmpty()) {
-                    val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
+                    val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
                     currentTabIndex = 3
                     updateTabStyles(tabs, 3)
                     showAudioTab()
@@ -80,7 +80,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupTabs() {
-        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
+        val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
         tabs.forEachIndexed { index, tab ->
             tab.setOnClickListener {
                 currentTabIndex = index
@@ -95,11 +95,11 @@ class HomeFragment : Fragment() {
             }
         }
         // Restaure l'onglet actif depuis le ViewModel
-        val activeTab = viewModel.currentTabIndex.value
+        val activeTab = if (viewModel.currentTabIndex.value == 0) 1 else viewModel.currentTabIndex.value
         updateTabStyles(tabs, activeTab)
         updateSectionTitles(activeTab)
         if (activeTab == 3) showAudioTab()
-        else hideAudioTab()
+        else { hideAudioTab(); viewModel.onTabSelected(activeTab) }
     }
 
     private fun showAudioTab() {
@@ -123,7 +123,7 @@ class HomeFragment : Fragment() {
     }
 
     fun returnToHome() {
-        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
+        val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
         updateTabStyles(tabs, 0)
         hideAudioTab()
         viewModel.onTabSelected(0)
@@ -142,7 +142,7 @@ class HomeFragment : Fragment() {
     }
 
     fun openAudioPlayer(path: String, name: String) {
-        val tabs = listOf(binding.tabAll, binding.tabNetwork, binding.tabLocal, binding.tabAudio)
+        val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
         updateTabStyles(tabs, 3)
         showAudioTab()
         audioPlayerFragment?.playPath(path, name)
@@ -161,12 +161,25 @@ class HomeFragment : Fragment() {
 
     private fun updateSectionTitles(tabIndex: Int) {
         when (tabIndex) {
-            0 -> {
-                binding.tvSectionNetwork.text = "HISTORIQUE RÉSEAU (3 DERNIERS)"
-                binding.tvSectionLocal.text = "HISTORIQUE LOCAL (3 DERNIERS)"
+            1 -> {
+                binding.sectionLocal.visibility = View.VISIBLE
+                binding.sectionNetwork.visibility = View.GONE
+                viewModel.onTabSelected(1)
             }
-            1 -> binding.tvSectionNetwork.text = "HISTORIQUE RÉSEAU"
-            2 -> binding.tvSectionLocal.text = "HISTORIQUE LOCAL"
+            2 -> {
+                binding.sectionNetwork.visibility = View.VISIBLE
+                binding.sectionLocal.visibility = View.GONE
+                viewModel.onTabSelected(2)
+            }
+            3 -> {
+                binding.sectionLocal.visibility = View.GONE
+                binding.sectionNetwork.visibility = View.GONE
+            }
+            else -> {
+                binding.sectionLocal.visibility = View.VISIBLE
+                binding.sectionNetwork.visibility = View.GONE
+                viewModel.onTabSelected(1)
+            }
         }
     }
 
@@ -195,63 +208,50 @@ class HomeFragment : Fragment() {
             audioPlayerFragment?.savePlaylist()
             findNavController().navigate(R.id.action_home_to_browser)
         }
-        binding.heroCard.setOnClickListener { viewModel.lastPlayedItem.value?.let { PlayerRouter.open(requireContext(), it.path, it.name) } }
     }
 
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.lastPlayedItem.collect { updateHeroCard(it) } }
-                launch { viewModel.recentNetworkItems.collect { updateList(binding.listNetwork, it) } }
-                launch { viewModel.recentLocalItems.collect { updateList(binding.listLocal, it) } }
-                launch {
-                    viewModel.showNetwork.collect { show ->
-                        binding.sectionNetwork.visibility = if (show) View.VISIBLE else View.GONE
-                        binding.divider.visibility = if (show && viewModel.showLocal.value) View.VISIBLE else View.GONE
-                    }
-                }
-                launch {
-                    viewModel.showLocal.collect { show ->
-                        binding.sectionLocal.visibility = if (show) View.VISIBLE else View.GONE
-                        binding.divider.visibility = if (viewModel.showNetwork.value && show) View.VISIBLE else View.GONE
-                    }
-                }
+                launch { viewModel.recentNetworkItems.collect { updateRecycler(binding.listNetwork, it) } }
+                launch { viewModel.recentLocalItems.collect { updateRecycler(binding.listLocal, it) } }
             }
         }
     }
 
-    private fun updateHeroCard(item: MediaItem?) {
-        if (item == null) {
-            binding.tvHeroTitle.text = "Aucune lecture récente"
-            binding.tvHeroDuration.text = ""
-            binding.tvHeroResolution.text = ""
-            binding.tvHeroVideoCodec.visibility = View.GONE
-            binding.tvHeroAudioCodec.visibility = View.GONE
-            binding.tvHeroFormat.visibility = View.GONE
-            return
-        }
-        binding.tvHeroTitle.text = item.name
-        binding.tvHeroDuration.text = item.formattedDuration
-        binding.tvHeroBadge.text = if (item.isNetwork) "SMB" else "LOCAL"
-
-        val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }
-
-        binding.tvHeroResolution.text = item.resolution ?: ""
-        binding.tvHeroResolution.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
-
-        binding.tvHeroFormat.text = ext.uppercase()
-        binding.tvHeroFormat.visibility = if (ext.isNotEmpty()) View.VISIBLE else View.GONE
-
-        binding.tvHeroVideoCodec.text = item.videoCodec ?: ""
-        binding.tvHeroVideoCodec.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-
-        binding.tvHeroAudioCodec.text = item.audioCodec ?: ""
-        binding.tvHeroAudioCodec.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-
-        if (!item.isNetwork && item.path.isNotEmpty()) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                ThumbnailUtils.loadThumbnail(requireContext(), item.path, binding.ivHeroThumb)
+    private fun updateRecycler(recycler: androidx.recyclerview.widget.RecyclerView, items: List<MediaItem>) {
+        recycler.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+        recycler.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
+            override fun getItemCount() = items.size
+            override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int) =
+                object : androidx.recyclerview.widget.RecyclerView.ViewHolder(
+                    layoutInflater.inflate(R.layout.item_media_file, parent, false)
+                ) {}
+            override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
+                val item = items[position]
+                val v = holder.itemView
+                val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }
+                v.findViewById<TextView>(R.id.tvFileName).text = item.name
+                v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
+                val tvFormat = v.findViewById<TextView>(R.id.tvFormat)
+                val tvRes = v.findViewById<TextView>(R.id.tvResolution)
+                val tvVideo = v.findViewById<TextView>(R.id.tvVideoCodec)
+                val tvAudio = v.findViewById<TextView>(R.id.tvAudioCodec)
+                val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
+                tvFormat.text = ext.uppercase()
+                tvVideo.text = item.videoCodec ?: ""
+                tvVideo.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+                tvAudio.text = item.audioCodec ?: ""
+                tvAudio.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+                tvRes.text = item.resolution ?: ""
+                tvRes.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
+                if (!item.isNetwork && item.path.isNotEmpty()) {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
+                    }
+                }
+                v.setOnClickListener { PlayerRouter.open(requireContext(), item.path, item.name) }
             }
         }
     }

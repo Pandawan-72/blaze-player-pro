@@ -11,7 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.NavHostFragment
-import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.databinding.ActivityMainBinding
 
@@ -53,8 +52,7 @@ class MainActivity : AppCompatActivity() {
         val navController = navHostFragment.navController
         val graph = navController.navInflater.inflate(R.navigation.nav_graph)
         graph.setStartDestination(
-            if (FirebaseAuth.getInstance().currentUser != null) R.id.homeFragment
-            else R.id.loginFragment
+            R.id.homeFragment
         )
         navController.setGraph(graph, null)
     }
