@@ -58,12 +58,12 @@ class EqualizerDialog(
 
     private fun setupHeader() {
         binding.btnCloseEq.setOnClickListener { dismiss() }
-        binding.switchEq.isChecked = eqManager.equalizer.enabled
-        binding.tvEqStatus.text = if (eqManager.equalizer.enabled) "ON" else "OFF"
+        binding.switchEq.isChecked = eqManager.equalizer?.enabled
+        binding.tvEqStatus.text = if (eqManager.equalizer?.enabled) "ON" else "OFF"
         binding.switchEq.setOnCheckedChangeListener { _, checked ->
-            eqManager.equalizer.enabled = checked
-            eqManager.bassBoost.enabled = checked
-            eqManager.virtualizer.enabled = checked
+            eqManager.equalizer?.enabled = checked
+            eqManager.bassBoost?.enabled = checked
+            eqManager.virtualizer?.enabled = checked
             binding.tvEqStatus.text = if (checked) "ON" else "OFF"
             binding.tvEqStatus.setTextColor(
                 ContextCompat.getColor(requireContext(),

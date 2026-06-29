@@ -18,8 +18,8 @@ class PlaylistAdapter(
     fun setCurrentIndex(index: Int) {
         val old = currentIndex
         currentIndex = index
-        notifyItemChanged(old)
-        notifyItemChanged(index)
+        if (old in items.indices) notifyItemChanged(old)
+        if (index in items.indices) notifyItemChanged(index)
     }
 
     fun addItem(item: PlaylistItem) {

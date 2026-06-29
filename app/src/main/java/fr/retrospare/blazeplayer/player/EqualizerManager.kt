@@ -20,12 +20,12 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
         Virtualizer(0, audioSessionId).apply { enabled = true }
     } catch (_: Exception) { null }
 
-    val numBands: Int get() = equalizer?.numberOfBands.toInt()
-    val minLevel: Int get() = equalizer?.bandLevelRange[0].toInt()
-    val maxLevel: Int get() = equalizer?.bandLevelRange[1].toInt()
+    val numBands: Int get() = equalizer?.numberOfBands?.toInt() ?: 0
+    val minLevel: Int get() = equalizer?.bandLevelRange?.getOrNull(0)?.toInt() ?: -1500
+    val maxLevel: Int get() = equalizer?.bandLevelRange?.getOrNull(1)?.toInt() ?: 1500
 
-    fun getBandFreq(band: Int): Int = equalizer?.getCenterFreq(band.toShort()) / 1000
-    fun getBandLevel(band: Int): Int = equalizer?.getBandLevel(band.toShort()).toInt()
+    fun getBandFreq(band: Int): Int = (equalizer?.getCenterFreq(band.toShort()) ?: 0) / 1000
+    fun getBandLevel(band: Int): Int = equalizer?.getBandLevel(band.toShort())?.toInt() ?: 0
     fun setBandLevel(band: Int, level: Int) {
         equalizer?.setBandLevel(band.toShort(), level.toShort())
         saveCustomBand(band, level)
