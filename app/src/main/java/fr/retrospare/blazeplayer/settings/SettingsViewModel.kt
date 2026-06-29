@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -79,7 +80,8 @@ class SettingsViewModel @Inject constructor(
         dataStore.edit { it[key] = value }
     }
 
-    fun getMiniPlayerEnabledAsync() = getBool(KEY_MINI_PLAYER, true)
+    suspend fun getMiniPlayerEnabledAsync(): Boolean =
+        dataStore.data.map { it[KEY_MINI_PLAYER] ?: false }.first()
     fun setMiniPlayerEnabled(v: Boolean) = setBool(KEY_MINI_PLAYER, v)
 
     fun getDefaultRatio()      = getInt(KEY_DEFAULT_RATIO, 0)

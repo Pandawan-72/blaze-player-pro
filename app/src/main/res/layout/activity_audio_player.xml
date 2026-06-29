@@ -38,7 +38,7 @@
                 android:text="EN LECTURE"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="11sp"
-                android:fontFamily="@font/oswald"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.15" />
 
             <ImageButton
@@ -81,17 +81,6 @@
             android:paddingTop="12dp"
             android:paddingBottom="4dp">
 
-            <ImageButton
-                android:id="@+id/btnFavorite"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_alignParentStart="true"
-                android:layout_centerVertical="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_favorite_border"
-                android:tint="@color/on_surface_variant"
-                android:contentDescription="Favoris" />
-
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -106,7 +95,7 @@
                     android:text="Titre inconnu"
                     android:textColor="@color/on_surface"
                     android:textSize="20sp"
-                    android:fontFamily="@font/oswald"
+                    android:fontFamily="sans-serif-condensed"
                     android:ellipsize="end"
                     android:singleLine="true"
                     android:maxWidth="220dp"
@@ -119,7 +108,7 @@
                     android:text="Artiste inconnu"
                     android:textColor="@color/green_accent"
                     android:textSize="13sp"
-                    android:fontFamily="@font/oswald"
+                    android:fontFamily="sans-serif-condensed"
                     android:layout_marginTop="2dp"
                     android:gravity="center" />
 
@@ -129,22 +118,11 @@
                     android:layout_height="wrap_content"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="11sp"
-                    android:fontFamily="@font/oswald"
+                    android:fontFamily="sans-serif-condensed"
                     android:gravity="center"
                     android:visibility="gone" />
 
             </LinearLayout>
-
-            <ImageButton
-                android:id="@+id/btnShare"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_share"
-                android:tint="@color/on_surface_variant"
-                android:contentDescription="Partager" />
 
         </RelativeLayout>
 
@@ -165,7 +143,7 @@
                 android:paddingVertical="2dp"
                 android:textSize="10sp"
                 android:textColor="@color/blue_accent"
-                android:fontFamily="@font/oswald"
+                android:fontFamily="sans-serif-condensed"
                 android:text="MP3"
                 android:visibility="gone"
                 android:layout_marginEnd="8dp" />
@@ -174,9 +152,12 @@
                 android:id="@+id/tvBitrate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_gray"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="10sp"
-                android:fontFamily="@font/oswald"
+                android:fontFamily="sans-serif-condensed"
                 android:visibility="gone" />
 
         </LinearLayout>
@@ -208,7 +189,7 @@
                     android:text="0:00"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="11sp"
-                    android:fontFamily="@font/oswald" />
+                    android:fontFamily="sans-serif-condensed" />
 
                 <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
 
@@ -219,7 +200,7 @@
                     android:text="0:00"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="11sp"
-                    android:fontFamily="@font/oswald" />
+                    android:fontFamily="sans-serif-condensed" />
 
             </LinearLayout>
 
@@ -332,7 +313,7 @@
                     android:text="Égaliseur"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="10sp"
-                    android:fontFamily="@font/oswald"
+                    android:fontFamily="sans-serif-condensed"
                     android:layout_marginTop="3dp" />
 
             </LinearLayout>
@@ -367,7 +348,7 @@
                     android:text="Minuteur"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="10sp"
-                    android:fontFamily="@font/oswald"
+                    android:fontFamily="sans-serif-condensed"
                     android:layout_marginTop="3dp" />
 
             </LinearLayout>
@@ -402,7 +383,7 @@
                     android:text="Infos"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="10sp"
-                    android:fontFamily="@font/oswald"
+                    android:fontFamily="sans-serif-condensed"
                     android:layout_marginTop="3dp" />
 
             </LinearLayout>
@@ -429,14 +410,34 @@
         app:behavior_skipCollapsed="true"
         app:behavior_expandedOffset="0dp">
 
-        <!-- Handle -->
+        <!-- Bordure top + flèche bas -->
         <View
-            android:layout_width="40dp"
-            android:layout_height="4dp"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="4dp"
-            android:background="#44FFFFFF" />
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#33FFFFFF" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingTop="10dp"
+            android:paddingBottom="4dp">
+
+            <View
+                android:layout_width="40dp"
+                android:layout_height="4dp"
+                android:background="#66FFFFFF" />
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_chevron_down"
+                android:tint="#66FFFFFF"
+                android:layout_marginTop="2dp"
+                android:contentDescription="Fermer" />
+
+        </LinearLayout>
 
         <!-- Header FILE D'ATTENTE -->
         <LinearLayout
@@ -455,7 +456,7 @@
                 android:text="FILE D'ATTENTE"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="11sp"
-                android:fontFamily="@font/oswald"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1" />
 
             <ImageButton

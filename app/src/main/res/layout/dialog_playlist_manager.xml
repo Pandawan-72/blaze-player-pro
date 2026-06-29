@@ -21,7 +21,7 @@
         android:text="MES PLAYLISTS"
         android:textColor="@color/on_surface_variant"
         android:textSize="11sp"
-        android:fontFamily="@font/oswald"
+        android:fontFamily="sans-serif-condensed"
         android:letterSpacing="0.1"
         android:paddingHorizontal="16dp"
         android:paddingBottom="8dp" />

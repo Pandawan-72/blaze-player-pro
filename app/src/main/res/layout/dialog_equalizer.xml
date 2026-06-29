@@ -33,7 +33,7 @@
             android:text="Égaliseur"
             android:textColor="@color/on_background"
             android:textSize="18sp"
-            android:fontFamily="sans-serif-medium" />
+            android:fontFamily="sans-serif-condensed" />
 
         <TextView
             android:id="@+id/tvEqStatus"
@@ -42,7 +42,7 @@
             android:text="ON"
             android:textColor="@color/green_accent"
             android:textSize="12sp"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="sans-serif-condensed"
             android:layout_marginEnd="8dp" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
@@ -130,7 +130,7 @@
                 android:text="PRÉRÉGLAGES"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="10dp" />
 
@@ -157,7 +157,7 @@
                     android:text="BASS BOOST"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
+                    android:fontFamily="sans-serif-condensed"
                     android:letterSpacing="0.08" />
 
                 <TextView
@@ -195,7 +195,7 @@
                     android:text="VIRTUALIZER 3D"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
+                    android:fontFamily="sans-serif-condensed"
                     android:letterSpacing="0.08" />
 
                 <TextView

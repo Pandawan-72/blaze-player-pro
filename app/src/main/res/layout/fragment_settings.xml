@@ -35,7 +35,7 @@
             android:text="Paramètres"
             android:textColor="@color/on_background"
             android:textSize="22sp"
-            android:fontFamily="sans-serif-medium" />
+            android:fontFamily="sans-serif-condensed" />
 
     </LinearLayout>
 
@@ -68,7 +68,7 @@
                     android:text="⭐ Passer à Blaze Pro"
                     android:textColor="@color/on_background"
                     android:textSize="15sp"
-                    android:fontFamily="sans-serif-medium" />
+                    android:fontFamily="sans-serif-condensed" />
 
                 <ImageView
                     android:layout_width="20dp"
@@ -86,7 +86,7 @@
                 android:text="LECTURE"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="4dp" />
@@ -108,7 +108,7 @@
                 android:text="AUDIO"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="4dp" />
@@ -126,7 +126,7 @@
                 android:text="SOUS-TITRES"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="4dp" />
@@ -144,7 +144,7 @@
                 android:text="BLAZE AUDIO"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
-                android:fontFamily="@font/oswald"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="4dp" />
@@ -161,7 +161,7 @@
                 android:text="INTERFACE"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="4dp" />
@@ -177,7 +177,7 @@
                 android:text="DONNÉES"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="4dp" />
@@ -194,7 +194,7 @@
                 android:text="À PROPOS"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="4dp" />
@@ -230,7 +230,7 @@
                     android:text="Restaurer les achats"
                     android:textColor="@color/green_accent"
                     android:textSize="15sp"
-                    android:fontFamily="@font/oswald" />
+                    android:fontFamily="sans-serif-condensed" />
 
             </LinearLayout>
 

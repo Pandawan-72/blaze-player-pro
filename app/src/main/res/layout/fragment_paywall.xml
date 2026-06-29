@@ -66,7 +66,7 @@
                     android:text="PRO"
                     android:textColor="@color/background_auth"
                     android:textSize="9sp"
-                    android:fontFamily="sans-serif-medium"
+                    android:fontFamily="sans-serif-condensed"
                     android:letterSpacing="0.05" />
 
             </FrameLayout>
@@ -77,7 +77,7 @@
                 android:text="Blaze Player Pro"
                 android:textColor="@color/on_background"
                 android:textSize="22sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:layout_marginBottom="8dp" />
 
             <TextView
@@ -130,7 +130,7 @@
                     android:text="15 jours d'essai gratuit"
                     android:textColor="@color/green_accent"
                     android:textSize="13sp"
-                    android:fontFamily="sans-serif-medium"
+                    android:fontFamily="sans-serif-condensed"
                     android:layout_marginBottom="2dp" />
 
                 <TextView
@@ -180,7 +180,7 @@
                     android:text="Gratuit"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
+                    android:fontFamily="sans-serif-condensed"
                     android:gravity="center"
                     android:letterSpacing="0.06" />
 
@@ -191,7 +191,7 @@
                     android:text="Pro"
                     android:textColor="@color/green_accent"
                     android:textSize="11sp"
-                    android:fontFamily="sans-serif-medium"
+                    android:fontFamily="sans-serif-condensed"
                     android:gravity="center"
                     android:letterSpacing="0.06" />
 

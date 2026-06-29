@@ -42,7 +42,7 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/on_surface"
                 android:textSize="13sp"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="sans-serif-condensed"
                 android:ellipsize="end"
                 android:singleLine="true" />
             <TextView
@@ -85,7 +85,7 @@
             android:paddingVertical="2dp"
             android:textColor="@color/blue_accent"
             android:textSize="10sp"
-            android:fontFamily="sans-serif-medium" />
+            android:fontFamily="sans-serif-condensed" />
 
         <TextView
             android:id="@+id/tvBadgeDefault"
@@ -98,7 +98,7 @@
             android:text="Par défaut"
             android:textColor="@color/yellow_accent"
             android:textSize="10sp"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="sans-serif-condensed"
             android:visibility="gone" />
 
         <View

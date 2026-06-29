@@ -4,6 +4,17 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.content.Intent
+import androidx.activity.viewModels
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import android.os.Handler
 import android.os.Looper
 import android.os.Bundle
@@ -32,65 +43,48 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private var miniController: androidx.media3.session.MediaController? = null
+    private val miniPlayerVm: fr.retrospare.blazeplayer.player.MiniPlayerViewModel by viewModels()
 
-    private fun connectMiniPlayer() {
-        val token = androidx.media3.session.SessionToken(
-            this,
-            android.content.ComponentName(this, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java)
-        )
-        val future = androidx.media3.session.MediaController.Builder(this, token).buildAsync()
-        future.addListener({
-            try {
-                miniController = future.get()
-                miniController?.addListener(object : androidx.media3.common.Player.Listener {
-                    override fun onIsPlayingChanged(isPlaying: Boolean) { refreshMiniPlayer() }
-                    override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) { refreshMiniPlayer() }
-                })
-                refreshMiniPlayer()
-            } catch (e: Exception) {
-                binding.miniPlayerBar.visibility = android.view.View.GONE
-            }
-        }, com.google.common.util.concurrent.MoreExecutors.directExecutor())
-    }
+    private fun setupMiniPlayer() {
+        miniPlayerVm.connect()
 
-    fun refreshMiniPlayer() {
-        val ctrl = miniController ?: return
-        val meta = ctrl.currentMediaItem?.mediaMetadata
-        if (meta != null && ctrl.mediaItemCount > 0) {
-            binding.miniPlayerBar.visibility = android.view.View.VISIBLE
-            binding.tvMiniTitle.text = meta.title ?: "Titre inconnu"
-            binding.tvMiniArtist.text = meta.artist?.toString() ?: ""
-            val art = meta.artworkData
-            if (art != null) binding.ivMiniArtwork.setImageBitmap(
-                android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size))
-            binding.btnMiniPlayPause.setImageResource(
-                if (ctrl.isPlaying) fr.retrospare.blazeplayer.R.drawable.ic_pause
-                else fr.retrospare.blazeplayer.R.drawable.ic_play
-            )
-            binding.btnMiniPlayPause.setOnClickListener {
-                if (ctrl.isPlaying) ctrl.pause() else ctrl.play()
+        // Observe le state — collecte sur toute la durée de vie de l'Activity
+        lifecycleScope.launch {
+            miniPlayerVm.state.collect { state ->
+                binding.miniPlayerBar.visibility =
+                    if (state.isVisible) android.view.View.VISIBLE else android.view.View.GONE
+                if (state.isVisible) {
+                    binding.tvMiniTitle.text = state.title.ifEmpty { "Titre inconnu" }
+                    binding.tvMiniArtist.text = state.artist
+                    val art = state.artworkData
+                    if (art != null) binding.ivMiniArtwork.setImageBitmap(
+                        android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size))
+                    binding.btnMiniPlayPause.setImageResource(
+                        if (state.isPlaying) fr.retrospare.blazeplayer.R.drawable.ic_pause
+                        else fr.retrospare.blazeplayer.R.drawable.ic_play
+                    )
+                }
             }
-            binding.btnMiniPrev.setOnClickListener { ctrl.seekToPreviousMediaItem() }
-            binding.btnMiniNext.setOnClickListener { ctrl.seekToNextMediaItem() }
-            binding.miniPlayerBar.setOnClickListener { openBlazeAudio() }
-        } else {
-            binding.miniPlayerBar.visibility = android.view.View.GONE
         }
+
+        binding.btnMiniPlayPause.setOnClickListener {
+            val c = miniPlayerVm.controller ?: return@setOnClickListener
+            if (c.isPlaying) c.pause() else c.play()
+        }
+        binding.btnMiniPrev.setOnClickListener { miniPlayerVm.controller?.seekToPreviousMediaItem() }
+        binding.btnMiniNext.setOnClickListener { miniPlayerVm.controller?.seekToNextMediaItem() }
+        binding.miniPlayerBar.setOnClickListener { openBlazeAudio() }
     }
 
-    fun hideMiniPlayer() {
-        binding.miniPlayerBar.visibility = android.view.View.GONE
+    fun setInAudioPlayer(inPlayer: Boolean) {
+        miniPlayerVm.setInAudioPlayer(inPlayer)
     }
 
-    fun showMiniPlayer() {
-        refreshMiniPlayer()
-    }
+    fun getMiniPlayerViewModel() = miniPlayerVm
 
     override fun onResume() {
         super.onResume()
-        if (miniController == null) connectMiniPlayer()
-        else refreshMiniPlayer()
+        miniPlayerVm.refresh()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -125,7 +119,8 @@ class MainActivity : AppCompatActivity() {
         }
         setupNavigation()
         requestStoragePermissions()
-        connectMiniPlayer()
+        // Connecte le mini player seulement si activé dans les préférences
+        setupMiniPlayer()
     }
 
     private fun setupNavigation() {

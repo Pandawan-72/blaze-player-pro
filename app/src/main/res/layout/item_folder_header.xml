@@ -55,7 +55,7 @@
             android:layout_weight="1"
             android:textColor="@color/on_background"
             android:textSize="16sp"
-            android:fontFamily="sans-serif-medium" />
+            android:fontFamily="sans-serif-condensed" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAddAllFolder"

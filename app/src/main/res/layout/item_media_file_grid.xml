@@ -69,7 +69,7 @@
         android:layout_height="wrap_content"
         android:textColor="@color/on_surface"
         android:textSize="11sp"
-        android:fontFamily="@font/oswald"
+        android:fontFamily="sans-serif-condensed"
         android:ellipsize="end"
         android:singleLine="true"
         android:layout_marginTop="4dp" />

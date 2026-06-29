@@ -99,19 +99,6 @@ class AudioPlayerFragment : Fragment() {
             v.setPadding(0, bars.top, 0, 0)
             insets
         }
-
-        binding.btnFavorite?.setOnClickListener {
-            android.widget.Toast.makeText(requireContext(), "Favoris bientôt disponible", android.widget.Toast.LENGTH_SHORT).show()
-        }
-        binding.btnShare?.setOnClickListener {
-            val meta = controller?.currentMediaItem?.mediaMetadata
-            val title = meta?.title ?: "Blaze Player"
-            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(android.content.Intent.EXTRA_TEXT, "J'écoute : $title sur Blaze Player")
-            }
-            startActivity(android.content.Intent.createChooser(intent, "Partager"))
-        }
         binding.btnBack.setOnClickListener {
             (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
         }
@@ -125,7 +112,7 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.hideMiniPlayer()
+        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
         syncPlaylist()
         syncMetadata()
         syncButtons()
@@ -134,12 +121,12 @@ class AudioPlayerFragment : Fragment() {
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
         if (!hidden) {
-            (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.hideMiniPlayer()
+            (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
             syncPlaylist()
             syncMetadata()
             syncButtons()
         } else {
-            (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.showMiniPlayer()
+            (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(false)
         }
     }
 
@@ -216,12 +203,18 @@ class AudioPlayerFragment : Fragment() {
         ctrl.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 syncButtons()
+                val idx = ctrl.currentMediaItemIndex
+                if (isPlaying) playlistAdapter.setPlayingIndex(idx)
+                else playlistAdapter.setPlayingIndex(-1)
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                val idx = ctrl.currentMediaItemIndex
                 syncSelection()
                 syncMetadata()
                 savePlaylist()
+                playlistAdapter.setCurrentIndex(idx)
+                playlistAdapter.setPlayingIndex(if (ctrl.isPlaying) idx else -1)
             }
 
             override fun onEvents(player: Player, events: Player.Events) {
@@ -271,6 +264,33 @@ class AudioPlayerFragment : Fragment() {
             _binding?.tvCodec?.visibility = View.VISIBLE
         }
 
+        // Bitrate depuis MediaMetadataRetriever
+        viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val path = mediaItem.localConfiguration?.uri?.toString() ?: return@launch
+                val retriever = android.media.MediaMetadataRetriever()
+                if (path.startsWith("content://"))
+                    retriever.setDataSource(requireContext(), android.net.Uri.parse(path))
+                else retriever.setDataSource(path)
+                val bitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
+                retriever.release()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+                    when {
+                        lossless -> {
+                            _binding?.tvBitrate?.text = "Lossless"
+                            _binding?.tvBitrate?.visibility = View.VISIBLE
+                        }
+                        bitrate > 0 -> {
+                            _binding?.tvBitrate?.text = "${bitrate / 1000} kbps"
+                            _binding?.tvBitrate?.visibility = View.VISIBLE
+                        }
+                        else -> _binding?.tvBitrate?.visibility = View.GONE
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
         // Artwork depuis MediaMetadata
         val artworkData = meta.artworkData
         if (artworkData != null) {
@@ -306,6 +326,24 @@ class AudioPlayerFragment : Fragment() {
 
         val bottomSheet = com.google.android.material.bottomsheet.BottomSheetBehavior.from(binding.playlistSheet)
         bottomSheet.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
+        bottomSheet.maxHeight = resources.displayMetrics.heightPixels
+        bottomSheet.isFitToContents = false
+        bottomSheet.halfExpandedRatio = 0.01f
+
+        bottomSheet.addBottomSheetCallback(object : com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback() {
+            override fun onStateChanged(view: android.view.View, newState: Int) {
+                val isExpanded = newState == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+                _binding?.btnBack?.visibility = if (isExpanded) android.view.View.INVISIBLE else android.view.View.VISIBLE
+                if (isExpanded) {
+                    // Force la hauteur plein écran
+                    val params = binding.playlistSheet.layoutParams
+                    params.height = resources.displayMetrics.heightPixels
+                    binding.playlistSheet.layoutParams = params
+                }
+            }
+            override fun onSlide(view: android.view.View, slideOffset: Float) {}
+        })
+
         binding.btnPlaylistSheet.setOnClickListener {
             bottomSheet.state = if (bottomSheet.state == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN)
                 com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED

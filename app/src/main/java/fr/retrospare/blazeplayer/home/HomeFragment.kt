@@ -70,9 +70,8 @@ class HomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             sharedAudioVm.pendingTracks.collect { tracks ->
                 if (tracks.isNotEmpty()) {
-                    val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
                     currentTabIndex = 3
-                    updateTabStyles(tabs, 3)
+                    updateTabStyles(3)
                     showAudioTab()
                 }
             }
@@ -80,11 +79,11 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupTabs() {
-        val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
-        tabs.forEachIndexed { index, tab ->
+        listOf(binding.tabLocal, binding.tabNetwork, binding.tabAudio).forEachIndexed { i, tab ->
+            val index = i + 1
             tab.setOnClickListener {
                 currentTabIndex = index
-                updateTabStyles(tabs, index)
+                updateTabStyles(index)
                 if (index == 3) {
                     showAudioTab()
                 } else {
@@ -94,16 +93,15 @@ class HomeFragment : Fragment() {
                 }
             }
         }
-        // Restaure l'onglet actif depuis le ViewModel
         val activeTab = if (viewModel.currentTabIndex.value == 0) 1 else viewModel.currentTabIndex.value
-        updateTabStyles(tabs, activeTab)
+        updateTabStyles(activeTab)
         updateSectionTitles(activeTab)
         if (activeTab == 3) showAudioTab()
         else { hideAudioTab(); viewModel.onTabSelected(activeTab) }
     }
 
     private fun showAudioTab() {
-        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.hideMiniPlayer()
+        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
         binding.scrollContent.visibility = android.view.View.GONE
         binding.audioContainer.visibility = android.view.View.VISIBLE
         // Récupère le fragment existant par tag
@@ -124,22 +122,22 @@ class HomeFragment : Fragment() {
     }
 
     fun switchToAudioTab() {
-        val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
+        val tabs = listOf(binding.tabAll as? android.widget.TextView, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
         currentTabIndex = 3
-        updateTabStyles(tabs, 3)
+        updateTabStyles(3)
         showAudioTab()
     }
 
     fun returnToHome() {
-        val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
-        updateTabStyles(tabs, 0)
+        currentTabIndex = 1
+        updateTabStyles(1)
         hideAudioTab()
-        viewModel.onTabSelected(0)
-        updateSectionTitles(0)
+        viewModel.onTabSelected(1)
+        updateSectionTitles(1)
     }
 
     private fun hideAudioTab() {
-        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.showMiniPlayer()
+        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(false)
         binding.scrollContent.visibility = android.view.View.VISIBLE
         binding.audioContainer.visibility = android.view.View.GONE
         audioPlayerFragment?.let { frag ->
@@ -151,8 +149,7 @@ class HomeFragment : Fragment() {
     }
 
     fun openAudioPlayer(path: String, name: String) {
-        val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
-        updateTabStyles(tabs, 3)
+        updateTabStyles(3)
         showAudioTab()
         audioPlayerFragment?.addTrack(path, name) ?: Unit
             ?: run {
@@ -192,19 +189,20 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun updateTabStyles(tabs: List<TextView>, selectedIndex: Int) {
-        tabs.forEachIndexed { index, tab ->
-            if (index == selectedIndex) {
-                tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_active)
-                tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
-                val oswald = ResourcesCompat.getFont(requireContext(), fr.retrospare.blazeplayer.R.font.oswald)
-                tab.typeface = oswald
-            } else {
-                tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_inactive)
-                tab.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface_variant))
-                val oswald = ResourcesCompat.getFont(requireContext(), fr.retrospare.blazeplayer.R.font.oswald)
-                tab.typeface = oswald
-            }
+    private fun updateTabStyles(selectedIndex: Int) {
+        // selectedIndex: 1=Local, 2=Réseau, 3=Audio
+        val tabViews = listOf(binding.tabLocal, binding.tabNetwork, binding.tabAudio)
+        val tabIcons = listOf(binding.tabLocalIcon, binding.tabNetworkIcon, binding.tabAudioIcon)
+        val tabTexts = listOf(binding.tabLocalText, binding.tabNetworkText, binding.tabAudioText)
+
+        tabViews.forEachIndexed { i, tab ->
+            val isActive = (i + 1) == selectedIndex
+            tab.background = ContextCompat.getDrawable(requireContext(),
+                if (isActive) R.drawable.bg_tab_active else R.drawable.bg_tab_inactive)
+            tabTexts[i].setTextColor(ContextCompat.getColor(requireContext(),
+                if (isActive) R.color.green_accent else R.color.on_surface_variant))
+            tabIcons[i].setColorFilter(ContextCompat.getColor(requireContext(),
+                if (isActive) R.color.green_accent else R.color.on_surface_variant))
         }
     }
 
@@ -240,132 +238,81 @@ class HomeFragment : Fragment() {
             override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
                 val item = items[position]
                 val v = holder.itemView
-                val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }
+
+                // Nom du fichier
                 v.findViewById<TextView>(R.id.tvFileName).text = item.name
-                v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
-                val tvFormat = v.findViewById<TextView>(R.id.tvFormat)
+
+                // État initial vide - sera rempli par VideoMetadataExtractor
+                val tvDur = v.findViewById<TextView>(R.id.tvDuration)
                 val tvRes = v.findViewById<TextView>(R.id.tvResolution)
-                val tvVideo = v.findViewById<TextView>(R.id.tvVideoCodec)
-                val tvAudio = v.findViewById<TextView>(R.id.tvAudioCodec)
+                val tvVid = v.findViewById<TextView>(R.id.tvVideoCodec)
+                val tvAud = v.findViewById<TextView>(R.id.tvAudioCodec)
+                val tvFmt = v.findViewById<TextView>(R.id.tvFormat)
                 val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
-                tvFormat.text = ext.uppercase()
-                tvVideo.text = item.videoCodec ?: ""
-                tvVideo.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-                tvAudio.text = item.audioCodec ?: ""
-                tvAudio.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-                tvRes.text = item.resolution ?: ""
-                tvRes.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
+
+                tvDur.text = ""
+                tvRes.visibility = View.GONE
+                tvVid.visibility = View.GONE
+                tvAud.visibility = View.GONE
+                tvFmt.visibility = View.GONE
+
+                // Thumbnail
                 if (!item.isNetwork && item.path.isNotEmpty()) {
                     viewLifecycleOwner.lifecycleScope.launch {
                         ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
                     }
                 }
+
+                // Click
                 v.setOnClickListener { PlayerRouter.open(requireContext(), item.path, item.name) }
-            }
-        }
-    }
 
-    private fun updateList(container: LinearLayout, items: List<MediaItem>) {
-        container.removeAllViews()
-        items.forEach { item ->
-            val v = layoutInflater.inflate(R.layout.item_media_file, container, false)
-            val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "").lowercase() }
-
-            v.findViewById<TextView>(R.id.tvFileName).text = item.name
-            v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
-
-            val tvFormat = v.findViewById<TextView>(R.id.tvFormat)
-            val tvRes = v.findViewById<TextView>(R.id.tvResolution)
-            val tvVideo = v.findViewById<TextView>(R.id.tvVideoCodec)
-            val tvAudio = v.findViewById<TextView>(R.id.tvAudioCodec)
-            val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
-
-            tvFormat.text = ext.uppercase()
-            tvVideo.text = item.videoCodec ?: ""
-            tvVideo.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-            tvAudio.text = item.audioCodec ?: ""
-            tvAudio.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-            tvRes.text = item.resolution ?: ""
-            tvRes.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
-
-            if (!item.isNetwork && item.path.isNotEmpty()) {
-                viewLifecycleOwner.lifecycleScope.launch {
-                    ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
-                }
-            }
-
-            v.setOnClickListener { PlayerRouter.open(requireContext(), item.path, item.name) }
-
-            val btnMore = v.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnMore)
-            btnMore.setOnClickListener { anchor ->
-                val popup = android.widget.PopupMenu(requireContext(), anchor)
-                popup.menu.add(0, 1, 0, "Lire")
-                popup.menu.add(0, 2, 1, "Informations")
-                popup.menu.add(0, 3, 2, "Retirer de l'historique")
-                popup.setOnMenuItemClickListener { mi ->
-                    when (mi.itemId) {
-                        1 -> { PlayerRouter.open(requireContext(), item.path, item.name); true }
-                        2 -> {
-                            // Lit les infos depuis MediaStore
-                            viewLifecycleOwner.lifecycleScope.launch {
-                                val info = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                    try {
-                                        val uri = android.net.Uri.parse(item.path)
-                                        val proj = arrayOf(
-                                            android.provider.MediaStore.Video.Media.SIZE,
-                                            android.provider.MediaStore.Video.Media.DURATION,
-                                            android.provider.MediaStore.Video.Media.WIDTH,
-                                            android.provider.MediaStore.Video.Media.HEIGHT,
-                                            android.provider.MediaStore.Video.Media.MIME_TYPE
-                                        )
-                                        requireContext().contentResolver.query(uri, proj, null, null, null)?.use { c ->
-                                            if (c.moveToFirst()) {
-                                                val size = c.getLong(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.SIZE))
-                                                val dur = c.getLong(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DURATION)) / 1000
-                                                val w = c.getInt(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.WIDTH))
-                                                val h = c.getInt(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.HEIGHT))
-                                                val mime = c.getString(c.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.MIME_TYPE)) ?: ""
-                                                Triple(size, dur, "$w×$h")
-                                            } else null
-                                        }
-                                    } catch (e: Exception) { null }
-                                }
-                                val sz = android.text.format.Formatter.formatShortFileSize(requireContext(), info?.first ?: item.size)
-                                val dur = info?.second ?: item.duration
-                                val ds = if (dur > 0) "%d:%02d:%02d".format(dur / 3600, (dur % 3600) / 60, dur % 60) else "N/A"
-                                val res = info?.third ?: ""
-                                val ext = item.extension.uppercase()
-                                val videoCodec = when (item.extension.lowercase()) {
-                                    "mkv" -> "H.265"; "mp4", "m4v" -> "H.264"
-                                    "avi" -> "DIVX"; "webm" -> "VP9"; else -> ext
-                                }
-                                android.app.AlertDialog.Builder(requireContext())
-                                    .setTitle(item.name)
-                                    .setMessage(
-                                        "Taille : $sz\nDuree : $ds\nResolution : $res\nConteneur : $ext\nCodec video : $videoCodec"
-                                    )
-                                    .setPositiveButton("OK", null)
-                                    .show()
-                            }
-                            true
-                        }
-                        3 -> { viewModel.removeFromHistory(item); true }
-                        else -> false
+                // VideoMetadataExtractor - source unique de vérité
+                if (item.path.isNotEmpty()) {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val info = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.extract(requireContext(), item.path)
+                        android.util.Log.d("META", "path=${item.path} w=${info.width} h=${info.height} res=${info.resolutionLabel} badge=${info.qualityBadge} dur=${info.formattedDuration}")
+                        tvDur.text = if (info.resolutionLabel.isNotEmpty())
+                            "${info.formattedDuration} • ${info.resolutionLabel}"
+                        else
+                            info.formattedDuration
+                        android.util.Log.d("UI", "tvDuration=${tvDur.text}")
+                        tvRes.text = info.qualityBadge
+                        tvRes.visibility = if (info.qualityBadge.isNotEmpty()) View.VISIBLE else View.GONE
+                        tvVid.text = info.videoCodec
+                        tvVid.visibility = if (info.videoCodec.isNotEmpty()) View.VISIBLE else View.GONE
+                        tvAud.text = info.audioCodec
+                        tvAud.visibility = if (info.audioCodec.isNotEmpty()) View.VISIBLE else View.GONE
+                        tvFmt.text = info.container
+                        tvFmt.visibility = if (info.container.isNotEmpty()) View.VISIBLE else View.GONE
                     }
                 }
-                popup.show()
+
+                // Bouton 3 points
+                val btnMore = v.findViewById<android.view.View>(R.id.btnMore)
+                btnMore?.setOnClickListener { anchor ->
+                    val popup = android.widget.PopupMenu(requireContext(), anchor)
+                    popup.menu.add(0, 1, 0, "Lire")
+                    popup.menu.add(0, 2, 1, "Informations")
+                    popup.menu.add(0, 3, 2, "Retirer de l'historique")
+                    popup.setOnMenuItemClickListener { mi ->
+                        when (mi.itemId) {
+                            1 -> { PlayerRouter.open(requireContext(), item.path, item.name); true }
+                            2 -> {
+                                android.app.AlertDialog.Builder(requireContext())
+                                    .setTitle("Informations")
+                                    .setMessage("Fichier : ${item.name}\nChemin : ${item.path}")
+                                    .setPositiveButton("OK", null)
+                                    .show()
+                                true
+                            }
+                            3 -> { viewModel.removeFromHistory(item); true }
+                            else -> false
+                        }
+                    }
+                    popup.show()
+                }
             }
-            container.addView(v)
         }
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putInt("tab_index", currentTabIndex)
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
 }

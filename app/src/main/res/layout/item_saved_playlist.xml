@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/on_surface"
             android:textSize="15sp"
-            android:fontFamily="@font/oswald" />
+            android:fontFamily="sans-serif-condensed" />
 
         <TextView
             android:id="@+id/tvPlaylistCount"
@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/on_surface_variant"
             android:textSize="11sp"
-            android:fontFamily="@font/oswald" />
+            android:fontFamily="sans-serif-condensed" />
 
     </LinearLayout>
 

@@ -632,10 +632,16 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun saveHistory() {
         val ext = mediaName.substringAfterLast('.', "").lowercase()
-        lifecycleScope.launch {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val info = VideoMetadataExtractor.extract(applicationContext, mediaPath)
+            val resolution = info.resolutionLabel
             mediaRepository.saveRecentItem(fr.retrospare.blazeplayer.data.model.MediaItem(
                 id = mediaPath, name = mediaName, path = mediaPath,
                 extension = ext, mimeType = "video/$ext",
+                duration = info.duration,
+                resolution = resolution,
+                videoCodec = info.videoCodec,
+                audioCodec = info.audioCodec,
                 isNetwork = false, lastPlayedAt = System.currentTimeMillis()
             ))
         }

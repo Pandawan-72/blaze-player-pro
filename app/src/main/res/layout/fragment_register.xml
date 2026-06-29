@@ -27,7 +27,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:fontFamily="sans-serif-medium"
+            android:fontFamily="sans-serif-condensed"
             android:text="Créer un compte"
             android:textColor="@color/on_background"
             android:textSize="26sp" />

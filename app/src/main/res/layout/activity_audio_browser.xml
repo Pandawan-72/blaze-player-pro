@@ -15,18 +15,18 @@
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
         android:paddingTop="48dp"
-        android:paddingBottom="12dp"
+        android:paddingBottom="16dp"
         android:gravity="center_vertical">
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="@drawable/bg_surface_card"
             android:src="@drawable/ic_arrow_back"
             android:tint="@color/on_surface_variant"
             android:contentDescription="Retour"
-            android:layout_marginEnd="12dp" />
+            android:layout_marginEnd="16dp" />
 
         <TextView
             android:layout_width="0dp"
@@ -34,102 +34,165 @@
             android:layout_weight="1"
             android:text="Ajouter des pistes"
             android:textColor="@color/on_background"
-            android:textSize="18sp"
-            android:fontFamily="sans-serif-medium" />
+            android:textSize="20sp"
+            android:fontFamily="sans-serif-condensed" />
 
-        <com.google.android.material.button.MaterialButton
-            android:includeFontPadding="false"
-            android:id="@+id/btnAddAll"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:text="Tout ajouter"
-            app:icon="@drawable/ic_add_circle"
-            app:iconSize="16dp"
-            app:iconTint="#FF000000"
-            app:iconGravity="textStart"
-            android:textSize="12sp"
-            android:textColor="#FF000000"
-            android:paddingHorizontal="12dp"
-            android:layout_marginEnd="6dp"
-            app:backgroundTint="@color/orange_accent"
-            app:cornerRadius="20dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:includeFontPadding="false"
-            android:id="@+id/btnConfirm"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:text="Pistes"
-            app:icon="@drawable/ic_add_circle"
-            app:iconSize="16dp"
-            app:iconTint="#FF000000"
-            app:iconGravity="textStart"
-            android:textSize="12sp"
-            android:textColor="#FF000000"
-            android:paddingHorizontal="14dp"
-            app:backgroundTint="@color/green_accent"
-            app:cornerRadius="20dp" />
+        <ImageButton
+            android:id="@+id/btnSearch"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_surface_card"
+            android:src="@drawable/ic_search"
+            android:tint="@color/on_surface_variant"
+            android:contentDescription="Rechercher" />
 
     </LinearLayout>
 
-    <!-- TABS LOCAL / RÉSEAU -->
+    <!-- BOUTONS 2x2 : Tout ajouter / Pistes / Local / Réseau -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="12dp">
+
+        <!-- Ligne 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnAddAll"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Tout ajouter"
+                android:textSize="13sp"
+                android:textColor="#FF000000"
+                android:fontFamily="sans-serif-condensed"
+                android:layout_marginEnd="6dp"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="#FF000000"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/orange_accent"
+                app:cornerRadius="24dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnConfirm"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Pistes"
+                android:textSize="13sp"
+                android:textColor="#FF000000"
+                android:fontFamily="sans-serif-condensed"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="#FF000000"
+                app:iconGravity="textStart"
+                app:backgroundTint="#FFB3C6"
+                app:cornerRadius="24dp" />
+
+        </LinearLayout>
+
+        <!-- Ligne 2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnLocal"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Local"
+                android:textSize="13sp"
+                android:textColor="#FF000000"
+                android:fontFamily="sans-serif-condensed"
+                android:layout_marginEnd="6dp"
+                app:icon="@drawable/ic_smartphone"
+                app:iconSize="16dp"
+                app:iconTint="#FF000000"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/green_accent"
+                app:cornerRadius="24dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnNetwork"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Réseau"
+                android:textSize="13sp"
+                android:textColor="#FF000000"
+                android:fontFamily="sans-serif-condensed"
+                app:icon="@drawable/ic_network"
+                app:iconSize="16dp"
+                app:iconTint="#FF000000"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/blue_accent"
+                app:cornerRadius="24dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- COMPTEUR + TRI -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
-        android:paddingBottom="12dp">
+        android:paddingBottom="8dp"
+        android:gravity="center_vertical">
 
-        <com.google.android.material.button.MaterialButton
-            android:includeFontPadding="false"
-            android:id="@+id/btnLocal"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:text="📱 Local"
-            android:textSize="12sp"
-            android:textColor="#FF000000"
-            android:paddingHorizontal="14dp"
-            app:backgroundTint="@color/green_accent"
-            app:cornerRadius="20dp"
-            android:layout_marginEnd="8dp" />
+        <TextView
+            android:id="@+id/tvSelected"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="0 piste trouvée"
+            android:textColor="@color/green_accent"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-condensed" />
 
-        <com.google.android.material.button.MaterialButton
-            android:includeFontPadding="false"
-            android:id="@+id/btnNetwork"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:text="🌐 Réseau"
-            android:textSize="12sp"
-            android:textColor="#FF000000"
-            android:paddingHorizontal="14dp"
-            app:backgroundTint="@color/blue_accent"
-            app:cornerRadius="20dp"
-            android:layout_marginEnd="8dp" />
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_equalizer"
+            android:tint="@color/on_surface_variant"
+            android:layout_marginEnd="4dp"
+            android:contentDescription="@null" />
 
-        <com.google.android.material.button.MaterialButton
-            android:includeFontPadding="false"
-            android:id="@+id/btnFolder"
+        <TextView
+            android:id="@+id/tvSortLabel"
             android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:text="📂 Dossiers"
-            android:textSize="12sp"
-            android:textColor="#000000"
-            android:paddingHorizontal="14dp"
-            app:backgroundTint="#FFB3C6"
-            app:cornerRadius="20dp" />
+            android:layout_height="wrap_content"
+            android:text="Nom"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-condensed"
+            android:layout_marginEnd="2dp" />
+
+        <ImageView
+            android:id="@+id/btnSortChevron"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_chevron_down"
+            android:tint="@color/on_surface_variant"
+            android:contentDescription="Trier"
+            android:clickable="true"
+            android:focusable="true" />
 
     </LinearLayout>
-
-    <!-- COMPTEUR -->
-    <TextView
-        android:id="@+id/tvSelected"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="8dp"
-        android:text="0 piste sélectionnée"
-        android:textColor="@color/green_accent"
-        android:textSize="12sp" />
 
     <!-- LISTE -->
     <androidx.recyclerview.widget.RecyclerView

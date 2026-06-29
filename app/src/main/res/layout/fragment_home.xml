@@ -21,7 +21,7 @@
             <!-- HEADER -->
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="76dp"
+                android:layout_height="72dp"
                 android:paddingHorizontal="16dp"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp">
@@ -32,15 +32,14 @@
                     android:layout_height="49dp"
                     android:layout_centerVertical="true"
                     android:layout_alignParentStart="true"
-                    android:layout_toStartOf="@id/btnCast"
                     android:src="@drawable/logo_blaze"
                     android:scaleType="fitStart"
                     android:contentDescription="@null" />
 
                 <ImageButton
                     android:id="@+id/btnSettings"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
                     android:background="@drawable/bg_surface_card"
@@ -50,43 +49,44 @@
 
                 <ImageButton
                     android:id="@+id/btnSearch"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:layout_centerVertical="true"
                     android:layout_toStartOf="@id/btnSettings"
                     android:layout_marginEnd="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/ic_search"
-                    android:contentDescription="Rechercher"
-                    android:tint="@color/on_surface_variant" />
+                    android:tint="@color/on_surface_variant"
+                    android:contentDescription="Rechercher" />
 
                 <ImageButton
                     android:id="@+id/btnCast"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:layout_centerVertical="true"
                     android:layout_toStartOf="@id/btnSearch"
                     android:layout_marginEnd="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/ic_cast"
-                    android:contentDescription="Chromecast"
-                    android:tint="@color/on_surface_variant" />
+                    android:tint="@color/on_surface_variant"
+                    android:contentDescription="Chromecast" />
 
             </RelativeLayout>
 
-            <!-- TABS -->
+            <!-- TABS avec icônes -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="16dp"
-                android:paddingTop="8dp"
+                android:paddingTop="4dp"
                 android:scrollbars="none">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/tabAll"
@@ -94,52 +94,106 @@
                         android:layout_width="0dp"
                         android:layout_height="0dp" />
 
-                    <TextView
+                    <!-- Tab Local -->
+                    <LinearLayout
                         android:id="@+id/tabLocal"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="6dp"
+                        android:layout_height="40dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:background="@drawable/bg_tab_active"
                         android:paddingHorizontal="16dp"
-                        android:gravity="center"
-                        android:text="Local"
-                        android:textColor="@color/green_accent"
-                        android:textSize="13sp"
-                        android:fontFamily="@font/oswald"
-                        android:includeFontPadding="false"
+                        android:layout_marginEnd="8dp"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true">
 
-                    <TextView
+                        <ImageView
+                            android:id="@+id/tabLocalIcon"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_folder_open"
+                            android:tint="@color/green_accent"
+                            android:layout_marginEnd="6dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:id="@+id/tabLocalText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Local"
+                            android:textColor="@color/green_accent"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-condensed"
+                            android:includeFontPadding="false" />
+
+                    </LinearLayout>
+
+                    <!-- Tab Réseau -->
+                    <LinearLayout
                         android:id="@+id/tabNetwork"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
-                        android:layout_marginEnd="6dp"
+                        android:layout_height="40dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:background="@drawable/bg_tab_inactive"
                         android:paddingHorizontal="16dp"
-                        android:gravity="center"
-                        android:text="Réseau"
-                        android:textColor="@color/on_surface_variant"
-                        android:textSize="13sp"
-                        android:fontFamily="@font/oswald"
-                        android:includeFontPadding="false"
+                        android:layout_marginEnd="8dp"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true">
 
-                    <TextView
+                        <ImageView
+                            android:id="@+id/tabNetworkIcon"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_network"
+                            android:tint="@color/on_surface_variant"
+                            android:layout_marginEnd="6dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:id="@+id/tabNetworkText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Réseau"
+                            android:textColor="@color/on_surface_variant"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-condensed"
+                            android:includeFontPadding="false" />
+
+                    </LinearLayout>
+
+                    <!-- Tab Blaze Audio -->
+                    <LinearLayout
                         android:id="@+id/tabAudio"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
-                        android:gravity="center"
-                        android:paddingHorizontal="16dp"
-                        android:text="Blaze Audio"
+                        android:layout_height="40dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:background="@drawable/bg_tab_inactive"
-                        android:textColor="@color/on_surface_variant"
-                        android:textSize="13sp"
-                        android:fontFamily="@font/oswald"
-                        android:includeFontPadding="false"
+                        android:paddingHorizontal="16dp"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/tabAudioIcon"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_music_note_large"
+                            android:tint="@color/on_surface_variant"
+                            android:layout_marginEnd="6dp"
+                            android:contentDescription="@null" />
+
+                        <TextView
+                            android:id="@+id/tabAudioText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Blaze Audio"
+                            android:textColor="@color/on_surface_variant"
+                            android:textSize="13sp"
+                            android:fontFamily="sans-serif-condensed"
+                            android:includeFontPadding="false" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
             </HorizontalScrollView>
@@ -149,26 +203,34 @@
                 android:id="@+id/sectionNetwork"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:visibility="gone">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="20dp"
-                    android:paddingBottom="10dp"
+                    android:paddingHorizontal="16dp"
+                    android:paddingBottom="12dp"
                     android:gravity="center_vertical">
 
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_history"
+                        android:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="8dp"
+                        android:contentDescription="@null" />
+
                     <TextView
+                        android:id="@+id/tvSectionNetwork"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:id="@+id/tvSectionNetwork"
-                        android:text="HISTORIQUE RÉSEAU"
+                        android:text="Historique réseau"
                         android:textColor="@color/on_surface_variant"
-                        android:textSize="11sp"
-                        android:fontFamily="@font/oswald"
-                        android:letterSpacing="0.08" />
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-condensed" />
 
                     <com.google.android.material.button.MaterialButton
                         android:includeFontPadding="false"
@@ -179,7 +241,7 @@
                         android:textSize="12sp"
                         android:textColor="#FF000000"
                         android:paddingHorizontal="14dp"
-                        app:backgroundTint="@color/blue_accent"
+                        app:backgroundTint="@color/green_accent"
                         app:cornerRadius="20dp"
                         app:icon="@drawable/ic_folder_open"
                         app:iconSize="14dp"
@@ -192,7 +254,7 @@
                     android:id="@+id/listNetwork"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingHorizontal="12dp"
+                    android:paddingHorizontal="8dp"
                     android:nestedScrollingEnabled="false" />
 
             </LinearLayout>
@@ -208,20 +270,27 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="20dp"
-                    android:paddingBottom="10dp"
+                    android:paddingHorizontal="16dp"
+                    android:paddingBottom="12dp"
                     android:gravity="center_vertical">
 
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_history"
+                        android:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="8dp"
+                        android:contentDescription="@null" />
+
                     <TextView
+                        android:id="@+id/tvSectionLocal"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:id="@+id/tvSectionLocal"
-                        android:text="HISTORIQUE LOCAL"
+                        android:text="Historique local"
                         android:textColor="@color/on_surface_variant"
-                        android:textSize="11sp"
-                        android:fontFamily="@font/oswald"
-                        android:letterSpacing="0.08" />
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-condensed" />
 
                     <com.google.android.material.button.MaterialButton
                         android:includeFontPadding="false"
@@ -245,7 +314,7 @@
                     android:id="@+id/listLocal"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingHorizontal="12dp"
+                    android:paddingHorizontal="8dp"
                     android:paddingBottom="24dp"
                     android:nestedScrollingEnabled="false" />
 

@@ -38,7 +38,7 @@
                 android:text="Réseau local"
                 android:textColor="@color/on_background"
                 android:textSize="20sp"
-                android:fontFamily="sans-serif-medium" />
+                android:fontFamily="sans-serif-condensed" />
             <TextView
                 android:id="@+id/tvSubtitle"
                 android:layout_width="wrap_content"
@@ -77,7 +77,7 @@
         android:text="APPAREILS DÉTECTÉS"
         android:textColor="@color/on_surface_variant"
         android:textSize="10sp"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="sans-serif-condensed"
         android:letterSpacing="0.12"
         android:paddingHorizontal="16dp"
         android:paddingTop="12dp"
@@ -103,7 +103,7 @@
         android:text="CHEMINS SAUVEGARDÉS"
         android:textColor="@color/on_surface_variant"
         android:textSize="10sp"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="sans-serif-condensed"
         android:letterSpacing="0.12"
         android:paddingHorizontal="16dp"
         android:paddingTop="12dp"

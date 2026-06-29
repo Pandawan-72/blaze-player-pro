@@ -3,6 +3,7 @@ package fr.retrospare.blazeplayer.settings
 
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import android.view.LayoutInflater
 import android.view.View
@@ -142,18 +143,16 @@ class SettingsFragment : Fragment() {
 
         // INTERFACE
         viewLifecycleOwner.lifecycleScope.launch {
-            val miniPlayerEnabled = viewModel.getMiniPlayerEnabledAsync()
+            val miniVm = (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.getMiniPlayerViewModel()
+            val enabled = miniVm?.getMiniPlayerEnabled()?.first() ?: false
             setupToggle(
                 binding.settingMiniPlayer.root,
                 fr.retrospare.blazeplayer.R.drawable.ic_layout_list,
                 "Mini player",
                 "Afficher le mini player dans l'app",
-                miniPlayerEnabled
-            ) { enabled ->
-                viewModel.setMiniPlayerEnabled(enabled)
-                val activity = requireActivity() as? fr.retrospare.blazeplayer.MainActivity
-                if (enabled) activity?.showMiniPlayer()
-                else activity?.hideMiniPlayer()
+                enabled
+            ) { isEnabled ->
+                miniVm?.setMiniPlayerEnabled(isEnabled)
             }
         }
         setupToggle(

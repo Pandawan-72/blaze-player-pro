@@ -48,44 +48,187 @@ class AudioBrowserActivity : AppCompatActivity() {
     private val audioExtensions = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
     private val folderHistory = mutableListOf<String>()
 
-    data class AudioFile(val name: String, val path: String, val duration: Long, val artist: String)
+    data class AudioFile(val name: String, val path: String, val duration: Long, val artist: String, val bitrate: Int = 0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAudioBrowserBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.btnBack.setOnClickListener { finish() }
-        binding.btnConfirm.setOnClickListener { confirmSelection() }
-        binding.btnAddAll.setOnClickListener { addAllVisible() }
-        binding.btnLocal.setOnClickListener { switchMode(Mode.LOCAL) }
-        binding.btnNetwork.setOnClickListener { switchMode(Mode.NETWORK) }
-        binding.btnFolder.setOnClickListener { switchMode(Mode.FOLDER) }
-
-        switchMode(Mode.LOCAL)
-    }
-
-    private fun switchMode(mode: Mode) {
-        currentMode = mode
-        binding.btnLocal.alpha = if (mode == Mode.LOCAL) 1f else 0.5f
-        binding.btnNetwork.alpha = if (mode == Mode.NETWORK) 1f else 0.5f
-
-        binding.btnFolder.alpha = if (mode == Mode.FOLDER) 1f else 0.5f
-        when (mode) {
-            Mode.LOCAL -> loadLocalFiles()
-            Mode.NETWORK -> loadNetworkShares()
-            Mode.FOLDER -> {
-                folderHistory.clear()
-                loadFolderBrowser("/sdcard")
+        binding.btnBack.setOnClickListener {
+            if (folderStack.isNotEmpty()) {
+                folderStack.removeLast().invoke()
+            } else {
+                finish()
             }
         }
+
+        // Boutons source
+        binding.btnLocal.setOnClickListener {
+            setActiveTab(0)
+            loadLocalFiles()
+        }
+        binding.btnNetwork.setOnClickListener {
+            setActiveTab(1)
+            loadNetworkShares()
+        }
+        // Boutons action
+        binding.btnAddAll.setOnClickListener {
+            val all = currentItems.map { Pair(it.path, it.name) }
+            val intent = android.content.Intent().apply {
+                putStringArrayListExtra(EXTRA_PATHS, ArrayList(all.map { it.first }))
+                putStringArrayListExtra(EXTRA_NAMES, ArrayList(all.map { it.second }))
+            }
+            setResult(android.app.Activity.RESULT_OK, intent)
+            finish()
+        }
+        binding.btnConfirm.setOnClickListener {
+            if (selectedItems.isEmpty()) {
+                android.widget.Toast.makeText(this, "Aucune piste sélectionnée", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val intent = android.content.Intent().apply {
+                putStringArrayListExtra(EXTRA_PATHS, ArrayList(selectedItems.map { it.first }))
+                putStringArrayListExtra(EXTRA_NAMES, ArrayList(selectedItems.map { it.second }))
+            }
+            setResult(android.app.Activity.RESULT_OK, intent)
+            finish()
+        }
+
+        // Recherche globale dans tous les fichiers audio locaux
+        binding.btnSearch.setOnClickListener {
+            val searchBar = android.widget.SearchView(this).apply {
+                queryHint = "Rechercher dans tous les dossiers..."
+                isIconified = false
+            }
+            var allAudioFiles: List<AudioFile> = emptyList()
+            var lastFilteredResults: List<AudioFile> = emptyList()
+            val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Rechercher")
+                .setView(searchBar)
+                .setPositiveButton("Afficher les résultats") { d, _ ->
+                    d.dismiss()
+                    if (lastFilteredResults.isNotEmpty()) {
+                        // Pousse l'état actuel pour pouvoir revenir
+                        val prevAdapter = binding.recyclerAudio.adapter
+                        val prevText = binding.tvSelected.text.toString()
+                        folderStack.addLast {
+                            binding.recyclerAudio.adapter = prevAdapter
+                            binding.tvSelected.text = prevText
+                        }
+                        showFileList(lastFilteredResults)
+                    } else {
+                        if (folderStack.isEmpty()) loadLocalFiles()
+                    }
+                }
+                .setNegativeButton("Annuler") { d, _ ->
+                    d.dismiss()
+                    if (folderStack.isEmpty()) loadLocalFiles()
+                }
+                .create()
+
+            // Charge tous les fichiers audio en arrière plan
+            lifecycleScope.launch {
+                allAudioFiles = withContext(kotlinx.coroutines.Dispatchers.IO) { scanLocalAudio() }
+            }
+
+            searchBar.setOnQueryTextListener(object : android.widget.SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String?): Boolean = false
+                override fun onQueryTextChange(newText: String?): Boolean {
+                    val q = newText?.lowercase() ?: ""
+                    if (q.isEmpty()) {
+                        // Vide - ne rien afficher, attendre une saisie
+                        binding.recyclerAudio.adapter = null
+                        binding.tvSelected.text = "Saisissez un terme de recherche"
+                        return true
+                    }
+                    val filtered = allAudioFiles.filter { it.name.lowercase().contains(q) }
+                    lastFilteredResults = filtered
+                    val adapter = AudioBrowserAdapter(filtered) { _, path, name, checked ->
+                        if (checked) selectedItems.add(Pair(path, name))
+                        else selectedItems.removeAll { it.first == path }
+                        updateCounter()
+                    }
+                    binding.recyclerAudio.adapter = adapter
+                    binding.tvSelected.text = "${filtered.size} piste${if (filtered.size > 1) "s" else ""} trouvée${if (filtered.size > 1) "s" else ""}"
+                    return true
+                }
+            })
+            dialog.show()
+        }
+
+        // Chargement initial
+        loadLocalFiles()
+    }
+
+    private var currentItems: List<AudioFile> = emptyList()
+    private val folderStack = ArrayDeque<() -> Unit>() // pile pour navigation retour
+
+    private fun setActiveTab(index: Int) {
+        val green = getColor(fr.retrospare.blazeplayer.R.color.green_accent)
+        val blue = getColor(fr.retrospare.blazeplayer.R.color.blue_accent)
+        val purple = 0xFF9C6FD6.toInt()
+        val dim = 0xFF3A3A3A.toInt()
+        binding.btnLocal.backgroundTintList = android.content.res.ColorStateList.valueOf(if (index == 0) green else dim)
+        binding.btnNetwork.backgroundTintList = android.content.res.ColorStateList.valueOf(if (index == 1) blue else dim)
     }
 
     private fun loadLocalFiles() {
+        folderStack.clear()
         lifecycleScope.launch {
-            val items = withContext(Dispatchers.IO) { scanLocalAudio() }
-            showFileList(items)
+            binding.tvSelected.text = "Chargement..."
+            val folders = withContext(Dispatchers.IO) {
+                android.os.Environment.getExternalStorageDirectory()
+                    .listFiles()?.filter { it.isDirectory && !it.name.startsWith(".") }
+                    ?.sortedBy { it.name } ?: emptyList()
+            }
+            showFolderList(folders)
         }
+    }
+
+    private fun browseFolderAudio(folder: java.io.File, pushBack: Boolean = true) {
+        if (pushBack) {
+            // Sauvegarde l'état courant pour pouvoir y revenir
+            val prevAdapter = binding.recyclerAudio.adapter
+            val prevText = binding.tvSelected.text.toString()
+            folderStack.addLast {
+                binding.recyclerAudio.adapter = prevAdapter
+                binding.tvSelected.text = prevText
+            }
+        }
+        lifecycleScope.launch {
+            binding.tvSelected.text = "Chargement..."
+            val subFolders = withContext(Dispatchers.IO) {
+                folder.listFiles()?.filter { it.isDirectory && !it.name.startsWith(".") }
+                    ?.sortedBy { it.name } ?: emptyList()
+            }
+            val audioItems = withContext(Dispatchers.IO) { scanFolderAudio(folder.absolutePath) }
+            showMixedList(subFolders, audioItems)
+        }
+    }
+
+    private fun showFolderList(folders: List<java.io.File>) {
+        val adapter = FolderAdapter(folders) { folder -> browseFolderAudio(folder) }
+        binding.recyclerAudio.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        binding.recyclerAudio.adapter = adapter
+        binding.tvSelected.text = "${folders.size} dossier${if (folders.size > 1) "s" else ""}"
+    }
+
+    private fun showMixedList(folders: List<java.io.File>, files: List<AudioFile>) {
+        currentItems = files
+        val adapter = MixedAudioAdapter(
+            folders = folders,
+            files = files,
+            onFolderClick = { browseFolderAudio(it) },
+            onFileToggle = { path, name, checked ->
+                if (checked) selectedItems.add(Pair(path, name))
+                else selectedItems.removeAll { it.first == path }
+                updateCounter()
+            }
+        )
+        binding.recyclerAudio.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        binding.recyclerAudio.adapter = adapter
+        binding.tvSelected.text = "${files.size} piste${if (files.size > 1) "s" else ""} trouvée${if (files.size > 1) "s" else ""}"
     }
 
     private fun loadNetworkShares() {
@@ -150,6 +293,7 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun showFileList(items: List<AudioFile>) {
+        currentItems = items  // Mise à jour de currentItems
         val adapter = AudioBrowserAdapter(items) { _, path, name, checked ->
             if (checked) selectedItems.add(Pair(path, name))
             else selectedItems.removeAll { it.first == path }
@@ -157,6 +301,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         }
         binding.recyclerAudio.layoutManager = LinearLayoutManager(this)
         binding.recyclerAudio.adapter = adapter
+        binding.tvSelected.text = "${items.size} piste${if (items.size > 1) "s" else ""} trouvée${if (items.size > 1) "s" else ""}"
         updateCounter()
     }
 
@@ -168,6 +313,7 @@ class AudioBrowserActivity : AppCompatActivity() {
             MediaStore.Audio.Media.DISPLAY_NAME,
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.BITRATE,
             MediaStore.Audio.Media.TITLE
         )
         contentResolver.query(collection, projection, null, null, MediaStore.Audio.Media.TITLE)?.use { cursor ->
@@ -176,14 +322,16 @@ class AudioBrowserActivity : AppCompatActivity() {
             val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+            val bitrateCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.BITRATE) } catch (_: Exception) { -1 }
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
                 val name = cursor.getString(nameCol) ?: continue
                 val duration = cursor.getLong(durationCol) / 1000
                 val artist = cursor.getString(artistCol) ?: ""
                 val title = cursor.getString(titleCol) ?: name
+                val bitrate = if (bitrateCol >= 0) cursor.getInt(bitrateCol) else 0
                 val uri = ContentUris.withAppendedId(collection, id).toString()
-                items.add(AudioFile(name, uri, duration, artist))
+                items.add(AudioFile(name, uri, duration, artist, bitrate))
             }
         }
         return items
@@ -299,15 +447,58 @@ class AudioBrowserAdapter(
         private val tvArtist: TextView = view.findViewById(R.id.tvAudioArtist)
         private val tvDuration: TextView = view.findViewById(R.id.tvAudioDuration)
         private val checkbox: CheckBox = view.findViewById(R.id.checkAudio)
+        private val ivCover: android.widget.ImageView = view.findViewById(R.id.ivAudioCover)
+        private val tvCodec: TextView = view.findViewById(R.id.tvAudioCodec)
+        private val tvBitrate: TextView = view.findViewById(R.id.tvAudioBitrate)
 
         fun bind(item: AudioBrowserActivity.AudioFile, isSelected: Boolean, onToggle: (Boolean) -> Unit) {
-            tvTitle.text = item.name
-            tvArtist.text = item.artist
-            tvDuration.text = "%d:%02d".format(item.duration / 60, item.duration % 60)
+            tvTitle.text = item.name.substringBeforeLast(".")
+            tvArtist.text = item.artist.ifEmpty { "<inconnu>" }
+            val dur = item.duration
+            tvDuration.text = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else ""
             checkbox.setOnCheckedChangeListener(null)
             checkbox.isChecked = isSelected
             checkbox.setOnCheckedChangeListener { _, checked -> onToggle(checked) }
             itemView.setOnClickListener { checkbox.isChecked = !checkbox.isChecked }
+
+            // Codec depuis extension
+            val ext = item.name.substringAfterLast(".", "").uppercase()
+            tvCodec.text = ext
+            tvCodec.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+
+            // Badge lossless ou bitrate
+            val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+            when {
+                lossless -> {
+                    tvBitrate.text = "Lossless"
+                    tvBitrate.visibility = android.view.View.VISIBLE
+                }
+                item.bitrate > 0 -> {
+                    tvBitrate.text = "${item.bitrate / 1000} kbps"
+                    tvBitrate.visibility = android.view.View.VISIBLE
+                }
+                else -> tvBitrate.visibility = android.view.View.GONE
+            }
+
+            // Cover depuis métadonnées sur thread IO
+            ivCover.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_artwork)
+            Thread {
+                try {
+                    val retriever = android.media.MediaMetadataRetriever()
+                    if (item.path.startsWith("content://"))
+                        retriever.setDataSource(itemView.context, android.net.Uri.parse(item.path))
+                    else
+                        retriever.setDataSource(item.path)
+                    val art = retriever.embeddedPicture
+                    retriever.release()
+                    if (art != null) {
+                        val bmp = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size)
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            ivCover.setImageBitmap(bmp)
+                        }
+                    }
+                } catch (_: Exception) {}
+            }.start()
         }
     }
 }
@@ -419,6 +610,99 @@ class FolderBrowserAdapter(
                     onAddAll(listOf(file))
                 }
             }
+        }
+    }
+}
+
+class FolderAdapter(
+    private val folders: List<java.io.File>,
+    private val onClick: (java.io.File) -> Unit
+) : androidx.recyclerview.widget.RecyclerView.Adapter<FolderAdapter.ViewHolder>() {
+
+    override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int) =
+        ViewHolder(android.view.LayoutInflater.from(parent.context).inflate(R.layout.item_audio_folder, parent, false))
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val folder = folders[position]
+        holder.itemView.findViewById<android.widget.TextView>(R.id.tvFolderName).text = folder.name
+        holder.itemView.setOnClickListener { onClick(folder) }
+    }
+
+    override fun getItemCount() = folders.size
+
+    class ViewHolder(view: android.view.View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view)
+}
+
+class MixedAudioAdapter(
+    private val folders: List<java.io.File>,
+    private val files: List<AudioBrowserActivity.AudioFile>,
+    private val onFolderClick: (java.io.File) -> Unit,
+    private val onFileToggle: (String, String, Boolean) -> Unit
+) : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
+
+    private val selected = mutableSetOf<Int>()
+    companion object { const val TYPE_FOLDER = 0; const val TYPE_FILE = 1 }
+
+    override fun getItemViewType(position: Int) = if (position < folders.size) TYPE_FOLDER else TYPE_FILE
+    override fun getItemCount() = folders.size + files.size
+
+    override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
+        val inflater = android.view.LayoutInflater.from(parent.context)
+        return if (viewType == TYPE_FOLDER)
+            object : androidx.recyclerview.widget.RecyclerView.ViewHolder(inflater.inflate(R.layout.item_audio_folder, parent, false)) {}
+        else
+            object : androidx.recyclerview.widget.RecyclerView.ViewHolder(inflater.inflate(R.layout.item_audio_browser, parent, false)) {}
+    }
+
+    override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
+        if (position < folders.size) {
+            val folder = folders[position]
+            holder.itemView.findViewById<android.widget.TextView>(R.id.tvFolderName)?.text = folder.name
+            holder.itemView.setOnClickListener { onFolderClick(folder) }
+        } else {
+            val filePos = position - folders.size
+            val item = files[filePos]
+            val v = holder.itemView
+            v.findViewById<android.widget.TextView>(R.id.tvAudioTitle)?.text = item.name.substringBeforeLast(".")
+            v.findViewById<android.widget.TextView>(R.id.tvAudioArtist)?.text = item.artist.ifEmpty { "<inconnu>" }
+            val dur = item.duration
+            v.findViewById<android.widget.TextView>(R.id.tvAudioDuration)?.text = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else ""
+            val ext = item.name.substringAfterLast(".", "").uppercase()
+            val tvCodec = v.findViewById<android.widget.TextView>(R.id.tvAudioCodec)
+            tvCodec?.text = ext
+            tvCodec?.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+            val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+            val tvBitrate = v.findViewById<android.widget.TextView>(R.id.tvAudioBitrate)
+            when {
+                lossless -> { tvBitrate?.text = "Lossless"; tvBitrate?.visibility = android.view.View.VISIBLE }
+                item.bitrate > 0 -> { tvBitrate?.text = "${item.bitrate / 1000} kbps"; tvBitrate?.visibility = android.view.View.VISIBLE }
+                else -> tvBitrate?.visibility = android.view.View.GONE
+            }
+            val checkbox = v.findViewById<android.widget.CheckBox>(R.id.checkAudio)
+            val isSelected = filePos in selected
+            checkbox?.setOnCheckedChangeListener(null)
+            checkbox?.isChecked = isSelected
+            checkbox?.setOnCheckedChangeListener { _, checked ->
+                if (checked) selected.add(filePos) else selected.remove(filePos)
+                onFileToggle(item.path, item.name, checked)
+            }
+            v.setOnClickListener { checkbox?.isChecked = !(checkbox?.isChecked ?: false) }
+            val ivCover = v.findViewById<android.widget.ImageView>(R.id.ivAudioCover)
+            ivCover?.setImageResource(R.drawable.bg_artwork)
+            Thread {
+                try {
+                    val retriever = android.media.MediaMetadataRetriever()
+                    if (item.path.startsWith("content://"))
+                        retriever.setDataSource(v.context, android.net.Uri.parse(item.path))
+                    else retriever.setDataSource(item.path)
+                    val art = retriever.embeddedPicture
+                    retriever.release()
+                    if (art != null) {
+                        val bmp = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size)
+                        android.os.Handler(android.os.Looper.getMainLooper()).post { ivCover?.setImageBitmap(bmp) }
+                    }
+                } catch (_: Exception) {}
+            }.start()
         }
     }
 }
