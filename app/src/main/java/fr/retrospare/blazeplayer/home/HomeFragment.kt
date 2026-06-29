@@ -103,6 +103,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun showAudioTab() {
+        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.hideMiniPlayer()
         binding.scrollContent.visibility = android.view.View.GONE
         binding.audioContainer.visibility = android.view.View.VISIBLE
         // Récupère le fragment existant par tag
@@ -138,6 +139,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun hideAudioTab() {
+        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.showMiniPlayer()
         binding.scrollContent.visibility = android.view.View.VISIBLE
         binding.audioContainer.visibility = android.view.View.GONE
         audioPlayerFragment?.let { frag ->
@@ -152,7 +154,7 @@ class HomeFragment : Fragment() {
         val tabs = listOf(binding.tabAll, binding.tabLocal, binding.tabNetwork, binding.tabAudio)
         updateTabStyles(tabs, 3)
         showAudioTab()
-        audioPlayerFragment?.addTrack(path, name)
+        audioPlayerFragment?.addTrack(path, name) ?: Unit
             ?: run {
                 audioPlayerFragment = AudioPlayerFragment().apply {
                     arguments = android.os.Bundle().apply {
@@ -208,11 +210,11 @@ class HomeFragment : Fragment() {
 
     private fun setupButtons() {
         binding.btnBrowseNetwork.setOnClickListener {
-            audioPlayerFragment?.savePlaylist()
+            audioPlayerFragment?.savePlaylist() ?: Unit
             findNavController().navigate(R.id.action_home_to_network)
         }
         binding.btnBrowseLocal.setOnClickListener {
-            audioPlayerFragment?.savePlaylist()
+            audioPlayerFragment?.savePlaylist() ?: Unit
             findNavController().navigate(R.id.action_home_to_browser)
         }
     }

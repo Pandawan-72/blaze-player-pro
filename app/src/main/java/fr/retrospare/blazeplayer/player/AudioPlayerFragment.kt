@@ -100,6 +100,18 @@ class AudioPlayerFragment : Fragment() {
             insets
         }
 
+        binding.btnFavorite?.setOnClickListener {
+            android.widget.Toast.makeText(requireContext(), "Favoris bientôt disponible", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        binding.btnShare?.setOnClickListener {
+            val meta = controller?.currentMediaItem?.mediaMetadata
+            val title = meta?.title ?: "Blaze Player"
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_TEXT, "J'écoute : $title sur Blaze Player")
+            }
+            startActivity(android.content.Intent.createChooser(intent, "Partager"))
+        }
         binding.btnBack.setOnClickListener {
             (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
         }
@@ -108,16 +120,26 @@ class AudioPlayerFragment : Fragment() {
         setupControls()
         setupSeekBar()
         startProgressUpdate()
-        startDancerAnimation()
         connectMediaController()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.hideMiniPlayer()
+        syncPlaylist()
+        syncMetadata()
+        syncButtons()
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
         if (!hidden) {
+            (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.hideMiniPlayer()
             syncPlaylist()
             syncMetadata()
             syncButtons()
+        } else {
+            (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.showMiniPlayer()
         }
     }
 
@@ -372,6 +394,18 @@ class AudioPlayerFragment : Fragment() {
             eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
         }
 
+        binding.btnInfos?.setOnClickListener {
+            val ctrl = controller ?: return@setOnClickListener
+            val meta = ctrl.currentMediaItem?.mediaMetadata
+            val title = meta?.title ?: "Inconnu"
+            val artist = meta?.artist ?: "Inconnu"
+            val album = meta?.albumTitle ?: "Inconnu"
+            android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Infos")
+                .setMessage("Titre : $title\nArtiste : $artist\nAlbum : $album")
+                .setPositiveButton("OK", null)
+                .show()
+        }
         binding.btnSleepTimer.setOnClickListener {
             val options = arrayOf("5 minutes", "15 minutes", "30 minutes", "1 heure", "Annuler")
             android.app.AlertDialog.Builder(requireContext())
@@ -437,8 +471,6 @@ class AudioPlayerFragment : Fragment() {
             override fun run() {
                 if (controller?.isPlaying == true) {
                     dancerFrame = (dancerFrame + 1) % dancerFrames.size
-                    _binding?.ivPixelChar?.setImageResource(dancerFrames[dancerFrame])
-                    _binding?.ivPixelCharLeft?.setImageResource(dancerFFrames[(dancerFrame + 1) % dancerFFrames.size])
                 }
                 handler.postDelayed(this, 300)
             }

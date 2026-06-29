@@ -19,9 +19,16 @@ class UserRepository @Inject constructor(
 ) {
 
     companion object {
-        private val KEY_IS_PRO = booleanPreferencesKey("is_pro")
+        private val KEY_MINI_PLAYER = androidx.datastore.preferences.core.booleanPreferencesKey("mini_player_enabled")
+    private val KEY_IS_PRO = booleanPreferencesKey("is_pro")
         private val KEY_SUBTITLE_LANGUAGE = stringPreferencesKey("subtitle_language")
         private val KEY_PLAYER_THEME = stringPreferencesKey("player_theme")
+    }
+
+    val miniPlayerEnabledFlow: Flow<Boolean> = dataStore.data.map { it[KEY_MINI_PLAYER] ?: true }
+
+    suspend fun setMiniPlayerEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_MINI_PLAYER] = enabled }
     }
 
     val isProFlow: Flow<Boolean> = dataStore.data.map { true } // TODO: RevenueCat en production

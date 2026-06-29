@@ -256,8 +256,6 @@ class AudioPlayerActivity : AppCompatActivity() {
             override fun run() {
                 if (player.isPlaying) {
                     dancerFrame = (dancerFrame + 1) % dancerFrames.size
-                    binding.ivPixelChar.setImageResource(dancerFrames[dancerFrame])
-                    binding.ivPixelCharLeft.setImageResource(dancerFFrames[(dancerFrame + 1) % dancerFFrames.size])
                 }
                 handler.postDelayed(this, 300)
             }

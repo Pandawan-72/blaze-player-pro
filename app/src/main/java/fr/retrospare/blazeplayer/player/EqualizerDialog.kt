@@ -58,8 +58,8 @@ class EqualizerDialog(
 
     private fun setupHeader() {
         binding.btnCloseEq.setOnClickListener { dismiss() }
-        binding.switchEq.isChecked = eqManager.equalizer?.enabled
-        binding.tvEqStatus.text = if (eqManager.equalizer?.enabled) "ON" else "OFF"
+        binding.switchEq.isChecked = eqManager.equalizer?.enabled ?: false
+        binding.tvEqStatus.text = if (eqManager.equalizer?.enabled == true) "ON" else "OFF"
         binding.switchEq.setOnCheckedChangeListener { _, checked ->
             eqManager.equalizer?.enabled = checked
             eqManager.bassBoost?.enabled = checked

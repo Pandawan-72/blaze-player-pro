@@ -141,6 +141,21 @@ class SettingsFragment : Fragment() {
 
 
         // INTERFACE
+        viewLifecycleOwner.lifecycleScope.launch {
+            val miniPlayerEnabled = viewModel.getMiniPlayerEnabledAsync()
+            setupToggle(
+                binding.settingMiniPlayer.root,
+                fr.retrospare.blazeplayer.R.drawable.ic_layout_list,
+                "Mini player",
+                "Afficher le mini player dans l'app",
+                miniPlayerEnabled
+            ) { enabled ->
+                viewModel.setMiniPlayerEnabled(enabled)
+                val activity = requireActivity() as? fr.retrospare.blazeplayer.MainActivity
+                if (enabled) activity?.showMiniPlayer()
+                else activity?.hideMiniPlayer()
+            }
+        }
         setupToggle(
             binding.settingShowHidden.root,
             R.drawable.ic_settings,

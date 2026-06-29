@@ -20,6 +20,7 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
+        val KEY_MINI_PLAYER = booleanPreferencesKey("mini_player_enabled")
         val KEY_DEFAULT_RATIO    = intPreferencesKey("default_ratio")
         val KEY_DEFAULT_SPEED    = intPreferencesKey("default_speed")
         val KEY_RESUME_PLAYBACK  = booleanPreferencesKey("resume_playback")
@@ -77,6 +78,9 @@ class SettingsViewModel @Inject constructor(
     private fun setBool(key: Preferences.Key<Boolean>, value: Boolean) = viewModelScope.launch {
         dataStore.edit { it[key] = value }
     }
+
+    fun getMiniPlayerEnabledAsync() = getBool(KEY_MINI_PLAYER, true)
+    fun setMiniPlayerEnabled(v: Boolean) = setBool(KEY_MINI_PLAYER, v)
 
     fun getDefaultRatio()      = getInt(KEY_DEFAULT_RATIO, 0)
     fun setDefaultRatio(v: Int) = setInt(KEY_DEFAULT_RATIO, v)
