@@ -192,7 +192,7 @@ class SettingsFragment : Fragment() {
         ) {
             android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Blaze Player")
-                .setMessage("Version 0.0.2\n\nDéveloppé par Retro-Spare\n\nCe lecteur utilise la bibliothèque libVLC sous licence LGPL v2.1")
+                .setMessage("Version 0.9.0-alpha\n\nDéveloppé par Retro-Spare\n\nLecteur multimédia local propulsé par Media3 / ExoPlayer")
                 .setPositiveButton("OK", null)
                 .show()
         }
