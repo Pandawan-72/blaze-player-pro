@@ -135,32 +135,30 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             tvName.text = item.name
             tvFormat.text = item.extension.uppercase()
-            val audioExts = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
-            val isAudio = item.extension.lowercase() in audioExts
-            if (isAudio) {
-                tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_orange)
-                tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.orange_accent))
-                // Artwork audio chargé via ThumbnailUtils (cache LRU)
-            } else {
-                tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_gray)
-                tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
-            }
+            tvFormat.visibility = if (item.extension.isNotEmpty()) View.VISIBLE else View.GONE
+            // Toujours orange pour le conteneur
+            tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_orange)
+            tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.orange_accent))
             tvDuration.text = item.formattedDuration
 
-            // Résolution
-            tvResolution.visibility = if (item.resolution != null) View.VISIBLE else View.GONE
-            tvResolution.text = item.resolution ?: ""
+            // Résolution - calcule depuis item.resolution comme les autres badges
+            val rawRes = item.resolution ?: ""
+            val badge = when {
+                rawRes.contains("x", ignoreCase = true) || rawRes.contains("×") -> {
+                    val h = rawRes.replace("×","x").substringAfter("x").toIntOrNull() ?: 0
+                    when { h >= 1080 -> "FHD"; h >= 720 -> "HD"; h > 0 -> "SD"; else -> "" }
+                }
+                rawRes.isNotEmpty() -> rawRes
+                else -> ""
+            }
+            tvResolution.text = badge
+            tvResolution.visibility = if (badge.isNotEmpty()) View.VISIBLE else View.GONE
 
             // Codecs
-            if (!item.videoCodec.isNullOrEmpty()) {
-                tvVideoCodec.visibility = View.VISIBLE
-                tvVideoCodec.text = item.videoCodec
-            } else tvVideoCodec.visibility = View.GONE
-
-            if (!item.audioCodec.isNullOrEmpty()) {
-                tvAudioCodec.visibility = View.VISIBLE
-                tvAudioCodec.text = item.audioCodec
-            } else tvAudioCodec.visibility = View.GONE
+            tvVideoCodec.text = item.videoCodec ?: ""
+            tvVideoCodec.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+            tvAudioCodec.text = item.audioCodec ?: ""
+            tvAudioCodec.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
 
             if (item.duration > 0 && item.lastPosition > 0) {
                 progressFill.visibility = View.VISIBLE

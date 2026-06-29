@@ -254,7 +254,16 @@ class HomeFragment : Fragment() {
                 tvRes.visibility = View.GONE
                 tvVid.visibility = View.GONE
                 tvAud.visibility = View.GONE
-                tvFmt.visibility = View.GONE
+                // Badge conteneur immédiat depuis item.extension
+                val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "") }.uppercase()
+                if (ext.isNotEmpty()) {
+                    tvFmt.text = ext
+                    tvFmt.visibility = View.VISIBLE
+                    tvFmt.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_orange)
+                    tvFmt.setTextColor(requireContext().getColor(fr.retrospare.blazeplayer.R.color.orange_accent))
+                } else {
+                    tvFmt.visibility = View.GONE
+                }
 
                 // Thumbnail
                 if (!item.isNetwork && item.path.isNotEmpty()) {
@@ -282,8 +291,7 @@ class HomeFragment : Fragment() {
                         tvVid.visibility = if (info.videoCodec.isNotEmpty()) View.VISIBLE else View.GONE
                         tvAud.text = info.audioCodec
                         tvAud.visibility = if (info.audioCodec.isNotEmpty()) View.VISIBLE else View.GONE
-                        tvFmt.text = info.container
-                        tvFmt.visibility = if (info.container.isNotEmpty()) View.VISIBLE else View.GONE
+                        // tvFmt géré depuis item.extension - ne pas écraser
                     }
                 }
 
