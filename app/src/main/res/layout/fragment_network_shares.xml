@@ -69,6 +69,29 @@
         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:visibility="gone" />
 
+    <!-- SECTION SAUVEGARDÉS -->
+    <TextView
+        android:id="@+id/tvSectionSaved"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CHEMINS SAUVEGARDÉS"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="10sp"
+        android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.12"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="4dp"
+        android:clipToPadding="false"
+        android:scrollbars="none" />
+
     <!-- SECTION APPAREILS DÉTECTÉS -->
     <TextView
         android:id="@+id/tvSectionDiscovered"
@@ -91,34 +114,10 @@
         android:layout_weight="1"
         android:paddingHorizontal="16dp"
         android:paddingTop="4dp"
+        android:paddingBottom="16dp"
         android:clipToPadding="false"
         android:scrollbars="none"
         android:visibility="gone" />
-
-    <!-- SECTION SAUVEGARDÉS -->
-    <TextView
-        android:id="@+id/tvSectionSaved"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="CHEMINS SAUVEGARDÉS"
-        android:textColor="@color/on_surface_variant"
-        android:textSize="10sp"
-        android:fontFamily="sans-serif-condensed"
-        android:letterSpacing="0.12"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="4dp" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="16dp"
-        android:clipToPadding="false"
-        android:scrollbars="none" />
 
     <!-- EMPTY -->
     <TextView
