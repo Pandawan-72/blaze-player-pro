@@ -43,11 +43,8 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         currentTabIndex = viewModel.currentTabIndex.value
         try {
-            binding.btnCast.setOnClickListener {
-                try {
-                    androidx.mediarouter.app.MediaRouteChooserDialog(requireContext()).show()
-                } catch (e: Exception) { }
-            }
+            com.google.android.gms.cast.framework.CastButtonFactory
+                .setUpMediaRouteButton(requireContext(), binding.btnCast)
         } catch (e: Exception) {
             binding.btnCast.visibility = android.view.View.GONE
         }

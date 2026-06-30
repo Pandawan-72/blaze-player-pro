@@ -490,11 +490,30 @@ class AudioPlayerFragment : Fragment() {
         }
 
         binding.btnEq.setOnClickListener {
-            if (eqManager == null) {
-                val sessionId = BlazePlayerService.instance?.getAudioSessionId() ?: 0
-                if (sessionId != 0) try { eqManager = EqualizerManager(sessionId, requireContext()) } catch (e: Exception) {}
+            val existing = eqManager
+            if (existing != null) {
+                EqualizerDialog(existing).show(parentFragmentManager, "eq")
+                return@setOnClickListener
             }
-            eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
+            val ctrl = controller ?: return@setOnClickListener
+            // L'audioSessionId n'est pas exposé par l'API Player standard : on le récupère via une
+            // commande de session personnalisée plutôt qu'une référence statique vers le service
+            // (cf. BlazePlayerService.SessionCallback), conformément aux best practices Media3.
+            val future = ctrl.sendCustomCommand(
+                androidx.media3.session.SessionCommand(BlazePlayerService.COMMAND_GET_AUDIO_SESSION_ID, android.os.Bundle.EMPTY),
+                android.os.Bundle.EMPTY
+            )
+            future.addListener({
+                val sessionId = try {
+                    future.get().extras.getInt(BlazePlayerService.EXTRA_AUDIO_SESSION_ID, 0)
+                } catch (_: Exception) { 0 }
+                if (sessionId != 0) {
+                    try {
+                        eqManager = EqualizerManager(sessionId, requireContext()).also { it.restoreLastSession() }
+                        eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
+                    } catch (_: Exception) { }
+                }
+            }, androidx.core.content.ContextCompat.getMainExecutor(requireContext()))
         }
 
         binding.btnInfos?.setOnClickListener {

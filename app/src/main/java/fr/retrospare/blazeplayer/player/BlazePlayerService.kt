@@ -2,59 +2,82 @@ package fr.retrospare.blazeplayer.player
 
 import android.app.PendingIntent
 import android.content.Intent
-import androidx.media3.cast.CastPlayer
+import android.os.Bundle
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
-import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 
+/**
+ * Service de lecture AUDIO basé sur [MediaSessionService] : c'est l'unique source de vérité pour
+ * la lecture audio de l'application. Toute UI (AudioPlayerFragment, MiniPlayer, notification
+ * système, Android Auto...) doit communiquer avec le player exclusivement via un
+ * [androidx.media3.session.MediaController] connecté à ce service.
+ *
+ * On évite délibérément toute référence statique directe au player ou au service (pattern
+ * `companion object { var instance }`) : c'est un anti-pattern Media3 qui casse l'encapsulation
+ * de la session et ne fonctionne pas si le contrôleur tourne dans un autre process. Le seul état
+ * interne qui n'est pas exposé par l'API [androidx.media3.common.Player] standard (l'audioSessionId,
+ * nécessaire pour brancher l'égaliseur système) est exposé via une commande de session personnalisée.
+ *
+ * La notification média (lockscreen, barre de notif, contrôles Bluetooth/casque) est entièrement
+ * gérée automatiquement par [MediaSessionService] via son [androidx.media3.session.MediaNotification.Provider]
+ * par défaut — il ne faut surtout pas la dupliquer manuellement avec une notification "maison".
+ */
+@UnstableApi
 class BlazePlayerService : MediaSessionService() {
 
     companion object {
-        var instance: BlazePlayerService? = null
+        /** Commande de session permettant à un [androidx.media3.session.MediaController] de
+         *  récupérer l'audioSessionId courant du player, utilisé pour brancher l'égaliseur système
+         *  (android.media.audiofx). Non exposé par l'API Player standard. */
+        const val COMMAND_GET_AUDIO_SESSION_ID = "fr.retrospare.blazeplayer.GET_AUDIO_SESSION_ID"
+        const val EXTRA_AUDIO_SESSION_ID = "audioSessionId"
     }
 
     private var mediaSession: MediaSession? = null
-    private var exoPlayer: ExoPlayer? = null
+    private var player: ExoPlayer? = null
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
 
-        val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(
-            this,
-            SmbDataSource.Factory()
-        )
-        val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(this)
-            .setDataSourceFactory(dataSourceFactory)
-        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
-            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+        // Cache disque partagé (avec la vidéo) pour les flux réseau (SMB) : Media3 route
+        // automatiquement les schémas connus (file/content/asset) vers leurs DataSource dédiées et
+        // ne passe par notre factory "base" que pour smb:// — donc seul l'audio réseau est mis en
+        // cache, la lecture locale (MediaStore) n'est pas affectée.
+        val cacheDataSourceFactory = CacheDataSource.Factory()
+            .setCache(MediaCacheManager.getCache(this))
+            .setUpstreamDataSourceFactory(SmbDataSource.Factory())
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val dataSourceFactory = DefaultDataSource.Factory(this, cacheDataSourceFactory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
+        val renderersFactory = DefaultRenderersFactory(this)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 
-        val localPlayer = ExoPlayer.Builder(this, renderersFactory)
+        val exoPlayer = ExoPlayer.Builder(this, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .setUsage(C.USAGE_MEDIA)
                     .build(),
-                true // handleAudioFocus
+                /* handleAudioFocus = */ true
             )
             .setHandleAudioBecomingNoisy(true)
+            // Garde le Wi-Fi actif pendant la lecture réseau (SMB) en arrière-plan/écran éteint.
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
-        exoPlayer = localPlayer
-
-        // CastPlayer encapsule le local player : Media3 1.9+ bascule automatiquement
-        // entre lecture telephone et lecture Chromecast (transitions locales <-> distantes gerees nativement).
-        val sessionPlayer: Player = try {
-            CastPlayer.Builder(this)
-                .setLocalPlayer(localPlayer)
-                .build()
-        } catch (e: Exception) {
-            // Google Play services Cast indisponible (rare) -> fallback lecture locale uniquement
-            localPlayer
-        }
+        player = exoPlayer
 
         val openIntent = PendingIntent.getActivity(
             this, 0,
@@ -65,23 +88,66 @@ class BlazePlayerService : MediaSessionService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaSession.Builder(this, sessionPlayer)
+        mediaSession = MediaSession.Builder(this, exoPlayer)
             .setSessionActivity(openIntent)
+            .setCallback(SessionCallback())
             .build()
     }
 
-    fun getAudioSessionId(): Int = exoPlayer?.audioSessionId ?: 0
+    private inner class SessionCallback : MediaSession.Callback {
+
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): MediaSession.ConnectionResult {
+            val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+                .buildUpon()
+                .add(SessionCommand(COMMAND_GET_AUDIO_SESSION_ID, Bundle.EMPTY))
+                .build()
+            return MediaSession.ConnectionResult.accept(
+                sessionCommands,
+                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+            )
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle
+        ): ListenableFuture<SessionResult> {
+            if (customCommand.customAction == COMMAND_GET_AUDIO_SESSION_ID) {
+                val resultExtras = Bundle().apply {
+                    putInt(EXTRA_AUDIO_SESSION_ID, player?.audioSessionId ?: 0)
+                }
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, resultExtras))
+            }
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
+        }
+    }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
+    /**
+     * Best practice Media3 : si l'utilisateur swipe l'app hors des tâches récentes alors qu'il n'y
+     * a rien en lecture (ou pas de média chargé), on arrête le service au lieu de laisser un
+     * service/notification fantôme tourner indéfiniment.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val p = player
+        if (p == null || p.mediaItemCount == 0 || !p.playWhenReady) {
+            stopSelf()
+        }
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onDestroy() {
-        instance = null
         mediaSession?.run {
             player.release()
             release()
             mediaSession = null
         }
-        exoPlayer = null
+        player = null
         super.onDestroy()
     }
 }

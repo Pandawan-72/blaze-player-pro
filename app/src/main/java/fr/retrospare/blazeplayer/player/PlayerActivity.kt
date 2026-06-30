@@ -17,15 +17,22 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.cast.CastPlayer
+import androidx.media3.common.DeviceInfo
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 import androidx.media3.ui.AspectRatioFrameLayout
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -37,15 +44,17 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
 
-    companion object {
-        var instance: java.lang.ref.WeakReference<PlayerActivity>? = null
-    }
-
     @Inject lateinit var dataStore: DataStore<Preferences>
     @Inject lateinit var mediaRepository: MediaRepository
 
     private lateinit var binding: ActivityPlayerBinding
-    lateinit var player: ExoPlayer
+    lateinit var player: Player
+    /** Complété une fois que le MediaController est connecté à VideoPlaybackService et assigné à
+     *  [player]. Permet de séquencer correctement le chargement des préférences (asynchrone via
+     *  DataStore) avant toute mutation du player, et d'éviter d'y accéder avant son initialisation. */
+    private val playerReady = CompletableDeferred<Unit>()
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var castManager: fr.retrospare.blazeplayer.cast.VideoCastManager? = null
     private lateinit var audioManager: AudioManager
 
     private var prefSpeedIndex = 3
@@ -66,7 +75,6 @@ class PlayerActivity : AppCompatActivity() {
     private var resumeHandled = false
     private var playNextCalled = false
     private var seekBarDragging = false
-    private var mediaSession: MediaSession? = null
     private var videoThumbnail: android.graphics.Bitmap? = null
     private var zoneTouching = false
     private var gestureStartY = 0f
@@ -96,7 +104,6 @@ class PlayerActivity : AppCompatActivity() {
             insets
         }
 
-        instance = java.lang.ref.WeakReference(this)
         mediaPath = intent.getStringExtra("mediaPath") ?: return finish()
 
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
@@ -109,7 +116,11 @@ class PlayerActivity : AppCompatActivity() {
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
-        // Charge prefs async
+        // Charge les preferences puis les applique au player UNE FOIS que le MediaController est
+        // pret (sequencement explicite via CompletableDeferred, voir playerReady ci-dessus).
+        // Avant ce correctif, ce bloc touchait directement `player` ici alors que le
+        // MediaController.buildAsync() n'avait pas encore termine -> UninitializedPropertyAccessException
+        // garantie a chaque ouverture de video.
         lifecycleScope.launch {
             val prefs = dataStore.data.first()
             prefSpeedIndex = prefs[intPreferencesKey("speed_index")] ?: 3
@@ -122,141 +133,61 @@ class PlayerActivity : AppCompatActivity() {
             prefSubtitlesDefault = prefs[booleanPreferencesKey("subtitles_default")] ?: false
             prefSubtitleLangIndex = prefs[intPreferencesKey("subtitle_lang")] ?: 0
 
-            // Applique sous-titres
-            val subLangCodes = listOf(null, "fra", "eng", "spa", "deu", "ita", "jpn", "por", "nld", "rus", "zho")
-            val subLang = subLangCodes.getOrNull(prefSubtitleLangIndex)
-            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-                .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, !prefSubtitlesDefault)
-                .apply { if (subLang != null) setPreferredTextLanguage(subLang) }
-                .build()
-
-            // Restaure le volume mémorisé
+            // Restaure le volume mémorisé (ne touche pas au player, sans danger ici)
             if (prefRememberVolume) {
                 val savedVol = prefs[intPreferencesKey("saved_volume")] ?: -1
                 if (savedVol >= 0) audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, savedVol, 0)
             }
 
-            // Applique la langue audio préférée
-            val langCodes = listOf(null, "fra", "eng", "spa", "deu", "ita", "jpn", "por", "nld", "rus", "zho")
-            val preferredLang = langCodes.getOrNull(prefAudioLangIndex)
-            if (preferredLang != null) {
-                player.trackSelectionParameters = player.trackSelectionParameters
-                    .buildUpon()
-                    .setPreferredAudioLanguage(preferredLang)
-                    .build()
-            }
-            // orientation gérée en synchrone au démarrage
-            // Applique vitesse de lecture
-            val speeds = listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
-            player.setPlaybackSpeed(speeds.getOrElse(prefSpeedIndex) { 1.0f })
-
             val labels = listOf("5s", "10s", "15s", "30s", "60s")
             binding.tvRewindLabel.text = "−${labels.getOrElse(prefSeekIndex) { "10s" }}"
             binding.tvForwardLabel.text = "+${labels.getOrElse(prefSeekIndex) { "10s" }}"
-        }
 
-        // Stop audio si actif
+            // À partir d'ici on a besoin du player : on attend que le MediaController soit connecté.
+            playerReady.await()
 
-        // Init ExoPlayer avec decoder FFmpeg en fallback pour les codecs audio non natifs (AC3, EAC3, DTS, TrueHD...)
-        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
-            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
-
-        // LoadControl etendu pour remux 4K HDR lourds via SMB (60-150+ Mbps), evite les coupures reseau
-        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
-            .setAllocator(androidx.media3.exoplayer.upstream.DefaultAllocator(true, 64 * 1024))
-            .setBufferDurationsMs(
-                60_000,
-                300_000,
-                5_000,
-                10_000
-            )
-            .setPrioritizeTimeOverSizeThresholds(true)
-            .build()
-
-        player = if (mediaPath.startsWith("smb://")) {
-            val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(this)
-                .setDataSourceFactory(SmbDataSource.Factory())
-            ExoPlayer.Builder(this, renderersFactory)
-                .setMediaSourceFactory(mediaSourceFactory)
-                .setLoadControl(loadControl)
+            val subLangCodes = listOf(null, "fra", "eng", "spa", "deu", "ita", "jpn", "por", "nld", "rus", "zho")
+            val subLang = subLangCodes.getOrNull(prefSubtitleLangIndex)
+            val preferredLang = subLangCodes.getOrNull(prefAudioLangIndex)
+            player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, !prefSubtitlesDefault)
+                .apply { if (subLang != null) setPreferredTextLanguage(subLang) }
+                .apply { if (preferredLang != null) setPreferredAudioLanguage(preferredLang) }
                 .build()
-        } else {
-            ExoPlayer.Builder(this, renderersFactory).build()
+
+            val speeds = listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+            player.setPlaybackSpeed(speeds.getOrElse(prefSpeedIndex) { 1.0f })
+
+            // Le media n'est chargé/préparé qu'une fois les préférences ci-dessus appliquées, pour
+            // que la sélection de piste initiale (langue audio/sous-titres) en tienne compte.
+            onPlayerReady()
         }
 
-        // Attache la surface ExoPlayer
-        binding.playerView.player = player
+        // Arrete le service audio (BlazePlayerService) pour n avoir qu une seule MediaSession active
+        stopService(android.content.Intent(this, BlazePlayerService::class.java))
 
-        // Gestion ratio automatique
-        player.addListener(object : androidx.media3.common.Player.Listener {
-            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
-                // PlayerView gere automatiquement le ratio via son contenu interne, rien a faire ici
-            }
-        })
+        // Demarre VideoPlaybackService (ExoPlayer + CastPlayer + MediaSession video)
+        startService(android.content.Intent(this, VideoPlaybackService::class.java))
+
+        // Demarre le serveur HTTP local pour le Cast (SMB/local -> HTTP)
+        castManager = fr.retrospare.blazeplayer.cast.VideoCastManager(applicationContext, lifecycleScope)
+        castManager!!.startServer(mediaPath, mediaName)
+
+        // Connexion MediaController -> VideoPlaybackService
+        val token = SessionToken(this, android.content.ComponentName(this, VideoPlaybackService::class.java))
+        controllerFuture = MediaController.Builder(this, token).buildAsync()
+        controllerFuture!!.addListener({
+            player = controllerFuture!!.get()
+            playerReady.complete(Unit)
+        }, MoreExecutors.directExecutor())
 
         binding.tvTitle.text = mediaName
         binding.tvCurrentTime.text = "0:00:00"
         binding.tvTotalTime.text = "0:00:00"
 
-        // Listener
-        // MediaSession pour notification système
-        mediaSession = MediaSession.Builder(this, player)
-            .setId("BlazeVideo")
-            .build()
-        // Notifie le service pour afficher la notification
-        VideoPlaybackService.showNotification(this, player, mediaName, mediaSession!!)
-
-        player.addListener(object : Player.Listener {
-            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                android.util.Log.e("PlayerActivity", "Player error for $mediaPath", error)
-                if (mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) {
-                    runOnUiThread { showNetworkErrorDialog(error) }
-                }
-            }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                runOnUiThread {
-                    updatePlayPauseBtn(isPlaying)
-                    if (isPlaying) {
-                        scheduleHide()
-                        if (!resumeHandled) handleResume()
-                    } else {
-                        cancelHide()
-                        showUI()
-                    }
-                }
-            }
-
-            override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_ENDED) {
-                    runOnUiThread {
-                        updatePlayPauseBtn(false)
-                        cancelHide()
-                        showUI()
-                        if (!playNextCalled) {
-                            playNextCalled = true
-                            // Relit la pref au moment réel de la fin
-                            lifecycleScope.launch {
-                                val prefs = dataStore.data.first()
-                                val autoPlay = prefs[booleanPreferencesKey("auto_play")] ?: true
-                                if (autoPlay) playNext()
-                            }
-                        }
-                    }
-                }
-            }
-        })
-
-        // Charge le media
-        val mediaItem = MediaItem.fromUri(Uri.parse(mediaPath))
-        player.setMediaItem(mediaItem)
-        player.prepare()
-        player.play()
-
         setupControls()
         setupProgressBar()
         setupGestures()
-        startProgressLoop()
         saveHistory()
         scheduleHide()
         // Extrait miniature vidéo en arrière-plan
@@ -280,12 +211,7 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 r.release()
                 try { smbDataSourceThumb?.close() } catch (_: Exception) {}
-                // Rafraîchit la notification avec la miniature
-                mediaSession?.let {
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        VideoPlaybackService.showNotification(this@PlayerActivity, player, mediaName, it, videoThumbnail)
-                    }
-                }
+
             } catch (e: Exception) {
                 android.util.Log.e("PlayerActivity", "Thumbnail extraction failed for $mediaPath", e)
                 try { smbDataSourceThumb?.close() } catch (_: Exception) {}
@@ -446,11 +372,95 @@ class PlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         uiHandler.removeCallbacksAndMessages(null)
-        instance = null
-        VideoPlaybackService.cancelNotification(this)
-        mediaSession?.release()
-        mediaSession = null
-        player.release()
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
+        val isCasting = if (::player.isInitialized) player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE else false
+        if (!isCasting) {
+            castManager?.stopServer()
+            castManager = null
+        }
+        // Relance le service audio apres fermeture du player video
+        startService(android.content.Intent(this, BlazePlayerService::class.java))
+    }
+
+    private fun onPlayerReady() {
+        binding.playerView.player = player
+
+        player.addListener(object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                if (mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) {
+                    runOnUiThread { showNetworkErrorDialog(error) }
+                }
+            }
+
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                // Tient le ratio PiP à jour avec la résolution réelle de la vidéo (autoEnter API 31+).
+                runOnUiThread { updatePipParamsIfSupported() }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                runOnUiThread {
+                    updatePlayPauseBtn(isPlaying)
+                    updatePipParamsIfSupported()
+                    if (isPlaying) {
+                        scheduleHide()
+                        if (!resumeHandled) handleResume()
+                    } else {
+                        cancelHide()
+                        showUI()
+                    }
+                }
+            }
+
+            override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_ENDED) {
+                    runOnUiThread {
+                        updatePlayPauseBtn(false)
+                        cancelHide()
+                        showUI()
+                        if (!playNextCalled) {
+                            playNextCalled = true
+                            lifecycleScope.launch {
+                                val prefs = dataStore.data.first()
+                                val autoPlay = prefs[booleanPreferencesKey("auto_play")] ?: true
+                                if (autoPlay) playNext()
+                            }
+                        }
+                    }
+                }
+            }
+
+            override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) {
+                // Bascule affichage local <-> Chromecast
+                binding.playerView.visibility =
+                    if (deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) View.INVISIBLE
+                    else View.VISIBLE
+                // Envoie le media au Chromecast via VideoCastManager
+                val currentPos = player.currentPosition
+                if (deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) {
+                    castManager?.castMedia(player, currentPos)
+                } else {
+                    val localItem = MediaItem.Builder()
+                        .setUri(Uri.parse(mediaPath))
+                        .setMediaMetadata(MediaMetadata.Builder().setTitle(mediaName).build())
+                        .build()
+                    player.setMediaItem(localItem, currentPos)
+                    player.prepare()
+                    player.play()
+                }
+            }
+        })
+
+        // Charge le media local
+        val mediaItem = MediaItem.Builder()
+            .setUri(Uri.parse(mediaPath))
+            .setMediaMetadata(MediaMetadata.Builder().setTitle(mediaName).build())
+            .build()
+        player.setMediaItem(mediaItem)
+        player.prepare()
+        player.play()
+
+        startProgressLoop()
     }
 
     private fun handleResume() {
@@ -779,21 +789,41 @@ class PlayerActivity : AppCompatActivity() {
         if (!player.isPlaying) return
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             try {
-                val videoSize = player.videoSize
-                val rational = if (videoSize.width > 0 && videoSize.height > 0) {
-                    // Ratio video réel, limité entre 0.418 et 2.39 (limites Android)
-                    val r = android.util.Rational(videoSize.width, videoSize.height)
-                    val float = videoSize.width.toFloat() / videoSize.height
-                    if (float < 0.418f) android.util.Rational(1, 2)
-                    else if (float > 2.39f) android.util.Rational(239, 100)
-                    else r
-                } else android.util.Rational(16, 9)
-
-                val params = android.app.PictureInPictureParams.Builder()
-                    .setAspectRatio(rational)
-                    .build()
-                enterPictureInPictureMode(params)
+                enterPictureInPictureMode(buildPipParams(autoEnter = false))
             } catch (e: Exception) {}
         }
+    }
+
+    /**
+     * Construit les [android.app.PictureInPictureParams] à partir du ratio vidéo réel.
+     * Sur API 31+, [autoEnter] = true permet au système de déclencher automatiquement le PiP
+     * lorsque l'utilisateur quitte l'app (transition fluide, sans dépendre de [onUserLeaveHint]
+     * qui peut arriver trop tard ou pas du tout selon le geste système) — c'est le comportement
+     * recommandé par la documentation Android/Media3 pour la lecture vidéo.
+     */
+    private fun buildPipParams(autoEnter: Boolean): android.app.PictureInPictureParams {
+        val videoSize = player.videoSize
+        val rational = if (videoSize.width > 0 && videoSize.height > 0) {
+            // Ratio video réel, limité entre 0.418 et 2.39 (limites Android)
+            val r = android.util.Rational(videoSize.width, videoSize.height)
+            val float = videoSize.width.toFloat() / videoSize.height
+            if (float < 0.418f) android.util.Rational(1, 2)
+            else if (float > 2.39f) android.util.Rational(239, 100)
+            else r
+        } else android.util.Rational(16, 9)
+
+        val builder = android.app.PictureInPictureParams.Builder().setAspectRatio(rational)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            builder.setAutoEnterEnabled(autoEnter && prefPip && player.isPlaying)
+        }
+        return builder.build()
+    }
+
+    /** Tient les paramètres PiP à jour (ratio vidéo, autoEnter) à chaque changement d'état
+     *  pertinent, pour que le système dispose toujours d'une valeur fraîche sur API 31+. */
+    private fun updatePipParamsIfSupported() {
+        if (!::player.isInitialized) return
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return
+        try { setPictureInPictureParams(buildPipParams(autoEnter = true)) } catch (e: Exception) {}
     }
 }

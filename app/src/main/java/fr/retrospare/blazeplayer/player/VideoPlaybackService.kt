@@ -1,73 +1,127 @@
 package fr.retrospare.blazeplayer.player
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
-import androidx.core.app.NotificationCompat
+import androidx.media3.cast.CastPlayer
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.session.MediaSession
-import fr.retrospare.blazeplayer.R
+import androidx.media3.session.MediaSessionService
 
-object VideoPlaybackService {
+/**
+ * Service de lecture VIDEO basé sur [MediaSessionService]. Encapsule un [ExoPlayer] local dans un
+ * [CastPlayer] : Media3 bascule alors automatiquement entre lecture locale et Chromecast sans que
+ * le code appelant (PlayerActivity) n'ait à gérer deux players différents — il manipule toujours
+ * la même interface [Player].
+ */
+@UnstableApi
+class VideoPlaybackService : MediaSessionService() {
 
-    private const val CHANNEL_ID = "blaze_video"
-    private const val NOTIF_ID = 1002
+    private var mediaSession: MediaSession? = null
+    private var exoPlayer: ExoPlayer? = null
+    private var castPlayer: CastPlayer? = null
 
-    fun showNotification(context: Context, player: Player, title: String, session: MediaSession, thumbnail: android.graphics.Bitmap? = null) {
-        createChannel(context)
+    override fun onCreate() {
+        super.onCreate()
 
-        val openIntent = PendingIntent.getActivity(
-            context, 0,
-            Intent(context, PlayerActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        // Cache disque partagé (cf. MediaCacheManager) : seuls les flux non-locaux (smb://, http(s)://)
+        // passent par cette factory "base" de DefaultDataSource, donc seule la vidéo réseau profite
+        // du cache — le contenu local (content://, MediaStore) continue d'être lu directement.
+        val cacheDataSourceFactory = CacheDataSource.Factory()
+            .setCache(MediaCacheManager.getCache(this))
+            .setUpstreamDataSourceFactory(SmbDataSource.Factory())
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val dataSourceFactory = DefaultDataSource.Factory(this, cacheDataSourceFactory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
 
-        val isPlaying = player.isPlaying
-        val playPauseAction = if (isPlaying) {
-            NotificationCompat.Action(R.drawable.ic_pause, "Pause", buildActionIntent(context, "PAUSE"))
-        } else {
-            NotificationCompat.Action(R.drawable.ic_play, "Lecture", buildActionIntent(context, "PLAY"))
-        }
-        val stopAction = NotificationCompat.Action(R.drawable.ic_close, "Fermer", buildActionIntent(context, "STOP"))
-
-        val notif = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText("Blaze Player")
-            .setSmallIcon(R.drawable.ic_play)
-            .setLargeIcon(thumbnail)
-            .setContentIntent(openIntent)
-            .addAction(playPauseAction)
-            .addAction(stopAction)
-            .setStyle(androidx.media.app.NotificationCompat.MediaStyle()
-                .setMediaSession(android.support.v4.media.session.MediaSessionCompat.Token.fromToken(session.platformToken))
-                .setShowActionsInCompactView(0))
-            .setOngoing(isPlaying)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        val renderersFactory = DefaultRenderersFactory(this)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+        val loadControl = DefaultLoadControl.Builder()
+            .setAllocator(DefaultAllocator(true, 64 * 1024))
+            .setBufferDurationsMs(60_000, 300_000, 5_000, 10_000)
+            .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
-        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-            .notify(NOTIF_ID, notif)
-    }
+        val localPlayer = ExoPlayer.Builder(this, renderersFactory)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .setLoadControl(loadControl)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .setUsage(C.USAGE_MEDIA)
+                    .build(),
+                /* handleAudioFocus = */ true
+            )
+            .setHandleAudioBecomingNoisy(true)
+            // Garde le Wi-Fi actif pendant la lecture réseau (SMB) en arrière-plan/écran éteint.
+            .setWakeMode(C.WAKE_MODE_NETWORK)
+            .build()
+        exoPlayer = localPlayer
 
-    fun cancelNotification(context: Context) {
-        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-            .cancel(NOTIF_ID)
-    }
+        // CastPlayer encapsule ExoPlayer - Media3 bascule automatiquement local <-> Chromecast.
+        // Si l'API Cast n'est pas disponible sur l'appareil (pas de Play Services), on retombe
+        // simplement sur le player local : c'est le seul cas où l'exception est avalée.
+        val sessionPlayer: Player = try {
+            val cp = CastPlayer.Builder(this).setLocalPlayer(localPlayer).build()
+            castPlayer = cp
+            cp
+        } catch (e: Exception) {
+            android.util.Log.w("VideoPlaybackService", "CastPlayer unavailable, falling back to local ExoPlayer", e)
+            localPlayer
+        }
 
-    private fun buildActionIntent(context: Context, action: String): PendingIntent {
-        val intent = Intent(context, VideoNotificationReceiver::class.java).setAction(action)
-        return PendingIntent.getBroadcast(
-            context, action.hashCode(), intent,
+        // sessionActivity pointe vers PlayerActivity, pas vers MainActivity/audio.
+        val openIntent = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, PlayerActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
+        mediaSession = MediaSession.Builder(this, sessionPlayer)
+            .setSessionActivity(openIntent)
+            .build()
     }
 
-    private fun createChannel(context: Context) {
-        val channel = NotificationChannel(CHANNEL_ID, "Lecture vidéo", NotificationManager.IMPORTANCE_LOW)
-            .apply { setShowBadge(false) }
-        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-            .createNotificationChannel(channel)
+    fun getExoPlayer(): ExoPlayer? = exoPlayer
+    fun getCastPlayer(): CastPlayer? = castPlayer
+    fun getMediaSession(): MediaSession? = mediaSession
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+
+    /**
+     * Best practice Media3 : si l'utilisateur swipe l'app hors des tâches récentes alors que rien
+     * ne joue (et qu'on ne caste pas, où la lecture doit continuer côté Chromecast), on arrête le
+     * service au lieu de laisser une notification fantôme persister.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val session = mediaSession
+        val isCasting = session?.player?.deviceInfo?.playbackType == androidx.media3.common.DeviceInfo.PLAYBACK_TYPE_REMOTE
+        val isActivelyPlaying = session?.player?.playWhenReady == true
+        if (!isCasting && !isActivelyPlaying) {
+            stopSelf()
+        }
+        super.onTaskRemoved(rootIntent)
+    }
+
+    override fun onDestroy() {
+        mediaSession?.run {
+            player.release()
+            release()
+            mediaSession = null
+        }
+        exoPlayer = null
+        castPlayer = null
+        super.onDestroy()
     }
 }

@@ -90,6 +90,21 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleAudioIntent(intent)
+    }
+
+    /** Traite les intents demandant l'ouverture d'un fichier audio (depuis PlayerRouter) ou le
+     *  retour à l'écran audio (depuis la notification/sessionActivity de BlazePlayerService). */
+    private fun handleAudioIntent(intent: Intent) {
+        val audioPath = intent.getStringExtra("openAudioPath")
+        if (audioPath != null) {
+            val audioName = intent.getStringExtra("openAudioName") ?: ""
+            handler.postDelayed({ openAudioPlayer(audioPath, audioName) }, 300)
+            // Consomme l'extra pour ne pas la rejouer si l'activity est recréée plus tard.
+            intent.removeExtra("openAudioPath")
+            intent.removeExtra("openAudioName")
+            return
+        }
         if (intent.getBooleanExtra("openBlazeAudio", false)) {
             handler.postDelayed({ openBlazeAudio() }, 300)
         }
@@ -97,6 +112,14 @@ class MainActivity : AppCompatActivity() {
         if (requestedTab in 1..3) {
             handler.postDelayed({ switchToTab(requestedTab) }, 300)
         }
+    }
+
+    private fun openAudioPlayer(path: String, name: String) {
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+        val homeFragment = navHost?.childFragmentManager?.fragments
+            ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
+            ?.firstOrNull()
+        homeFragment?.openAudioPlayer(path, name)
     }
 
     private fun switchToTab(index: Int) {
@@ -117,6 +140,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Initialise explicitement le CastContext en tout premier (avant tout autre code) - sans cet
+        // appel precoce, la decouverte des appareils Chromecast peut ne jamais demarrer.
+        try {
+            com.google.android.gms.cast.framework.CastContext.getSharedInstance(applicationContext)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "CastContext init failed", e)
+        }
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         // Edge-to-edge : le contenu gère lui-même les insets
@@ -133,6 +164,7 @@ class MainActivity : AppCompatActivity() {
         requestStoragePermissions()
         // Connecte le mini player seulement si activé dans les préférences
         setupMiniPlayer()
+        handleAudioIntent(intent)
     }
 
     private fun setupNavigation() {
@@ -150,6 +182,7 @@ class MainActivity : AppCompatActivity() {
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             arrayOf(
                 Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.NEARBY_WIFI_DEVICES,
                 Manifest.permission.READ_MEDIA_AUDIO
             )
         } else {
