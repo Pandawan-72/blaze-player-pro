@@ -220,11 +220,11 @@ class HomeFragment : Fragment() {
 
     private fun setupButtons() {
         binding.btnBrowseNetwork.setOnClickListener {
-            audioPlayerFragment?.savePlaylist() ?: Unit
+            audioPlayerFragment?.savePlaylistFromController() ?: Unit
             findNavController().navigate(R.id.action_home_to_network)
         }
         binding.btnBrowseLocal.setOnClickListener {
-            audioPlayerFragment?.savePlaylist() ?: Unit
+            audioPlayerFragment?.savePlaylistFromController() ?: Unit
             findNavController().navigate(R.id.action_home_to_browser)
         }
     }

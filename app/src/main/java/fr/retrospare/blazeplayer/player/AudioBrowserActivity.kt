@@ -258,12 +258,24 @@ class AudioBrowserActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Navigue dans un chemin réseau en gérant le mode multi-share (shareName vide = liste des partages)
+     */
+    private fun browseNetworkPath(share: fr.retrospare.blazeplayer.data.model.NetworkShare, navPath: String) {
+        // Si shareName est vide, le navPath encode "nomPartage/sousChemin"
+        if (share.shareName.isBlank()) {
+            browseNetworkShare(share, navPath)
+        } else {
+            browseNetworkShare(share, navPath)
+        }
+    }
+
     private fun browseNetworkShare(share: NetworkShare, path: String) {
         lifecycleScope.launch {
             binding.tvSelected.text = "Chargement..."
             val result = withContext(Dispatchers.IO) { smbBrowser.listFiles(share, path) }
             result.onSuccess { items ->
-                val folders = items.filter { it.mimeType == "folder" }
+                val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }
                 val audioFiles = items.filter { it.extension.lowercase() in audioExtensions }
                 val displayItems = mutableListOf<AudioFile>()
                 
@@ -271,6 +283,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                 val folderNames = folders.map { "📁 ${it.name}" }
                 val fileItems = audioFiles.map { AudioFile(it.name, it.path, it.duration, "Réseau") }
                 displayItems.addAll(fileItems)
+                currentItems = fileItems // Necessaire pour le bouton "Tout ajouter"
 
                 val adapter = AudioBrowserAdapter(displayItems) { _, path2, name, checked ->
                     if (checked) selectedItems.add(Pair(path2, name))

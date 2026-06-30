@@ -64,20 +64,36 @@ class AudioPlayerFragment : Fragment() {
         if (result.resultCode == Activity.RESULT_OK) {
             val paths = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_PATHS) ?: return@registerForActivityResult
             val names = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_NAMES) ?: return@registerForActivityResult
+            val ctrl = controller ?: return@registerForActivityResult
+
+            // Source unique de verite = le Player. Ajout immediat avec MediaItem simples (sans connexion reseau).
+            val simpleMediaItems = paths.mapIndexed { i, path ->
+                AudioRepository.buildSimpleMediaItem(path, names[i])
+            }
+            val wasEmpty = ctrl.mediaItemCount == 0
+            ctrl.addMediaItems(simpleMediaItems)
+            playlistAdapter.refresh()
+            if (wasEmpty || ctrl.playbackState == Player.STATE_IDLE || ctrl.playbackState == Player.STATE_ENDED) {
+                ctrl.prepare()
+                ctrl.play()
+            }
+            savePlaylistFromController()
+            binding.recyclerPlaylist.scrollToPosition(ctrl.mediaItemCount - 1)
+
+            // Enrichissement metadonnees + cover en arriere-plan, sans bloquer la lecture
             viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                val mediaItems = paths.mapIndexed { i, path ->
-                    AudioRepository.buildMediaItemWithMetadata(requireContext(), path, names[i])
-                }
-                launch(Dispatchers.Main) {
-                    paths.forEachIndexed { i, path -> playlistAdapter.addItem(PlaylistItem(path, names[i])) }
-                    controller?.addMediaItems(mediaItems)
-                    if (controller?.playbackState == Player.STATE_IDLE ||
-                        controller?.playbackState == Player.STATE_ENDED) {
-                        controller?.prepare()
-                        controller?.play()
-                    }
-                    savePlaylist()
-                    binding.recyclerPlaylist.scrollToPosition(playlistAdapter.itemCount - 1)
+                paths.forEachIndexed { i, path ->
+                    try {
+                        val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), path, names[i])
+                        launch(Dispatchers.Main) {
+                            val c = controller ?: return@launch
+                            val idx = (0 until c.mediaItemCount).firstOrNull { c.getMediaItemAt(it).localConfiguration?.uri.toString() == path }
+                            if (idx != null) {
+                                c.replaceMediaItem(idx, enriched)
+                                playlistAdapter.notifyItemChanged(idx)
+                            }
+                        }
+                    } catch (_: Exception) { }
                 }
             }
         }
@@ -113,7 +129,8 @@ class AudioPlayerFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
-        syncPlaylist()
+        playlistAdapter.refresh()
+        syncSelection()
         syncMetadata()
         syncButtons()
     }
@@ -122,7 +139,8 @@ class AudioPlayerFragment : Fragment() {
         super.onHiddenChanged(hidden)
         if (!hidden) {
             (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
-            syncPlaylist()
+            playlistAdapter.refresh()
+            syncSelection()
             syncMetadata()
             syncButtons()
         } else {
@@ -135,7 +153,7 @@ class AudioPlayerFragment : Fragment() {
         handler.removeCallbacksAndMessages(null)
         sleepTimerJob?.cancel()
         eqManager?.release()
-        savePlaylist()
+        savePlaylistFromController()
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controller = null
         _binding = null
@@ -156,24 +174,40 @@ class AudioPlayerFragment : Fragment() {
     private fun onControllerReady() {
         val ctrl = controller ?: return
 
-        // Charge la playlist sauvegardée dans ExoPlayer si vide
+        // Charge la playlist sauvegardée dans ExoPlayer si vide. Le Player reste la seule source de verite ;
+        // AudioRepository ne sert qu'a la persistance disque entre lancements de l'app.
         if (ctrl.mediaItemCount == 0) {
             viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                 val (savedItems, savedIndex) = AudioRepository.load(requireContext())
                 if (savedItems.isNotEmpty()) {
-                    val mediaItems = savedItems.map { AudioRepository.buildMediaItemWithMetadata(requireContext(), it.path, it.name) }
+                    // Chargement rapide : MediaItem simples d'abord, metadonnees enrichies ensuite
+                    val simpleItems = savedItems.map { AudioRepository.buildSimpleMediaItem(it.path, it.name) }
                     launch(Dispatchers.Main) {
-                        savedItems.forEach { playlistAdapter.addItem(it) }
-                        ctrl.setMediaItems(mediaItems, savedIndex.coerceIn(0, savedItems.size - 1), 0L)
+                        ctrl.setMediaItems(simpleItems, savedIndex.coerceIn(0, savedItems.size - 1), 0L)
                         ctrl.prepare()
-                        syncPlaylist()
+                        playlistAdapter.refresh()
+                        syncSelection()
                         syncMetadata()
                         syncButtons()
+                    }
+                    // Enrichissement en arriere plan
+                    savedItems.forEachIndexed { i, item ->
+                        try {
+                            val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), item.path, item.name)
+                            launch(Dispatchers.Main) {
+                                val c = controller ?: return@launch
+                                if (i < c.mediaItemCount) {
+                                    c.replaceMediaItem(i, enriched)
+                                    playlistAdapter.notifyItemChanged(i)
+                                }
+                            }
+                        } catch (_: Exception) { }
                     }
                 }
             }
         } else {
-            syncPlaylist()
+            playlistAdapter.refresh()
+            syncSelection()
             syncMetadata()
             syncButtons()
         }
@@ -181,26 +215,40 @@ class AudioPlayerFragment : Fragment() {
         // Pending tracks depuis SharedViewModel
         val pending = sharedVm.consumePendingTracks()
         if (pending.isNotEmpty()) {
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                pending.forEach { track ->
-                    if (playlistAdapter.getItems().none { it.path == track.path }) {
-                        val mediaItem = AudioRepository.buildMediaItemWithMetadata(requireContext(), track.path, track.name)
-                        launch(Dispatchers.Main) {
-                            playlistAdapter.addItem(PlaylistItem(track.path, track.name))
-                            ctrl.addMediaItem(mediaItem)
-                        }
+            val existingPaths = (0 until ctrl.mediaItemCount).map { ctrl.getMediaItemAt(it).localConfiguration?.uri.toString() }.toSet()
+            val newTracks = pending.filter { it.path !in existingPaths }
+            if (newTracks.isNotEmpty()) {
+                val simpleItems = newTracks.map { AudioRepository.buildSimpleMediaItem(it.path, it.name) }
+                ctrl.addMediaItems(simpleItems)
+                playlistAdapter.refresh()
+                ctrl.prepare()
+                ctrl.play()
+                savePlaylistFromController()
+
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    newTracks.forEach { track ->
+                        try {
+                            val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), track.path, track.name)
+                            launch(Dispatchers.Main) {
+                                val c = controller ?: return@launch
+                                val idx = (0 until c.mediaItemCount).firstOrNull { c.getMediaItemAt(it).localConfiguration?.uri.toString() == track.path }
+                                if (idx != null) {
+                                    c.replaceMediaItem(idx, enriched)
+                                    playlistAdapter.notifyItemChanged(idx)
+                                }
+                            }
+                        } catch (_: Exception) { }
                     }
-                }
-                launch(Dispatchers.Main) {
-                    ctrl.prepare()
-                    ctrl.play()
-                    savePlaylist()
                 }
             }
         }
 
-        // Listener natif Media3 - source unique de vérité
+        // Listener natif Media3 - source unique de vérité pour toute la playlist
         ctrl.addListener(object : Player.Listener {
+            override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                playlistAdapter.refresh()
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 syncButtons()
                 val idx = ctrl.currentMediaItemIndex
@@ -212,7 +260,7 @@ class AudioPlayerFragment : Fragment() {
                 val idx = ctrl.currentMediaItemIndex
                 syncSelection()
                 syncMetadata()
-                savePlaylist()
+                savePlaylistFromController()
                 playlistAdapter.setCurrentIndex(idx)
                 playlistAdapter.setPlayingIndex(if (ctrl.isPlaying) idx else -1)
             }
@@ -226,20 +274,6 @@ class AudioPlayerFragment : Fragment() {
     }
 
     // ── Sync UI depuis MediaController (source unique) ─────────────────────────
-
-    private fun syncPlaylist() {
-        val ctrl = controller ?: return
-        if (!::playlistAdapter.isInitialized) return
-        // Si adapter vide mais controller a items, recharge depuis repository
-        if (playlistAdapter.getItems().isEmpty() && ctrl.mediaItemCount > 0) {
-            val (savedItems, _) = AudioRepository.load(requireContext())
-            savedItems.forEach { item ->
-                if (playlistAdapter.getItems().none { it.path == item.path })
-                    playlistAdapter.addItem(item)
-            }
-        }
-        syncSelection()
-    }
 
     private fun syncSelection() {
         val ctrl = controller ?: return
@@ -264,31 +298,43 @@ class AudioPlayerFragment : Fragment() {
             _binding?.tvCodec?.visibility = View.VISIBLE
         }
 
-        // Bitrate depuis MediaMetadataRetriever
-        viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        // Bitrate via MediaMetadataRetriever (gère aussi smb://)
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            var smbDataSource: SmbMediaDataSource? = null
             try {
                 val path = mediaItem.localConfiguration?.uri?.toString() ?: return@launch
                 val retriever = android.media.MediaMetadataRetriever()
-                if (path.startsWith("content://"))
-                    retriever.setDataSource(requireContext(), android.net.Uri.parse(path))
-                else retriever.setDataSource(path)
-                val bitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
-                retriever.release()
-                viewLifecycleOwner.lifecycleScope.launch {
-                    val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+                try {
                     when {
-                        lossless -> {
-                            _binding?.tvBitrate?.text = "Lossless"
-                            _binding?.tvBitrate?.visibility = View.VISIBLE
+                        path.startsWith("smb://") -> {
+                            smbDataSource = SmbMediaDataSource(path)
+                            retriever.setDataSource(smbDataSource)
                         }
-                        bitrate > 0 -> {
-                            _binding?.tvBitrate?.text = "${bitrate / 1000} kbps"
-                            _binding?.tvBitrate?.visibility = View.VISIBLE
-                        }
-                        else -> _binding?.tvBitrate?.visibility = View.GONE
+                        path.startsWith("content://") -> retriever.setDataSource(requireContext(), android.net.Uri.parse(path))
+                        else -> retriever.setDataSource(path)
                     }
+                    val bitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
+                    launch(Dispatchers.Main) {
+                        val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+                        when {
+                            lossless -> {
+                                _binding?.tvBitrate?.text = "Lossless"
+                                _binding?.tvBitrate?.visibility = View.VISIBLE
+                            }
+                            bitrate > 0 -> {
+                                _binding?.tvBitrate?.text = "${bitrate / 1000} kbps"
+                                _binding?.tvBitrate?.visibility = View.VISIBLE
+                            }
+                            else -> _binding?.tvBitrate?.visibility = View.GONE
+                        }
+                    }
+                } finally {
+                    retriever.release()
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            } finally {
+                try { smbDataSource?.close() } catch (_: Exception) {}
+            }
         }
 
         // Artwork depuis MediaMetadata
@@ -311,7 +357,7 @@ class AudioPlayerFragment : Fragment() {
     // ── Playlist UI ───────────────────────────────────────────────────────────
 
     private fun initPlaylistUi() {
-        playlistAdapter = PlaylistAdapter(mutableListOf()) { index ->
+        playlistAdapter = PlaylistAdapter({ controller }) { index ->
             controller?.seekToDefaultPosition(index)
             controller?.play()
         }
@@ -353,29 +399,47 @@ class AudioPlayerFragment : Fragment() {
         binding.btnClosePlaylist.setOnClickListener { closePlaylist() }
     }
 
-    fun savePlaylist() {
+    /** Sauvegarde sur disque l'etat courant du Player (seule source de verite). */
+    fun savePlaylistFromController() {
         val ctx = context ?: return
-        if (!::playlistAdapter.isInitialized) return
-        val items = playlistAdapter.getItems()
-        if (items.isEmpty()) return
-        val idx = controller?.currentMediaItemIndex ?: 0
-        AudioRepository.save(ctx, items, idx)
+        val ctrl = controller ?: return
+        if (ctrl.mediaItemCount == 0) return
+        val items = (0 until ctrl.mediaItemCount).map { i ->
+            val mi = ctrl.getMediaItemAt(i)
+            val path = mi.localConfiguration?.uri?.toString() ?: ""
+            val name = mi.mediaMetadata.title?.toString()?.ifEmpty { null }
+                ?: mi.localConfiguration?.uri?.lastPathSegment ?: ""
+            PlaylistItem(path, name)
+        }
+        AudioRepository.save(ctx, items, ctrl.currentMediaItemIndex)
     }
 
     fun addTrack(path: String, name: String) {
-        if (!::playlistAdapter.isInitialized) return
-        if (playlistAdapter.getItems().any { it.path == path }) return
+        val ctrl = controller ?: return
+        val exists = (0 until ctrl.mediaItemCount).any { ctrl.getMediaItemAt(it).localConfiguration?.uri.toString() == path }
+        if (exists) return
+
+        val simpleItem = AudioRepository.buildSimpleMediaItem(path, name)
+        ctrl.addMediaItem(simpleItem)
+        playlistAdapter.refresh()
+        if (ctrl.playbackState == Player.STATE_IDLE) {
+            ctrl.prepare()
+            ctrl.play()
+        }
+        savePlaylistFromController()
+
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val mediaItem = AudioRepository.buildMediaItemWithMetadata(requireContext(), path, name)
-            launch(Dispatchers.Main) {
-                playlistAdapter.addItem(PlaylistItem(path, name))
-                controller?.addMediaItem(mediaItem)
-                if (controller?.playbackState == Player.STATE_IDLE) {
-                    controller?.prepare()
-                    controller?.play()
+            try {
+                val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), path, name)
+                launch(Dispatchers.Main) {
+                    val c = controller ?: return@launch
+                    val idx = (0 until c.mediaItemCount).firstOrNull { c.getMediaItemAt(it).localConfiguration?.uri.toString() == path }
+                    if (idx != null) {
+                        c.replaceMediaItem(idx, enriched)
+                        playlistAdapter.notifyItemChanged(idx)
+                    }
                 }
-                savePlaylist()
-            }
+            } catch (_: Exception) { }
         }
     }
 
@@ -523,31 +587,33 @@ class AudioPlayerFragment : Fragment() {
     }
 
     private fun showCleanDialog() {
-        if (!::playlistAdapter.isInitialized) return
-        val items = playlistAdapter.getItems().toList()
-        if (items.isEmpty()) {
+        val ctrl = controller ?: return
+        if (ctrl.mediaItemCount == 0) {
             android.widget.Toast.makeText(requireContext(), "Liste déjà vide", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-        val checked = BooleanArray(items.size) { false }
+        val itemsSnapshot = (0 until ctrl.mediaItemCount).map { i ->
+            val mi = ctrl.getMediaItemAt(i)
+            mi.mediaMetadata.title?.toString()?.ifEmpty { null } ?: mi.localConfiguration?.uri?.lastPathSegment ?: "?"
+        }
+        val checked = BooleanArray(itemsSnapshot.size) { false }
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
             .setTitle("Nettoyer la liste")
-            .setMultiChoiceItems(items.map { it.name }.toTypedArray(), checked) { _, i, c -> checked[i] = c }
+            .setMultiChoiceItems(itemsSnapshot.toTypedArray(), checked) { _, i, c -> checked[i] = c }
             .setPositiveButton("Retirer sélection") { _, _ ->
-                items.forEachIndexed { i, item ->
-                    if (checked[i]) {
-                        val idx = playlistAdapter.getItems().indexOfFirst { it.path == item.path }
-                        if (idx >= 0) {
-                            playlistAdapter.removeItem(item)
-                            controller?.removeMediaItem(idx)
-                        }
+                val c = controller ?: return@setPositiveButton
+                // Supprime du plus grand index au plus petit pour ne pas decaler les indices
+                checked.indices.reversed().forEach { i ->
+                    if (checked[i] && i < c.mediaItemCount) {
+                        c.removeMediaItem(i)
                     }
                 }
-                savePlaylist()
+                playlistAdapter.refresh()
+                savePlaylistFromController()
             }
             .setNeutralButton("Tout effacer") { _, _ ->
-                playlistAdapter.clearAll()
                 controller?.clearMediaItems()
+                playlistAdapter.refresh()
                 AudioRepository.clear(requireContext())
             }
             .setNegativeButton("Annuler", null)

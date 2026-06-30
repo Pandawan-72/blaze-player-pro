@@ -9,47 +9,45 @@ import androidx.media3.datasource.DataSpec
 import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2ShareAccess
-import com.hierynomus.smbj.SMBClient
-import com.hierynomus.smbj.SmbConfig
-import com.hierynomus.smbj.auth.AuthenticationContext
+import com.hierynomus.smbj.connection.Connection
+import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.share.File as SmbFile
 import java.util.EnumSet
-import java.util.concurrent.TimeUnit
 
 /**
  * DataSource Media3 permettant de streamer un fichier via SMB (protocole smb://).
  * Format URI attendu: smb://[user[:pass]@]host[:port]/share/path/to/file.ext
+ * Utilise un SMBClient mutualise (SmbClientPool) et une lecture positionnelle reelle (pas de skip()).
  */
 @UnstableApi
 class SmbDataSource : BaseDataSource(true) {
 
-    private var client: SMBClient? = null
+    private var connection: Connection? = null
+    private var session: Session? = null
     private var diskShare: DiskShare? = null
     private var smbFile: SmbFile? = null
-    private var inputStream: java.io.InputStream? = null
     private var uri: Uri? = null
     private var bytesRemaining: Long = 0
+    private var currentPosition: Long = 0
 
     override fun open(dataSpec: DataSpec): Long {
         uri = dataSpec.uri
         val parsed = parseSmbUri(dataSpec.uri)
 
-        val config = SmbConfig.builder()
-            .withTimeout(30, TimeUnit.SECONDS)
-            .withReadTimeout(60, TimeUnit.SECONDS)
-            .build()
-        val smbClient = SMBClient(config)
-        client = smbClient
+        val smbClient = SmbClientPool.getClient()
+        val conn = smbClient.connect(parsed.host, parsed.port)
+        connection = conn
 
-        val connection = smbClient.connect(parsed.host, parsed.port)
         val authContext = if (!parsed.username.isNullOrEmpty()) {
-            AuthenticationContext(parsed.username, (parsed.password ?: "").toCharArray(), "")
+            com.hierynomus.smbj.auth.AuthenticationContext(parsed.username, (parsed.password ?: "").toCharArray(), "")
         } else {
-            AuthenticationContext.anonymous()
+            com.hierynomus.smbj.auth.AuthenticationContext.anonymous()
         }
-        val session = connection.authenticate(authContext)
-        val share = session.connectShare(parsed.shareName) as DiskShare
+        val sess = conn.authenticate(authContext)
+        session = sess
+
+        val share = sess.connectShare(parsed.shareName) as DiskShare
         diskShare = share
 
         val file = share.openFile(
@@ -64,12 +62,8 @@ class SmbDataSource : BaseDataSource(true) {
 
         val fileSize = file.getFileInformation(FileStandardInformation::class.java).endOfFile
         val position = dataSpec.position
+        currentPosition = position
         bytesRemaining = if (dataSpec.length != C.LENGTH_UNSET.toLong()) dataSpec.length else fileSize - position
-
-        inputStream = file.getInputStream()
-        if (position > 0) {
-            inputStream?.skip(position)
-        }
 
         transferInitializing(dataSpec)
         transferStarted(dataSpec)
@@ -81,10 +75,12 @@ class SmbDataSource : BaseDataSource(true) {
         if (bytesRemaining == 0L) return C.RESULT_END_OF_INPUT
 
         val bytesToRead = if (bytesRemaining == C.LENGTH_UNSET.toLong()) length else minOf(length.toLong(), bytesRemaining).toInt()
-        val read = inputStream?.read(buffer, offset, bytesToRead) ?: -1
-        if (read == -1) {
+        // Lecture positionnelle reelle SMB - pas de skip() fragile
+        val read = smbFile?.read(buffer, currentPosition, offset, bytesToRead) ?: -1
+        if (read <= 0) {
             return C.RESULT_END_OF_INPUT
         }
+        currentPosition += read
         if (bytesRemaining != C.LENGTH_UNSET.toLong()) {
             bytesRemaining -= read
         }
@@ -95,14 +91,14 @@ class SmbDataSource : BaseDataSource(true) {
     override fun getUri(): Uri? = uri
 
     override fun close() {
-        try { inputStream?.close() } catch (_: Exception) {}
         try { smbFile?.close() } catch (_: Exception) {}
         try { diskShare?.close() } catch (_: Exception) {}
-        try { client?.close() } catch (_: Exception) {}
-        inputStream = null
+        try { session?.close() } catch (_: Exception) {}
+        try { connection?.close() } catch (_: Exception) {}
         smbFile = null
         diskShare = null
-        client = null
+        session = null
+        connection = null
         transferEnded()
     }
 

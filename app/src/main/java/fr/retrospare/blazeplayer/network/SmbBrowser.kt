@@ -22,6 +22,10 @@ class SmbBrowser @Inject constructor() {
         "m4v", "webm", "mpg", "mpeg", "3gp", "divx"
     )
 
+    private val AUDIO_EXTENSIONS = setOf(
+        "mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "dts", "ac3", "mka"
+    )
+
     private fun createClient(): SMBClient {
         val config = SmbConfig.builder()
             .withTimeout(30, TimeUnit.SECONDS)
@@ -131,7 +135,7 @@ class SmbBrowser @Inject constructor() {
                                         networkShareId = share.id
                                     )
                                 )
-                            } else if (ext in VIDEO_EXTENSIONS) {
+                            } else if (ext in VIDEO_EXTENSIONS || ext in AUDIO_EXTENSIONS) {
                                 val smbUri = buildSmbUri(share, fullPath)
                                 items.add(
                                     MediaItem(
@@ -198,6 +202,17 @@ class SmbBrowser @Inject constructor() {
         "flv" -> "video/x-flv"
         "wmv" -> "video/x-ms-wmv"
         "webm" -> "video/webm"
-        else -> "video/*"
+        "mp3" -> "audio/mpeg"
+        "flac" -> "audio/flac"
+        "aac" -> "audio/aac"
+        "ogg", "opus" -> "audio/ogg"
+        "wav" -> "audio/wav"
+        "m4a" -> "audio/mp4"
+        "wma" -> "audio/x-ms-wma"
+        "ape" -> "audio/x-ape"
+        "dts" -> "audio/vnd.dts"
+        "ac3" -> "audio/ac3"
+        "mka" -> "audio/x-matroska"
+        else -> if (ext in AUDIO_EXTENSIONS) "audio/*" else "video/*"
     }
 }

@@ -19,7 +19,17 @@ private var mediaSession: MediaSession? = null
     override fun onCreate() {
         super.onCreate()
         instance = this
-        val player = ExoPlayer.Builder(this)
+        val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(
+            this,
+            SmbDataSource.Factory()
+        )
+        val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(this)
+            .setDataSourceFactory(dataSourceFactory)
+        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
+            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+
+        val player = ExoPlayer.Builder(this, renderersFactory)
+            .setMediaSourceFactory(mediaSourceFactory)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
