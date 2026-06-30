@@ -51,10 +51,13 @@ class AudioPlayerActivity : AppCompatActivity() {
         if (result.resultCode == Activity.RESULT_OK) {
             val paths = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_PATHS) ?: return@registerForActivityResult
             val names = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_NAMES) ?: return@registerForActivityResult
-            paths.forEachIndexed { i, path ->
+            if (::player.isInitialized) {
+                paths.forEachIndexed { i, path ->
+                    player.addMediaItem(ExoMediaItem.fromUri(Uri.parse(path)))
+                }
                 if (::playlistAdapter.isInitialized) {
-                    playlistAdapter.addItem(PlaylistItem(path, names[i]))
-                    binding.recyclerPlaylist.scrollToPosition(playlistAdapter.itemCount - 1)
+                    playlistAdapter.refresh()
+                    binding.recyclerPlaylist.scrollToPosition(player.mediaItemCount - 1)
                 }
             }
         }
@@ -85,15 +88,15 @@ class AudioPlayerActivity : AppCompatActivity() {
     }
 
     private fun setupPlaylist(path: String, name: String) {
-        val initialItem = PlaylistItem(path, name)
-        playlistAdapter = PlaylistAdapter(mutableListOf(initialItem)) { index ->
+        playlistAdapter = PlaylistAdapter({ if (::player.isInitialized) player else null }) { index ->
             currentIndex = index
-            val item = playlistAdapter.getItems()[index]
             playlistAdapter.setCurrentIndex(currentIndex)
-            player.setMediaItem(ExoMediaItem.fromUri(Uri.parse(item.path)))
-            player.prepare()
+            player.seekToDefaultPosition(index)
             player.play()
-            loadMetadata(item.path, item.name)
+            val mi = player.getMediaItemAt(index)
+            val itemPath = mi.localConfiguration?.uri?.toString() ?: ""
+            val itemName = mi.mediaMetadata.title?.toString() ?: itemPath.substringAfterLast("/")
+            loadMetadata(itemPath, itemName)
         }
         playlistAdapter.setCurrentIndex(0)
 
@@ -115,6 +118,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         player.prepare()
         player.play()
         saveToHistory(path, name)
+        if (::playlistAdapter.isInitialized) playlistAdapter.refresh()
         eqManager = EqualizerManager(player.audioSessionId, this).also { it.restoreLastSession() }
 
         player.addListener(object : Player.Listener {
@@ -199,24 +203,25 @@ class AudioPlayerActivity : AppCompatActivity() {
         binding.btnPrev.setOnClickListener {
             if (currentIndex > 0) {
                 currentIndex--
-                val item = playlistAdapter.getItems()[currentIndex]
                 playlistAdapter.setCurrentIndex(currentIndex)
-                player.setMediaItem(ExoMediaItem.fromUri(Uri.parse(item.path)))
-                player.prepare()
+                player.seekToDefaultPosition(currentIndex)
                 player.play()
-                loadMetadata(item.path, item.name)
+                val mi = player.getMediaItemAt(currentIndex)
+                val itemPath = mi.localConfiguration?.uri?.toString() ?: ""
+                val itemName = mi.mediaMetadata.title?.toString() ?: itemPath.substringAfterLast("/")
+                loadMetadata(itemPath, itemName)
             }
         }
         binding.btnNext.setOnClickListener {
-            val items = playlistAdapter.getItems()
-            if (currentIndex < items.size - 1) {
+            if (currentIndex < player.mediaItemCount - 1) {
                 currentIndex++
-                val item = items[currentIndex]
                 playlistAdapter.setCurrentIndex(currentIndex)
-                player.setMediaItem(ExoMediaItem.fromUri(Uri.parse(item.path)))
-                player.prepare()
+                player.seekToDefaultPosition(currentIndex)
                 player.play()
-                loadMetadata(item.path, item.name)
+                val mi = player.getMediaItemAt(currentIndex)
+                val itemPath = mi.localConfiguration?.uri?.toString() ?: ""
+                val itemName = mi.mediaMetadata.title?.toString() ?: itemPath.substringAfterLast("/")
+                loadMetadata(itemPath, itemName)
             }
         }
     }

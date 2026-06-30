@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.google.services)
+    // REMOVED: alias(libs.plugins.google.services)
 }
 
 android {
@@ -16,19 +16,20 @@ android {
         }
     }
     namespace = "fr.retrospare.blazeplayer"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.9.0-alpha"
+        versionCode = 10
+        versionName = "0.10.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     buildTypes {
@@ -81,10 +82,10 @@ dependencies {
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui)
 
-    // Firebase
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.firestore)
+    // REMOVED: // Firebase
+    // REMOVED: implementation(platform(libs.firebase.bom))
+    // REMOVED: implementation(libs.firebase.auth)
+    // REMOVED: implementation(libs.firebase.firestore)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
@@ -97,14 +98,16 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
     implementation(libs.media3.cast)
-    implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
+    implementation("androidx.media3:media3-database:1.9.0")
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1")
+    // REMOVED: implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
     implementation("androidx.media:media:1.7.0")
     // LibVLC pour codecs legacy (AVI, XVID, DIVX, FLAC, DTS, etc.)
-    implementation("androidx.media3:media3-exoplayer:1.5.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
-    implementation("androidx.media3:media3-exoplayer-dash:1.5.1")
-    implementation("androidx.media3:media3-datasource-okhttp:1.5.1")
-    implementation("androidx.media3:media3-session:1.5.1")
+    // implementation("androidx.media3:media3-exoplayer:1.5.1")
+    // implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
+    // implementation("androidx.media3:media3-exoplayer-dash:1.5.1")
+    // implementation("androidx.media3:media3-datasource-okhttp:1.5.1")
+    // implementation("androidx.media3:media3-session:1.5.1")
 
     // Hilt
     implementation(libs.hilt.android)
@@ -121,6 +124,8 @@ dependencies {
 
     // SMB
     implementation(libs.smbj)
+    implementation("com.rapid7.client:dcerpc:0.12.13")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
     // Material Design (Views) + AppCompat

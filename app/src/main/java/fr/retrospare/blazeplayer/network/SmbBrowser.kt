@@ -22,6 +22,10 @@ class SmbBrowser @Inject constructor() {
         "m4v", "webm", "mpg", "mpeg", "3gp", "divx"
     )
 
+    private val AUDIO_EXTENSIONS = setOf(
+        "mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "dts", "ac3", "mka"
+    )
+
     private fun createClient(): SMBClient {
         val config = SmbConfig.builder()
             .withTimeout(30, TimeUnit.SECONDS)
@@ -30,9 +34,70 @@ class SmbBrowser @Inject constructor() {
         return SMBClient(config)
     }
 
+    /**
+     * Liste les partages SMB disponibles sur l'hote (racine du NAS).
+     * Utilise quand share.shareName est vide.
+     */
+    suspend fun listShares(share: NetworkShare): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val client = createClient()
+            val authContext = buildAuthContext(share)
+            val items = mutableListOf<MediaItem>()
+
+            client.connect(share.host, share.port ?: 445).use { connection ->
+                val session = connection.authenticate(authContext)
+                try {
+                    val transport = com.rapid7.client.dcerpc.transport.SMBTransportFactories.SRVSVC.getTransport(session)
+                    val serverService = com.rapid7.client.dcerpc.mssrvs.ServerService(transport)
+                    val shares = serverService.shares0
+                    shares.forEach { shareInfo ->
+                        val name = shareInfo.netName
+                        // Filtre les shares administratifs (ADMIN$, C$, IPC$...) et types non disque
+                        if (!name.endsWith("$") && name.isNotBlank()) {
+                            items.add(
+                                MediaItem(
+                                    id = "smb://${share.host}/$name",
+                                    name = name,
+                                    path = name,
+                                    mimeType = "share",
+                                    extension = "",
+                                    isNetwork = true,
+                                    networkShareId = share.id
+                                )
+                            )
+                        }
+                    }
+                } finally {
+                    session.close()
+                }
+            }
+            items.sortBy { it.name.lowercase() }
+            items
+        }
+    }
+
     suspend fun listFiles(
         share: NetworkShare,
         path: String = ""
+    ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+        // Si aucun nom de partage n'est defini, on liste les partages disponibles
+        if (share.shareName.isBlank()) {
+            // Le chemin "path" sert alors a stocker le nom du partage choisi + sous-chemin
+            if (path.isBlank()) {
+                return@withContext listShares(share)
+            }
+            val parts = path.split("/", limit = 2)
+            val actualShareName = parts[0]
+            val actualPath = if (parts.size > 1) parts[1] else ""
+            return@withContext listFilesInShare(share.copy(shareName = actualShareName), actualPath, actualShareName)
+        }
+        listFilesInShare(share, path, null)
+    }
+
+    private suspend fun listFilesInShare(
+        share: NetworkShare,
+        path: String,
+        sharePrefix: String?
     ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
         runCatching {
             val client = createClient()
@@ -55,20 +120,22 @@ class SmbBrowser @Inject constructor() {
                             val fullPath = if (path.isEmpty()) name else "$path\\$name"
                             val isDir = info.fileAttributes and 0x10L != 0L
                             val ext = name.substringAfterLast('.', "").lowercase()
+                            // Si on navigue en mode multi-share, le "path" affiche au niveau superieur doit inclure le nom du partage
+                            val displayPath = if (sharePrefix != null) "$sharePrefix/$fullPath" else fullPath
 
                             if (isDir) {
                                 items.add(
                                     MediaItem(
                                         id = "smb://$host/${share.shareName}/$fullPath",
                                         name = name,
-                                        path = fullPath,
+                                        path = displayPath,
                                         mimeType = "folder",
                                         extension = "",
                                         isNetwork = true,
                                         networkShareId = share.id
                                     )
                                 )
-                            } else if (ext in VIDEO_EXTENSIONS) {
+                            } else if (ext in VIDEO_EXTENSIONS || ext in AUDIO_EXTENSIONS) {
                                 val smbUri = buildSmbUri(share, fullPath)
                                 items.add(
                                     MediaItem(
@@ -135,6 +202,17 @@ class SmbBrowser @Inject constructor() {
         "flv" -> "video/x-flv"
         "wmv" -> "video/x-ms-wmv"
         "webm" -> "video/webm"
-        else -> "video/*"
+        "mp3" -> "audio/mpeg"
+        "flac" -> "audio/flac"
+        "aac" -> "audio/aac"
+        "ogg", "opus" -> "audio/ogg"
+        "wav" -> "audio/wav"
+        "m4a" -> "audio/mp4"
+        "wma" -> "audio/x-ms-wma"
+        "ape" -> "audio/x-ape"
+        "dts" -> "audio/vnd.dts"
+        "ac3" -> "audio/ac3"
+        "mka" -> "audio/x-matroska"
+        else -> if (ext in AUDIO_EXTENSIONS) "audio/*" else "video/*"
     }
 }

@@ -114,6 +114,20 @@
             android:value="fr.retrospare.blazeplayer.cast.CastOptionsProvider" />
 
         <receiver android:name=".player.VideoNotificationReceiver" android:exported="false" />
-    </application>
+        <receiver
+            android:name="androidx.mediarouter.media.MediaTransferReceiver"
+            android:exported="false" />
+        <provider
+        android:name="com.google.firebase.provider.FirebaseInitProvider"
+        android:authorities="${applicationId}.firebaseinitprovider"
+        android:exported="false"
+        tools:node="remove" />
+
+    <activity
+        android:name=".player.NetworkVideoBrowserActivity"
+        android:exported="false"
+        android:theme="@style/Theme.BlazePlayer" />
+
+</application>
 
 </manifest>

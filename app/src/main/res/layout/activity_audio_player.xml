@@ -396,7 +396,7 @@
 
     </LinearLayout>
 
-    <!-- BOTTOM SHEET PLAYLIST - plein écran -->
+    <!-- PLAYLIST PLEIN ECRAN - simple overlay, pas de BottomSheet pour eviter conflits de scroll -->
     <LinearLayout
         android:id="@+id/playlistSheet"
         android:layout_width="match_parent"
@@ -404,50 +404,28 @@
         android:orientation="vertical"
         android:background="@color/background"
         android:elevation="8dp"
-        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
-        app:behavior_peekHeight="0dp"
-        app:behavior_hideable="true"
-        app:behavior_skipCollapsed="true"
-        app:behavior_expandedOffset="0dp">
+        android:visibility="gone">
 
-        <!-- Bordure top + flèche bas -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#33FFFFFF" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center_horizontal"
-            android:paddingTop="10dp"
-            android:paddingBottom="4dp">
-
-            <View
-                android:layout_width="40dp"
-                android:layout_height="4dp"
-                android:background="#66FFFFFF" />
-
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_chevron_down"
-                android:tint="#66FFFFFF"
-                android:layout_marginTop="2dp"
-                android:contentDescription="Fermer" />
-
-        </LinearLayout>
-
-        <!-- Header FILE D'ATTENTE -->
+        <!-- Header FILE D'ATTENTE avec bouton Fermer explicite -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="8dp">
+            android:paddingTop="20dp"
+            android:paddingBottom="12dp"
+            android:background="@color/background">
+
+            <ImageButton
+                android:id="@+id/btnClosePlaylist"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_chevron_down"
+                android:tint="@color/on_surface"
+                android:contentDescription="Fermer la playlist"
+                android:layout_marginEnd="8dp" />
 
             <TextView
                 android:layout_width="0dp"
@@ -480,13 +458,19 @@
 
         </LinearLayout>
 
+        <!-- Bordure separatrice -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#33FFFFFF" />
+
         <!-- Liste -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerPlaylist"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:overScrollMode="never"
+            android:overScrollMode="always"
             android:paddingBottom="24dp"
             android:clipToPadding="false" />
 

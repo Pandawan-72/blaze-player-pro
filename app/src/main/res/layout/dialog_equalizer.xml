@@ -142,81 +142,26 @@
                 app:chipSpacingVertical="6dp"
                 android:layout_marginBottom="16dp" />
 
-            <!-- BASS BOOST -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="6dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="BASS BOOST"
-                    android:textColor="@color/on_surface_variant"
-                    android:textSize="11sp"
-                    android:fontFamily="sans-serif-condensed"
-                    android:letterSpacing="0.08" />
-
-                <TextView
-                    android:id="@+id/tvBassValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0%"
-                    android:textColor="@color/green_accent"
-                    android:textSize="11sp" />
-
-            </LinearLayout>
-
+            <TextView
+                android:id="@+id/tvBassValue"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
             <SeekBar
                 android:id="@+id/seekBassBoost"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="1000"
-                android:progress="0"
-                android:progressTint="@color/green_accent"
-                android:thumbTint="@color/green_accent"
-                android:layout_marginBottom="16dp" />
-
-            <!-- VIRTUALIZER -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="6dp">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="VIRTUALIZER 3D"
-                    android:textColor="@color/on_surface_variant"
-                    android:textSize="11sp"
-                    android:fontFamily="sans-serif-condensed"
-                    android:letterSpacing="0.08" />
-
-                <TextView
-                    android:id="@+id/tvVirtValue"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0%"
-                    android:textColor="@color/blue_accent"
-                    android:textSize="11sp" />
-
-            </LinearLayout>
-
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+            <TextView
+                android:id="@+id/tvVirtValue"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
             <SeekBar
                 android:id="@+id/seekVirtualizer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:max="1000"
-                android:progress="0"
-                android:progressTint="@color/blue_accent"
-                android:thumbTint="@color/blue_accent"
-                android:layout_marginBottom="24dp" />
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

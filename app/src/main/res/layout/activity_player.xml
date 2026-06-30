@@ -1,27 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
     android:keepScreenOn="true">
 
-    <!-- VLCVideoLayout : la méthode officielle libVLC 3.x -->
-    <FrameLayout
+    <!-- PlayerView Media3 : gere automatiquement Surface/Texture, rotation, ratio -->
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/playerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center">
-        <androidx.media3.ui.AspectRatioFrameLayout
-            android:id="@+id/aspectRatioFrame"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center">
-            <SurfaceView
-                android:id="@+id/playerView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-        </androidx.media3.ui.AspectRatioFrameLayout>
-    </FrameLayout>
+        android:background="#000000"
+        app:use_controller="false"
+        app:resize_mode="fit"
+        app:surface_type="surface_view" />
 
     <!-- UI OVERLAY -->
     <LinearLayout
@@ -78,15 +72,6 @@
                 android:src="@drawable/ic_cast"
                 android:tint="#99FFFFFF"
                 android:contentDescription="Cast" />
-
-            <ImageButton
-                android:id="@+id/btnMore"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@android:color/transparent"
-                android:src="@drawable/ic_more_vert"
-                android:tint="#99FFFFFF"
-                android:contentDescription="Plus" />
 
         </LinearLayout>
 

@@ -41,7 +41,6 @@ class NetworkScanner @Inject constructor() {
 
         // 1. DLNA/SSDP d'abord - rapide et fiable
         try {
-            discoverDlna().forEach { emit(it) }
         } catch (e: Exception) {}
 
         // 2. Scan SMB en parallèle sur tout le sous-réseau
@@ -126,62 +125,6 @@ class NetworkScanner @Inject constructor() {
         } catch (e: Exception) { null }
     }
 
-    private suspend fun discoverDlna(): List<DiscoveredDevice> = withContext(Dispatchers.IO) {
-        val results = mutableListOf<DiscoveredDevice>()
-        try {
-            val ssdpRequest = "M-SEARCH * HTTP/1.1\r\n" +
-                "HOST: $SSDP_ADDR:$SSDP_PORT\r\n" +
-                "MAN: \"ssdp:discover\"\r\n" +
-                "MX: 3\r\n" +
-                "ST: urn:schemas-upnp-org:device:MediaServer:1\r\n\r\n"
-
-            val socket = DatagramSocket()
-            socket.soTimeout = 1000
-            val bytes = ssdpRequest.toByteArray()
-            socket.send(DatagramPacket(bytes, bytes.size, InetAddress.getByName(SSDP_ADDR), SSDP_PORT))
-
-            val buf = ByteArray(4096)
-            val endTime = System.currentTimeMillis() + SSDP_TIMEOUT_MS
-            while (System.currentTimeMillis() < endTime) {
-                try {
-                    val packet = DatagramPacket(buf, buf.size)
-                    socket.receive(packet)
-                    val response = String(packet.data, 0, packet.length)
-                    val ip = packet.address.hostAddress ?: continue
-                    if (results.any { it.ip == ip }) continue
-
-                    val name = extractDlnaFriendlyName(response) ?: extractDlnaServerName(response) ?: "DLNA $ip"
-                    val extra = extractDlnaServerName(response) ?: ""
-                    results.add(DiscoveredDevice(ip = ip, name = name, type = ShareType.DLNA, extra = extra))
-                } catch (e: Exception) { break }
-            }
-            socket.close()
-        } catch (e: Exception) {}
-        results
-    }
-
-    // Fetch la description XML UPnP pour récupérer le vrai nom
-    private fun extractDlnaFriendlyName(ssdpResponse: String): String? {
-        val location = ssdpResponse.lines()
-            .firstOrNull { it.startsWith("LOCATION:", ignoreCase = true) }
-            ?.substringAfter(":")?.trim() ?: return null
-        return try {
-            val url = java.net.URL(location)
-            val conn = url.openConnection() as java.net.HttpURLConnection
-            conn.connectTimeout = 2000
-            conn.readTimeout = 2000
-            val xml = conn.inputStream.bufferedReader().readText()
-            conn.disconnect()
-            // Parse <friendlyName>
-            Regex("<friendlyName>([^<]+)</friendlyName>").find(xml)?.groupValues?.get(1)?.trim()
-        } catch (e: Exception) { null }
-    }
-
-    private fun extractDlnaServerName(response: String): String? {
-        return response.lines()
-            .firstOrNull { it.startsWith("SERVER:", ignoreCase = true) }
-            ?.substringAfter(":")?.trim()
-    }
 
     fun getLocalSubnet(): String? {
         return try {

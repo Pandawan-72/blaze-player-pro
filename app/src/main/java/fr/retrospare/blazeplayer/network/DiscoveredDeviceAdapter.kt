@@ -27,11 +27,6 @@ class DiscoveredDeviceAdapter(
                     binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_blue)
                     binding.ivIcon.setImageResource(R.drawable.ic_folder)
                 }
-                ShareType.DLNA -> {
-                    binding.tvBadge.text = "DLNA"
-                    binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_green)
-                    binding.ivIcon.setImageResource(R.drawable.ic_wifi)
-                }
                 else -> {
                     binding.tvBadge.text = "NET"
                     binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_gray)

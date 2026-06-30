@@ -2,6 +2,7 @@ package fr.retrospare.blazeplayer.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.media3.cast.CastPlayer
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -14,12 +15,25 @@ class BlazePlayerService : MediaSessionService() {
     companion object {
         var instance: BlazePlayerService? = null
     }
-private var mediaSession: MediaSession? = null
+
+    private var mediaSession: MediaSession? = null
+    private var exoPlayer: ExoPlayer? = null
 
     override fun onCreate() {
         super.onCreate()
         instance = this
-        val player = ExoPlayer.Builder(this)
+
+        val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(
+            this,
+            SmbDataSource.Factory()
+        )
+        val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(this)
+            .setDataSourceFactory(dataSourceFactory)
+        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
+            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+
+        val localPlayer = ExoPlayer.Builder(this, renderersFactory)
+            .setMediaSourceFactory(mediaSourceFactory)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -29,6 +43,18 @@ private var mediaSession: MediaSession? = null
             )
             .setHandleAudioBecomingNoisy(true)
             .build()
+        exoPlayer = localPlayer
+
+        // CastPlayer encapsule le local player : Media3 1.9+ bascule automatiquement
+        // entre lecture telephone et lecture Chromecast (transitions locales <-> distantes gerees nativement).
+        val sessionPlayer: Player = try {
+            CastPlayer.Builder(this)
+                .setLocalPlayer(localPlayer)
+                .build()
+        } catch (e: Exception) {
+            // Google Play services Cast indisponible (rare) -> fallback lecture locale uniquement
+            localPlayer
+        }
 
         val openIntent = PendingIntent.getActivity(
             this, 0,
@@ -39,12 +65,12 @@ private var mediaSession: MediaSession? = null
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaSession.Builder(this, player)
+        mediaSession = MediaSession.Builder(this, sessionPlayer)
             .setSessionActivity(openIntent)
             .build()
     }
 
-    fun getAudioSessionId(): Int = (mediaSession?.player as? ExoPlayer)?.audioSessionId ?: 0
+    fun getAudioSessionId(): Int = exoPlayer?.audioSessionId ?: 0
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
@@ -55,6 +81,7 @@ private var mediaSession: MediaSession? = null
             release()
             mediaSession = null
         }
+        exoPlayer = null
         super.onDestroy()
     }
 }

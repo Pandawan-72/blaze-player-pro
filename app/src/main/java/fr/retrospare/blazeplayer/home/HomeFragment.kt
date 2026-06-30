@@ -128,6 +128,18 @@ class HomeFragment : Fragment() {
         showAudioTab()
     }
 
+    fun switchToTab(index: Int) {
+        currentTabIndex = index
+        viewModel.onTabSelected(index)
+        updateTabStyles(index)
+        if (index == 3) {
+            showAudioTab()
+        } else {
+            hideAudioTab()
+            updateSectionTitles(index)
+        }
+    }
+
     fun returnToHome() {
         currentTabIndex = 1
         updateTabStyles(1)
@@ -208,11 +220,11 @@ class HomeFragment : Fragment() {
 
     private fun setupButtons() {
         binding.btnBrowseNetwork.setOnClickListener {
-            audioPlayerFragment?.savePlaylist() ?: Unit
+            audioPlayerFragment?.savePlaylistFromController() ?: Unit
             findNavController().navigate(R.id.action_home_to_network)
         }
         binding.btnBrowseLocal.setOnClickListener {
-            audioPlayerFragment?.savePlaylist() ?: Unit
+            audioPlayerFragment?.savePlaylistFromController() ?: Unit
             findNavController().navigate(R.id.action_home_to_browser)
         }
     }
@@ -265,8 +277,8 @@ class HomeFragment : Fragment() {
                     tvFmt.visibility = View.GONE
                 }
 
-                // Thumbnail
-                if (!item.isNetwork && item.path.isNotEmpty()) {
+                // Thumbnail (local ou réseau SMB)
+                if (item.path.isNotEmpty()) {
                     viewLifecycleOwner.lifecycleScope.launch {
                         ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
                     }

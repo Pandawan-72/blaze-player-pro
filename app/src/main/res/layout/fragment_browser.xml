@@ -79,6 +79,15 @@
             android:tint="@color/on_surface_variant"
             android:contentDescription="Rechercher" />
 
+        <ImageButton
+            android:id="@+id/btnHome"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_surface_card"
+            android:src="@drawable/ic_home"
+            android:tint="@color/on_surface_variant"
+            android:contentDescription="Accueil" />
 
     </LinearLayout>
 

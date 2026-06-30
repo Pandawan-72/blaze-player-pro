@@ -45,7 +45,7 @@ class NetworkSharesAdapter(
         fun bind(share: NetworkShare) {
             tvName.text = share.name
             tvUrl.text = "${share.host}/${share.shareName}"
-            tvBadgeType.text = share.type.name
+            tvBadgeType.text = share.type?.name ?: "SMB"
             tvBadgeDefault.visibility = if (share.isDefault) View.VISIBLE else View.GONE
             tvStatus.text = ""
 

@@ -14,5 +14,5 @@ data class NetworkShare(
 )
 
 enum class ShareType {
-    SMB, DLNA, FTP
+    SMB, FTP
 }

@@ -38,11 +38,35 @@ object AudioRepository {
         } catch (e: Exception) { Pair(emptyList(), 0) }
     }
 
+    /**
+     * Construit un MediaItem minimal sans ouvrir de connexion (pas de metadata, pas de cover).
+     * Utilise pour un ajout immediat et rapide a la playlist (notamment reseau SMB),
+     * les metadonnees etant ensuite chargees en arriere-plan.
+     */
+    fun buildSimpleMediaItem(path: String, fileName: String): MediaItem {
+        return MediaItem.Builder()
+            .setUri(Uri.parse(path))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(fileName.substringBeforeLast("."))
+                    .setArtist("Artiste inconnu")
+                    .build()
+            )
+            .build()
+    }
+
     fun buildMediaItemWithMetadata(context: Context, path: String, fileName: String): MediaItem {
         val retriever = MediaMetadataRetriever()
+        var smbDataSource: SmbMediaDataSource? = null
         return try {
-            if (path.startsWith("content://")) retriever.setDataSource(context, Uri.parse(path))
-            else retriever.setDataSource(path)
+            when {
+                path.startsWith("smb://") -> {
+                    smbDataSource = SmbMediaDataSource(path)
+                    retriever.setDataSource(smbDataSource)
+                }
+                path.startsWith("content://") -> retriever.setDataSource(context, Uri.parse(path))
+                else -> retriever.setDataSource(path)
+            }
             val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)?.ifEmpty { null }
                 ?: fileName.substringBeforeLast(".")
             val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)?.ifEmpty { null }
@@ -72,6 +96,7 @@ object AudioRepository {
                 .build()
         } finally {
             retriever.release()
+            try { smbDataSource?.close() } catch (_: Exception) {}
         }
     }
 
