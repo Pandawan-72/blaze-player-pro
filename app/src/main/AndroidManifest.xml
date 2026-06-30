@@ -120,6 +120,11 @@
         android:exported="false"
         tools:node="remove" />
 
+    <activity
+        android:name=".player.NetworkVideoBrowserActivity"
+        android:exported="false"
+        android:theme="@style/Theme.BlazePlayer" />
+
 </application>
 
 </manifest>

@@ -98,6 +98,12 @@ class PlayerActivity : AppCompatActivity() {
 
         instance = java.lang.ref.WeakReference(this)
         mediaPath = intent.getStringExtra("mediaPath") ?: return finish()
+
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                goBackToHistory()
+            }
+        })
         mediaName = intent.getStringExtra("mediaName") ?: File(mediaPath).name
 
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
@@ -151,8 +157,23 @@ class PlayerActivity : AppCompatActivity() {
 
         // Stop audio si actif
 
-        // Init ExoPlayer
-        player = ExoPlayer.Builder(this).build()
+        // Init ExoPlayer avec decoder FFmpeg en fallback pour les codecs audio non natifs (AC3, EAC3, DTS, TrueHD...)
+        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
+            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+
+        player = if (mediaPath.startsWith("smb://")) {
+            val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(
+                this,
+                SmbDataSource.Factory()
+            )
+            val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(this)
+                .setDataSourceFactory(dataSourceFactory)
+            ExoPlayer.Builder(this, renderersFactory)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .build()
+        } else {
+            ExoPlayer.Builder(this, renderersFactory).build()
+        }
 
         // Attache la surface ExoPlayer
         val surfaceView = binding.playerView as android.view.SurfaceView
@@ -390,8 +411,21 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun goBackToHistory() {
+        if (mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) {
+            // Vient du réseau : ramène directement à l'accueil, onglet Réseau, avec l'historique à jour
+            val intent = android.content.Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
+            intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            intent.putExtra("requestedTab", 2) // Onglet Reseau
+            startActivity(intent)
+            finish()
+        } else {
+            finish()
+        }
+    }
+
     private fun setupControls() {
-        binding.btnBack.setOnClickListener { finish() }
+        binding.btnBack.setOnClickListener { goBackToHistory() }
 
         binding.btnPlayPause.setOnClickListener {
             if (player.isPlaying) player.pause() else player.play()
@@ -642,7 +676,7 @@ class PlayerActivity : AppCompatActivity() {
                 resolution = resolution,
                 videoCodec = info.videoCodec,
                 audioCodec = info.audioCodec,
-                isNetwork = false, lastPlayedAt = System.currentTimeMillis()
+                isNetwork = mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://"), lastPlayedAt = System.currentTimeMillis()
             ))
         }
     }

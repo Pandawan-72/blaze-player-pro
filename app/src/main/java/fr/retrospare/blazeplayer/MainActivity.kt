@@ -93,6 +93,18 @@ class MainActivity : AppCompatActivity() {
         if (intent.getBooleanExtra("openBlazeAudio", false)) {
             handler.postDelayed({ openBlazeAudio() }, 300)
         }
+        val requestedTab = intent.getIntExtra("requestedTab", -1)
+        if (requestedTab in 1..3) {
+            handler.postDelayed({ switchToTab(requestedTab) }, 300)
+        }
+    }
+
+    private fun switchToTab(index: Int) {
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+        val homeFragment = navHost?.childFragmentManager?.fragments
+            ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
+            ?.firstOrNull()
+        homeFragment?.switchToTab(index)
     }
 
     private fun openBlazeAudio() {

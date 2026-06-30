@@ -35,11 +35,9 @@ object ThumbnailUtils {
         context: Context,
         path: String,
         imageView: ImageView,
-        timeUs: Long = 1_000_000L
+        timeUs: Long = 30_000_000L
     ) = withContext(Dispatchers.IO) {
         try {
-            if (path.startsWith("smb://") || path.startsWith("ftp://")) return@withContext
-
             // Vérifie le cache d'abord
             cache.get(path)?.let { cached ->
                 withContext(Dispatchers.Main) {
@@ -92,9 +90,18 @@ object ThumbnailUtils {
             } else {
                 // Vidéo - réduit la résolution d'extraction
                 val retriever = MediaMetadataRetriever()
+                var smbDataSource: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
                 try {
-                    retriever.setDataSource(context, Uri.parse(path))
-                    val bitmap = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                    if (path.startsWith("smb://")) {
+                        smbDataSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
+                        retriever.setDataSource(smbDataSource)
+                    } else {
+                        retriever.setDataSource(context, Uri.parse(path))
+                    }
+                    var bitmap = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST)
+                    if (bitmap == null) {
+                        bitmap = retriever.frameAtTime
+                    }
                     bitmap?.let {
                         val scaled = scaleBitmap(it, 160)
                         cache.put(path, scaled)
@@ -105,10 +112,11 @@ object ThumbnailUtils {
                     }
                 } finally {
                     retriever.release()
+                    try { smbDataSource?.close() } catch (_: Exception) {}
                 }
             }
         } catch (e: Exception) {
-            // Garde le placeholder
+            android.util.Log.e("ThumbnailUtils", "Failed to load thumbnail for $path", e)
         }
     }
 

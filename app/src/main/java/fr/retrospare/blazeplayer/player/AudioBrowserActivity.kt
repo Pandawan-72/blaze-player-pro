@@ -55,6 +55,14 @@ class AudioBrowserActivity : AppCompatActivity() {
         binding = ActivityAudioBrowserBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        binding.btnHome?.setOnClickListener {
+            val intent = android.content.Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
+            intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            intent.putExtra("requestedTab", 1) // Onglet Local
+            startActivity(intent)
+            finish()
+        }
+
         binding.btnBack.setOnClickListener {
             if (folderStack.isNotEmpty()) {
                 folderStack.removeLast().invoke()

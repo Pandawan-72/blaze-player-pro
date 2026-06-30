@@ -60,12 +60,9 @@ class NetworkSharesFragment : Fragment() {
         // Adapteur des chemins sauvegardés
         savedAdapter = NetworkSharesAdapter(
             onBrowse = { share ->
-                val bundle = Bundle().apply {
-                    putString("shareId", share.id)
-                    putString("path", "")
-                    putBoolean("isNetwork", true)
-                }
-                findNavController().navigate(R.id.action_network_to_browser, bundle)
+                val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity::class.java)
+                intent.putExtra("shareId", share.id)
+                startActivity(intent)
             },
             onSetDefault = { share -> viewModel.setDefault(share) },
             onEdit = { share -> showAddEditDialog(share) },
@@ -147,24 +144,20 @@ class NetworkSharesFragment : Fragment() {
         tvName.text = device.name
         tvIp.text = device.ip
         tvBadge.text = device.type.name
-        tvBadge.setBackgroundResource(if (device.type == ShareType.DLNA) R.drawable.bg_badge_green else R.drawable.bg_badge_blue)
+        tvBadge.setBackgroundResource(R.drawable.bg_badge_blue)
 
-        if (device.type == ShareType.DLNA) {
-            layoutShare.visibility = android.view.View.GONE
-        } else {
-            // Charge les partages SMB disponibles
-            viewLifecycleOwner.lifecycleScope.launch {
-                val shares = viewModel.listShares(device.ip, null, null)
-                if (shares.isNotEmpty()) {
-                    etShare.setText(shares.first())
-                    if (shares.size > 1) {
-                        etShare.setOnClickListener {
-                            AlertDialog.Builder(requireContext())
-                                .setTitle("Choisir un partage")
-                                .setItems(shares.toTypedArray()) { _: DialogInterface, j: Int ->
-                                    etShare.setText(shares[j])
-                                }.show()
-                        }
+        // Charge les partages SMB disponibles
+        viewLifecycleOwner.lifecycleScope.launch {
+            val shares = viewModel.listShares(device.ip, null, null)
+            if (shares.isNotEmpty()) {
+                etShare.setText(shares.first())
+                if (shares.size > 1) {
+                    etShare.setOnClickListener {
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Choisir un partage")
+                            .setItems(shares.toTypedArray()) { _: DialogInterface, j: Int ->
+                                etShare.setText(shares[j])
+                            }.show()
                     }
                 }
             }
@@ -178,7 +171,7 @@ class NetworkSharesFragment : Fragment() {
                     id = "${device.type.name.lowercase()}_${device.ip}",
                     name = device.name,
                     host = device.ip,
-                    port = if (device.type == ShareType.SMB) 445 else null,
+                    port = 445,
                     shareName = etShare.text?.toString() ?: "",
                     username = etUsername.text?.toString()?.takeIf { it.isNotEmpty() },
                     password = etPassword.text?.toString()?.takeIf { it.isNotEmpty() },
@@ -214,7 +207,7 @@ class NetworkSharesFragment : Fragment() {
 
         fun updateTypeButtons(type: ShareType) {
             selectedType = type
-            listOf(dialogBinding.btnTypeSmb to ShareType.SMB, dialogBinding.btnTypeDlna to ShareType.DLNA)
+            listOf(dialogBinding.btnTypeSmb to ShareType.SMB)
                 .forEach { (btn, t) ->
                     val selected = t == type
                     btn.setTextColor(if (selected) resources.getColor(R.color.blue_accent, null) else resources.getColor(R.color.on_surface_variant, null))
@@ -223,7 +216,6 @@ class NetworkSharesFragment : Fragment() {
         }
         updateTypeButtons(selectedType)
         dialogBinding.btnTypeSmb.setOnClickListener { updateTypeButtons(ShareType.SMB) }
-        dialogBinding.btnTypeDlna.setOnClickListener { updateTypeButtons(ShareType.DLNA) }
 
         AlertDialog.Builder(requireContext())
             .setTitle(null)

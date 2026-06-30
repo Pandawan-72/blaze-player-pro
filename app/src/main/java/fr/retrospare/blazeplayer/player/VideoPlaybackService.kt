@@ -41,7 +41,7 @@ object VideoPlaybackService {
             .addAction(playPauseAction)
             .addAction(stopAction)
             .setStyle(androidx.media.app.NotificationCompat.MediaStyle()
-                .setMediaSession(session.sessionCompatToken)
+                .setMediaSession(android.support.v4.media.session.MediaSessionCompat.Token.fromToken(session.platformToken))
                 .setShowActionsInCompactView(0))
             .setOngoing(isPlaying)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

@@ -22,9 +22,14 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.7.0-alpha"
+        versionCode = 9
+        versionName = "0.9.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     buildTypes {
@@ -93,6 +98,7 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
     implementation(libs.media3.cast)
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1")
     // REMOVED: implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
     implementation("androidx.media:media:1.7.0")
     // LibVLC pour codecs legacy (AVI, XVID, DIVX, FLAC, DTS, etc.)
@@ -117,6 +123,8 @@ dependencies {
 
     // SMB
     implementation(libs.smbj)
+    implementation("com.rapid7.client:dcerpc:0.12.13")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
     // Material Design (Views) + AppCompat

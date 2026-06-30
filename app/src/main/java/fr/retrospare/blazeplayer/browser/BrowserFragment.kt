@@ -113,6 +113,9 @@ class BrowserFragment : Fragment() {
     }
 
     private fun setupButtons() {
+        binding.btnHome?.setOnClickListener {
+            findNavController().popBackStack(R.id.homeFragment, false)
+        }
         binding.btnBack.setOnClickListener {
             if (breadcrumbParts.isNotEmpty()) {
                 breadcrumbParts.removeAt(breadcrumbParts.lastIndex)
