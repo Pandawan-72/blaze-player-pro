@@ -324,32 +324,33 @@ class AudioPlayerFragment : Fragment() {
             pickAudio.launch(android.content.Intent(requireContext(), AudioBrowserActivity::class.java))
         }
 
-        val bottomSheet = com.google.android.material.bottomsheet.BottomSheetBehavior.from(binding.playlistSheet)
-        bottomSheet.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
-        bottomSheet.maxHeight = resources.displayMetrics.heightPixels
-        bottomSheet.isFitToContents = false
-        bottomSheet.halfExpandedRatio = 0.01f
+        fun openPlaylist() {
+            binding.playlistSheet.visibility = android.view.View.VISIBLE
+            binding.playlistSheet.translationY = binding.playlistSheet.height.toFloat().takeIf { it > 0 } ?: resources.displayMetrics.heightPixels.toFloat()
+            binding.playlistSheet.animate()
+                .translationY(0f)
+                .setDuration(220)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+            _binding?.btnBack?.visibility = android.view.View.INVISIBLE
+        }
 
-        bottomSheet.addBottomSheetCallback(object : com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback() {
-            override fun onStateChanged(view: android.view.View, newState: Int) {
-                val isExpanded = newState == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
-                _binding?.btnBack?.visibility = if (isExpanded) android.view.View.INVISIBLE else android.view.View.VISIBLE
-                if (isExpanded) {
-                    // Force la hauteur plein écran
-                    val params = binding.playlistSheet.layoutParams
-                    params.height = resources.displayMetrics.heightPixels
-                    binding.playlistSheet.layoutParams = params
+        fun closePlaylist() {
+            binding.playlistSheet.animate()
+                .translationY(resources.displayMetrics.heightPixels.toFloat())
+                .setDuration(200)
+                .setInterpolator(android.view.animation.AccelerateInterpolator())
+                .withEndAction {
+                    _binding?.playlistSheet?.visibility = android.view.View.GONE
                 }
-            }
-            override fun onSlide(view: android.view.View, slideOffset: Float) {}
-        })
+                .start()
+            _binding?.btnBack?.visibility = android.view.View.VISIBLE
+        }
 
         binding.btnPlaylistSheet.setOnClickListener {
-            bottomSheet.state = if (bottomSheet.state == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN)
-                com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
-            else
-                com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_HIDDEN
+            if (binding.playlistSheet.visibility == android.view.View.VISIBLE) closePlaylist() else openPlaylist()
         }
+        binding.btnClosePlaylist.setOnClickListener { closePlaylist() }
     }
 
     fun savePlaylist() {
