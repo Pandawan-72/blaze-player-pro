@@ -161,31 +161,36 @@ class PlayerActivity : AppCompatActivity() {
         val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
             .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 
-        player = if (mediaPath.startsWith("smb://")) {
-            val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(
-                this,
-                SmbDataSource.Factory()
+        // LoadControl etendu pour remux 4K HDR lourds via SMB (60-150+ Mbps), evite les coupures reseau
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setAllocator(androidx.media3.exoplayer.upstream.DefaultAllocator(true, 64 * 1024))
+            .setBufferDurationsMs(
+                60_000,
+                300_000,
+                5_000,
+                10_000
             )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
+
+        player = if (mediaPath.startsWith("smb://")) {
             val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(this)
-                .setDataSourceFactory(dataSourceFactory)
+                .setDataSourceFactory(SmbDataSource.Factory())
             ExoPlayer.Builder(this, renderersFactory)
                 .setMediaSourceFactory(mediaSourceFactory)
+                .setLoadControl(loadControl)
                 .build()
         } else {
             ExoPlayer.Builder(this, renderersFactory).build()
         }
 
         // Attache la surface ExoPlayer
-        val surfaceView = binding.playerView as android.view.SurfaceView
-        player.setVideoSurfaceView(surfaceView)
+        binding.playerView.player = player
 
         // Gestion ratio automatique
         player.addListener(object : androidx.media3.common.Player.Listener {
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
-                if (videoSize.width > 0 && videoSize.height > 0) {
-                    val ratio = videoSize.width.toFloat() * videoSize.pixelWidthHeightRatio / videoSize.height
-                    binding.aspectRatioFrame.setAspectRatio(ratio)
-                }
+                // PlayerView gere automatiquement le ratio via son contenu interne, rien a faire ici
             }
         })
 
@@ -202,6 +207,13 @@ class PlayerActivity : AppCompatActivity() {
         VideoPlaybackService.showNotification(this, player, mediaName, mediaSession!!)
 
         player.addListener(object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                android.util.Log.e("PlayerActivity", "Player error for $mediaPath", error)
+                if (mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) {
+                    runOnUiThread { showNetworkErrorDialog(error) }
+                }
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 runOnUiThread {
                     updatePlayPauseBtn(isPlaying)
@@ -249,10 +261,17 @@ class PlayerActivity : AppCompatActivity() {
         scheduleHide()
         // Extrait miniature vidéo en arrière-plan
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            var smbDataSourceThumb: SmbMediaDataSource? = null
             try {
                 val r = android.media.MediaMetadataRetriever()
-                if (mediaPath.startsWith("content://")) r.setDataSource(this@PlayerActivity, android.net.Uri.parse(mediaPath))
-                else r.setDataSource(mediaPath)
+                when {
+                    mediaPath.startsWith("smb://") -> {
+                        smbDataSourceThumb = SmbMediaDataSource(mediaPath)
+                        r.setDataSource(smbDataSourceThumb)
+                    }
+                    mediaPath.startsWith("content://") -> r.setDataSource(this@PlayerActivity, android.net.Uri.parse(mediaPath))
+                    else -> r.setDataSource(mediaPath)
+                }
                 val frame = r.getFrameAtTime(1_000_000)
                 videoThumbnail = frame?.let {
                     val scale = 256f / maxOf(it.width, it.height)
@@ -260,40 +279,37 @@ class PlayerActivity : AppCompatActivity() {
                     else it
                 }
                 r.release()
+                try { smbDataSourceThumb?.close() } catch (_: Exception) {}
                 // Rafraîchit la notification avec la miniature
                 mediaSession?.let {
                     withContext(kotlinx.coroutines.Dispatchers.Main) {
                         VideoPlaybackService.showNotification(this@PlayerActivity, player, mediaName, it, videoThumbnail)
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                android.util.Log.e("PlayerActivity", "Thumbnail extraction failed for $mediaPath", e)
+                try { smbDataSourceThumb?.close() } catch (_: Exception) {}
+            }
         }
     }
 
     private var currentRatioIndex = 0
-    private val ratioLabels = listOf("Auto", "16:9", "4:3", "Plein")
+    private val ratioLabels = listOf("Auto", "Zoom", "Étiré", "Plein")
 
     private fun cycleAspectRatio() {
         currentRatioIndex = (currentRatioIndex + 1) % ratioLabels.size
         when (currentRatioIndex) {
-            0 -> { // Auto - ratio naturel de la vidéo
-                val size = player.videoSize
-                if (size.width > 0 && size.height > 0) {
-                    val ratio = size.width.toFloat() * size.pixelWidthHeightRatio / size.height
-                    binding.aspectRatioFrame.setAspectRatio(ratio)
-                }
-                binding.aspectRatioFrame.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+            0 -> { // Auto - ratio natif de la video, letterbox si besoin
+                binding.playerView.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
             }
-            1 -> { // 16:9
-                binding.aspectRatioFrame.setAspectRatio(16f / 9f)
-                binding.aspectRatioFrame.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+            1 -> { // Zoom - remplit l'ecran en recadrant les bords, sans deformer
+                binding.playerView.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
             }
-            2 -> { // 4:3
-                binding.aspectRatioFrame.setAspectRatio(4f / 3f)
-                binding.aspectRatioFrame.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+            2 -> { // Étiré - force le ratio de l'ecran sans recadrer (deforme l'image)
+                binding.playerView.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
             }
-            3 -> { // Plein écran
-                binding.aspectRatioFrame.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+            3 -> { // Plein - identique a Étiré (alias conserve pour compatibilite du libelle)
+                binding.playerView.resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
             }
         }
         // Affiche le ratio au centre pendant 2 secondes
@@ -310,48 +326,91 @@ class PlayerActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, "Aucune piste audio", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-        val items = audioGroups.mapIndexed { i, group ->
+        val labels = audioGroups.mapIndexed { i, group ->
             val format = group.getTrackFormat(0)
-            val lang = format.language ?: "Piste ${i + 1}"
-            val selected = group.isSelected
-            "${if (selected) "✓  " else "    "}$lang"
+            val baseLang = format.language ?: "Piste"
+            val label = format.label
+            when {
+                !label.isNullOrBlank() -> label
+                audioGroups.count { it.getTrackFormat(0).language == format.language } > 1 -> "$baseLang ${i + 1}"
+                else -> baseLang
+            }
         }
-        android.app.AlertDialog.Builder(this)
-            .setTitle("Piste audio")
-            .setItems(items.toTypedArray()) { _, i ->
-                val params = player.trackSelectionParameters.buildUpon()
-                    .setPreferredAudioLanguage(
-                        audioGroups[i].getTrackFormat(0).language
-                    ).build()
-                player.trackSelectionParameters = params
-            }.show()
+        val selectedIndex = audioGroups.indexOfFirst { it.isSelected }.let { if (it == -1) -1 else it }
+        showTrackSelector("Piste audio", labels, selectedIndex) { i ->
+            val override = androidx.media3.common.TrackSelectionOverride(audioGroups[i].mediaTrackGroup, 0)
+            player.trackSelectionParameters = player.trackSelectionParameters
+                .buildUpon()
+                .clearOverridesOfType(androidx.media3.common.C.TRACK_TYPE_AUDIO)
+                .addOverride(override)
+                .build()
+        }
+    }
+
+    /** Affiche un selecteur de piste (audio ou sous-titre) sous forme de bottom sheet custom. */
+    private fun showTrackSelector(title: String, labels: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_track_selector, null)
+        dialogView.findViewById<android.widget.TextView>(R.id.tvTrackDialogTitle).text = title
+        val recycler = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recyclerTracks)
+        recycler.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        dialog.setContentView(dialogView)
+
+        recycler.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
+            override fun getItemCount() = labels.size
+            override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
+                val v = layoutInflater.inflate(R.layout.item_track_option, parent, false)
+                return object : androidx.recyclerview.widget.RecyclerView.ViewHolder(v) {}
+            }
+            override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
+                val v = holder.itemView
+                v.findViewById<android.widget.TextView>(R.id.tvTrackLabel).text = labels[position]
+                v.findViewById<android.widget.ImageView>(R.id.ivTrackCheck).visibility =
+                    if (position == selectedIndex) android.view.View.VISIBLE else android.view.View.INVISIBLE
+                v.setOnClickListener {
+                    onSelect(position)
+                    dialog.dismiss()
+                }
+            }
+        }
+        dialog.show()
     }
 
     private fun showSubtitles() {
         val tracks = player.currentTracks
         val subGroups = tracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_TEXT }
-        val items = mutableListOf("${if (subGroups.none { it.isSelected }) "✓  " else "    "}Désactivés")
+        val labels = mutableListOf("Désactivés")
         subGroups.forEachIndexed { i, group ->
             val format = group.getTrackFormat(0)
-            val lang = format.language ?: "ST ${i + 1}"
-            items.add("${if (group.isSelected) "✓  " else "    "}$lang")
+            val baseLang = format.language ?: "ST"
+            val label = format.label
+            val lang = when {
+                !label.isNullOrBlank() -> label
+                subGroups.count { it.getTrackFormat(0).language == format.language } > 1 -> "$baseLang ${i + 1}"
+                else -> baseLang
+            }
+            labels.add(lang)
         }
-        android.app.AlertDialog.Builder(this)
-            .setTitle("Sous-titres")
-            .setItems(items.toTypedArray()) { _, i ->
-                if (i == 0) {
-                    player.trackSelectionParameters = player.trackSelectionParameters
-                        .buildUpon()
-                        .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, true)
-                        .build()
-                } else {
-                    player.trackSelectionParameters = player.trackSelectionParameters
-                        .buildUpon()
-                        .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, false)
-                        .setPreferredTextLanguage(subGroups[i - 1].getTrackFormat(0).language)
-                        .build()
-                }
-            }.show()
+        val selectedIndex = if (subGroups.none { it.isSelected }) 0 else subGroups.indexOfFirst { it.isSelected } + 1
+        showTrackSelector("Sous-titres", labels, selectedIndex) { i ->
+            if (i == 0) {
+                player.trackSelectionParameters = player.trackSelectionParameters
+                    .buildUpon()
+                    .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, true)
+                    .clearOverridesOfType(androidx.media3.common.C.TRACK_TYPE_TEXT)
+                    .build()
+            } else {
+                val selectedGroup = subGroups[i - 1]
+                val override = androidx.media3.common.TrackSelectionOverride(selectedGroup.mediaTrackGroup, 0)
+                player.trackSelectionParameters = player.trackSelectionParameters
+                    .buildUpon()
+                    .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, false)
+                    .clearOverridesOfType(androidx.media3.common.C.TRACK_TYPE_TEXT)
+                    .addOverride(override)
+                    .build()
+            }
+        }
     }
 
 
@@ -424,6 +483,24 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private var networkErrorDialogShown = false
+
+    private fun showNetworkErrorDialog(error: androidx.media3.common.PlaybackException) {
+        if (networkErrorDialogShown) return
+        networkErrorDialogShown = true
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Erreur de lecture réseau")
+            .setMessage("La lecture de cette vidéo a échoué (connexion au NAS interrompue, Wi-Fi instable, ou fichier inaccessible).")
+            .setCancelable(false)
+            .setPositiveButton("Réessayer") { _, _ ->
+                networkErrorDialogShown = false
+                player.prepare()
+                player.play()
+            }
+            .setNegativeButton("Quitter") { _, _ -> finish() }
+            .show()
+    }
+
     private fun setupControls() {
         binding.btnBack.setOnClickListener { goBackToHistory() }
 
@@ -456,7 +533,7 @@ class PlayerActivity : AppCompatActivity() {
             showSubtitles()
         }
         binding.uiOverlay.setOnClickListener { if (uiVisible) hideUI() else showUI() }
-        (binding.playerView as android.view.SurfaceView).setOnClickListener { if (uiVisible) hideUI() else showUI() }
+        binding.playerView.setOnClickListener { if (uiVisible) hideUI() else showUI() }
     }
 
     private fun seekMs() = when (prefSeekIndex) {

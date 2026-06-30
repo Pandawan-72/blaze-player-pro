@@ -39,6 +39,9 @@ class HomeViewModel @Inject constructor(
 
     private var allItems: List<MediaItem> = emptyList()
 
+    private val _currentTabIndex = MutableStateFlow(0)
+    val currentTabIndex: StateFlow<Int> = _currentTabIndex.asStateFlow()
+
     init {
         viewModelScope.launch {
             mediaRepository.getRecentItems().collect { items ->
@@ -50,7 +53,7 @@ class HomeViewModel @Inject constructor(
                 }
                 allItems = enriched
                 _lastPlayedItem.value = enriched.firstOrNull()
-                applyTab(0)
+                applyTab(_currentTabIndex.value)
             }
         }
     }
@@ -129,9 +132,6 @@ class HomeViewModel @Inject constructor(
         else -> "AAC"
     }
 
-    private val _currentTabIndex = MutableStateFlow(0)
-    val currentTabIndex: StateFlow<Int> = _currentTabIndex.asStateFlow()
-
     fun onTabSelected(position: Int) {
         _currentTabIndex.value = position
         applyTab(position)
@@ -158,7 +158,7 @@ class HomeViewModel @Inject constructor(
 
     fun removeFromHistory(item: fr.retrospare.blazeplayer.data.model.MediaItem) {
         viewModelScope.launch {
-            mediaRepository.removeRecentItem(item.id)
+            mediaRepository.removeRecentItem(item.path)
         }
     }
 }

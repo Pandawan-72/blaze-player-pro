@@ -4,49 +4,39 @@ import android.media.MediaDataSource
 import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2ShareAccess
-import com.hierynomus.smbj.SMBClient
-import com.hierynomus.smbj.SmbConfig
-import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
 import com.hierynomus.smbj.share.File as SmbFile
 import java.util.EnumSet
-import java.util.concurrent.TimeUnit
 
 /**
  * MediaDataSource permettant a MediaMetadataRetriever de lire un fichier via SMB
- * pour generer des miniatures sans avoir a streamer via ExoPlayer.
+ * pour generer des miniatures / extraire des metadonnees sans avoir a streamer via ExoPlayer.
+ * Utilise SmbSessionPool (meme pool que SmbDataSource) pour reutiliser connexion/session/share.
  */
 class SmbMediaDataSource(smbUri: String) : MediaDataSource() {
 
     private val parsed = SmbDataSource.parseSmbUri(android.net.Uri.parse(smbUri))
-    private var client: SMBClient? = null
     private var diskShare: DiskShare? = null
     private var smbFile: SmbFile? = null
-    private var inputStream: java.io.InputStream? = null
     private var fileSize: Long = -1L
-    private var currentPos: Long = 0L
 
     init {
-        val config = SmbConfig.builder()
-            .withTimeout(10, TimeUnit.SECONDS)
-            .withReadTimeout(15, TimeUnit.SECONDS)
-            .build()
-        val smbClient = SMBClient(config)
-        client = smbClient
-        val connection = smbClient.connect(parsed.host, parsed.port)
-        val authContext = if (!parsed.username.isNullOrEmpty()) {
-            AuthenticationContext(parsed.username, (parsed.password ?: "").toCharArray(), "")
-        } else AuthenticationContext.anonymous()
-        val session = connection.authenticate(authContext)
-        val share = session.connectShare(parsed.shareName) as DiskShare
+        val share = try {
+            SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
+        } catch (e: Exception) {
+            android.util.Log.e("SmbMediaDataSource", "getShare failed, retrying after invalidate", e)
+            SmbSessionPool.invalidate(parsed.host, parsed.port, parsed.username, parsed.shareName)
+            SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
+        }
         diskShare = share
+
         val file = share.openFile(
             parsed.filePath,
             EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
             null,
             SMB2ShareAccess.ALL,
             SMB2CreateDisposition.FILE_OPEN,
-            null
+            EnumSet.of(com.hierynomus.mssmb2.SMB2CreateOptions.FILE_SEQUENTIAL_ONLY)
         )
         smbFile = file
         fileSize = file.getFileInformation(FileStandardInformation::class.java).endOfFile
@@ -57,6 +47,8 @@ class SmbMediaDataSource(smbUri: String) : MediaDataSource() {
         return try {
             file.read(buffer, position, offset, size)
         } catch (e: Exception) {
+            android.util.Log.e("SmbMediaDataSource", "readAt failed at position $position", e)
+            SmbSessionPool.invalidate(parsed.host, parsed.port, parsed.username, parsed.shareName)
             -1
         }
     }
@@ -64,11 +56,11 @@ class SmbMediaDataSource(smbUri: String) : MediaDataSource() {
     override fun getSize(): Long = fileSize
 
     override fun close() {
-        try { smbFile?.close() } catch (_: Exception) {}
-        try { diskShare?.close() } catch (_: Exception) {}
-        try { client?.close() } catch (_: Exception) {}
+        // Ne ferme pas le DiskShare (mutualise via SmbSessionPool), seulement le handle de fichier
+        try { smbFile?.close() } catch (e: Exception) {
+            android.util.Log.e("SmbMediaDataSource", "Failed to close smbFile", e)
+        }
         smbFile = null
         diskShare = null
-        client = null
     }
 }

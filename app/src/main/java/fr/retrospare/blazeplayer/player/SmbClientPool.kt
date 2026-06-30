@@ -13,8 +13,8 @@ object SmbClientPool {
 
     private val config = SmbConfig.builder()
         .withTimeout(30, TimeUnit.SECONDS)
-        .withReadTimeout(120, TimeUnit.SECONDS) // timeout etendu pour gros fichiers/FLAC/Wi-Fi faible
-        .withSoTimeout(120, TimeUnit.SECONDS)
+        .withReadTimeout(300, TimeUnit.SECONDS) // timeout etendu pour gros fichiers/remux Blu-ray/Wi-Fi faible
+        .withSoTimeout(300, TimeUnit.SECONDS)
         .build()
 
     @Volatile

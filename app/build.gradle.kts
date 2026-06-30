@@ -22,8 +22,8 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.9.0-alpha"
+        versionCode = 10
+        versionName = "0.10.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
     implementation(libs.media3.cast)
+    implementation("androidx.media3:media3-database:1.9.0")
     implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1")
     // REMOVED: implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
     implementation("androidx.media:media:1.7.0")

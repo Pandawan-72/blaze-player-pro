@@ -240,6 +240,7 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun loadNetworkShares() {
+        folderStack.clear()
         lifecycleScope.launch {
             val shares = networkRepository.getShares().first()
             if (shares.isEmpty()) {
@@ -298,7 +299,11 @@ class AudioBrowserActivity : AppCompatActivity() {
                 val combinedAdapter = CombinedAudioAdapter(
                     folders = folders.map { it.name to it.path },
                     files = fileItems,
-                    onFolderClick = { folderPath -> browseNetworkShare(share, folderPath) },
+                    onFolderClick = { folderPath ->
+                        val previousPath = path
+                        folderStack.addLast { browseNetworkShare(share, previousPath) }
+                        browseNetworkShare(share, folderPath)
+                    },
                     onFileToggle = { path2, name, checked ->
                         if (checked) selectedItems.add(Pair(path2, name))
                         else selectedItems.removeAll { it.first == path2 }
