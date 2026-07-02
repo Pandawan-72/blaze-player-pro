@@ -9,7 +9,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
-import fr.retrospare.blazeplayer.utils.AudioArtworkHelper
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.CoroutineScope
@@ -230,7 +229,8 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                                 val ds = if (info.duration > 0) info.formattedDuration
                                     else if (item.duration > 0) "%d:%02d".format(item.duration / 60, item.duration % 60)
                                     else "N/A"
-                                val msg = v.context.getString(R.string.dialog_video_info_message, item.path, item.extension.uppercase(), ds, sz)
+                                val res = info.resolutionLabel.ifEmpty { "N/A" }
+                                val msg = v.context.getString(R.string.dialog_video_info_message, item.path, item.extension.uppercase(), res, ds, sz)
                                 android.app.AlertDialog.Builder(v.context)
                                     .setTitle(item.name)
                                     .setMessage(msg)

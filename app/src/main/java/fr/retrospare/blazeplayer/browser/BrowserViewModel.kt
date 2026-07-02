@@ -145,7 +145,23 @@ class BrowserViewModel @Inject constructor(
             try {
                 val result = smbBrowser.listFiles(share, path)
                 result.onSuccess { items ->
-                    _state.value = BrowserState.Success(applySortMode(items))
+                    // Affichage immédiat avec des badges devinés depuis l'extension (ou déjà en
+                    // cache) — plutôt que d'attendre l'extraction de tout le dossier, ce qui
+                    // faisait dépendre l'affichage entier du fichier le plus lent.
+                    var currentItems = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(items)
+                    _state.value = BrowserState.Success(applySortMode(currentItems))
+
+                    // Enrichissement réel en arrière-plan, ligne par ligne : chaque élément prêt
+                    // réémet un état mis à jour, et l'adapter (ListAdapter + DiffUtil) ne
+                    // rafraîchit que la ligne concernée.
+                    fr.retrospare.blazeplayer.player.VideoMetadataExtractor.enrichVideoItemsIncremental(
+                        context, currentItems
+                    ) { index, enriched ->
+                        if (index < currentItems.size) {
+                            currentItems = currentItems.toMutableList().also { it[index] = enriched }
+                            _state.value = BrowserState.Success(applySortMode(currentItems))
+                        }
+                    }
                 }.onFailure { e ->
                     _state.value = BrowserState.Error(e.message ?: "Erreur réseau SMB")
                 }

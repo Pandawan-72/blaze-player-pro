@@ -284,7 +284,7 @@
     <string name="action_play">Afspelen</string>
     <string name="action_information">Informatie</string>
     <string name="unknown_size">Onbekend</string>
-    <string name="dialog_video_info_message">Pad: %1$s\n\nContainer: %2$s\nDuur: %3$s\nGrootte: %4$s</string>
+    <string name="dialog_video_info_message">Pad: %1$s\n\nContainer: %2$s\nResolutie: %3$s\nDuur: %4$s\nGrootte: %5$s</string>
 
     <plurals name="video_count">
         <item quantity="one">%1$d video</item>

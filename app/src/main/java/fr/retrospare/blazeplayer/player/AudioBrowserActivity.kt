@@ -577,25 +577,16 @@ class AudioBrowserAdapter(
                 else -> tvBitrate.visibility = android.view.View.GONE
             }
 
-            // Cover depuis métadonnées sur thread IO
+            // Cover : via ThumbnailUtils, qui a son propre cache disque dédié aux images — évite
+            // de re-décoder la pochette à chaque scroll comme c'était le cas avant.
             ivCover.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_artwork)
-            Thread {
-                try {
-                    val retriever = android.media.MediaMetadataRetriever()
-                    if (item.path.startsWith("content://"))
-                        retriever.setDataSource(itemView.context, android.net.Uri.parse(item.path))
-                    else
-                        retriever.setDataSource(item.path)
-                    val art = retriever.embeddedPicture
-                    retriever.release()
-                    if (art != null) {
-                        val bmp = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size)
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            ivCover.setImageBitmap(bmp)
-                        }
+            if (item.path.isNotEmpty()) {
+                Thread {
+                    kotlinx.coroutines.runBlocking {
+                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(itemView.context, item.path, ivCover)
                     }
-                } catch (_: Exception) {}
-            }.start()
+                }.start()
+            }
         }
     }
 }
@@ -794,20 +785,13 @@ class MixedAudioAdapter(
             v.setOnClickListener { checkbox?.isChecked = !(checkbox?.isChecked ?: false) }
             val ivCover = v.findViewById<android.widget.ImageView>(R.id.ivAudioCover)
             ivCover?.setImageResource(R.drawable.bg_artwork)
-            Thread {
-                try {
-                    val retriever = android.media.MediaMetadataRetriever()
-                    if (item.path.startsWith("content://"))
-                        retriever.setDataSource(v.context, android.net.Uri.parse(item.path))
-                    else retriever.setDataSource(item.path)
-                    val art = retriever.embeddedPicture
-                    retriever.release()
-                    if (art != null) {
-                        val bmp = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size)
-                        android.os.Handler(android.os.Looper.getMainLooper()).post { ivCover?.setImageBitmap(bmp) }
+            if (item.path.isNotEmpty() && ivCover != null) {
+                Thread {
+                    kotlinx.coroutines.runBlocking {
+                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(v.context, item.path, ivCover)
                     }
-                } catch (_: Exception) {}
-            }.start()
+                }.start()
+            }
         }
     }
 }

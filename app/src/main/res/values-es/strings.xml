@@ -284,7 +284,7 @@
     <string name="action_play">Reproducir</string>
     <string name="action_information">Información</string>
     <string name="unknown_size">Desconocido</string>
-    <string name="dialog_video_info_message">Ruta: %1$s\n\nContenedor: %2$s\nDuración: %3$s\nTamaño: %4$s</string>
+    <string name="dialog_video_info_message">Ruta: %1$s\n\nContenedor: %2$s\nResolución: %3$s\nDuración: %4$s\nTamaño: %5$s</string>
 
     <plurals name="video_count">
         <item quantity="one">%1$d vídeo</item>

@@ -291,7 +291,12 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private var currentRatioIndex = 0
-    private val ratioLabels = listOf(getString(R.string.ratio_auto), getString(R.string.ratio_zoom), getString(R.string.ratio_stretched), getString(R.string.ratio_full))
+    // "by lazy" : évalué au premier accès plutôt qu'à la construction de l'Activity. Les
+    // getString() ici s'exécutaient sinon dans le constructeur, avant que le Context ne soit
+    // prêt (avant attachBaseContext()/onCreate()) — ce qui provoquait un crash immédiat au clic
+    // sur une vidéo ("Attempt to invoke virtual method getResources() on a null object
+    // reference"), avant même que l'ANR ne puisse se manifester.
+    private val ratioLabels by lazy { listOf(getString(R.string.ratio_auto), getString(R.string.ratio_zoom), getString(R.string.ratio_stretched), getString(R.string.ratio_full)) }
 
     private fun cycleAspectRatio() {
         currentRatioIndex = (currentRatioIndex + 1) % ratioLabels.size
@@ -918,19 +923,37 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun saveHistory() {
         val ext = mediaName.substringAfterLast('.', "").lowercase()
+        val isNetwork = mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")
         lifecycleScope.launch(Dispatchers.IO) {
-            val info = VideoMetadataExtractor.extract(applicationContext, mediaPath)
+            // Sauvegarde d'abord un historique minimal, sans extraction — l'extraction SMB au
+            // lancement de la lecture (en parallèle de l'initialisation du service vidéo)
+            // pouvait contribuer à un ANR au clic sur une vidéo. L'entrée est enrichie ensuite,
+            // sans urgence, avec un délai maximal pour ne jamais bloquer indéfiniment (ex:
+            // partage réseau qui répond très lentement).
             mediaRepository.saveRecentItem(fr.retrospare.blazeplayer.data.model.MediaItem(
                 id = mediaPath, name = mediaName, path = mediaPath,
                 extension = ext, mimeType = "video/$ext",
-                duration = info.duration,
-                size = info.sizeBytes,
-                resolution = info.resolutionLabel,
-                videoCodec = info.videoCodec,
-                audioCodec = info.audioCodec,
-                isNetwork = mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://"),
+                isNetwork = isNetwork,
                 lastPlayedAt = System.currentTimeMillis()
             ))
+
+            val info = withTimeoutOrNull(1500) {
+                VideoMetadataExtractor.extract(applicationContext, mediaPath)
+            } ?: VideoTechnicalInfo()
+
+            if (info.duration > 0L || info.videoCodec.isNotEmpty() || info.audioCodec.isNotEmpty()) {
+                mediaRepository.saveRecentItem(fr.retrospare.blazeplayer.data.model.MediaItem(
+                    id = mediaPath, name = mediaName, path = mediaPath,
+                    extension = ext, mimeType = "video/$ext",
+                    duration = info.duration,
+                    size = info.sizeBytes,
+                    resolution = info.qualityBadge,
+                    videoCodec = info.videoCodec,
+                    audioCodec = info.audioCodec,
+                    isNetwork = isNetwork,
+                    lastPlayedAt = System.currentTimeMillis()
+                ))
+            }
         }
     }
 

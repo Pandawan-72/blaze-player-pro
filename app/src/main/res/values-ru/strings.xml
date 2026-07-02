@@ -296,7 +296,7 @@
     <string name="action_play">Воспроизвести</string>
     <string name="action_information">Информация</string>
     <string name="unknown_size">Неизвестно</string>
-    <string name="dialog_video_info_message">Путь: %1$s\n\nКонтейнер: %2$s\nДлительность: %3$s\nРазмер: %4$s</string>
+    <string name="dialog_video_info_message">Путь: %1$s\n\nКонтейнер: %2$s\nРазрешение: %3$s\nДлительность: %4$s\nРазмер: %5$s</string>
 
     <plurals name="video_count">
         <item quantity="one">%1$d видео</item>

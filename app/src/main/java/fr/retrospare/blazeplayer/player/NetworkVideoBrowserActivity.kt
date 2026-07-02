@@ -112,6 +112,8 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
         }
     }
 
+    private var currentAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = null
+
     private fun loadCurrentPath() {
         tvPath.text = if (currentPath.isEmpty()) share.host else "${share.host}/$currentPath"
         tvCount.text = getString(R.string.loading)
@@ -121,12 +123,28 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
             val result = withContext(Dispatchers.IO) { smbBrowser.listFiles(share, currentPath) }
             result.onSuccess { items ->
                 val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }.sortedBy { it.name.lowercase() }
-                val videos = items.filter {
+                val rawVideos = items.filter {
                     it.mimeType != "folder" && it.mimeType != "share" && it.extension.lowercase() in videoExtensions
                 }.sortedBy { it.name.lowercase() }
+
+                // Affichage immédiat avec des badges devinés depuis l'extension (déjà en cache
+                // le cas échéant) — plutôt que d'attendre l'extraction de toute la liste, ce qui
+                // faisait dépendre l'affichage entier du fichier le plus lent du dossier.
+                val videos = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(rawVideos).toMutableList()
                 currentVideos = videos
                 tvCount.text = resources.getQuantityString(R.plurals.folder_count, folders.size, folders.size) + " - " + resources.getQuantityString(R.plurals.video_count, videos.size, videos.size)
                 showList(folders, videos)
+
+                // Enrichissement réel (résolution/durée) en arrière-plan, ligne par ligne — la
+                // liste affichée est mise à jour au fur et à mesure plutôt que d'un seul coup.
+                fr.retrospare.blazeplayer.player.VideoMetadataExtractor.enrichVideoItemsIncremental(
+                    this@NetworkVideoBrowserActivity, videos
+                ) { index, enriched ->
+                    if (index < videos.size) {
+                        videos[index] = enriched
+                        currentAdapter?.notifyItemChanged(folders.size + index)
+                    }
+                }
             }.onFailure {
                 tvCount.text = getString(R.string.toast_error_generic, it.message)
             }
@@ -138,7 +156,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
     private val TYPE_VIDEO = 1
 
     private fun showList(folders: List<MediaItem>, videos: List<MediaItem>) {
-        recyclerNetwork.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+        val adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
             override fun getItemViewType(position: Int) = if (position < folders.size) TYPE_FOLDER else TYPE_VIDEO
             override fun getItemCount() = folders.size + videos.size
@@ -201,31 +219,20 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     tvFmt?.text = ext
                     tvFmt?.visibility = if (ext.isNotEmpty()) View.VISIBLE else View.GONE
 
-                    // État initial
+                    // Affichage direct et synchrone — un premier badge deviné depuis l'extension
+                    // est déjà là (VideoMetadataExtractor.fastDecorateList, à l'affichage), puis
+                    // remplacé par la vraie résolution/durée dès qu'elle arrive en arrière-plan
+                    // (enrichVideoItemsIncremental + notifyItemChanged). Plus d'attente sur toute
+                    // la liste, plus de risque de badge manquant après un défilement.
                     val tvRes = v.findViewById<TextView>(R.id.tvResolution)
                     val tvVid = v.findViewById<TextView>(R.id.tvVideoCodec)
                     val tvAud = v.findViewById<TextView>(R.id.tvAudioCodec)
-                    tvRes?.visibility = View.GONE
-                    tvVid?.visibility = View.GONE
-                    tvAud?.visibility = View.GONE
-
-                    // Extraction des métadonnées (résolution, codecs) via VideoMetadataExtractor
-                    lifecycleScope.launch {
-                        val info = VideoMetadataExtractor.extract(this@NetworkVideoBrowserActivity, video.path)
-                        if (v.findViewById<TextView>(R.id.tvFileName)?.text == video.name) {
-                            tvRes?.text = info.qualityBadge
-                            tvRes?.visibility = if (info.qualityBadge.isNotEmpty()) View.VISIBLE else View.GONE
-                            tvVid?.text = info.videoCodec
-                            tvVid?.visibility = if (info.videoCodec.isNotEmpty()) View.VISIBLE else View.GONE
-                            tvAud?.text = info.audioCodec
-                            tvAud?.visibility = if (info.audioCodec.isNotEmpty()) View.VISIBLE else View.GONE
-                            if (info.duration > 0) {
-                                v.findViewById<TextView>(R.id.tvDuration)?.text =
-                                    if (info.resolutionLabel.isNotEmpty()) "${info.formattedDuration} - ${info.resolutionLabel}"
-                                    else info.formattedDuration
-                            }
-                        }
-                    }
+                    tvRes?.text = video.resolution ?: ""
+                    tvRes?.visibility = if (!video.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
+                    tvVid?.text = video.videoCodec ?: ""
+                    tvVid?.visibility = if (!video.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+                    tvAud?.text = video.audioCodec ?: ""
+                    tvAud?.visibility = if (!video.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
 
                     v.setOnClickListener {
                         startActivity(Intent(this@NetworkVideoBrowserActivity, PlayerActivity::class.java).apply {
@@ -252,7 +259,8 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                                         val info = VideoMetadataExtractor.extract(this@NetworkVideoBrowserActivity, video.path)
                                         val sz = if (info.sizeBytes > 0) android.text.format.Formatter.formatShortFileSize(this@NetworkVideoBrowserActivity, info.sizeBytes) else getString(R.string.unknown_size)
                                         val ds = if (info.duration > 0) info.formattedDuration else "N/A"
-                                        val msg = getString(R.string.dialog_video_info_message, video.path, video.extension.uppercase(), ds, sz)
+                                        val res = info.resolutionLabel.ifEmpty { "N/A" }
+                                        val msg = getString(R.string.dialog_video_info_message, video.path, video.extension.uppercase(), res, ds, sz)
                                         android.app.AlertDialog.Builder(this@NetworkVideoBrowserActivity)
                                             .setTitle(video.name)
                                             .setMessage(msg)
@@ -277,5 +285,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                 }
             }
         }
+        recyclerNetwork.adapter = adapter
+        currentAdapter = adapter
     }
 }

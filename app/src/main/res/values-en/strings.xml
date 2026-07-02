@@ -284,7 +284,7 @@
     <string name="action_play">Play</string>
     <string name="action_information">Information</string>
     <string name="unknown_size">Unknown</string>
-    <string name="dialog_video_info_message">Path: %1$s\n\nContainer: %2$s\nDuration: %3$s\nSize: %4$s</string>
+    <string name="dialog_video_info_message">Path: %1$s\n\nContainer: %2$s\nResolution: %3$s\nDuration: %4$s\nSize: %5$s</string>
 
     <plurals name="video_count">
         <item quantity="one">%1$d video</item>

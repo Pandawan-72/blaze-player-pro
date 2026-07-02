@@ -303,42 +303,25 @@ class AudioPlayerFragment : Fragment() {
             _binding?.tvCodec?.visibility = View.VISIBLE
         }
 
-        // Bitrate via MediaMetadataRetriever (gère aussi smb://)
+        // Bitrate via AudioMetadataExtractor (gère aussi smb://, avec cache disque — évite de
+        // ré-extraire à chaque fois qu'on rouvre le même morceau)
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            var smbDataSource: SmbMediaDataSource? = null
-            try {
-                val path = mediaItem.localConfiguration?.uri?.toString() ?: return@launch
-                val retriever = android.media.MediaMetadataRetriever()
-                try {
-                    when {
-                        path.startsWith("smb://") -> {
-                            smbDataSource = SmbMediaDataSource(path)
-                            retriever.setDataSource(smbDataSource)
-                        }
-                        path.startsWith("content://") -> retriever.setDataSource(requireContext(), android.net.Uri.parse(path))
-                        else -> retriever.setDataSource(path)
+            val path = mediaItem.localConfiguration?.uri?.toString() ?: return@launch
+            val info = fr.retrospare.blazeplayer.player.AudioMetadataExtractor.extract(
+                requireContext(), path, path.substringAfterLast("/")
+            )
+            launch(Dispatchers.Main) {
+                when {
+                    info.isLossless -> {
+                        _binding?.tvBitrate?.text = getString(fr.retrospare.blazeplayer.R.string.lossless_label)
+                        _binding?.tvBitrate?.visibility = View.VISIBLE
                     }
-                    val bitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
-                    launch(Dispatchers.Main) {
-                        val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
-                        when {
-                            lossless -> {
-                                _binding?.tvBitrate?.text = getString(fr.retrospare.blazeplayer.R.string.lossless_label)
-                                _binding?.tvBitrate?.visibility = View.VISIBLE
-                            }
-                            bitrate > 0 -> {
-                                _binding?.tvBitrate?.text = "${bitrate / 1000} kbps"
-                                _binding?.tvBitrate?.visibility = View.VISIBLE
-                            }
-                            else -> _binding?.tvBitrate?.visibility = View.GONE
-                        }
+                    info.bitrate > 0 -> {
+                        _binding?.tvBitrate?.text = "${info.bitrate / 1000} kbps"
+                        _binding?.tvBitrate?.visibility = View.VISIBLE
                     }
-                } finally {
-                    retriever.release()
+                    else -> _binding?.tvBitrate?.visibility = View.GONE
                 }
-            } catch (_: Exception) {
-            } finally {
-                try { smbDataSource?.close() } catch (_: Exception) {}
             }
         }
 

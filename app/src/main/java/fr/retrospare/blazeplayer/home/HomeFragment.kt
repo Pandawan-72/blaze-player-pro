@@ -639,7 +639,6 @@ class HomeFragment : Fragment() {
                 // Nom du fichier
                 v.findViewById<TextView>(R.id.tvFileName).text = item.name
 
-                // État initial vide - sera rempli par VideoMetadataExtractor
                 val tvDur = v.findViewById<TextView>(R.id.tvDuration)
                 val tvRes = v.findViewById<TextView>(R.id.tvResolution)
                 val tvVid = v.findViewById<TextView>(R.id.tvVideoCodec)
@@ -647,10 +646,19 @@ class HomeFragment : Fragment() {
                 val tvFmt = v.findViewById<TextView>(R.id.tvFormat)
                 val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
 
-                tvDur.text = ""
-                tvRes.visibility = View.GONE
-                tvVid.visibility = View.GONE
-                tvAud.visibility = View.GONE
+                // Affichage direct et synchrone — comme pour le navigateur local/réseau
+                // (BrowserAdapter) : ces champs sont maintenant préchargés (avec mise en cache
+                // pour le réseau) par HomeViewModel avant même l'affichage, plutôt qu'extraits à
+                // chaque ligne visible pendant le défilement. Même rendu partout, plus de risque
+                // d'écrire sur la mauvaise ligne recyclée pendant un chargement.
+                tvDur.text = item.formattedDuration
+                tvRes.text = item.resolution ?: ""
+                tvRes.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
+                tvVid.text = item.videoCodec ?: ""
+                tvVid.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+                tvAud.text = item.audioCodec ?: ""
+                tvAud.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+
                 // Badge conteneur immédiat depuis item.extension
                 val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "") }.uppercase()
                 if (ext.isNotEmpty()) {
@@ -670,26 +678,6 @@ class HomeFragment : Fragment() {
                 // Click
                 v.setOnClickListener { PlayerRouter.open(requireContext(), item.path, item.name) }
 
-                // VideoMetadataExtractor - source unique de vérité
-                if (item.path.isNotEmpty()) {
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        val info = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.extract(requireContext(), item.path)
-                        android.util.Log.d("META", "path=${item.path} w=${info.width} h=${info.height} res=${info.resolutionLabel} badge=${info.qualityBadge} dur=${info.formattedDuration}")
-                        tvDur.text = if (info.resolutionLabel.isNotEmpty())
-                            "${info.formattedDuration} • ${info.resolutionLabel}"
-                        else
-                            info.formattedDuration
-                        android.util.Log.d("UI", "tvDuration=${tvDur.text}")
-                        tvRes.text = info.qualityBadge
-                        tvRes.visibility = if (info.qualityBadge.isNotEmpty()) View.VISIBLE else View.GONE
-                        tvVid.text = info.videoCodec
-                        tvVid.visibility = if (info.videoCodec.isNotEmpty()) View.VISIBLE else View.GONE
-                        tvAud.text = info.audioCodec
-                        tvAud.visibility = if (info.audioCodec.isNotEmpty()) View.VISIBLE else View.GONE
-                        // tvFmt géré depuis item.extension - ne pas écraser
-                    }
-                }
-
                 // Bouton 3 points
                 val btnMore = v.findViewById<android.view.View>(R.id.btnMore)
                 btnMore?.setOnClickListener { anchor ->
@@ -702,15 +690,22 @@ class HomeFragment : Fragment() {
                         when (mi.itemId) {
                             1 -> { PlayerRouter.open(requireContext(), item.path, item.name); true }
                             2 -> {
-                                val sz = if (item.size > 0) android.text.format.Formatter.formatShortFileSize(requireContext(), item.size) else getString(R.string.unknown_size)
-                                val dur = item.duration
-                                val ds = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else "N/A"
-                                val msg = getString(R.string.dialog_video_info_message, item.path, item.extension.uppercase(), ds, sz)
-                                android.app.AlertDialog.Builder(requireContext())
-                                    .setTitle(item.name)
-                                    .setMessage(msg)
-                                    .setPositiveButton("OK", null)
-                                    .show()
+                                viewLifecycleOwner.lifecycleScope.launch {
+                                    val info = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.extract(requireContext(), item.path)
+                                    val sz = if (info.sizeBytes > 0) android.text.format.Formatter.formatShortFileSize(requireContext(), info.sizeBytes)
+                                        else if (item.size > 0) android.text.format.Formatter.formatShortFileSize(requireContext(), item.size)
+                                        else getString(R.string.unknown_size)
+                                    val ds = if (info.duration > 0) info.formattedDuration
+                                        else if (item.duration > 0) "%d:%02d".format(item.duration / 60, item.duration % 60)
+                                        else "N/A"
+                                    val res = info.resolutionLabel.ifEmpty { "N/A" }
+                                    val msg = getString(R.string.dialog_video_info_message, item.path, item.extension.uppercase(), res, ds, sz)
+                                    android.app.AlertDialog.Builder(requireContext())
+                                        .setTitle(item.name)
+                                        .setMessage(msg)
+                                        .setPositiveButton(getString(R.string.action_ok), null)
+                                        .show()
+                                }
                                 true
                             }
                             3 -> {

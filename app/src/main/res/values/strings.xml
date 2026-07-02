@@ -307,7 +307,7 @@
     <string name="action_play">Lire</string>
     <string name="action_information">Informations</string>
     <string name="unknown_size">Inconnue</string>
-    <string name="dialog_video_info_message">Chemin : %1$s\n\nConteneur : %2$s\nDurée : %3$s\nTaille : %4$s</string>
+    <string name="dialog_video_info_message">Chemin : %1$s\n\nConteneur : %2$s\nRésolution : %3$s\nDurée : %4$s\nTaille : %5$s</string>
 
     <plurals name="video_count">
         <item quantity="one">%1$d vidéo</item>

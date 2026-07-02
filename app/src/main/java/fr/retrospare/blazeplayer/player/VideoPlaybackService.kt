@@ -10,7 +10,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -83,11 +82,14 @@ class VideoPlaybackService : MediaSessionService() {
 
         // Le MediaItem est TOUJOURS une URL HTTP (notre propre relais local) : un DataSource HTTP
         // standard suffit dans tous les cas, plus besoin de SmbDataSource ici.
-        val cacheDataSourceFactory = CacheDataSource.Factory()
-            .setCache(MediaCacheManager.getCache(this))
-            .setUpstreamDataSourceFactory(DefaultHttpDataSource.Factory().setAllowCrossProtocolRedirects(true))
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-        val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(cacheDataSourceFactory)
+        // Le cache disque Media3 (SimpleCache) a été retiré ici : son initialisation peut
+        // scanner/verrouiller le cache sur le thread principal (onCreate), ce qui provoquait un
+        // ANR au clic sur une vidéo — le service vidéo démarre de façon synchrone au clic.
+        val httpFactory = DefaultHttpDataSource.Factory()
+            .setAllowCrossProtocolRedirects(true)
+
+        val mediaSourceFactory = DefaultMediaSourceFactory(this)
+            .setDataSourceFactory(httpFactory)
 
         val renderersFactory = DefaultRenderersFactory(this)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
