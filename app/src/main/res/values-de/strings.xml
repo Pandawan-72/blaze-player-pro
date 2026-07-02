@@ -361,4 +361,7 @@
     <string name="content_desc_repeat">Wiederholen</string>
     <string name="content_desc_timer">Timer</string>
     <string name="content_desc_options">Optionen</string>
+
+    <string name="notif_channel_youtube">YouTube-Wiedergabe</string>
+    <string name="action_pause">Pause</string>
 </resources>

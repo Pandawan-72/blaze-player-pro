@@ -288,6 +288,52 @@ class PlayerActivity : AppCompatActivity() {
         player.prepare()
         applySubtitleTrackSelection()
         player.play()
+        loadNotificationArtwork(path)
+    }
+
+    /** Récupère la miniature (locale ou réseau, via le même cache que le reste de l'app) et
+     *  l'ajoute aux métadonnées du média déjà en lecture — sans bloquer le lancement de la
+     *  vidéo, qui doit rester instantané. `replaceMediaItem` met à jour les métadonnées sans
+     *  interrompre la lecture en cours ; c'est ce que lit `DefaultMediaNotificationProvider`
+     *  pour afficher l'image dans la notification Android. */
+    private fun loadNotificationArtwork(path: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val bitmap = try {
+                fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(applicationContext, path)
+            } catch (e: Exception) {
+                null
+            } ?: return@launch
+
+            val artworkData = try {
+                val stream = java.io.ByteArrayOutputStream()
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, stream)
+                stream.toByteArray()
+            } catch (e: Exception) {
+                null
+            } ?: return@launch
+
+            withContext(Dispatchers.Main) {
+                // Le média en cours a pu changer entre-temps (suivant/précédent rapide) : ne
+                // met à jour que si on est toujours sur le même fichier.
+                val current = player.currentMediaItem ?: return@withContext
+                if (current.mediaId != path) return@withContext
+                // Envoyée au service (qui détient l'instance réelle du player) plutôt que
+                // d'appeler replaceMediaItem() directement ici sur le MediaController : ce
+                // dernier ne répercute pas fiablement la mise à jour vers la notification —
+                // problème connu de Media3 (issue androidx/media#706).
+                val args = android.os.Bundle().apply {
+                    putString(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_MEDIA_ID, path)
+                    putByteArray(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_DATA, artworkData)
+                }
+                (player as? MediaController)?.sendCustomCommand(
+                    androidx.media3.session.SessionCommand(
+                        fr.retrospare.blazeplayer.player.VideoPlaybackService.CUSTOM_COMMAND_SET_ARTWORK,
+                        android.os.Bundle.EMPTY
+                    ),
+                    args
+                )
+            }
+        }
     }
 
     private var currentRatioIndex = 0

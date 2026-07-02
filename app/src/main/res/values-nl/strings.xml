@@ -361,4 +361,7 @@
     <string name="content_desc_repeat">Herhalen</string>
     <string name="content_desc_timer">Timer</string>
     <string name="content_desc_options">Opties</string>
+
+    <string name="notif_channel_youtube">YouTube-weergave</string>
+    <string name="action_pause">Pauzeren</string>
 </resources>

@@ -361,4 +361,7 @@
     <string name="content_desc_repeat">Repetir</string>
     <string name="content_desc_timer">Temporizador</string>
     <string name="content_desc_options">Opciones</string>
+
+    <string name="notif_channel_youtube">Reproducción de YouTube</string>
+    <string name="action_pause">Pausa</string>
 </resources>

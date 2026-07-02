@@ -2,11 +2,13 @@ package fr.retrospare.blazeplayer.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.os.Bundle
 import androidx.media3.cast.CastPlayer
 import androidx.media3.cast.RemoteCastPlayer
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
@@ -17,7 +19,11 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionResult
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
 import fr.retrospare.blazeplayer.cast.BlazeCastMediaItemConverter
 
 /**
@@ -44,6 +50,16 @@ class VideoPlaybackService : MediaSessionService() {
         // pas dessus.
         private const val NOTIFICATION_ID = 2002
         private const val CHANNEL_ID = "blaze_video_channel"
+
+        // Commande personnalisée : met à jour la miniature du média en cours dans la
+        // notification. Passe obligatoirement par le service (plutôt que d'appeler
+        // replaceMediaItem() côté MediaController dans PlayerActivity) car ce dernier ne répercute
+        // pas fiablement la mise à jour sur DefaultMediaNotificationProvider — un problème connu
+        // de Media3 quand replaceMediaItem() n'est pas appelé directement sur l'instance qui sert
+        // la session.
+        const val CUSTOM_COMMAND_SET_ARTWORK = "fr.retrospare.blazeplayer.SET_ARTWORK"
+        const val EXTRA_ARTWORK_MEDIA_ID = "media_id"
+        const val EXTRA_ARTWORK_DATA = "artwork_data"
     }
 
     private var mediaSession: MediaSession? = null
@@ -174,6 +190,46 @@ class VideoPlaybackService : MediaSessionService() {
             .setId("BlazeVideo")
             .setSessionActivity(buildOpenIntent(null, null))
             .setCallback(object : MediaSession.Callback {
+                override fun onConnect(
+                    session: MediaSession,
+                    controller: MediaSession.ControllerInfo
+                ): MediaSession.ConnectionResult {
+                    val defaultResult = super.onConnect(session, controller)
+                    val sessionCommands = defaultResult.availableSessionCommands.buildUpon()
+                        .add(SessionCommand(CUSTOM_COMMAND_SET_ARTWORK, Bundle.EMPTY))
+                        .build()
+                    return MediaSession.ConnectionResult.accept(sessionCommands, defaultResult.availablePlayerCommands)
+                }
+
+                override fun onCustomCommand(
+                    session: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                    customCommand: SessionCommand,
+                    args: Bundle
+                ): ListenableFuture<SessionResult> {
+                    if (customCommand.customAction == CUSTOM_COMMAND_SET_ARTWORK) {
+                        val mediaId = args.getString(EXTRA_ARTWORK_MEDIA_ID)
+                        val artworkData = args.getByteArray(EXTRA_ARTWORK_DATA)
+                        val current = session.player.currentMediaItem
+                        if (current != null && artworkData != null && current.mediaId == mediaId) {
+                            val updated = current.buildUpon()
+                                .setMediaMetadata(
+                                    current.mediaMetadata.buildUpon()
+                                        .setArtworkData(artworkData, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                                        .build()
+                                )
+                                .build()
+                            // Appelé directement sur session.player (l'instance qui sert
+                            // effectivement la session), pas via le MediaController appelant —
+                            // c'est ce qui garantit que DefaultMediaNotificationProvider reflète
+                            // bien le changement.
+                            session.player.replaceMediaItem(session.player.currentMediaItemIndex, updated)
+                        }
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
+                    return super.onCustomCommand(session, controller, customCommand, args)
+                }
+
                 override fun onPlayerCommandRequest(
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo,

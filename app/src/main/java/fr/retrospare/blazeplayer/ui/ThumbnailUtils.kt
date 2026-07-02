@@ -100,31 +100,23 @@ object ThumbnailUtils {
             .also { if (it != bitmap) bitmap.recycle() }
     }
 
-    suspend fun loadThumbnail(
+    /** Coeur de l'extraction de miniature : mémoire → disque → extraction réelle, cache écrit
+     *  au passage. Retourne le bitmap brut plutôt que de l'appliquer à une vue — utilisé à la
+     *  fois par [loadThumbnail] (pour l'UI) et par tout appelant ayant besoin du bitmap lui-même
+     *  (ex : artwork de la notification de lecture). */
+    suspend fun getThumbnailBitmap(
         context: Context,
         path: String,
-        imageView: ImageView,
         timeUs: Long = 30_000_000L
-    ) = withContext(Dispatchers.IO) {
+    ): Bitmap? = withContext(Dispatchers.IO) {
         try {
             // 1. Cache mémoire (le plus rapide, RAM)
-            cache.get(path)?.let { cached ->
-                withContext(Dispatchers.Main) {
-                    imageView.setImageBitmap(cached)
-                    imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-                }
-                return@withContext
-            }
+            cache.get(path)?.let { return@withContext it }
 
             // 2. Cache disque (rapide, local, pas de reseau/SMB requis)
             readFromDisk(context, path)?.let { fromDisk ->
                 cache.put(path, fromDisk)
-                withContext(Dispatchers.Main) {
-                    imageView.setImageBitmap(fromDisk)
-                    imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-                    imageView.setBackgroundColor(0x00000000)
-                }
-                return@withContext
+                return@withContext fromDisk
             }
 
             val ext = path.substringAfterLast('.', "").lowercase()
@@ -174,17 +166,9 @@ object ThumbnailUtils {
                     val scaled = scaleBitmap(bitmap, 128)
                     cache.put(path, scaled)
                     writeToDisk(context, path, scaled)
-                    withContext(Dispatchers.Main) {
-                        imageView.setImageBitmap(scaled)
-                        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-                        imageView.setBackgroundColor(0x00000000)
-                    }
+                    scaled
                 } else {
-                    withContext(Dispatchers.Main) {
-                        imageView.setImageResource(R.drawable.ic_music_note_large)
-                        imageView.scaleType = ImageView.ScaleType.CENTER
-                        imageView.setBackgroundColor(0xFF1A1D2E.toInt())
-                    }
+                    null
                 }
             } else {
                 // Vidéo - réduit la résolution d'extraction
@@ -205,10 +189,7 @@ object ThumbnailUtils {
                         val scaled = scaleBitmap(it, 160)
                         cache.put(path, scaled)
                         writeToDisk(context, path, scaled)
-                        withContext(Dispatchers.Main) {
-                            imageView.setImageBitmap(scaled)
-                            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
-                        }
+                        scaled
                     }
                 } finally {
                     retriever.release()
@@ -216,7 +197,31 @@ object ThumbnailUtils {
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("ThumbnailUtils", "Failed to load thumbnail for $path", e)
+            android.util.Log.e("ThumbnailUtils", "Failed to get thumbnail bitmap for $path", e)
+            null
+        }
+    }
+
+    suspend fun loadThumbnail(
+        context: Context,
+        path: String,
+        imageView: ImageView,
+        timeUs: Long = 30_000_000L
+    ) {
+        val bitmap = getThumbnailBitmap(context, path, timeUs)
+        val ext = path.substringAfterLast('.', "").lowercase()
+        val isAudio = ext in audioExtensions
+        withContext(Dispatchers.Main) {
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap)
+                imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                imageView.setBackgroundColor(0x00000000)
+            } else if (isAudio) {
+                imageView.setImageResource(R.drawable.ic_music_note_large)
+                imageView.scaleType = ImageView.ScaleType.CENTER
+                imageView.setBackgroundColor(0xFF1A1D2E.toInt())
+            }
+            // Vidéo sans miniature : laisse le placeholder XML existant, comme avant.
         }
     }
 

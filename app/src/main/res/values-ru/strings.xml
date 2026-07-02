@@ -381,4 +381,7 @@
     <string name="content_desc_repeat">Повтор</string>
     <string name="content_desc_timer">Таймер</string>
     <string name="content_desc_options">Параметры</string>
+
+    <string name="notif_channel_youtube">Воспроизведение YouTube</string>
+    <string name="action_pause">Пауза</string>
 </resources>

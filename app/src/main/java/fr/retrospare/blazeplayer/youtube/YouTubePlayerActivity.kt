@@ -1,8 +1,23 @@
 package fr.retrospare.blazeplayer.youtube
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
+import androidx.lifecycle.lifecycleScope
+import coil.imageLoader
+import coil.request.ImageRequest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -27,7 +42,12 @@ import fr.retrospare.blazeplayer.R
  *  Accueil, changement d'app), la vidéo continue dans une petite fenêtre flottante par-dessus le
  *  reste du système, plutôt que de s'arrêter. Nos propres boutons (fermer, précédent, suivant)
  *  sont masqués dans ce mode — trop petit pour être utilisables, et Android fournit déjà ses
- *  propres contrôles de fenêtre PiP par-dessus. */
+ *  propres contrôles de fenêtre PiP par-dessus.
+ *
+ *  Notification Android : le lecteur YouTube tourne dans une WebView (pas Media3/ExoPlayer), donc
+ *  pas de MediaSessionService automatique comme pour la vidéo locale/réseau. Une MediaSessionCompat
+ *  "manuelle" pilote ici une notification MediaStyle (titre, chaîne, miniature, lecture/pause, et
+ *  précédent/suivant si on est dans une playlist), affichée pendant que l'activité est active. */
 class YouTubePlayerActivity : AppCompatActivity() {
 
     private lateinit var youTubePlayerView: YouTubePlayerView
@@ -38,6 +58,11 @@ class YouTubePlayerActivity : AppCompatActivity() {
     private var playlistTitles: List<String> = emptyList()
     private var currentIndex: Int = -1
 
+    private lateinit var mediaSession: MediaSessionCompat
+    private var notificationThumbnail: Bitmap? = null
+    private var notificationTitle: String = ""
+    private var notificationChannel: String = ""
+
     companion object {
         const val EXTRA_VIDEO_ID = "videoId"
         const val EXTRA_TITLE = "title"
@@ -46,7 +71,37 @@ class YouTubePlayerActivity : AppCompatActivity() {
         const val EXTRA_PLAYLIST_IDS = "playlistIds"
         const val EXTRA_PLAYLIST_TITLES = "playlistTitles"
         const val EXTRA_PLAYLIST_INDEX = "playlistIndex"
+
+        private const val NOTIFICATION_ID = 2003
+        private const val NOTIF_CHANNEL_ID = "blaze_youtube_channel"
+
+        // Actions de la notification : gérées par un BroadcastReceiver enregistré
+        // dynamiquement (voir setupNotificationActionReceiver) plutôt que par
+        // androidx.media.session.MediaButtonReceiver, qui suppose une
+        // MediaBrowserServiceCompat qu'on n'a pas ici (lecteur en WebView, pas de Service).
+        private const val ACTION_PLAY = "fr.retrospare.blazeplayer.youtube.PLAY"
+        private const val ACTION_PAUSE = "fr.retrospare.blazeplayer.youtube.PAUSE"
+        private const val ACTION_NEXT = "fr.retrospare.blazeplayer.youtube.NEXT"
+        private const val ACTION_PREVIOUS = "fr.retrospare.blazeplayer.youtube.PREVIOUS"
     }
+
+    private val notificationActionReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            when (intent?.action) {
+                ACTION_PLAY -> youTubePlayer?.play()
+                ACTION_PAUSE -> youTubePlayer?.pause()
+                ACTION_NEXT -> if (hasNext()) goToRelative(1)
+                ACTION_PREVIOUS -> if (hasPrevious()) goToRelative(-1)
+            }
+        }
+    }
+
+    private fun actionPendingIntent(action: String): PendingIntent =
+        PendingIntent.getBroadcast(
+            this, action.hashCode(),
+            Intent(action).setPackage(packageName),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +126,10 @@ class YouTubePlayerActivity : AppCompatActivity() {
         playlistTitles = intent.getStringArrayExtra(EXTRA_PLAYLIST_TITLES)?.toList().orEmpty()
         currentIndex = intent.getIntExtra(EXTRA_PLAYLIST_INDEX, -1)
 
+        createNotificationChannel()
+        setupMediaSession()
+        registerNotificationActionReceiver()
+
         youTubePlayerView = findViewById(R.id.youtubePlayerView)
         lifecycle.addObserver(youTubePlayerView)
 
@@ -78,12 +137,16 @@ class YouTubePlayerActivity : AppCompatActivity() {
             override fun onReady(player: YouTubePlayer) {
                 youTubePlayer = player
                 player.loadVideo(videoId, 0f)
-                addCurrentToHistory(videoId, intent.getStringExtra(EXTRA_TITLE).orEmpty(),
-                    intent.getStringExtra(EXTRA_CHANNEL).orEmpty(), intent.getStringExtra(EXTRA_THUMBNAIL).orEmpty())
+                val title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
+                val channel = intent.getStringExtra(EXTRA_CHANNEL).orEmpty()
+                val thumbnail = intent.getStringExtra(EXTRA_THUMBNAIL).orEmpty()
+                addCurrentToHistory(videoId, title, channel, thumbnail)
+                updateNotificationMetadata(title, channel, thumbnail)
             }
 
             override fun onStateChange(player: YouTubePlayer, state: PlayerConstants.PlayerState) {
                 isCurrentlyPlaying = state == PlayerConstants.PlayerState.PLAYING
+                updatePlaybackState()
                 if (state == PlayerConstants.PlayerState.ENDED) {
                     // Enchaîne automatiquement sur la suivante si on est dans une playlist,
                     // sinon ferme comme avant.
@@ -140,6 +203,7 @@ class YouTubePlayerActivity : AppCompatActivity() {
         youTubePlayer?.loadVideo(enriched.videoId, 0f)
         addCurrentToHistory(enriched.videoId, enriched.title, enriched.channelTitle, enriched.thumbnailUrl)
         updateNavigationButtonsState()
+        updateNotificationMetadata(enriched.title, enriched.channelTitle, enriched.thumbnailUrl)
     }
 
     private fun addCurrentToHistory(videoId: String, title: String, channel: String, thumbnail: String) {
@@ -150,6 +214,177 @@ class YouTubePlayerActivity : AppCompatActivity() {
             this,
             YouTubeVideoItem(videoId = videoId, title = title, channelTitle = channel, thumbnailUrl = thumbnail)
         )
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = getSystemService(NotificationManager::class.java) ?: return
+        if (manager.getNotificationChannel(NOTIF_CHANNEL_ID) != null) return
+        val channel = NotificationChannel(
+            NOTIF_CHANNEL_ID,
+            getString(R.string.notif_channel_youtube),
+            NotificationManager.IMPORTANCE_LOW
+        )
+        manager.createNotificationChannel(channel)
+    }
+
+    /** MediaSessionCompat "manuelle" : il n'y a pas de Player Media3 ici (WebView), donc pas de
+     *  MediaSessionService automatique — cette session pilote juste la notification MediaStyle
+     *  et reçoit les actions lecture/pause/suivant/précédent tapées depuis la notification ou un
+     *  bouton casque/Bluetooth. */
+    private fun setupMediaSession() {
+        mediaSession = MediaSessionCompat(this, "BlazeTubeSession").apply {
+            setCallback(object : MediaSessionCompat.Callback() {
+                override fun onPlay() { youTubePlayer?.play() }
+                override fun onPause() { youTubePlayer?.pause() }
+                override fun onSkipToNext() { if (hasNext()) goToRelative(1) }
+                override fun onSkipToPrevious() { if (hasPrevious()) goToRelative(-1) }
+            })
+            isActive = true
+        }
+    }
+
+    private fun registerNotificationActionReceiver() {
+        val filter = android.content.IntentFilter().apply {
+            addAction(ACTION_PLAY)
+            addAction(ACTION_PAUSE)
+            addAction(ACTION_NEXT)
+            addAction(ACTION_PREVIOUS)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(notificationActionReceiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(notificationActionReceiver, filter)
+        }
+    }
+
+    private fun updateNotificationMetadata(title: String, channel: String, thumbnailUrl: String) {
+        notificationTitle = title
+        notificationChannel = channel
+        notificationThumbnail = null
+        showNotification()
+
+        if (thumbnailUrl.isBlank()) return
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val bitmap = try {
+                val loader = applicationContext.imageLoader
+                val request = ImageRequest.Builder(applicationContext)
+                    .data(thumbnailUrl)
+                    .allowHardware(false) // requis : un bitmap "hardware" ne peut pas être utilisé dans une notification
+                    .build()
+                val result = loader.execute(request)
+                (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+            } catch (e: Exception) {
+                null
+            }
+            if (bitmap != null) {
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    // La vidéo a pu changer entre-temps (suivant/précédent rapide) : ne met à
+                    // jour que si le titre correspond toujours à ce qu'on vient de charger.
+                    if (notificationTitle == title) {
+                        notificationThumbnail = bitmap
+                        showNotification()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updatePlaybackState() {
+        val state = if (isCurrentlyPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED
+        val actions = PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE or
+            PlaybackStateCompat.ACTION_PLAY_PAUSE or
+            (if (hasNext()) PlaybackStateCompat.ACTION_SKIP_TO_NEXT else 0L) or
+            (if (hasPrevious()) PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS else 0L)
+        mediaSession.setPlaybackState(
+            PlaybackStateCompat.Builder()
+                .setActions(actions)
+                .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1f)
+                .build()
+        )
+        showNotification()
+    }
+
+    private fun showNotification() {
+        if (!::mediaSession.isInitialized) return
+        mediaSession.setMetadata(
+            MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, notificationTitle)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, notificationChannel)
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, notificationThumbnail)
+                .build()
+        )
+
+        val contentIntent = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, YouTubePlayerActivity::class.java).apply {
+                putExtra(EXTRA_VIDEO_ID, playlistIds.getOrNull(currentIndex) ?: intent.getStringExtra(EXTRA_VIDEO_ID))
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val playPauseIcon = if (isCurrentlyPlaying) R.drawable.ic_pause else R.drawable.ic_play
+        val playPauseAction = NotificationCompat.Action(
+            playPauseIcon,
+            getString(if (isCurrentlyPlaying) R.string.action_pause else R.string.action_play),
+            actionPendingIntent(if (isCurrentlyPlaying) ACTION_PAUSE else ACTION_PLAY)
+        )
+
+        val builder = NotificationCompat.Builder(this, NOTIF_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_play_circle)
+            .setContentTitle(notificationTitle)
+            .setContentText(notificationChannel)
+            .setLargeIcon(notificationThumbnail)
+            .setContentIntent(contentIntent)
+            .setOngoing(isCurrentlyPlaying)
+            .setOnlyAlertOnce(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        if (hasPrevious()) {
+            builder.addAction(
+                R.drawable.ic_skip_previous,
+                getString(R.string.content_desc_previous),
+                actionPendingIntent(ACTION_PREVIOUS)
+            )
+        }
+        builder.addAction(playPauseAction)
+        if (hasNext()) {
+            builder.addAction(
+                R.drawable.ic_skip_next,
+                getString(R.string.content_desc_next),
+                actionPendingIntent(ACTION_NEXT)
+            )
+        }
+
+        val style = androidx.media.app.NotificationCompat.MediaStyle()
+            .setMediaSession(mediaSession.sessionToken)
+            .setShowActionsInCompactView(if (hasPrevious()) 1 else 0, if (hasNext()) (if (hasPrevious()) 2 else 1) else -1)
+        builder.setStyle(style)
+
+        try {
+            androidx.core.app.NotificationManagerCompat.from(this).notify(NOTIFICATION_ID, builder.build())
+        } catch (e: SecurityException) {
+            android.util.Log.w("YouTubePlayerActivity", "Permission de notification refusée", e)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            androidx.core.app.NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID)
+        } catch (e: Exception) {
+            android.util.Log.w("YouTubePlayerActivity", "Échec annulation notification", e)
+        }
+        try {
+            unregisterReceiver(notificationActionReceiver)
+        } catch (e: Exception) {
+            android.util.Log.w("YouTubePlayerActivity", "Échec désenregistrement du receiver", e)
+        }
+        if (::mediaSession.isInitialized) {
+            mediaSession.isActive = false
+            mediaSession.release()
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

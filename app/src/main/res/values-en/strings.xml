@@ -361,4 +361,7 @@
     <string name="content_desc_repeat">Repeat</string>
     <string name="content_desc_timer">Timer</string>
     <string name="content_desc_options">Options</string>
+
+    <string name="notif_channel_youtube">YouTube playback</string>
+    <string name="action_pause">Pause</string>
 </resources>
