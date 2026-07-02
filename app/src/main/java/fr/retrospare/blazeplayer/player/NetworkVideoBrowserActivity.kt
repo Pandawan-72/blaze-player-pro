@@ -131,7 +131,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                 // Affichage immédiat avec des badges devinés depuis l'extension (déjà en cache
                 // le cas échéant) — plutôt que d'attendre l'extraction de toute la liste, ce qui
                 // faisait dépendre l'affichage entier du fichier le plus lent du dossier.
-                val videos = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(rawVideos).toMutableList()
+                val videos = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(this@NetworkVideoBrowserActivity, rawVideos).toMutableList()
                 currentVideos = videos
                 tvCount.text = resources.getQuantityString(R.plurals.folder_count, folders.size, folders.size) + " - " + resources.getQuantityString(R.plurals.video_count, videos.size, videos.size)
                 showList(folders, videos)

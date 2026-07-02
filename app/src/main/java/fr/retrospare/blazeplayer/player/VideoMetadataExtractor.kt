@@ -168,7 +168,21 @@ object VideoMetadataExtractor {
     suspend fun extract(context: Context, path: String, knownSizeBytes: Long = 0L): VideoTechnicalInfo =
         extractFull(context, path, knownSizeBytes)
 
-    fun getCached(path: String, knownSizeBytes: Long = 0L): VideoTechnicalInfo? = cache[cacheKey(path, knownSizeBytes)]
+    fun getCached(path: String, knownSizeBytes: Long = 0L): VideoTechnicalInfo? =
+        cache[cacheKey(path, knownSizeBytes)] ?: if (knownSizeBytes > 0L) cache[path] else null
+
+    /** Lecture cache mémoire+disque strictement rapide, sans extraction réseau. Utile pour
+     *  réouvrir un dossier SMB avec les badges déjà visibles immédiatement. */
+    fun getCached(context: Context, path: String, knownSizeBytes: Long = 0L): VideoTechnicalInfo? {
+        getCached(path, knownSizeBytes)?.let { return it }
+        val keys = if (knownSizeBytes > 0L) listOf(cacheKey(path, knownSizeBytes), path) else listOf(path)
+        for (key in keys) {
+            val disk = loadFromDisk(context, key) ?: continue
+            cache[key] = disk
+            return disk
+        }
+        return null
+    }
 
     fun clearCache() = cache.clear()
 
@@ -185,15 +199,17 @@ object VideoMetadataExtractor {
      *  depuis l'extension, et données déjà en cache mémoire s'il y en a. Sert à afficher la
      *  liste immédiatement — l'enrichissement réel arrive ensuite en arrière-plan, ligne par
      *  ligne, via [enrichVideoItemsIncremental]. */
-    fun fastDecorate(item: MediaItem): MediaItem {
+    fun fastDecorate(item: MediaItem): MediaItem = fastDecorate(null, item)
+
+    fun fastDecorate(context: Context?, item: MediaItem): MediaItem {
         if (item.mimeType == "folder" || item.mimeType == "share" || !item.mimeType.startsWith("video/")) return item
-        val ext = item.extension.lowercase()
-        val cached = getCached(item.path, item.size)
+        val ext = item.extension.lowercase().ifEmpty { item.name.substringAfterLast('.', "").lowercase() }
+        val cached = if (context != null) getCached(context, item.path, item.size) else getCached(item.path, item.size)
         if (cached != null) {
             return item.copy(
                 resolution = cached.qualityBadge.ifEmpty { normalizeResolution(item.resolution) },
-                videoCodec = cached.videoCodec.ifEmpty { guessVideoCodecFromExt(ext) },
-                audioCodec = cached.audioCodec.ifEmpty { guessAudioCodecFromExt(ext) },
+                videoCodec = cached.videoCodec.ifEmpty { item.videoCodec ?: guessVideoCodecFromExt(ext) },
+                audioCodec = cached.audioCodec.ifEmpty { item.audioCodec ?: guessAudioCodecFromExt(ext) },
                 duration = if (cached.duration > 0) cached.duration else item.duration
             )
         }
@@ -225,6 +241,7 @@ object VideoMetadataExtractor {
     /** Version liste : applique [fastDecorate] à chaque élément vidéo, synchrone, pour un
      *  affichage immédiat avant tout enrichissement en arrière-plan. */
     fun fastDecorateList(items: List<MediaItem>): List<MediaItem> = items.map { fastDecorate(it) }
+    fun fastDecorateList(context: Context, items: List<MediaItem>): List<MediaItem> = items.map { fastDecorate(context, it) }
 
     /**
      * Enrichit une liste déjà affichée (via [fastDecorateList]) en arrière-plan, élément par
@@ -250,17 +267,29 @@ object VideoMetadataExtractor {
         val callbackMutex = kotlinx.coroutines.sync.Mutex()
         items.forEachIndexed { index, item ->
             if (item.mimeType == "folder" || item.mimeType == "share" || !item.mimeType.startsWith("video/")) return@forEachIndexed
-            if (!item.resolution.isNullOrEmpty() && item.duration > 0) return@forEachIndexed
+            val cached = getCached(context, item.path, item.size)
+            if (cached != null && (item.duration <= 0L || item.resolution.isNullOrEmpty())) {
+                val ext = item.extension.lowercase().ifEmpty { item.name.substringAfterLast('.', "").lowercase() }
+                val enriched = item.copy(
+                    resolution = cached.qualityBadge.ifEmpty { normalizeResolution(item.resolution) },
+                    videoCodec = cached.videoCodec.ifEmpty { item.videoCodec ?: guessVideoCodecFromExt(ext) },
+                    audioCodec = cached.audioCodec.ifEmpty { item.audioCodec ?: guessAudioCodecFromExt(ext) },
+                    duration = if (cached.duration > 0) cached.duration else item.duration
+                )
+                launch { callbackMutex.withLock { onItemReady(index, enriched) } }
+                return@forEachIndexed
+            }
+            if (!item.resolution.isNullOrEmpty() && item.duration > 0 && !item.videoCodec.isNullOrEmpty() && !item.audioCodec.isNullOrEmpty()) return@forEachIndexed
             launch {
                 semaphore.withPermit {
                     try {
-                        val ext = item.extension.lowercase()
+                        val ext = item.extension.lowercase().ifEmpty { item.name.substringAfterLast('.', "").lowercase() }
                         val info = extractLight(context, item.path, item.size)
                         if (info.duration <= 0L && info.width <= 0) return@withPermit
                         val enriched = item.copy(
                             resolution = info.qualityBadge.ifEmpty { normalizeResolution(item.resolution) },
-                            videoCodec = item.videoCodec ?: guessVideoCodecFromExt(ext),
-                            audioCodec = item.audioCodec ?: guessAudioCodecFromExt(ext),
+                            videoCodec = info.videoCodec.ifEmpty { item.videoCodec ?: guessVideoCodecFromExt(ext) },
+                            audioCodec = info.audioCodec.ifEmpty { item.audioCodec ?: guessAudioCodecFromExt(ext) },
                             duration = if (info.duration > 0) info.duration else item.duration
                         )
                         callbackMutex.withLock { onItemReady(index, enriched) }
@@ -330,8 +359,14 @@ object VideoMetadataExtractor {
             CACHE_VERSION, info.duration, info.width, info.height, info.videoCodec, info.audioCodec,
             info.container, info.frameRate?.toString() ?: "", info.hdr, info.audioTracks, info.sizeBytes
         ).joinToString("|")
-        context.getSharedPreferences(DISK_CACHE_PREFS, Context.MODE_PRIVATE)
-            .edit().putString(diskKey(key), raw).apply()
+        val editor = context.getSharedPreferences(DISK_CACHE_PREFS, Context.MODE_PRIVATE).edit()
+            .putString(diskKey(key), raw)
+        // Double index pour fiabiliser les badges réseau : certains listings SMB remontent size=0
+        // puis l'extracteur connaît la taille réelle, ou inversement. Le fallback par chemin
+        // permet d'afficher le cache immédiatement malgré cette différence.
+        val pathOnly = key.substringBefore("|")
+        if (pathOnly.isNotEmpty() && pathOnly != key) editor.putString(diskKey(pathOnly), raw)
+        editor.apply()
     }
 
     private fun mapVideoCodec(mime: String): String = when {

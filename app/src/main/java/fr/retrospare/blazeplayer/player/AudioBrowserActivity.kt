@@ -340,7 +340,16 @@ class AudioBrowserActivity : AppCompatActivity() {
                 
                 // Dossiers navigables
                 val folderNames = folders.map { "📁 ${it.name}" }
-                val fileItems = audioFiles.map { AudioFile(it.name, it.path, it.duration, getString(R.string.tab_network)) }
+                val fileItems = audioFiles.map { item ->
+                    val cached = AudioMetadataExtractor.getCached(this@AudioBrowserActivity, item.path)
+                    AudioFile(
+                        name = cached?.title?.takeIf { it.isNotBlank() } ?: item.name,
+                        path = item.path,
+                        duration = if ((cached?.duration ?: 0L) > 0L) cached!!.duration else item.duration,
+                        artist = cached?.artist?.takeIf { it.isNotBlank() } ?: getString(R.string.tab_network),
+                        bitrate = (cached?.bitrate ?: 0L).toInt()
+                    )
+                }.toMutableList()
                 displayItems.addAll(fileItems)
                 currentItems = fileItems // Necessaire pour le bouton "Tout ajouter"
 
@@ -380,6 +389,28 @@ class AudioBrowserActivity : AppCompatActivity() {
                 )
                 binding.recyclerAudio.adapter = combinedAdapter
                 updateCounter()
+
+                // Enrichissement asynchrone des titres audio réseau depuis les tags ID3/FLAC.
+                // Le cache disque est consulté avant extraction ; l'extraction est bornée dans
+                // AudioMetadataExtractor pour ne pas bloquer le listing SMB.
+                audioFiles.forEachIndexed { idx, item ->
+                    if (idx >= fileItems.size) return@forEachIndexed
+                    lifecycleScope.launch {
+                        val meta = AudioMetadataExtractor.extract(this@AudioBrowserActivity, item.path, item.name)
+                        if (isFinishing || isDestroyed) return@launch
+                        val updated = fileItems[idx].copy(
+                            name = meta.title.takeIf { it.isNotBlank() } ?: fileItems[idx].name,
+                            artist = meta.artist.takeIf { it.isNotBlank() } ?: fileItems[idx].artist,
+                            duration = if (meta.duration > 0L) meta.duration else fileItems[idx].duration,
+                            bitrate = if (meta.bitrate > 0L) meta.bitrate.toInt() else fileItems[idx].bitrate
+                        )
+                        if (updated != fileItems[idx]) {
+                            fileItems[idx] = updated
+                            currentItems = fileItems
+                            combinedAdapter.notifyItemChanged(folders.size + idx)
+                        }
+                    }
+                }
             }.onFailure { e ->
                 val message = e.message ?: e.javaClass.simpleName
                 Toast.makeText(this@AudioBrowserActivity, getString(R.string.toast_error_generic, message), Toast.LENGTH_LONG).show()

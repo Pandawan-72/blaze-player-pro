@@ -111,7 +111,7 @@ class PlaylistAdapter(
             // extraction par ligne). Les pochettes restent affichées dans le lecteur audio et
             // le mini-lecteur, qui n'en chargent qu'une à la fois.
 
-            val cached = AudioMetadataExtractor.getCached(path)
+            val cached = AudioMetadataExtractor.getCached(itemView.context, path)
             if (cached != null) {
                 applyMeta(cached, trackTitle, tvArtist, tvCodec, tvBitrate, tvName)
             } else {
@@ -165,6 +165,7 @@ class PlaylistAdapter(
             tvBitrate: TextView?,
             tvName: TextView
         ) {
+            if (meta.title.isNotEmpty()) tvName.text = meta.title
             tvArtist?.text = meta.artist.ifEmpty { itemView.context.getString(R.string.unknown_artist) }
             tvArtist?.visibility = View.VISIBLE
 
