@@ -88,7 +88,7 @@ class AudioPlayerFragment : Fragment() {
                         val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), path, names[i])
                         launch(Dispatchers.Main) {
                             val c = controller ?: return@launch
-                            val idx = (0 until c.mediaItemCount).firstOrNull { c.getMediaItemAt(it).localConfiguration?.uri.toString() == path }
+                            val idx = (0 until c.mediaItemCount).firstOrNull { originalPathOf(c.getMediaItemAt(it)) == path }
                             if (idx != null) {
                                 c.replaceMediaItem(idx, enriched)
                                 playlistAdapter.notifyItemChanged(idx)
@@ -123,6 +123,7 @@ class AudioPlayerFragment : Fragment() {
 
         initPlaylistUi()
         setupControls()
+        setupAudioCastButton()
         setupSeekBar()
         startProgressUpdate()
         connectMediaController()
@@ -166,6 +167,17 @@ class AudioPlayerFragment : Fragment() {
         super.onDestroyView()
     }
 
+
+    private fun setupAudioCastButton() {
+        try {
+            binding.btnAudioCast.setDialogFactory(fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory())
+            com.google.android.gms.cast.framework.CastButtonFactory
+                .setUpMediaRouteButton(requireContext(), binding.btnAudioCast)
+        } catch (e: Exception) {
+            CrashReporter.log(requireContext(), "Audio cast button setup failed", e)
+            binding.btnAudioCast.visibility = android.view.View.GONE
+        }
+    }
     // ── MediaController ────────────────────────────────────────────────────────
 
     private fun connectMediaController() {
@@ -228,7 +240,7 @@ class AudioPlayerFragment : Fragment() {
         // Pending tracks depuis SharedViewModel
         val pending = sharedVm.consumePendingTracks()
         if (pending.isNotEmpty()) {
-            val existingPaths = (0 until ctrl.mediaItemCount).map { ctrl.getMediaItemAt(it).localConfiguration?.uri.toString() }.toSet()
+            val existingPaths = (0 until ctrl.mediaItemCount).map { originalPathOf(ctrl.getMediaItemAt(it)) }.toSet()
             val newTracks = pending.filter { it.path !in existingPaths }
             if (newTracks.isNotEmpty()) {
                 val simpleItems = newTracks.map { AudioRepository.buildSimpleMediaItem(requireContext(), it.path, it.name) }
@@ -244,7 +256,7 @@ class AudioPlayerFragment : Fragment() {
                             val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), track.path, track.name)
                             launch(Dispatchers.Main) {
                                 val c = controller ?: return@launch
-                                val idx = (0 until c.mediaItemCount).firstOrNull { c.getMediaItemAt(it).localConfiguration?.uri.toString() == track.path }
+                                val idx = (0 until c.mediaItemCount).firstOrNull { originalPathOf(c.getMediaItemAt(it)) == track.path }
                                 if (idx != null) {
                                     c.replaceMediaItem(idx, enriched)
                                     playlistAdapter.notifyItemChanged(idx)
@@ -314,7 +326,7 @@ class AudioPlayerFragment : Fragment() {
         // Bitrate via AudioMetadataExtractor (gère aussi smb://, avec cache disque — évite de
         // ré-extraire à chaque fois qu'on rouvre le même morceau)
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val path = mediaItem.localConfiguration?.uri?.toString() ?: return@launch
+            val path = originalPathOf(mediaItem).ifEmpty { return@launch }
             val info = fr.retrospare.blazeplayer.player.AudioMetadataExtractor.extract(
                 requireContext(), path, path.substringAfterLast("/")
             )
@@ -477,7 +489,7 @@ class AudioPlayerFragment : Fragment() {
         if (ctrl.mediaItemCount == 0) return
         val items = (0 until ctrl.mediaItemCount).map { i ->
             val mi = ctrl.getMediaItemAt(i)
-            val path = mi.localConfiguration?.uri?.toString() ?: ""
+            val path = originalPathOf(mi)
             val name = mi.mediaMetadata.title?.toString()?.ifEmpty { null }
                 ?: mi.localConfiguration?.uri?.lastPathSegment ?: ""
             PlaylistItem(path, name)
@@ -487,7 +499,7 @@ class AudioPlayerFragment : Fragment() {
 
     fun addTrack(path: String, name: String) {
         val ctrl = controller ?: return
-        val exists = (0 until ctrl.mediaItemCount).any { ctrl.getMediaItemAt(it).localConfiguration?.uri.toString() == path }
+        val exists = (0 until ctrl.mediaItemCount).any { originalPathOf(ctrl.getMediaItemAt(it)) == path }
         if (exists) return
 
         val simpleItem = AudioRepository.buildSimpleMediaItem(requireContext(), path, name)
@@ -504,7 +516,7 @@ class AudioPlayerFragment : Fragment() {
                 val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), path, name)
                 launch(Dispatchers.Main) {
                     val c = controller ?: return@launch
-                    val idx = (0 until c.mediaItemCount).firstOrNull { c.getMediaItemAt(it).localConfiguration?.uri.toString() == path }
+                    val idx = (0 until c.mediaItemCount).firstOrNull { originalPathOf(c.getMediaItemAt(it)) == path }
                     if (idx != null) {
                         c.replaceMediaItem(idx, enriched)
                         playlistAdapter.notifyItemChanged(idx)
@@ -709,4 +721,10 @@ class AudioPlayerFragment : Fragment() {
             .setNegativeButton(getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
             .show()
     }
+    private fun originalPathOf(item: androidx.media3.common.MediaItem): String {
+        return item.mediaId.takeIf { it.isNotBlank() }
+            ?: item.localConfiguration?.uri?.toString()
+            ?: ""
+    }
+
 }

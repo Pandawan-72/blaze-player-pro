@@ -256,18 +256,28 @@ class PlayerActivity : AppCompatActivity() {
             player.setPlaybackSpeed(SPEEDS.getOrElse(prefSpeedIndex) { 1.0f })
             updateSpeedLabel()
 
-            val savedMs = getSharedPreferences("blaze_positions", MODE_PRIVATE).getLong(mediaPath, 0L)
-            val hasResumePosition = savedMs > 3000L
+            val savedMs = savedResumePositionMs(mediaPath)
+            val askResume = prefResumeMode == 1 && savedMs > 3000L
             val startPosition = when {
                 // Mode "toujours reprendre" : on démarre directement à la dernière position.
-                prefResumeMode == 0 && hasResumePosition -> savedMs
-                // Mode "demander" : on doit laisser handleResume() afficher le modal.
-                // Ne pas pré-positionner ici, sinon le dialogue est court-circuité.
+                prefResumeMode == 0 && savedMs > 3000L -> savedMs
+                // Mode "demander" : on charge au début mais on NE lance pas la lecture tant
+                // que l'utilisateur n'a pas choisi. Important pour Chromecast : si une session
+                // Cast est déjà active, CastPlayer reçoit exactement la même décision que le
+                // lecteur local au lieu de démarrer automatiquement à 0.
                 else -> 0L
             }
             resumeHandled = prefResumeMode != 1 && startPosition > 0L
 
-            loadMedia(mediaPath, mediaName, startPosition)
+            if (askResume) {
+                // Important pour Chromecast : ne pas charger le MediaItem avant le choix.
+                // Sinon CastPlayer peut recevoir immédiatement le média et démarrer à 0 pendant
+                // que le modal est encore affiché. Ici le LOAD local/Cast ne part qu'après
+                // "Reprendre" ou "Depuis le début".
+                showInitialResumeChoice(savedMs)
+            } else {
+                loadMedia(mediaPath, mediaName, startPosition, autoPlay = true)
+            }
 
             startProgressLoop()
         }
@@ -345,7 +355,7 @@ class PlayerActivity : AppCompatActivity() {
 
     /** Point d'entrée UNIQUE pour charger un média. API Player standard uniquement :
      *  setMediaItem -> prepare -> play. Pas de RemoteMediaClient, pas de MediaQueueItem manuel. */
-    private fun loadMedia(path: String, name: String, positionMs: Long = 0L) {
+    private fun loadMedia(path: String, name: String, positionMs: Long = 0L, autoPlay: Boolean = true) {
         videoStoppedByUser = false
         val item = buildMediaItem(path, name)
         android.util.Log.i(
@@ -357,9 +367,16 @@ class PlayerActivity : AppCompatActivity() {
         // peut arrêter VideoPlaybackService pendant que CastPlayer est encore actif, ce qui
         // provoque des crashs quelques secondes après le début du cast.
         player.setMediaItem(item, positionMs)
+        player.playWhenReady = autoPlay
         player.prepare()
         applySubtitleTrackSelection()
-        player.play()
+        if (autoPlay) {
+            player.play()
+        } else {
+            // Utilisé par le mode de reprise "demander" : le média est préparé, y compris en
+            // Cast, mais la lecture attend le choix de l'utilisateur.
+            player.pause()
+        }
         loadNotificationArtwork(path)
     }
 
@@ -773,21 +790,97 @@ class PlayerActivity : AppCompatActivity() {
         })
     }
 
-    private fun handleResume() {
-        resumeHandled = true
-        if (prefResumeMode == 2) return
-        val savedMs = getSharedPreferences("blaze_positions", MODE_PRIVATE).getLong(mediaPath, 0L)
-        if (savedMs <= 3000L) return
-        when (prefResumeMode) {
-            0 -> player.seekTo(savedMs)
-            1 -> android.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.settings_resume_playback))
-                .setMessage(getString(R.string.dialog_resume_message, savedMs / 60000, (savedMs / 1000) % 60))
-                .setPositiveButton(getString(R.string.action_resume)) { _, _ -> player.seekTo(savedMs) }
-                .setNegativeButton(getString(R.string.action_from_beginning)) { _, _ -> player.seekTo(0) }
-                .show()
-        }
+    private fun savedResumePositionMs(path: String = mediaPath): Long {
+        return getSharedPreferences("blaze_positions", MODE_PRIVATE).getLong(path, 0L)
     }
+
+    /** Applique le modèle de reprise pour le player local ET pour CastPlayer.
+     *
+     * Avant ce correctif, le Cast pouvait recevoir le MediaItem et démarrer à 0 avant que le
+     * modal "reprendre / recommencer" ne soit pris en compte. Désormais, en mode "demander",
+     * la lecture est préparée mais reste en pause jusqu'au choix ; le seek/play qui suit pilote
+     * le même Player Media3, donc la TV et le téléphone restent synchronisés.
+     */
+    private fun showResumeChoice(playAfterChoice: Boolean = false): Boolean {
+        if (!::player.isInitialized || resumeHandled || prefResumeMode == 2) return false
+        val savedMs = savedResumePositionMs()
+        if (savedMs <= 3000L) {
+            resumeHandled = true
+            return false
+        }
+
+        when (prefResumeMode) {
+            0 -> {
+                resumeHandled = true
+                player.seekTo(savedMs)
+                if (playAfterChoice) player.play()
+                return true
+            }
+            1 -> {
+                resumeHandled = true
+                val wasPlaying = player.isPlaying
+                if (wasPlaying) player.pause()
+                cancelHide()
+                showUI()
+                android.app.AlertDialog.Builder(this)
+                    .setTitle(getString(R.string.settings_resume_playback))
+                    .setMessage(getString(R.string.dialog_resume_message, savedMs / 60000, (savedMs / 1000) % 60))
+                    .setPositiveButton(getString(R.string.action_resume)) { _, _ ->
+                        player.seekTo(savedMs)
+                        if (playAfterChoice || wasPlaying) player.play()
+                        scheduleHide()
+                    }
+                    .setNegativeButton(getString(R.string.action_from_beginning)) { _, _ ->
+                        player.seekTo(0)
+                        if (playAfterChoice || wasPlaying) player.play()
+                        scheduleHide()
+                    }
+                    .setOnCancelListener {
+                        // Fermeture par retour/tap extérieur : comportement sûr et prévisible,
+                        // on recommence au début au lieu de laisser un Cast en pause indéfiniment.
+                        player.seekTo(0)
+                        if (playAfterChoice || wasPlaying) player.play()
+                        scheduleHide()
+                    }
+                    .show()
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun handleResume() {
+        showResumeChoice(playAfterChoice = false)
+    }
+
+    /** Modal de reprise AVANT chargement du média.
+     *
+     * Utilisé à l'ouverture initiale et après STOP -> PLAY. C'est volontairement séparé de
+     * showResumeChoice(), qui agit sur un Player déjà chargé. Pour Cast, cette variante évite
+     * d'envoyer un LOAD au Chromecast avant la décision de l'utilisateur.
+     */
+    private fun showInitialResumeChoice(savedMs: Long) {
+        resumeHandled = true
+        cancelHide()
+        showUI()
+        android.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.settings_resume_playback))
+            .setMessage(getString(R.string.dialog_resume_message, savedMs / 60000, (savedMs / 1000) % 60))
+            .setPositiveButton(getString(R.string.action_resume)) { _, _ ->
+                loadMedia(mediaPath, mediaName, savedMs, autoPlay = true)
+                scheduleHide()
+            }
+            .setNegativeButton(getString(R.string.action_from_beginning)) { _, _ ->
+                loadMedia(mediaPath, mediaName, 0L, autoPlay = true)
+                scheduleHide()
+            }
+            .setOnCancelListener {
+                loadMedia(mediaPath, mediaName, 0L, autoPlay = true)
+                scheduleHide()
+            }
+            .show()
+    }
+
 
     private fun goBackToHistory() {
         if (mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) {
@@ -1132,9 +1225,17 @@ class PlayerActivity : AppCompatActivity() {
         binding.playerView.setBackgroundColor(android.graphics.Color.BLACK)
         playNextCalled = false
         // Après STOP puis PLAY, on relance le média comme une nouvelle ouverture :
-        // le mode "demander" doit donc afficher le modal de reprise si une position existe.
-        resumeHandled = false
-        loadMedia(mediaPath, mediaName, 0L)
+        // le mode "demander" doit donc afficher le modal de reprise si une position existe,
+        // y compris lorsque la sortie courante est un Chromecast.
+        val savedMs = savedResumePositionMs(mediaPath)
+        val askResume = prefResumeMode == 1 && savedMs > 3000L
+        val startPosition = if (prefResumeMode == 0 && savedMs > 3000L) savedMs else 0L
+        resumeHandled = prefResumeMode != 1 && startPosition > 0L
+        if (askResume) {
+            showInitialResumeChoice(savedMs)
+        } else {
+            loadMedia(mediaPath, mediaName, startPosition, autoPlay = true)
+        }
         startProgressLoop()
         showUI()
         scheduleHide()

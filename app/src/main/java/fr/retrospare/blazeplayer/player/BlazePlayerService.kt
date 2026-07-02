@@ -3,8 +3,11 @@ package fr.retrospare.blazeplayer.player
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
+import androidx.media3.cast.CastPlayer
+import androidx.media3.cast.RemoteCastPlayer
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -16,6 +19,8 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
+import fr.retrospare.blazeplayer.cast.BlazeCastMediaItemConverter
+import fr.retrospare.blazeplayer.cast.AudioStreamServerManager
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
@@ -54,6 +59,8 @@ class BlazePlayerService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
     private var player: ExoPlayer? = null
+    private var sessionPlayer: Player? = null
+    private var castPlayer: CastPlayer? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -124,6 +131,27 @@ class BlazePlayerService : MediaSessionService() {
         })
         player = exoPlayer
 
+        val audioSessionPlayer: Player = try {
+            val remotePlayer = RemoteCastPlayer.Builder(this)
+                .setMediaItemConverter(BlazeCastMediaItemConverter())
+                .build()
+            val cp = CastPlayer.Builder(this)
+                .setLocalPlayer(exoPlayer)
+                .setRemotePlayer(remotePlayer)
+                .setTransferCallback { sourcePlayer, targetPlayer ->
+                    androidx.media3.common.PlayerTransferState.fromPlayer(sourcePlayer)
+                        .setToPlayer(targetPlayer)
+                    android.util.Log.i("BlazePlayerService", "Audio transfer remote=${targetPlayer.deviceInfo.playbackType == androidx.media3.common.DeviceInfo.PLAYBACK_TYPE_REMOTE}")
+                }
+                .build()
+            castPlayer = cp
+            cp
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Audio CastPlayer unavailable; fallback local audio", e)
+            exoPlayer
+        }
+        sessionPlayer = audioSessionPlayer
+
         val openIntent = PendingIntent.getActivity(
             this, 0,
             Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java).apply {
@@ -133,7 +161,7 @@ class BlazePlayerService : MediaSessionService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaSession.Builder(this, exoPlayer)
+        mediaSession = MediaSession.Builder(this, audioSessionPlayer)
             .setSessionActivity(openIntent)
             .setCallback(SessionCallback())
             .build()
@@ -197,8 +225,8 @@ class BlazePlayerService : MediaSessionService() {
      */
     override fun onTaskRemoved(rootIntent: Intent?) {
         try {
-            player?.stop()
-            player?.clearMediaItems()
+            sessionPlayer?.stop()
+            sessionPlayer?.clearMediaItems()
         } catch (e: Exception) {
             fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Audio onTaskRemoved stop failed", e)
         }
@@ -207,11 +235,13 @@ class BlazePlayerService : MediaSessionService() {
     }
 
     override fun onDestroy() {
-        mediaSession?.run {
-            player.release()
-            release()
-            mediaSession = null
-        }
+        try { mediaSession?.release() } catch (_: Exception) {}
+        try { castPlayer?.release() } catch (_: Exception) {}
+        try { player?.release() } catch (_: Exception) {}
+        AudioStreamServerManager.stopServer()
+        mediaSession = null
+        castPlayer = null
+        sessionPlayer = null
         player = null
         super.onDestroy()
     }

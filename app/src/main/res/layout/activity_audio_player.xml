@@ -42,6 +42,17 @@
                 android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.15" />
 
+            <androidx.mediarouter.app.MediaRouteButton
+                android:id="@+id/btnAudioCast"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_toStartOf="@id/btnPlaylistSheet"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Chromecast"
+                android:visibility="visible" />
+
             <ImageButton
                 android:id="@+id/btnPlaylistSheet"
                 android:layout_width="36dp"
