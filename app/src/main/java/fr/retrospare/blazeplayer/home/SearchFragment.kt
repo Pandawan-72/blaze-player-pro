@@ -61,7 +61,7 @@ class SearchFragment : Fragment() {
                     delay(300)
                     val results = searchMedia(q)
                     adapter.submitList(results)
-                    binding.tvCount.text = "${results.size} résultat(s)"
+                    binding.tvCount.text = resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.results_found, results.size, results.size)
                 }
                 return true
             }

@@ -28,6 +28,7 @@ class BrowserFragment : Fragment() {
     private val binding get() = _binding!!
     private lateinit var adapter: BrowserAdapter
     private val breadcrumbParts = mutableListOf<String>()
+    private var globalSearchJob: kotlinx.coroutines.Job? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentBrowserBinding.inflate(inflater, container, false)
@@ -208,7 +209,24 @@ class BrowserFragment : Fragment() {
         binding.root.findViewById<android.widget.EditText>(R.id.etSearch)?.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                adapter.filter(s?.toString() ?: "")
+                val query = s?.toString() ?: ""
+                globalSearchJob?.cancel()
+                val isNetworkMode = arguments?.getBoolean("isNetwork", false) ?: false
+                if (!isNetworkMode && query.length >= 3) {
+                    // Recherche globale parmi toutes les vidéos locales (tous dossiers confondus)
+                    // via l'index MediaStore, plutôt que de filtrer seulement le dossier courant.
+                    globalSearchJob = viewLifecycleOwner.lifecycleScope.launch {
+                        kotlinx.coroutines.delay(300)
+                        val results = viewModel.searchAllLocalVideos(query)
+                        adapter.setFullList(results)
+                        adapter.filter("")
+                    }
+                } else {
+                    // Repasse en filtrage simple du dossier courant (comportement d'origine)
+                    val current = (viewModel.state.value as? BrowserViewModel.BrowserState.Success)?.items
+                    if (current != null) adapter.setFullList(current)
+                    adapter.filter(query)
+                }
             }
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
@@ -230,13 +248,16 @@ class BrowserFragment : Fragment() {
                                 val fileText = resources.getQuantityString(R.plurals.file_count, files, files)
                                 binding.tvFileCount.text = getString(R.string.browser_folder_file_count, folderText, fileText)
                             }
-                            is BrowserViewModel.BrowserState.Error -> binding.recyclerView.visibility = View.VISIBLE
+                            is BrowserViewModel.BrowserState.Error -> {
+                                binding.recyclerView.visibility = View.VISIBLE
+                                android.widget.Toast.makeText(requireContext(), getString(R.string.toast_error_generic, state.message), android.widget.Toast.LENGTH_LONG).show()
+                            }
                         }
                     }
                 }
                 launch {
                     viewModel.currentPath.collect { path ->
-                        binding.tvPath.text = path.ifEmpty { "/stockage/interne" }
+                        binding.tvPath.text = path.ifEmpty { getString(R.string.path_internal_storage) }
                         val audioOnly = arguments?.getBoolean("audioOnlyMode") ?: false
                         val isNet = arguments?.getBoolean("isNetwork", false) ?: false
                         binding.tvTitle.text = when {

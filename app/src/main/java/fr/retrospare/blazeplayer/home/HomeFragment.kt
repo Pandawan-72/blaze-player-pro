@@ -63,13 +63,6 @@ class HomeFragment : Fragment() {
                 binding.btnCast.visibility = android.view.View.GONE
             }
         }
-        binding.btnSearch.setOnClickListener {
-            try {
-                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_search)
-            } catch (e: Exception) {
-                // fallback
-            }
-        }
 
         // "Caster l'écran du téléphone" : ouvre directement les paramètres système Android de
         // diffusion d'écran, plutôt qu'un pipeline maison (capture MediaProjection + encodage

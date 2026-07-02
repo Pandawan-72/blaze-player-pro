@@ -66,7 +66,7 @@ object FavoriteDialogs {
                 val f = favorites[position]
                 holder.itemView.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.tvFavoriteName)?.text = f.name
                 val tvSubtitle = holder.itemView.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.tvFavoriteSubtitle)
-                if (category == FavoriteCategory.NETWORK && !f.shareName.isNullOrEmpty()) {
+                if (!f.shareName.isNullOrEmpty()) {
                     tvSubtitle?.text = f.shareName
                     tvSubtitle?.visibility = android.view.View.VISIBLE
                 } else {
@@ -92,7 +92,7 @@ object FavoriteDialogs {
         val favorites = FavoritesManager.getFavorites(context, category)
         if (favorites.isEmpty()) return
         val labels = favorites.map { f ->
-            if (category == FavoriteCategory.NETWORK && !f.shareName.isNullOrEmpty()) "${f.shareName} — ${f.name}" else f.name
+            if (!f.shareName.isNullOrEmpty()) "${f.shareName} — ${f.name}" else f.name
         }.toTypedArray()
         val checked = BooleanArray(favorites.size)
         android.app.AlertDialog.Builder(context)

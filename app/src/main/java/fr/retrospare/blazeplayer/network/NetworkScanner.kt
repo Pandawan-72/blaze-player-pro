@@ -1,5 +1,9 @@
 package fr.retrospare.blazeplayer.network
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fr.retrospare.blazeplayer.data.model.NetworkShare
 import fr.retrospare.blazeplayer.data.model.ShareType
 import kotlinx.coroutines.Dispatchers
@@ -8,6 +12,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -18,7 +24,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class NetworkScanner @Inject constructor() {
+class NetworkScanner @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     companion object {
         private const val SMB_PORT = 445
@@ -27,6 +35,10 @@ class NetworkScanner @Inject constructor() {
         private const val SSDP_PORT = 1900
         private const val SCAN_TIMEOUT_MS = 300
         private const val SSDP_TIMEOUT_MS = 4000
+        /** Nombre maximum de connexions simultanées pendant le scan du sous-réseau. Sans cette
+         *  limite, jusqu'à 254 connexions étaient lancées en parallèle, ce qui peut causer des
+         *  lenteurs, des timeouts, ou une charge excessive sur certains téléphones/NAS/box. */
+        private const val MAX_CONCURRENT_SCANS = 24
     }
 
     data class DiscoveredDevice(
@@ -43,17 +55,21 @@ class NetworkScanner @Inject constructor() {
         try {
         } catch (e: Exception) {}
 
-        // 2. Scan SMB en parallèle sur tout le sous-réseau
+        // 2. Scan SMB en parallèle sur tout le sous-réseau, avec une concurrence limitée pour
+        // ne pas ouvrir jusqu'à 254 connexions simultanées.
+        val semaphore = Semaphore(MAX_CONCURRENT_SCANS)
         coroutineScope {
             (1..254).map { i ->
                 async(Dispatchers.IO) {
-                    val ip = "$subnet.$i"
-                    try {
-                        if (isSmbOpen(ip)) {
-                            val name = getHostName(ip)
-                            DiscoveredDevice(ip = ip, name = name, type = ShareType.SMB)
-                        } else null
-                    } catch (e: Exception) { null }
+                    semaphore.withPermit {
+                        val ip = "$subnet.$i"
+                        try {
+                            if (isSmbOpen(ip)) {
+                                val name = getHostName(ip)
+                                DiscoveredDevice(ip = ip, name = name, type = ShareType.SMB)
+                            } else null
+                        } catch (e: Exception) { null }
+                    }
                 }
             }.awaitAll().filterNotNull().forEach { emit(it) }
         }
@@ -126,11 +142,38 @@ class NetworkScanner @Inject constructor() {
     }
 
 
+    /** Détermine le sous-réseau à scanner à partir du réseau *actif* signalé par
+     *  [ConnectivityManager] (Wi-Fi ou Ethernet en priorité), plutôt que la première adresse
+     *  IPv4 non-loopback trouvée sur l'appareil — cette dernière approche pouvait tomber sur un
+     *  VPN, un partage de connexion, une interface Docker/émulateur, etc., et scanner le
+     *  mauvais sous-réseau (donc ne rien trouver du tout). */
     fun getLocalSubnet(): String? {
+        connectivityManagerSubnet()?.let { return it }
+        // Repli sur l'ancienne méthode si ConnectivityManager ne renvoie rien d'exploitable
+        // (cas limite, mais mieux vaut un résultat approximatif que rien).
         return try {
             NetworkInterface.getNetworkInterfaces()?.toList()
                 ?.flatMap { it.inetAddresses.toList() }
                 ?.firstOrNull { !it.isLoopbackAddress && it.hostAddress?.contains('.') == true }
+                ?.hostAddress
+                ?.substringBeforeLast('.')
+        } catch (e: Exception) { null }
+    }
+
+    private fun connectivityManagerSubnet(): String? {
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return null
+            val activeNetwork = cm.activeNetwork ?: return null
+            val capabilities = cm.getNetworkCapabilities(activeNetwork) ?: return null
+            // Ne considère que Wi-Fi ou Ethernet : un VPN ou une connexion cellulaire actifs en
+            // parallèle du Wi-Fi pourraient sinon être choisis à la place du bon réseau local.
+            val isRelevant = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+            if (!isRelevant) return null
+            val linkProperties = cm.getLinkProperties(activeNetwork) ?: return null
+            linkProperties.linkAddresses
+                .mapNotNull { it.address as? java.net.Inet4Address }
+                .firstOrNull { !it.isLoopbackAddress }
                 ?.hostAddress
                 ?.substringBeforeLast('.')
         } catch (e: Exception) { null }

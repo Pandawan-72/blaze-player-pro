@@ -143,8 +143,12 @@ class BrowserViewModel @Inject constructor(
             _state.value = BrowserState.Loading
             _currentPath.value = path
             try {
-                val items = smbBrowser.listFiles(share, path).getOrElse { emptyList() }
-                _state.value = BrowserState.Success(applySortMode(items))
+                val result = smbBrowser.listFiles(share, path)
+                result.onSuccess { items ->
+                    _state.value = BrowserState.Success(applySortMode(items))
+                }.onFailure { e ->
+                    _state.value = BrowserState.Error(e.message ?: "Erreur réseau SMB")
+                }
             } catch (e: Exception) {
                 _state.value = BrowserState.Error(e.message ?: "Erreur réseau")
             }
@@ -168,6 +172,53 @@ class BrowserViewModel @Inject constructor(
         SortMode.NAME_DESC -> "Nom Z–A"
         SortMode.DATE_DESC -> "Date récente"
         SortMode.SIZE_DESC -> "Taille"
+    }
+
+    /** Recherche des vidéos locales par nom, tous dossiers confondus — s'appuie sur l'index déjà
+     *  tenu à jour par MediaStore plutôt que de parcourir le système de fichiers dossier par
+     *  dossier, ce qui serait à la fois plus lent et redondant avec ce que le système fait déjà. */
+    suspend fun searchAllLocalVideos(query: String): List<MediaItem> = withContext(Dispatchers.IO) {
+        val items = mutableListOf<MediaItem>()
+        val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        val projection = arrayOf(
+            MediaStore.Video.Media._ID,
+            MediaStore.Video.Media.DISPLAY_NAME,
+            MediaStore.Video.Media.DATA,
+            MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DURATION,
+            MediaStore.Video.Media.MIME_TYPE
+        )
+        context.contentResolver.query(
+            collection, projection,
+            "${MediaStore.Video.Media.DISPLAY_NAME} LIKE ?",
+            arrayOf("%$query%"),
+            MediaStore.Video.Media.DISPLAY_NAME
+        )?.use { cursor ->
+            val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+            val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+            val dataCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
+            val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+            val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idCol)
+                val name = cursor.getString(nameCol) ?: continue
+                val filePath = cursor.getString(dataCol) ?: continue
+                items.add(
+                    MediaItem(
+                        id = id.toString(),
+                        name = name,
+                        path = filePath,
+                        size = cursor.getLong(sizeCol),
+                        duration = cursor.getLong(durationCol) / 1000,
+                        mimeType = cursor.getString(mimeCol) ?: "video/*",
+                        extension = name.substringAfterLast('.', "").lowercase(),
+                        isNetwork = false
+                    )
+                )
+            }
+        }
+        items
     }
 
     private fun applySortMode(items: List<MediaItem>): List<MediaItem> {

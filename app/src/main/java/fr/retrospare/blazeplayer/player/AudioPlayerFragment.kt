@@ -400,6 +400,17 @@ class AudioPlayerFragment : Fragment() {
         binding.btnAddFolder.setOnClickListener {
             pickAudio.launch(android.content.Intent(requireContext(), AudioBrowserActivity::class.java))
         }
+        binding.btnAudioFavoriteFolders.setOnClickListener {
+            fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
+                requireContext(),
+                fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO
+            ) { favorite ->
+                pickAudio.launch(android.content.Intent(requireContext(), AudioBrowserActivity::class.java).apply {
+                    putExtra(AudioBrowserActivity.EXTRA_FAVORITE_PATH, favorite.path)
+                    favorite.shareId?.let { putExtra(AudioBrowserActivity.EXTRA_FAVORITE_SHARE_ID, it) }
+                })
+            }
+        }
 
         fun openPlaylist() {
             binding.playlistSheet.visibility = android.view.View.VISIBLE

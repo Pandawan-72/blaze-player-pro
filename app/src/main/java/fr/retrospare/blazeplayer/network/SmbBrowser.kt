@@ -34,10 +34,6 @@ class SmbBrowser @Inject constructor() {
         return SMBClient(config)
     }
 
-    /**
-     * Liste les partages SMB disponibles sur l'hote (racine du NAS).
-     * Utilise quand share.shareName est vide.
-     */
     suspend fun listShares(share: NetworkShare): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
         runCatching {
             val client = createClient()
@@ -109,15 +105,23 @@ class SmbBrowser @Inject constructor() {
             client.connect(host, port).use { connection ->
                 connection.authenticate(authContext).use { session ->
                     (session.connectShare(share.shareName) as? DiskShare)?.use { diskShare ->
-                        val searchPath = if (path.isEmpty()) "" else path
-                        val entries = diskShare.list(searchPath)
+                        // [path] est toujours en '/' ici (séparateur canonique côté app) ; la
+                        // conversion en '\' — celui attendu par le protocole SMB — n'a lieu
+                        // qu'à cet unique endroit, juste avant l'appel réseau. Mélanger les deux
+                        // séparateurs plus loin dans la construction des chemins causait des
+                        // dossiers introuvables lors de la navigation dans un partage
+                        // auto-détecté (mode multi-partages).
+                        val smbSearchPath = path.replace("/", "\\")
+                        val entries = diskShare.list(smbSearchPath)
 
                         entries.forEach { info ->
                             val name = info.fileName
                             if (name == "." || name == "..") return@forEach
                             if (name.startsWith(".")) return@forEach
 
-                            val fullPath = if (path.isEmpty()) name else "$path\\$name"
+                            // fullPath reste en '/' (canonique) pour l'affichage et la
+                            // navigation ultérieure — jamais mélangé avec des '\'.
+                            val fullPath = if (path.isEmpty()) name else "$path/$name"
                             val isDir = info.fileAttributes and 0x10L != 0L
                             val ext = name.substringAfterLast('.', "").lowercase()
                             // Si on navigue en mode multi-share, le "path" affiche au niveau superieur doit inclure le nom du partage
@@ -159,6 +163,12 @@ class SmbBrowser @Inject constructor() {
         }
     }
 
+    /**
+     * Recherche récursive de tous les fichiers audio dans un partage réseau, à partir de
+     * [startPath] (racine par défaut). Garde UNE SEULE connexion/session SMB ouverte pour tout
+     * le parcours, avec un budget de temps global et une gestion résiliente des erreurs : une
+     * panne sur un sous-dossier ne fait pas perdre les résultats déjà trouvés ailleurs.
+     */
     suspend fun checkConnection(share: NetworkShare): Boolean = withContext(Dispatchers.IO) {
         runCatching {
             val client = createClient()

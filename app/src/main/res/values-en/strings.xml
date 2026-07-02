@@ -339,4 +339,26 @@
     </plurals>
     <string name="browser_folder_file_count">%1$s · %2$s</string>
     <string name="content_desc_back">Back</string>
+
+    <plurals name="results_found">
+        <item quantity="one">%1$d result</item>
+        <item quantity="other">%1$d results</item>
+    </plurals>
+    <string name="path_internal_storage">/internal storage</string>
+
+    <plurals name="selected_tracks_count">
+        <item quantity="one">%1$d track selected</item>
+        <item quantity="other">%1$d tracks selected</item>
+    </plurals>
+
+    <string name="content_desc_close_playlist">Close playlist</string>
+    <string name="content_desc_clean">Clean up</string>
+    <string name="content_desc_playlist">Playlist</string>
+    <string name="content_desc_shuffle">Shuffle</string>
+    <string name="content_desc_previous">Previous</string>
+    <string name="content_desc_play_pause">Play/Pause</string>
+    <string name="content_desc_next">Next</string>
+    <string name="content_desc_repeat">Repeat</string>
+    <string name="content_desc_timer">Timer</string>
+    <string name="content_desc_options">Options</string>
 </resources>

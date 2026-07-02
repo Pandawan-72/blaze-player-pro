@@ -34,6 +34,12 @@ class AudioBrowserActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_PATHS = "extra_paths"
         const val EXTRA_NAMES = "extra_names"
+        /** Chemin d'un dossier favori (local ou réseau) sur lequel démarrer directement,
+         *  au lieu de la racine locale par défaut. */
+        const val EXTRA_FAVORITE_PATH = "extra_favorite_path"
+        /** Identifiant du partage réseau associé au favori, si c'en est un — absent pour un
+         *  favori local. */
+        const val EXTRA_FAVORITE_SHARE_ID = "extra_favorite_share_id"
     }
 
     @Inject lateinit var networkRepository: NetworkRepository
@@ -123,6 +129,7 @@ class AudioBrowserActivity : AppCompatActivity() {
             }
             var allAudioFiles: List<AudioFile> = emptyList()
             var lastFilteredResults: List<AudioFile> = emptyList()
+            var searchJob: kotlinx.coroutines.Job? = null
             val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.action_search))
                 .setView(searchBar)
@@ -147,8 +154,13 @@ class AudioBrowserActivity : AppCompatActivity() {
                 }
                 .create()
 
-            // Charge tous les fichiers audio en arrière plan
-            lifecycleScope.launch {
+            dialog.setOnDismissListener {
+                searchJob?.cancel()
+            }
+
+            // Recherche locale uniquement — tous dossiers confondus via un scan local, qui est
+            // rapide (accès disque, pas de réseau). Pas de recherche réseau ici.
+            searchJob = lifecycleScope.launch {
                 allAudioFiles = withContext(kotlinx.coroutines.Dispatchers.IO) { scanLocalAudio() }
             }
 
@@ -177,24 +189,53 @@ class AudioBrowserActivity : AppCompatActivity() {
             dialog.show()
         }
 
-        // Chargement initial
-        loadLocalFiles()
+        // Chargement initial : soit un dossier favori précis (local ou réseau), soit la
+        // racine locale par défaut.
+        val favoritePath = intent.getStringExtra(EXTRA_FAVORITE_PATH)
+        val favoriteShareId = intent.getStringExtra(EXTRA_FAVORITE_SHARE_ID)
+        when {
+            favoritePath != null && favoriteShareId != null -> {
+                setActiveTab(1)
+                lifecycleScope.launch {
+                    val share = withContext(Dispatchers.IO) { networkRepository.getShareById(favoriteShareId) }
+                    if (share != null) {
+                        browseNetworkShare(share, favoritePath)
+                    } else {
+                        loadLocalFiles()
+                    }
+                }
+            }
+            favoritePath != null -> {
+                setActiveTab(0)
+                browseFolderAudio(java.io.File(favoritePath), pushBack = false)
+            }
+            else -> loadLocalFiles()
+        }
     }
 
     private var currentItems: List<AudioFile> = emptyList()
     private val folderStack = ArrayDeque<() -> Unit>() // pile pour navigation retour
+    /** Partage réseau actuellement parcouru (null en mode Local) — permet au bouton de
+     *  recherche de savoir s'il doit chercher en local ou dans ce partage précis. */
+    private var currentNetworkShare: NetworkShare? = null
+    /** Sous-chemin actuellement parcouru à l'intérieur de [currentNetworkShare] — sans ça, la
+     *  recherche repartait toujours de la racine du partage au lieu du dossier où l'utilisateur
+     *  se trouve réellement. */
+    private var currentNetworkPath: String = ""
 
     private fun setActiveTab(index: Int) {
         val green = getColor(fr.retrospare.blazeplayer.R.color.green_accent)
         val blue = getColor(fr.retrospare.blazeplayer.R.color.blue_accent)
         val purple = 0xFF9C6FD6.toInt()
-        val dim = 0xFF3A3A3A.toInt()
+        val dim = 0xFF6B6E80.toInt()
         binding.btnLocal.backgroundTintList = android.content.res.ColorStateList.valueOf(if (index == 0) green else dim)
         binding.btnNetwork.backgroundTintList = android.content.res.ColorStateList.valueOf(if (index == 1) blue else dim)
     }
 
     private fun loadLocalFiles() {
         folderStack.clear()
+        currentNetworkShare = null
+        currentNetworkPath = ""
         lifecycleScope.launch {
             binding.tvSelected.text = getString(R.string.loading)
             val folders = withContext(Dispatchers.IO) {
@@ -244,6 +285,13 @@ class AudioBrowserActivity : AppCompatActivity() {
                 if (checked) selectedItems.add(Pair(path, name))
                 else selectedItems.removeAll { it.first == path }
                 updateCounter()
+            },
+            onFolderMoreClick = { folder ->
+                fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
+                    this,
+                    fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
+                    fr.retrospare.blazeplayer.favorites.FavoriteFolder(path = folder.absolutePath, name = folder.name)
+                )
             }
         )
         binding.recyclerAudio.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
@@ -259,15 +307,11 @@ class AudioBrowserActivity : AppCompatActivity() {
                 Toast.makeText(this@AudioBrowserActivity, getString(R.string.toast_no_network_path_configured), Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            if (shares.size == 1) {
-                browseNetworkShare(shares.first(), "")
-            } else {
-                AlertDialog.Builder(this@AudioBrowserActivity)
-                    .setTitle(getString(R.string.dialog_choose_network_path))
-                    .setItems(shares.map { it.name }.toTypedArray()) { _, i ->
-                        browseNetworkShare(shares[i], "")
-                    }.show()
-            }
+            AlertDialog.Builder(this@AudioBrowserActivity)
+                .setTitle(getString(R.string.dialog_choose_network_path))
+                .setItems(shares.map { it.name }.toTypedArray()) { _, i ->
+                    browseNetworkShare(shares[i], "")
+                }.show()
         }
     }
 
@@ -284,6 +328,8 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun browseNetworkShare(share: NetworkShare, path: String) {
+        currentNetworkShare = share
+        currentNetworkPath = path
         lifecycleScope.launch {
             binding.tvSelected.text = getString(R.string.loading)
             val result = withContext(Dispatchers.IO) { smbBrowser.listFiles(share, path) }
@@ -320,12 +366,25 @@ class AudioBrowserActivity : AppCompatActivity() {
                         if (checked) selectedItems.add(Pair(path2, name))
                         else selectedItems.removeAll { it.first == path2 }
                         updateCounter()
+                    },
+                    onFolderMoreClick = { folderPath, folderName ->
+                        fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
+                            this@AudioBrowserActivity,
+                            fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
+                            fr.retrospare.blazeplayer.favorites.FavoriteFolder(
+                                path = folderPath, name = folderName,
+                                shareId = share.id, shareName = share.name
+                            )
+                        )
                     }
                 )
                 binding.recyclerAudio.adapter = combinedAdapter
                 updateCounter()
-            }.onFailure {
-
+            }.onFailure { e ->
+                val message = e.message ?: e.javaClass.simpleName
+                Toast.makeText(this@AudioBrowserActivity, getString(R.string.toast_error_generic, message), Toast.LENGTH_LONG).show()
+                binding.tvSelected.text = getString(R.string.toast_error_generic, message)
+                binding.recyclerAudio.adapter = null
             }
         }
     }
@@ -339,7 +398,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         }
         binding.recyclerAudio.layoutManager = LinearLayoutManager(this)
         binding.recyclerAudio.adapter = adapter
-        binding.tvSelected.text = "${items.size} piste${if (items.size > 1) "s" else ""} trouvée${if (items.size > 1) "s" else ""}"
+        binding.tvSelected.text = resources.getQuantityString(R.plurals.track_count_found, items.size, items.size)
         updateCounter()
     }
 
@@ -377,7 +436,7 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     private fun updateCounter() {
         val n = selectedItems.size
-        binding.tvSelected.text = "$n piste${if (n > 1) "s" else ""} sélectionnée${if (n > 1) "s" else ""}"
+        binding.tvSelected.text = resources.getQuantityString(R.plurals.selected_tracks_count, n, n)
     }
 
     private fun navigateFolderBack() {
@@ -545,7 +604,8 @@ class CombinedAudioAdapter(
     private val folders: List<Pair<String, String>>,
     private val files: List<AudioBrowserActivity.AudioFile>,
     private val onFolderClick: (String) -> Unit,
-    private val onFileToggle: (String, String, Boolean) -> Unit
+    private val onFileToggle: (String, String, Boolean) -> Unit,
+    private val onFolderMoreClick: (String, String) -> Unit = { _, _ -> }
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val selected = mutableSetOf<Int>()
@@ -569,6 +629,9 @@ class CombinedAudioAdapter(
             val folder = folders[position]
             holder.itemView.findViewById<TextView>(R.id.tvFolderName)?.text = folder.first
             holder.itemView.setOnClickListener { onFolderClick(folder.second) }
+            holder.itemView.findViewById<View>(R.id.btnFolderMore)?.setOnClickListener {
+                onFolderMoreClick(folder.second, folder.first)
+            }
         } else {
             val fileIdx = position - folders.size
             val file = files[fileIdx]
@@ -675,7 +738,8 @@ class MixedAudioAdapter(
     private val folders: List<java.io.File>,
     private val files: List<AudioBrowserActivity.AudioFile>,
     private val onFolderClick: (java.io.File) -> Unit,
-    private val onFileToggle: (String, String, Boolean) -> Unit
+    private val onFileToggle: (String, String, Boolean) -> Unit,
+    private val onFolderMoreClick: (java.io.File) -> Unit = {}
 ) : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
 
     private val selected = mutableSetOf<Int>()
@@ -697,6 +761,9 @@ class MixedAudioAdapter(
             val folder = folders[position]
             holder.itemView.findViewById<android.widget.TextView>(R.id.tvFolderName)?.text = folder.name
             holder.itemView.setOnClickListener { onFolderClick(folder) }
+            holder.itemView.findViewById<android.view.View>(R.id.btnFolderMore)?.setOnClickListener {
+                onFolderMoreClick(folder)
+            }
         } else {
             val filePos = position - folders.size
             val item = files[filePos]

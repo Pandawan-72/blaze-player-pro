@@ -29,7 +29,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_chevron_down"
                 android:tint="@color/on_surface_variant"
-                android:contentDescription="Fermer" />
+                android:contentDescription="@string/action_close" />
 
             <TextView
                 android:id="@+id/tvNowPlaying"
@@ -51,7 +51,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_layout_list"
                 android:tint="@color/on_surface_variant"
-                android:contentDescription="Playlist" />
+                android:contentDescription="@string/content_desc_playlist" />
 
         </RelativeLayout>
 
@@ -224,7 +224,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_shuffle"
                 android:tint="@color/on_surface_variant"
-                android:contentDescription="Aléatoire" />
+                android:contentDescription="@string/content_desc_shuffle" />
 
             <ImageButton
                 android:id="@+id/btnPrev"
@@ -234,7 +234,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_skip_previous"
                 android:tint="@color/on_surface"
-                android:contentDescription="Précédent" />
+                android:contentDescription="@string/content_desc_previous" />
 
             <ImageButton
                 android:id="@+id/btnRewind"
@@ -251,7 +251,7 @@
                 android:src="@drawable/ic_play"
                 android:tint="@color/background"
                 android:padding="18dp"
-                android:contentDescription="Lecture/Pause" />
+                android:contentDescription="@string/content_desc_play_pause" />
 
             <ImageButton
                 android:id="@+id/btnForward"
@@ -268,7 +268,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_skip_next"
                 android:tint="@color/on_surface"
-                android:contentDescription="Suivant" />
+                android:contentDescription="@string/content_desc_next" />
 
             <ImageButton
                 android:id="@+id/btnRepeat"
@@ -277,7 +277,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_repeat"
                 android:tint="@color/on_surface_variant"
-                android:contentDescription="Répéter" />
+                android:contentDescription="@string/content_desc_repeat" />
 
         </LinearLayout>
 
@@ -341,7 +341,7 @@
                     android:layout_height="22dp"
                     android:src="@drawable/ic_timer"
                     android:tint="@color/on_surface_variant"
-                    android:contentDescription="Timer" />
+                    android:contentDescription="@string/content_desc_timer" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -376,7 +376,7 @@
                     android:layout_height="22dp"
                     android:src="@drawable/ic_info"
                     android:tint="@color/on_surface_variant"
-                    android:contentDescription="Infos" />
+                    android:contentDescription="@string/info" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -494,7 +494,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_chevron_down"
                 android:tint="@color/on_surface"
-                android:contentDescription="Fermer la playlist"
+                android:contentDescription="@string/content_desc_close_playlist"
                 android:layout_marginEnd="8dp" />
 
             <TextView
@@ -507,6 +507,25 @@
                 android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.1" />
 
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnAudioFavoriteFolders"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginEnd="4dp"
+                android:text="@string/favorites"
+                android:textSize="12sp"
+                android:textColor="@color/on_surface"
+                android:paddingHorizontal="12dp"
+                app:backgroundTint="@color/surface_variant"
+                app:strokeColor="@color/outline_variant"
+                app:strokeWidth="1dp"
+                app:cornerRadius="20dp"
+                app:icon="@drawable/ic_star"
+                app:iconSize="14dp"
+                app:iconTint="@color/on_surface"
+                app:iconGravity="textStart" />
+
             <ImageButton
                 android:id="@+id/btnAddFolder"
                 android:layout_width="36dp"
@@ -514,7 +533,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_add_circle"
                 android:tint="@color/green_accent"
-                android:contentDescription="Ajouter" />
+                android:contentDescription="@string/add" />
 
             <ImageButton
                 android:id="@+id/btnCleanPlaylist"
@@ -524,7 +543,7 @@
                 android:src="@drawable/ic_remove_circle"
                 android:tint="#FF4444"
                 android:layout_marginStart="4dp"
-                android:contentDescription="Nettoyer" />
+                android:contentDescription="@string/content_desc_clean" />
 
         </LinearLayout>
 
