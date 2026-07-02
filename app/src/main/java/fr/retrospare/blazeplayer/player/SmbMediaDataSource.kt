@@ -13,9 +13,9 @@ import java.util.EnumSet
  * pour generer des miniatures / extraire des metadonnees sans avoir a streamer via ExoPlayer.
  * Utilise SmbSessionPool (meme pool que SmbDataSource) pour reutiliser connexion/session/share.
  */
-class SmbMediaDataSource(smbUri: String) : MediaDataSource() {
+class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
 
-    private val parsed = SmbDataSource.parseSmbUri(android.net.Uri.parse(smbUri))
+    private val parsed = SmbDataSource.parseSmbUri(android.net.Uri.parse(originalUri))
     private var diskShare: DiskShare? = null
     private var smbFile: SmbFile? = null
     private var fileSize: Long = -1L

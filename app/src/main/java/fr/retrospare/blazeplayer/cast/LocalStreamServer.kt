@@ -16,6 +16,13 @@ class LocalStreamServer(
     port: Int = 8927
 ) : NanoHTTPD(port) {
 
+    companion object {
+        /** Logs HTTP désactivés par défaut : un Chromecast peut générer beaucoup de requêtes
+         *  Range/HEAD. Logger tous les en-têtes dégrade inutilement le débit et pollue logcat. */
+        private const val LOG_VERBOSE = false
+        const val SMB_STREAM_BUFFER_SIZE = 1024 * 1024 // 1 Mo : bon compromis latence/débit
+    }
+
     /** Snapshot immuable de la source active, remplacé atomiquement à chaque changement de vidéo
      *  (setSource). Chaque requête HTTP capture UNE SEULE référence à ce snapshot en tout début
      *  de traitement et s'y tient pour toute sa durée — plutôt que de relire des champs mutables
@@ -68,8 +75,10 @@ class LocalStreamServer(
 
     override fun serve(session: IHTTPSession): Response {
         val remoteIp = session.remoteIpAddress
-        android.util.Log.i("LocalStreamServer", "Requête reçue de $remoteIp : ${session.method} ${session.uri}")
-        android.util.Log.i("LocalStreamServer", "En-têtes : ${session.headers}")
+        if (LOG_VERBOSE) {
+            android.util.Log.i("LocalStreamServer", "Requête reçue de $remoteIp : ${session.method} ${session.uri}")
+            android.util.Log.i("LocalStreamServer", "En-têtes : ${session.headers}")
+        }
 
         // Le Chromecast peut envoyer OPTIONS avant GET (pré-vérification CORS) : une 404 ici peut
         // faire abandonner certains récepteurs.
@@ -94,6 +103,8 @@ class LocalStreamServer(
                 val response = newFixedLengthResponse(Response.Status.OK, mimeType, "")
                 response.addHeader("Content-Length", totalLength.coerceAtLeast(0).toString())
                 response.addHeader("Accept-Ranges", "bytes")
+                response.addHeader("Cache-Control", "no-store, no-transform")
+                response.addHeader("X-Content-Type-Options", "nosniff")
                 addCorsHeaders(response)
                 return response
             }
@@ -191,7 +202,10 @@ class LocalStreamServer(
     /** Repond a une requete Range (ex: "bytes=1000-") avec le statut 206 Partial Content. */
     private fun serveRange(path: String, rangeHeader: String, totalLength: Long, mimeType: String): Response {
         val parsed = parseRange(rangeHeader, totalLength)
-            ?: return cors(newFixedLengthResponse(Response.Status.RANGE_NOT_SATISFIABLE, "text/plain", "Invalid range"))
+            ?: return cors(newFixedLengthResponse(Response.Status.RANGE_NOT_SATISFIABLE, "text/plain", "Invalid range").apply {
+                addHeader("Content-Range", "bytes */$totalLength")
+                addHeader("Accept-Ranges", "bytes")
+            })
         val (start, end) = parsed
         val contentLength = end - start + 1
 
@@ -200,6 +214,8 @@ class LocalStreamServer(
         response.addHeader("Content-Range", "bytes $start-$end/$totalLength")
         response.addHeader("Content-Length", contentLength.toString())
         response.addHeader("Accept-Ranges", "bytes")
+        response.addHeader("Cache-Control", "no-store, no-transform")
+        response.addHeader("X-Content-Type-Options", "nosniff")
         addCorsHeaders(response)
         return response
     }
@@ -213,6 +229,8 @@ class LocalStreamServer(
         }
         if (totalLength > 0) response.addHeader("Content-Length", totalLength.toString())
         response.addHeader("Accept-Ranges", "bytes")
+        response.addHeader("Cache-Control", "no-store, no-transform")
+        response.addHeader("X-Content-Type-Options", "nosniff")
         addCorsHeaders(response)
         return response
     }
@@ -290,13 +308,15 @@ class LocalStreamServer(
  * en demarrant a une position donnee (pour le support des requetes Range).
  */
 private class SmbMediaDataSourceInputStream(
-    private val source: fr.retrospare.blazeplayer.player.SmbMediaDataSource,
+    private var source: fr.retrospare.blazeplayer.player.SmbMediaDataSource,
     startPosition: Long = 0
 ) : InputStream() {
+    private val originalPath = sourcePathFrom(source)
     private var position: Long = startPosition
-    private val buffer = ByteArray(8 * 1024 * 1024)
+    private val buffer = ByteArray(LocalStreamServer.SMB_STREAM_BUFFER_SIZE)
     private var bufferPos = 0
     private var bufferLen = 0
+    private var reopenBudget = 3
 
     override fun read(): Int {
         val b = ByteArray(1)
@@ -308,6 +328,12 @@ private class SmbMediaDataSourceInputStream(
         if (bufferPos >= bufferLen) {
             bufferLen = source.readAt(position, buffer, 0, buffer.size)
             bufferPos = 0
+            if (bufferLen <= 0 && position < source.size && reopenBudget > 0) {
+                reopenBudget--
+                try { source.close() } catch (_: Exception) {}
+                source = fr.retrospare.blazeplayer.player.SmbMediaDataSource(originalPath)
+                bufferLen = source.readAt(position, buffer, 0, buffer.size)
+            }
             if (bufferLen <= 0) return -1
         }
         val toCopy = minOf(len, bufferLen - bufferPos)
@@ -319,5 +345,9 @@ private class SmbMediaDataSourceInputStream(
 
     override fun close() {
         try { source.close() } catch (_: Exception) {}
+    }
+
+    companion object {
+        private fun sourcePathFrom(source: fr.retrospare.blazeplayer.player.SmbMediaDataSource): String = source.originalUri
     }
 }

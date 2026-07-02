@@ -114,6 +114,7 @@ class BlazeCastMediaItemConverter : MediaItemConverter {
             "mkv" -> "video/x-matroska"
             "webm" -> MimeTypes.VIDEO_WEBM
             "mov" -> "video/quicktime"
+            "avi" -> "video/x-msvideo"
             "ts", "m2ts", "mts" -> "video/mp2t"
             else -> MimeTypes.VIDEO_MP4
         }

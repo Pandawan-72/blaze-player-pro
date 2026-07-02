@@ -246,6 +246,15 @@ class VideoPlaybackService : MediaSessionService() {
             .build()
 
         sessionPlayer.addListener(object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                    applicationContext,
+                    "VideoPlaybackService player error " + androidx.media3.common.PlaybackException.getErrorCodeName(error.errorCode) +
+                        " remote=" + (sessionPlayer.deviceInfo.playbackType == androidx.media3.common.DeviceInfo.PLAYBACK_TYPE_REMOTE),
+                    error
+                )
+            }
+
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 val path = mediaItem?.mediaId
                 val name = mediaItem?.mediaMetadata?.title?.toString()
