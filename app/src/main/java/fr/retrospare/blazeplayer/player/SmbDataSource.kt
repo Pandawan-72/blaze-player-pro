@@ -30,8 +30,10 @@ class SmbDataSource : BaseDataSource(true) {
     private var parsedUri: ParsedSmbUri? = null
 
     // Buffer interne pour eviter des centaines de micro-requetes SMB (1-4 octets) lors du parsing MKV/EBML.
-    // On lit par blocs de 256 Ko depuis le reseau et on sert les petites lectures de Media3 depuis ce buffer.
-    private val readBuffer = ByteArray(256 * 1024)
+    // On lit par blocs de 8 Mo depuis le reseau et on sert les petites lectures de Media3 depuis ce buffer.
+    // 8 Mo est la taille minimale recommandée pour un débit confortable en 4K (1 Mo était trop
+    // juste pour des flux haut débit et multipliait les allers-retours réseau).
+    private val readBuffer = ByteArray(8 * 1024 * 1024)
     private var readBufferStart: Long = -1
     private var readBufferLength: Int = 0
 
@@ -40,26 +42,35 @@ class SmbDataSource : BaseDataSource(true) {
         val parsed = parseSmbUri(dataSpec.uri)
         parsedUri = parsed
 
-        val share = try {
-            SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
+        // Un seul bloc de tentative recouvrant TOUTE la séquence d'ouverture (pas seulement
+        // getShare()) : le DiskShare renvoyé peut devenir obsolète/fermé entre son obtention et
+        // son utilisation, si un autre consommateur concurrent (le relais HTTP de cast, une
+        // extraction de sous-titres...) l'invalide entre-temps.
+        fun attemptOpen(): Triple<DiskShare, SmbFile, Long> {
+            val share = SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
+            val file = share.openFile(
+                parsed.filePath,
+                EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
+                null,
+                SMB2ShareAccess.ALL,
+                SMB2CreateDisposition.FILE_OPEN,
+                EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
+            )
+            val size = file.getFileInformation(FileStandardInformation::class.java).endOfFile
+            return Triple(share, file, size)
+        }
+
+        val (share, file, fileSize) = try {
+            attemptOpen()
         } catch (e: Exception) {
-            // Ressource potentiellement cassee (timeout, NAS redemarre...) -> on invalide et on reessaie une fois
+            // Ressource potentiellement cassee (timeout, NAS redemarre, invalidée par un autre
+            // consommateur concurrent...) -> on invalide et on reessaie une fois
             SmbSessionPool.invalidate(parsed.host, parsed.port, parsed.username, parsed.shareName)
-            SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
+            attemptOpen()
         }
         diskShare = share
-
-        val file = share.openFile(
-            parsed.filePath,
-            EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
-            null,
-            SMB2ShareAccess.ALL,
-            SMB2CreateDisposition.FILE_OPEN,
-            EnumSet.of(com.hierynomus.mssmb2.SMB2CreateOptions.FILE_SEQUENTIAL_ONLY)
-        )
         smbFile = file
 
-        val fileSize = file.getFileInformation(FileStandardInformation::class.java).endOfFile
         val position = dataSpec.position
         if (position > fileSize) {
             throw androidx.media3.datasource.DataSourceException(androidx.media3.datasource.DataSourceException.POSITION_OUT_OF_RANGE)
@@ -101,7 +112,6 @@ class SmbDataSource : BaseDataSource(true) {
                 smbFile?.read(readBuffer, currentPosition, 0, readBuffer.size) ?: -1
             } catch (e: Exception) {
                 android.util.Log.e("SmbDataSource", "Read failed at position $currentPosition", e)
-                parsedUri?.let { SmbSessionPool.invalidate(it.host, it.port, it.username, it.shareName) }
                 -1
             }
             if (read != 0) break
@@ -129,10 +139,13 @@ class SmbDataSource : BaseDataSource(true) {
     override fun getUri(): Uri? = uri
 
     override fun close() {
-        // On ne ferme PAS diskShare/session/connection ici : ils sont mutualises via SmbSessionPool
-        // et reutilises pour le fichier suivant. Seul le handle de fichier est ferme.
+        // DiskShare n'est plus partagé : on ferme le handle puis le share privé de CE DataSource,
+        // sans toucher à la session/connexion mutualisée.
         try { smbFile?.close() } catch (e: Exception) {
             android.util.Log.e("SmbDataSource", "Failed to close smbFile", e)
+        }
+        try { diskShare?.close() } catch (e: Exception) {
+            android.util.Log.e("SmbDataSource", "Failed to close diskShare", e)
         }
         smbFile = null
         diskShare = null

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <!-- Cheveux -->
+    <path android:fillColor="#F0A500" android:pathData="M5,0h6v1H5z"/>
+    <path android:fillColor="#F0A500" android:pathData="M4,1h8v1H4z"/>
+    <path android:fillColor="#F0A500" android:pathData="M4,2h1v3H4z"/>
+    <path android:fillColor="#F0A500" android:pathData="M11,2h1v3H11z"/>
+    <!-- Tête -->
+    <path android:fillColor="#3DD68C" android:pathData="M5,1h6v4H5z"/>
+    <!-- Yeux -->
+    <path android:fillColor="#0F1117" android:pathData="M6,2h1v1H6z"/>
+    <path android:fillColor="#0F1117" android:pathData="M9,2h1v1H9z"/>
+    <!-- Bouche -->
+    <path android:fillColor="#0F1117" android:pathData="M7,4h2v1H7z"/>
+    <!-- Corps / robe -->
+    <path android:fillColor="#378ADD" android:pathData="M5,5h6v5H5z"/>
+    <!-- Bras gauche levé -->
+    <path android:fillColor="#3DD68C" android:pathData="M3,3h2v2H3z"/>
+    <!-- Bras droit bas -->
+    <path android:fillColor="#3DD68C" android:pathData="M11,6h2v2h-2z"/>
+    <!-- Jupe évasée -->
+    <path android:fillColor="#378ADD" android:pathData="M4,10h8v2H4z"/>
+    <path android:fillColor="#378ADD" android:pathData="M3,12h10v1H3z"/>
+    <!-- Jambes -->
+    <path android:fillColor="#3DD68C" android:pathData="M5,13h2v3H5z"/>
+    <path android:fillColor="#3DD68C" android:pathData="M9,13h2v3H9z"/>
+</vector>

@@ -30,7 +30,6 @@
     <string name="section_interface">INTERFACE</string>
     <string name="section_data">GEGEVENS</string>
     <string name="section_about">OVER</string>
-    <string name="section_subtitles">ONDERTITELS</string>
     <string name="section_blaze_audio">BLAZE AUDIO</string>
     <string name="section_presets">VOORINSTELLINGEN</string>
     <string name="section_ratio">VERHOUDING</string>
@@ -84,7 +83,6 @@
     <string name="language">Taal</string>
     <string name="language_system">Systeem</string>
     <string name="auto_play_next">Automatisch volgend bestand afspelen</string>
-    <string name="show_subtitles">Ondertitels weergeven</string>
     <string name="show_mini_player">Mini-speler weergeven in app</string>
     <string name="show_hidden_files">Verborgen bestanden weergeven</string>
     <string name="cancel">Annuleren</string>
@@ -123,9 +121,6 @@
     <string name="audio_lang">Voorkeurstaal audio</string>
     <string name="remember_volume">Volume onthouden</string>
     <string name="remember_volume_desc">Volumeniveau bewaren tussen afspeelsessies</string>
-    <string name="enable_subtitles">Ondertitels standaard inschakelen</string>
-    <string name="subtitle_lang">Ondertiteltaal</string>
-    <string name="subtitle_lang_pref">Voorkeurs ondertiteltaal</string>
     <string name="mini_player">Mini-speler</string>
     <string name="hidden_files">Bestanden die beginnen met een punt (.)</string>
     <string name="clear_history">Geschiedenis wissen</string>

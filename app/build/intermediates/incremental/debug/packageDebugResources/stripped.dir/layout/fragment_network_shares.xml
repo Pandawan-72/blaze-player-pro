@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:orientation="vertical">
+
+    <!-- HEADER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="8dp"
+        android:gravity="center_vertical">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_surface_card"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="@color/on_surface_variant"
+            android:contentDescription="Retour"
+            android:layout_marginEnd="12dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Réseau local"
+                android:textColor="@color/on_background"
+                android:textSize="20sp"
+                android:fontFamily="sans-serif-condensed" />
+            <TextView
+                android:id="@+id/tvSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Appareils disponibles"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnScan"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_surface_card"
+            android:src="@drawable/ic_wifi"
+            android:tint="@color/blue_accent"
+            android:contentDescription="Rescanner" />
+
+    </LinearLayout>
+
+    <!-- PROGRESS BAR -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/green_accent"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:visibility="gone" />
+
+    <!-- SECTION SAUVEGARDÉS -->
+    <TextView
+        android:id="@+id/tvSectionSaved"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CHEMINS SAUVEGARDÉS"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="10sp"
+        android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.12"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="4dp"
+        android:clipToPadding="false"
+        android:scrollbars="none" />
+
+    <!-- SECTION APPAREILS DÉTECTÉS -->
+    <TextView
+        android:id="@+id/tvSectionDiscovered"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="APPAREILS DÉTECTÉS"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="10sp"
+        android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.12"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerDiscovered"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="16dp"
+        android:clipToPadding="false"
+        android:scrollbars="none"
+        android:visibility="gone" />
+
+    <!-- EMPTY -->
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Aucun chemin configuré.\nCliquez sur Scanner pour détecter les appareils."
+        android:textColor="@color/on_surface_variant"
+        android:textSize="13sp"
+        android:gravity="center"
+        android:padding="24dp"
+        android:visibility="gone" />
+
+    <!-- FOOTER AJOUTER MANUELLEMENT -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:background="@drawable/bg_surface_card"
+        android:layout_margin="16dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Ajouter manuellement"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAdd"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Ajouter"
+            android:textSize="12sp"
+            android:textColor="#000000"
+            android:paddingHorizontal="14dp"
+            android:includeFontPadding="false"
+            android:gravity="center"
+            app:backgroundTint="@color/blue_accent"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/ic_add_circle"
+            app:iconSize="16dp"
+            app:iconTint="#000000"
+            app:iconGravity="textStart" />
+
+    </LinearLayout>
+
+</LinearLayout>

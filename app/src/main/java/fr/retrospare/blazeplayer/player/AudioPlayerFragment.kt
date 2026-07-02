@@ -118,6 +118,7 @@ class AudioPlayerFragment : Fragment() {
         binding.btnBack.setOnClickListener {
             (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
         }
+        setupSquareArtwork()
 
         initPlaylistUi()
         setupControls()
@@ -128,6 +129,7 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        if (isHidden) return
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
         playlistAdapter.refresh()
         syncSelection()
@@ -156,6 +158,9 @@ class AudioPlayerFragment : Fragment() {
         savePlaylistFromController()
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controller = null
+        squareArtworkListener?.let { squareArtworkContainer?.viewTreeObserver?.removeOnGlobalLayoutListener(it) }
+        squareArtworkListener = null
+        squareArtworkContainer = null
         _binding = null
         super.onDestroyView()
     }
@@ -356,6 +361,32 @@ class AudioPlayerFragment : Fragment() {
 
     // ── Playlist UI ───────────────────────────────────────────────────────────
 
+    /** Force la pochette à rester parfaitement carrée : sa taille = le plus petit des deux côtés
+     *  disponibles dans son conteneur, recalculé à chaque passage de layout (rotation, ajout de
+     *  la rangée playlists en dessous...) au lieu d'un simple match_parent qui l'étirait. */
+    private var squareArtworkListener: android.view.ViewTreeObserver.OnGlobalLayoutListener? = null
+    private var squareArtworkContainer: View? = null
+
+    private fun setupSquareArtwork() {
+        val container = binding.ivArtwork.parent as? View ?: return
+        val listener = android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            val b = _binding ?: return@OnGlobalLayoutListener
+            val availableWidth = container.width - container.paddingLeft - container.paddingRight
+            val availableHeight = container.height - container.paddingTop - container.paddingBottom
+            if (availableWidth <= 0 || availableHeight <= 0) return@OnGlobalLayoutListener
+            val size = minOf(availableWidth, availableHeight)
+            val params = b.ivArtwork.layoutParams
+            if (params.width != size || params.height != size) {
+                params.width = size
+                params.height = size
+                b.ivArtwork.layoutParams = params
+            }
+        }
+        container.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        squareArtworkListener = listener
+        squareArtworkContainer = container
+    }
+
     private fun initPlaylistUi() {
         playlistAdapter = PlaylistAdapter({ controller }) { index ->
             controller?.seekToDefaultPosition(index)
@@ -397,6 +428,44 @@ class AudioPlayerFragment : Fragment() {
             if (binding.playlistSheet.visibility == android.view.View.VISIBLE) closePlaylist() else openPlaylist()
         }
         binding.btnClosePlaylist.setOnClickListener { closePlaylist() }
+
+        setupSavedPlaylistDrawers()
+    }
+
+    /** Les 3 tiroirs (1/2/3) sur le bord droit de l'écran, pour les playlists audio sauvegardées
+     *  (différentes de la file d'attente en cours, ouverte via btnPlaylistSheet). */
+    private fun setupSavedPlaylistDrawers() {
+        val buttons = listOf(
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist1),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist2),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist3)
+        )
+        val ctx = context
+        val lastPlayed = if (ctx != null) fr.retrospare.blazeplayer.playlist.PlaylistManager
+            .getLastPlayed(ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO) else 0
+        buttons.forEachIndexed { i, btn ->
+            if (ctx != null) {
+                val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager
+                    .getPlaylist(ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, i + 1).isNotEmpty()
+                btn?.isSelected = (lastPlayed == i + 1) && hasItems
+            }
+            btn?.setOnClickListener { openSavedAudioPlaylist(i + 1) }
+        }
+    }
+
+    private fun openSavedAudioPlaylist(slot: Int) {
+        val ctx = context ?: return
+        fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showPlaylistViewer(
+            ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, slot,
+            onPlayAll = { tracks ->
+                val ctrl = controller
+                ctrl?.clearMediaItems()
+                tracks.forEach { addTrack(it.path, it.name) }
+                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayed(ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, slot)
+                setupSavedPlaylistDrawers()
+            },
+            onPlayOne = { track -> addTrack(track.path, track.name) }
+        )
     }
 
     /** Sauvegarde sur disque l'etat courant du Player (seule source de verite). */

@@ -1,3 +1,13 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+val localProperties = Properties().apply {
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.exists()) {
+        load(FileInputStream(localPropsFile))
+    }
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -25,6 +35,13 @@ android {
         versionCode = 10
         versionName = "0.10.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Clé API YouTube Data v3 : lue depuis local.properties (jamais commité), à ajouter
+        // toi-même sous la forme YOUTUBE_API_KEY=ta_cle dans ce fichier à la racine du projet.
+        buildConfigField(
+            "String",
+            "YOUTUBE_API_KEY",
+            "\"${localProperties.getProperty("YOUTUBE_API_KEY", "")}\""
+        )
     }
 
     lint {
@@ -49,6 +66,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+        buildConfig = true
     }
 
     packaging {
@@ -100,7 +118,16 @@ dependencies {
     implementation(libs.media3.cast)
     implementation("androidx.media3:media3-database:1.9.0")
     implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1")
+    // Fork maintenu de FFmpegKit (l'original d'arthenica a été retiré de Maven Central en avril
+    // 2025). Utilisé UNIQUEMENT pour l'extraction fiable des sous-titres intégrés en WebVTT — un
+    // démuxeur FFmpeg est bien plus robuste face aux variations de muxage réelles qu'un parseur
+    // EBML maison.
+    implementation("com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1")
     implementation("com.google.android.gms:play-services-cast-framework:22.1.0")
+    // Bibliothèque éprouvée pour la lecture YouTube embarquée — gère en interne la configuration
+    // WebView/referrer que trois tentatives maison n'ont pas réussi à reproduire fiablement
+    // (erreurs 150/152/153 systématiques).
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0")
     implementation("org.nanohttpd:nanohttpd:2.3.1")
     implementation("androidx.mediarouter:mediarouter:1.7.0")
     implementation("androidx.media:media:1.7.0")

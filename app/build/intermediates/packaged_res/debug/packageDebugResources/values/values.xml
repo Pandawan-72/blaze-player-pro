@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="com_google_android_gms_fonts_certs">
+        <item>@array/com_google_android_gms_fonts_certs_dev</item>
+        <item>@array/com_google_android_gms_fonts_certs_prod</item>
+    </array>
+    <string-array name="com_google_android_gms_fonts_certs_dev">
+        <item>MIIEqDCCA5CgAwIBAgIJANWFuGx90071MA0GCSqGSIb3DQEBBAUAMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzETMBEGA1UEChMKR29vZ2xlIEluYzEUMBIGA1UECxMLRW5naW5lZXJpbmcxFTATBgNVBAMTDGluc2VjdXJlLXNzb0AzBgNVBAMTDGluc2VjdXJlLXNzbzAeFw0xNTEyMjMwODMxNTFaFw0yNTEyMjAwODMxNTFaMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzETMBEGA1UEChMKR29vZ2xlIEluYzEUMBIGA1UECxMLRW5naW5lZXJpbmcxFTATBgNVBAMTDGluc2VjdXJlLXNzbzAeFw0xNTEyMjMwODMxNTFaFw0yNTEyMjAwODMxNTFaMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzETMBEGA1UEChMKR29vZ2xlIEluYzEUMBIGA1UECxMLRW5naW5lZXJpbmcxFTATBgNVBAMTDGluc2VjdXJlLXNzbzA=</item>
+    </string-array>
+    <string-array name="com_google_android_gms_fonts_certs_prod">
+        <item>MIIEQzCCAyugAwIBAgIJAMLgh0ZkSjCNMA0GCSqGSIb3DQEBBAUAMHQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDAeFw0wODA4MjEyMzEzMzRaFw0zNjAxMDcyMzEzMzRaMHQxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtHb29nbGUgSW5jLjEQMA4GA1UECxMHQW5kcm9pZDEQMA4GA1UEAxMHQW5kcm9pZDCCASAwDQYJKoZIhvcNAQEBBQADggENADCCAQgCggEBAKtWLgDYO6IIrgqWbxJOKdoR8qtW0I9Y4sypEwPpt1TTcvZApxsdyxMJtIf2iaazF3/d8oOGPNwyIs0DVK/Ku8RrUkkN3bNBMbGiiKMNSMPzS0QZf8wUmhKZDeRNg5T6SDdSAnXrBFZhobSWXQqUQq7oPEb+p04Y7Vnc7FLJQdqFVtEoEFIcDvTD5KHpAj5g4GzjNMkEAAElKXXFHJEjuVIBMkKoGWibxVEiTfVBDEwuPNXgvHhiVdDBcCb0z38XHfRZJlOYnFCaazO5TJ5c26PNRA7RWBLHCwzGYbsAXwIDAQABo4HmMIHjMB0GA1UdDgQWBBTVMBDqeGMeFpJZbv9y5O7XijzzUTCBswYDVR0jBIGrMIGogBTVMBDqeGMeFpJZbv9y5O7XijzzUaF4pHYwdDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDU1vdW50YWluIFZpZXcxFDASBgNVBAoTC0dvb2dsZSBJbmMuMRAwDgYDVQQLEwdBbmRyb2lkMRAwDgYDVQQDEwdBbmRyb2lkggkAwmCHRmRKMI0wDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQQFAAOCAQEAldnRkKBhkNtNUrr/infn9KB2BPDOP6XNMz6KjK9LbEBFbOG7rqFPRtP+B3lCu37vBQCL4d5Htdcl3fy7ZKt24gAM0g0Wh0oc8VyKd+HqchLmCgbFy4LHCc3b+RAe42x0tFtq6NLYK7l7bLWa7P2pZ3wDlFwekQo3LRr4rL7/OJYnJlF9BFbFGJXxQIFqm2Gkb7B6QeSXm/DUJ+s+6HJ4NiXyNBHHFvnzGAR1kzU4v4g2JnGP4KrVSYHFCPskkRUWnYCcJ5hy3pCRuG7ZU5Y4ZkO5aFtSAzR7uGQ==</item>
+    </string-array>
+    <color name="background">#0F1117</color>
+    <color name="background_auth">#0A0F0B</color>
+    <color name="black">#FF000000</color>
+    <color name="blue_accent">#378ADD</color>
+    <color name="blue_container">#0D1A2E</color>
+    <color name="error_color">#E05252</color>
+    <color name="green_accent">#3DD68C</color>
+    <color name="green_container">#0D2018</color>
+    <color name="icon_bg_blue">#0F2240</color>
+    <color name="icon_bg_gray">#1A1C26</color>
+    <color name="icon_bg_green">#1A3D28</color>
+    <color name="icon_bg_purple">#1E1640</color>
+    <color name="icon_bg_red">#2A1010</color>
+    <color name="icon_bg_yellow">#2E2000</color>
+    <color name="on_background">#E8EAF0</color>
+    <color name="on_blue_container">#378ADD</color>
+    <color name="on_green_container">#3DD68C</color>
+    <color name="on_purple_container">#8264DC</color>
+    <color name="on_red_container">#E05252</color>
+    <color name="on_surface">#D8DAE4</color>
+    <color name="on_surface_variant">#9B9DB3</color>
+    <color name="on_yellow_container">#F0B429</color>
+    <color name="orange_accent">#F0A500</color>
+    <color name="orange_badge_bg">#1AF0A500</color>
+    <color name="outline">#12131A</color>
+    <color name="outline_variant">#1F2130</color>
+    <color name="player_background">#000000</color>
+    <color name="player_overlay_bottom">#D9000000</color>
+    <color name="player_overlay_top">#CC000000</color>
+    <color name="purple_accent">#8264DC</color>
+    <color name="purple_container">#1A1430</color>
+    <color name="red_accent">#E05252</color>
+    <color name="red_container">#2A0D0D</color>
+    <color name="surface">#181B26</color>
+    <color name="surface_variant">#1C1F2E</color>
+    <color name="text_hint">#4D4D5A</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="yellow_accent">#F0B429</color>
+    <color name="yellow_container">#2A1F00</color>
+    <string name="app_name">BlazePlayer</string>
+    <string name="notif_channel_audio">Lecture audio</string>
+    <string name="notif_channel_video">Lecture vidéo</string>
+    <style name="BlazeBottomSheet" parent="Widget.Material3.BottomSheet">
+        <item name="backgroundTint">@color/surface</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.BlazePlayer.BottomSheet</item>
+    </style>
+    <style name="ShapeAppearance.BlazePlayer.BottomNavigationView.ActiveIndicator" parent="">
+        <item name="cornerSize">0dp</item>
+    </style>
+    <style name="ShapeAppearance.BlazePlayer.BottomSheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">16dp</item>
+        <item name="cornerSizeTopRight">16dp</item>
+    </style>
+    <style name="TabTextAppearance" parent="TextAppearance.Design.Tab">
+        <item name="android:textSize">13sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+    </style>
+    <style name="Theme.BlazePlayer" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
+        <item name="colorPrimary">@color/green_accent</item>
+        <item name="colorOnPrimary">@color/background</item>
+        <item name="colorPrimaryContainer">@color/green_container</item>
+        <item name="colorOnPrimaryContainer">@color/on_green_container</item>
+        <item name="colorSecondary">@color/blue_accent</item>
+        <item name="colorOnSecondary">@color/background</item>
+        <item name="colorTertiary">@color/blue_accent</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_background</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
+        <item name="colorOutline">@color/outline</item>
+        <item name="colorError">@color/error_color</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    <style name="Theme.BlazePlayer.Fullscreen" parent="Theme.BlazePlayer">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item>
+        <item name="android:statusBarColor">@color/player_background</item>
+        <item name="android:navigationBarColor">@color/player_background</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <style name="ThemeOverlay.BlazePlayer.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/BlazeBottomSheet</item>
+    </style>
+    <style name="Widget.BlazePlayer.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemActiveIndicatorStyle">@style/Widget.BlazePlayer.BottomNavigationView.ActiveIndicator</item>
+        <item name="android:background">@color/surface</item>
+    </style>
+    <style name="Widget.BlazePlayer.BottomNavigationView.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@android:color/transparent</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.BlazePlayer.BottomNavigationView.ActiveIndicator</item>
+    </style>
+</resources>

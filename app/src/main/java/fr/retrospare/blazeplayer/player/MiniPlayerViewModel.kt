@@ -2,7 +2,8 @@ package fr.retrospare.blazeplayer.player
 
 import android.app.Application
 import android.content.ComponentName
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.AndroidViewModel
@@ -34,15 +35,12 @@ data class MiniPlayerState(
 
 @HiltViewModel
 class MiniPlayerViewModel @Inject constructor(
-    application: Application
+    application: Application,
+    private val dataStore: DataStore<Preferences>
 ) : AndroidViewModel(application) {
 
     private val context = application.applicationContext
     private val KEY_MINI_PLAYER = booleanPreferencesKey("mini_player_enabled")
-
-    private val dataStore = PreferenceDataStoreFactory.create(
-        produceFile = { context.filesDir.resolve("datastore/settings.preferences_pb") }
-    )
 
     // Flows internes — chaque changement déclenche le recalcul de state
     private val _hasMedia = MutableStateFlow(false)
@@ -78,7 +76,17 @@ class MiniPlayerViewModel @Inject constructor(
             return
         }
         val token = SessionToken(context, ComponentName(context, BlazePlayerService::class.java))
-        val future = MediaController.Builder(context, token).buildAsync()
+        val future = MediaController.Builder(context, token)
+            .setListener(object : MediaController.Listener {
+                override fun onDisconnected(controllerRef: MediaController) {
+                    // Le service audio a été tué/déconnecté (ex: manque de mémoire) : on efface la
+                    // référence pour qu'un prochain connect()/refresh() la reconstruise proprement,
+                    // au lieu de garder indéfiniment un contrôleur mort (mini player figé/invisible).
+                    controller = null
+                    _hasMedia.value = false
+                }
+            })
+            .buildAsync()
         future.addListener({
             try {
                 val ctrl = future.get()
@@ -107,7 +115,11 @@ class MiniPlayerViewModel @Inject constructor(
     }
 
     fun refresh() {
-        refreshFromController()
+        if (controller == null) {
+            connect()
+        } else {
+            refreshFromController()
+        }
     }
 
     private fun refreshFromController() {

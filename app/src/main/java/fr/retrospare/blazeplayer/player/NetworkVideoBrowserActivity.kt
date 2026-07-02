@@ -39,6 +39,21 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
     private lateinit var share: NetworkShare
     private var currentPath: String = ""
 
+    // Sélection multiple (pour "Ajouter à la playlist")
+    private val selectedVideos = mutableSetOf<String>() // path
+    private var currentVideos: List<MediaItem> = emptyList()
+
+    private fun updateSelectionToolbar() {
+        val toolbar = findViewById<View>(R.id.toolbarSelection) ?: return
+        val tvSelectionCount = findViewById<TextView>(R.id.tvSelectionCount)
+        if (selectedVideos.isEmpty()) {
+            toolbar.visibility = View.GONE
+        } else {
+            toolbar.visibility = View.VISIBLE
+            tvSelectionCount.text = "${selectedVideos.size} sélectionné(s)"
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_network_video_browser)
@@ -67,8 +82,26 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<View>(R.id.btnCancelSelection)?.setOnClickListener {
+            selectedVideos.clear()
+            updateSelectionToolbar()
+            recyclerNetwork.adapter?.notifyDataSetChanged()
+        }
+        findViewById<View>(R.id.btnAddToPlaylist)?.setOnClickListener {
+            val tracks = currentVideos.filter { it.path in selectedVideos }
+                .map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.path, it.name) }
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
+                this, fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO, tracks
+            ) {
+                selectedVideos.clear()
+                updateSelectionToolbar()
+                recyclerNetwork.adapter?.notifyDataSetChanged()
+            }
+        }
+
         val shareId = intent.getStringExtra("shareId")
         if (shareId.isNullOrEmpty()) { finish(); return }
+        currentPath = intent.getStringExtra("initialPath") ?: ""
 
         lifecycleScope.launch {
             val loadedShare = withContext(Dispatchers.IO) { networkRepository.getShareById(shareId) }
@@ -82,6 +115,8 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
     private fun loadCurrentPath() {
         tvPath.text = if (currentPath.isEmpty()) share.host else "${share.host}/$currentPath"
         tvCount.text = "Chargement..."
+        selectedVideos.clear()
+        updateSelectionToolbar()
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { smbBrowser.listFiles(share, currentPath) }
             result.onSuccess { items ->
@@ -89,6 +124,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                 val videos = items.filter {
                     it.mimeType != "folder" && it.mimeType != "share" && it.extension.lowercase() in videoExtensions
                 }.sortedBy { it.name.lowercase() }
+                currentVideos = videos
                 tvCount.text = "${folders.size} dossier${if (folders.size > 1) "s" else ""} - ${videos.size} video${if (videos.size > 1) "s" else ""}"
                 showList(folders, videos)
             }.onFailure {
@@ -122,11 +158,43 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                         currentPath = folder.path
                         loadCurrentPath()
                     }
+                    holder.itemView.findViewById<View>(R.id.btnFolderMore)?.setOnClickListener { anchor ->
+                        val popup = android.widget.PopupMenu(this@NetworkVideoBrowserActivity, anchor)
+                        popup.menu.add(0, 1, 0, "Ajouter dossier favori")
+                        popup.setOnMenuItemClickListener { mi ->
+                            when (mi.itemId) {
+                                1 -> {
+                                    val favorite = fr.retrospare.blazeplayer.favorites.FavoriteFolder(
+                                        path = folder.path, name = folder.name,
+                                        shareId = share.id, shareName = share.name
+                                    )
+                                    fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
+                                        this@NetworkVideoBrowserActivity,
+                                        fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK,
+                                        favorite
+                                    )
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                        popup.show()
+                    }
                 } else {
                     val video = videos[position - folders.size]
                     val v = holder.itemView
                     v.findViewById<TextView>(R.id.tvFileName)?.text = video.name
                     v.findViewById<TextView>(R.id.tvDuration)?.text = video.formattedDuration
+
+                    // Miniature (cache mémoire + disque via ThumbnailUtils, comme les autres
+                    // navigateurs) : n'existait pas du tout ici auparavant.
+                    val ivThumb = v.findViewById<android.widget.ImageView>(R.id.ivThumbnail)
+                    ivThumb?.setImageBitmap(null)
+                    lifecycleScope.launch {
+                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(
+                            this@NetworkVideoBrowserActivity, video.path, ivThumb ?: return@launch
+                        )
+                    }
 
                     val ext = video.extension.uppercase()
                     val tvFmt = v.findViewById<TextView>(R.id.tvFormat)
@@ -164,6 +232,50 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                             putExtra("mediaPath", video.path)
                             putExtra("mediaName", video.name)
                         })
+                    }
+
+                    v.findViewById<View>(R.id.btnMore)?.setOnClickListener { anchor ->
+                        val popup = android.widget.PopupMenu(this@NetworkVideoBrowserActivity, anchor)
+                        popup.menu.add(0, 1, 0, "Lire")
+                        popup.menu.add(0, 2, 1, "Informations")
+                        popup.setOnMenuItemClickListener { mi ->
+                            when (mi.itemId) {
+                                1 -> {
+                                    startActivity(Intent(this@NetworkVideoBrowserActivity, PlayerActivity::class.java).apply {
+                                        putExtra("mediaPath", video.path)
+                                        putExtra("mediaName", video.name)
+                                    })
+                                    true
+                                }
+                                2 -> {
+                                    lifecycleScope.launch {
+                                        val info = VideoMetadataExtractor.extract(this@NetworkVideoBrowserActivity, video.path)
+                                        val sz = if (info.sizeBytes > 0) android.text.format.Formatter.formatShortFileSize(this@NetworkVideoBrowserActivity, info.sizeBytes) else "Inconnue"
+                                        val ds = if (info.duration > 0) info.formattedDuration else "N/A"
+                                        val msg = "Chemin : ${video.path}\n\n" +
+                                            "Conteneur : ${video.extension.uppercase()}\n" +
+                                            "Durée : $ds\n" +
+                                            "Taille : $sz"
+                                        android.app.AlertDialog.Builder(this@NetworkVideoBrowserActivity)
+                                            .setTitle(video.name)
+                                            .setMessage(msg)
+                                            .setPositiveButton("OK", null)
+                                            .show()
+                                    }
+                                    true
+                                }
+                                else -> false
+                            }
+                        }
+                        popup.show()
+                    }
+
+                    val checkbox = v.findViewById<android.widget.CheckBox>(R.id.checkboxSelect)
+                    checkbox?.setOnCheckedChangeListener(null)
+                    checkbox?.isChecked = selectedVideos.contains(video.path)
+                    checkbox?.setOnCheckedChangeListener { _, checked ->
+                        if (checked) selectedVideos.add(video.path) else selectedVideos.remove(video.path)
+                        updateSelectionToolbar()
                     }
                 }
             }

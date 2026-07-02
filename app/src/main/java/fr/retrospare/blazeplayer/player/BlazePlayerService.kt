@@ -43,6 +43,12 @@ class BlazePlayerService : MediaSessionService() {
          *  (android.media.audiofx). Non exposé par l'API Player standard. */
         const val COMMAND_GET_AUDIO_SESSION_ID = "fr.retrospare.blazeplayer.GET_AUDIO_SESSION_ID"
         const val EXTRA_AUDIO_SESSION_ID = "audioSessionId"
+
+        // ID de notification et channel dédiés : Media3 utilise le même ID par défaut pour tous
+        // les MediaSessionService de l'app si non personnalisé, ce qui faisait que la notification
+        // vidéo écrasait purement et simplement la notification audio (même slot de notification).
+        private const val NOTIFICATION_ID = 2001
+        private const val CHANNEL_ID = "blaze_audio_channel"
     }
 
     private var mediaSession: MediaSession? = null
@@ -50,6 +56,16 @@ class BlazePlayerService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Notification/channel dédiés à l'audio, distincts de ceux de la vidéo (cf. constantes
+        // ci-dessus) pour que les deux notifications coexistent sans se remplacer l'une l'autre.
+        setMediaNotificationProvider(
+            androidx.media3.session.DefaultMediaNotificationProvider.Builder(this)
+                .setNotificationId(NOTIFICATION_ID)
+                .setChannelId(CHANNEL_ID)
+                .setChannelName(fr.retrospare.blazeplayer.R.string.notif_channel_audio)
+                .build()
+        )
 
         // Cache disque partagé (avec la vidéo) pour les flux réseau (SMB) : Media3 route
         // automatiquement les schémas connus (file/content/asset) vers leurs DataSource dédiées et
@@ -95,6 +111,23 @@ class BlazePlayerService : MediaSessionService() {
     }
 
     private inner class SessionCallback : MediaSession.Callback {
+
+        // Balayer la notification déclenche automatiquement COMMAND_STOP côté Media3 (géré en
+        // interne par DefaultMediaNotificationProvider), mais ça n'arrête PAS le service lui-même
+        // (limitation connue de Media3) : la lecture pouvait donc continuer en arrière-plan alors
+        // que la notification avait disparu. On intercepte précisément COMMAND_STOP ici plutôt que
+        // de deviner via les transitions d'état du player (IDLE arrive aussi normalement pendant
+        // le chargement, ce qui coupait le service à tort).
+        override fun onPlayerCommandRequest(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            playerCommand: Int
+        ): Int {
+            if (playerCommand == androidx.media3.common.Player.COMMAND_STOP) {
+                android.os.Handler(android.os.Looper.getMainLooper()).post { stopSelf() }
+            }
+            return SessionResult.RESULT_SUCCESS
+        }
 
         override fun onConnect(
             session: MediaSession,

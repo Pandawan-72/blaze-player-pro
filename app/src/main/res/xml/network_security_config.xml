@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Le HTTP en clair est nécessaire pour LocalStreamServer (proxy local qui relaie les
+         fichiers locaux/SMB en HTTP pour le Chromecast, qui ne sait lire que du HTTP/HTTPS).
+         Sans cette autorisation, Android 9+ bloque silencieusement tout trafic HTTP non chiffré,
+         y compris localement sur le réseau Wi-Fi (erreur "Cleartext HTTP traffic ... not
+         permitted"), ce qui empêchait le cast de fonctionner. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

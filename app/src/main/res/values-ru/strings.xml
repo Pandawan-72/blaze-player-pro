@@ -30,7 +30,6 @@
     <string name="section_interface">ИНТЕРФЕЙС</string>
     <string name="section_data">ДАННЫЕ</string>
     <string name="section_about">О ПРОГРАММЕ</string>
-    <string name="section_subtitles">СУБТИТРЫ</string>
     <string name="section_blaze_audio">BLAZE AUDIO</string>
     <string name="section_presets">ПРЕДУСТАНОВКИ</string>
     <string name="section_ratio">СООТНОШЕНИЕ</string>
@@ -84,7 +83,6 @@
     <string name="language">Язык</string>
     <string name="language_system">Системный</string>
     <string name="auto_play_next">Автовоспроизведение следующего файла</string>
-    <string name="show_subtitles">Показать субтитры</string>
     <string name="show_mini_player">Показать мини-плеер в приложении</string>
     <string name="show_hidden_files">Показать скрытые файлы</string>
     <string name="cancel">Отмена</string>
@@ -123,9 +121,6 @@
     <string name="audio_lang">Предпочитаемый язык аудио</string>
     <string name="remember_volume">Запомнить громкость</string>
     <string name="remember_volume_desc">Сохранять уровень громкости между воспроизведениями</string>
-    <string name="enable_subtitles">Включить субтитры по умолчанию</string>
-    <string name="subtitle_lang">Язык субтитров</string>
-    <string name="subtitle_lang_pref">Предпочитаемый язык субтитров</string>
     <string name="mini_player">Мини-плеер</string>
     <string name="hidden_files">Файлы начинающиеся с точки (.)</string>
     <string name="clear_history">Очистить историю</string>

@@ -40,6 +40,13 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupSettings() {
+        viewLifecycleOwner.lifecycleScope.launch {
+        // Attend que la vraie valeur sauvegardée soit disponible avant d'afficher quoi que ce
+        // soit : sans ça, les lectures synchrones ci-dessous (getAutoPlay, getPip...) pouvaient
+        // s'exécuter avant la première lecture du DataStore et retomber sur leur valeur par
+        // défaut, donnant l'impression que le réglage se "désactivait" à chaque réouverture.
+        viewModel.awaitReady()
+
         // LECTURE
         setupChoice(
             binding.settingResume.root,
@@ -120,24 +127,6 @@ class SettingsFragment : Fragment() {
             viewModel.getRememberVolume()
         ) { viewModel.setRememberVolume(it) }
 
-        // SOUS-TITRES
-        setupToggle(
-            binding.settingSubtitleDefault.root,
-            R.drawable.ic_subtitles,
-            "Afficher les sous-titres",
-            "Activer les sous-titres par défaut",
-            viewModel.getSubtitlesDefault()
-        ) { viewModel.setSubtitlesDefault(it) }
-
-        setupChoice(
-            binding.settingSubtitleLang.root,
-            R.drawable.ic_language,
-            "Langue des sous-titres",
-            listOf("Pas de préférence", "Français", "Anglais", "Espagnol", "Allemand", "Italien", "Japonais", "Portugais", "Néerlandais", "Russe", "Chinois"),
-            viewModel.getSubtitleLangIndex(),
-            "Langue des sous-titres préférée"
-        ) { viewModel.setSubtitleLangIndex(it) }
-
         // RÉSEAU
 
 
@@ -184,17 +173,21 @@ class SettingsFragment : Fragment() {
         }
 
         // À PROPOS
+        val appVersion = try {
+            requireContext().packageManager.getPackageInfo(requireContext().packageName, 0).versionName
+        } catch (e: Exception) { "?" }
         setupAction(
             binding.settingAbout.root,
             R.drawable.ic_settings,
             "À propos",
-            "Blaze Player v0.4.0-alpha — Retro-Spare"
+            "Ce qu'il faut savoir sur Blaze Player"
         ) {
             android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Blaze Player")
-                .setMessage("Version 0.9.0-alpha\n\nDéveloppé par Retro-Spare\n\nLecteur multimédia local propulsé par Media3 / ExoPlayer")
+                .setMessage("Blaze Player\n\nVersion $appVersion\n\nDéveloppé par Retro-Spare\n\nVotre lecteur multimédia pour Android")
                 .setPositiveButton("OK", null)
                 .show()
+        }
         }
     }
 

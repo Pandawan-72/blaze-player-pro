@@ -31,10 +31,6 @@ class SettingsViewModel @Inject constructor(
         val KEY_HW_DECODE        = booleanPreferencesKey("hw_decode")
         val KEY_HDR              = booleanPreferencesKey("hdr")
         val KEY_DECODE_MODE      = intPreferencesKey("decode_mode")
-        val KEY_SUBTITLE_SIZE    = intPreferencesKey("subtitle_size")
-        val KEY_SUBTITLE_BG      = intPreferencesKey("subtitle_bg")
-        val KEY_SUBTITLE_DELAY   = intPreferencesKey("subtitle_delay")
-        val KEY_ASS_SUPPORT      = booleanPreferencesKey("ass_support")
         val KEY_WIFI_ONLY        = booleanPreferencesKey("wifi_only")
         val KEY_CACHE_SIZE       = intPreferencesKey("cache_size")
         val KEY_CHROMECAST       = booleanPreferencesKey("chromecast")
@@ -48,8 +44,6 @@ class SettingsViewModel @Inject constructor(
         val KEY_AUDIO_LANG       = intPreferencesKey("audio_lang")
         val KEY_REMEMBER_VOLUME  = booleanPreferencesKey("remember_volume")
         val KEY_SAVED_VOLUME     = intPreferencesKey("saved_volume")
-        val KEY_SUBTITLES_DEFAULT = booleanPreferencesKey("subtitles_default")
-        val KEY_SUBTITLE_LANG    = intPreferencesKey("subtitle_lang")
         val KEY_SHOW_HIDDEN      = booleanPreferencesKey("show_hidden")
         val KEY_SHOW_AUDIO       = booleanPreferencesKey("show_audio")
         val KEY_THEME            = intPreferencesKey("theme")
@@ -64,6 +58,15 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             dataStore.data.collect { prefs -> prefsCache = prefs }
         }
+    }
+
+    /** Garantit que prefsCache contient les vraies valeurs sauvegardées avant que les lectures
+     *  synchrones (getAutoPlay, getPip, etc.) ne soient utilisées. Sans ça, l'écran Réglages
+     *  pouvait s'afficher AVANT que la première lecture du DataStore n'arrive (race condition) :
+     *  les interrupteurs affichaient alors leur valeur par défaut au lieu de la vraie valeur
+     *  sauvegardée, donnant l'impression que le réglage "se désactivait" à chaque réouverture. */
+    suspend fun awaitReady() {
+        if (prefsCache == null) prefsCache = dataStore.data.first()
     }
 
     private fun getInt(key: Preferences.Key<Int>, default: Int): Int =
@@ -105,17 +108,6 @@ class SettingsViewModel @Inject constructor(
 
     fun getDecodeMode()        = getInt(KEY_DECODE_MODE, 0)
     fun setDecodeMode(v: Int)  = setInt(KEY_DECODE_MODE, v)
-
-    fun getSubtitleSize()      = getInt(KEY_SUBTITLE_SIZE, 1)
-    fun setSubtitleSize(v: Int) = setInt(KEY_SUBTITLE_SIZE, v)
-
-    fun getSubtitleBackground()      = getInt(KEY_SUBTITLE_BG, 0)
-    fun setSubtitleBackground(v: Int) = setInt(KEY_SUBTITLE_BG, v)
-
-    fun getSubtitleDelay()     = getInt(KEY_SUBTITLE_DELAY, 0)
-    fun setSubtitleDelay(v: Int) = setInt(KEY_SUBTITLE_DELAY, v)
-
-    fun toggleAssSupport()     = setBool(KEY_ASS_SUPPORT, !getBool(KEY_ASS_SUPPORT, false))
 
     fun toggleWifiOnly()       = setBool(KEY_WIFI_ONLY, !getBool(KEY_WIFI_ONLY, true))
 
@@ -159,10 +151,6 @@ class SettingsViewModel @Inject constructor(
     fun setAudioLangIndex(v: Int) = setInt(KEY_AUDIO_LANG, v)
     fun getRememberVolume() = getBool(KEY_REMEMBER_VOLUME, false)
     fun setRememberVolume(v: Boolean) = setBool(KEY_REMEMBER_VOLUME, v)
-    fun getSubtitlesDefault() = getBool(KEY_SUBTITLES_DEFAULT, true)
-    fun setSubtitlesDefault(v: Boolean) = setBool(KEY_SUBTITLES_DEFAULT, v)
-    fun getSubtitleLangIndex() = getInt(KEY_SUBTITLE_LANG, 0)
-    fun setSubtitleLangIndex(v: Int) = setInt(KEY_SUBTITLE_LANG, v)
     fun getChromecast() = getBool(KEY_CHROMECAST, false)
     fun getShowHidden() = getBool(KEY_SHOW_HIDDEN, false)
     fun setShowHidden(v: Boolean) = setBool(KEY_SHOW_HIDDEN, v)
@@ -174,7 +162,6 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { mediaRepository.removeRecentItem(item.id) }
     }
     fun clearAllData() = viewModelScope.launch {
-        dataStore.edit { it.clear() }
         mediaRepository.clearHistory()
     }
 }

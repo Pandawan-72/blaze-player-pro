@@ -1,0 +1,8 @@
+fr.retrospare.blazeplayer.app-pngs-0 /Users/pandawan/blaze-player-pro/app/build/generated/res/pngs/debug
+fr.retrospare.blazeplayer.app-updated_navigation_xml-1 /Users/pandawan/blaze-player-pro/app/build/generated/updated_navigation_xml/debug
+fr.retrospare.blazeplayer.app-packageDebugResources-2 /Users/pandawan/blaze-player-pro/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+fr.retrospare.blazeplayer.app-packageDebugResources-3 /Users/pandawan/blaze-player-pro/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+fr.retrospare.blazeplayer.app-debug-4 /Users/pandawan/blaze-player-pro/app/build/intermediates/merged_res/debug/mergeDebugResources
+fr.retrospare.blazeplayer.app-debug-5 /Users/pandawan/blaze-player-pro/app/src/debug/res
+fr.retrospare.blazeplayer.app-main-6 /Users/pandawan/blaze-player-pro/app/src/main/res
+gradleHome-0 /Users/pandawan/.gradle

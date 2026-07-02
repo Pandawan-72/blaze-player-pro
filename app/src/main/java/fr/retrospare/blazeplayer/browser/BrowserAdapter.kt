@@ -84,6 +84,7 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
     inner class FolderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvName: TextView = view.findViewById(R.id.tvFolderName)
         private val tvCount: TextView = view.findViewById(R.id.tvFolderCount)
+        private val btnMore: ImageView? = view.findViewById(fr.retrospare.blazeplayer.R.id.btnFolderMore)
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             tvName.text = item.name
             tvCount.text = ""
@@ -115,6 +116,25 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                 }
                 true
             }
+            btnMore?.setOnClickListener { v ->
+                val popup = android.widget.PopupMenu(v.context, v)
+                popup.menu.add(0, 1, 0, "Ajouter dossier favori")
+                popup.setOnMenuItemClickListener { mi ->
+                    when (mi.itemId) {
+                        1 -> {
+                            val category = if (item.isNetwork) fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK
+                                else fr.retrospare.blazeplayer.favorites.FavoriteCategory.LOCAL
+                            val favorite = fr.retrospare.blazeplayer.favorites.FavoriteFolder(
+                                path = item.path, name = item.name, shareId = item.networkShareId
+                            )
+                            fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(v.context, category, favorite)
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                popup.show()
+            }
         }
     }
 
@@ -136,9 +156,6 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
             tvName.text = item.name
             tvFormat.text = item.extension.uppercase()
             tvFormat.visibility = if (item.extension.isNotEmpty()) View.VISIBLE else View.GONE
-            // Toujours orange pour le conteneur
-            tvFormat.setBackgroundResource(fr.retrospare.blazeplayer.R.drawable.bg_badge_orange)
-            tvFormat.setTextColor(itemView.context.getColor(fr.retrospare.blazeplayer.R.color.orange_accent))
             tvDuration.text = item.formattedDuration
 
             // Résolution - calcule depuis item.resolution comme les autres badges
@@ -182,6 +199,18 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                 }
             }
 
+            // Case à cocher (sélection multiple) : toujours visible, comme dans le navigateur
+            // audio, à gauche de la ligne. Cocher sélectionne le fichier ; taper la ligne l'ouvre
+            // normalement (plus besoin d'appui long pour activer un "mode sélection").
+            val checkbox = itemView.findViewById<android.widget.CheckBox>(fr.retrospare.blazeplayer.R.id.checkboxSelect)
+            checkbox?.visibility = View.VISIBLE
+            checkbox?.isChecked = selected.contains(item.id)
+            checkbox?.setOnCheckedChangeListener(null)
+            checkbox?.setOnCheckedChangeListener { _, checked ->
+                if (checked) selected.add(item.id) else selected.remove(item.id)
+                onSelectionChanged?.invoke(selected.toSet())
+            }
+
             itemView.setOnClickListener { onClick(item) }
             btnMore.setOnClickListener { v ->
                 val popup = android.widget.PopupMenu(v.context, v)
@@ -191,15 +220,26 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                     when (mi.itemId) {
                         1 -> { onClick(item); true }
                         2 -> {
-                            val sz = android.text.format.Formatter.formatShortFileSize(v.context, item.size)
-                            val dur = item.duration
-                            val ds = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else "N/A"
-                            val msg = "Taille : " + sz + " | Duree : " + ds + " | Format : " + item.extension.uppercase()
-                            android.app.AlertDialog.Builder(v.context)
-                                .setTitle(item.name)
-                                .setMessage(msg)
-                                .setPositiveButton("OK", null)
-                                .show()
+                            scope.launch {
+                                val info = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.extract(v.context, item.path)
+                                val sz = when {
+                                    info.sizeBytes > 0 -> android.text.format.Formatter.formatShortFileSize(v.context, info.sizeBytes)
+                                    item.size > 0 -> android.text.format.Formatter.formatShortFileSize(v.context, item.size)
+                                    else -> "Inconnue"
+                                }
+                                val ds = if (info.duration > 0) info.formattedDuration
+                                    else if (item.duration > 0) "%d:%02d".format(item.duration / 60, item.duration % 60)
+                                    else "N/A"
+                                val msg = "Chemin : ${item.path}\n\n" +
+                                    "Conteneur : ${item.extension.uppercase()}\n" +
+                                    "Durée : $ds\n" +
+                                    "Taille : $sz"
+                                android.app.AlertDialog.Builder(v.context)
+                                    .setTitle(item.name)
+                                    .setMessage(msg)
+                                    .setPositiveButton("OK", null)
+                                    .show()
+                            }
                             true
                         }
                         else -> false

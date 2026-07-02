@@ -1,0 +1,1 @@
+-keep,allowobfuscation,allowshrinking class fr.retrospare.blazeplayer.home.HomeViewModel

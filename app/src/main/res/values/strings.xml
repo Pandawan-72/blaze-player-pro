@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">BlazePlayer</string>
+    <string name="notif_channel_audio">Lecture audio</string>
+    <string name="notif_channel_video">Lecture vidéo</string>
 </resources>

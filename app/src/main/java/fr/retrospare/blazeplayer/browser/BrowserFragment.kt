@@ -55,7 +55,7 @@ class BrowserFragment : Fragment() {
         when {
             isNetwork && !shareId.isNullOrEmpty() -> viewModel.loadNetworkFilesById(shareId, initPath)
             isNetwork -> viewModel.loadNetworkShares() // Affiche la liste des partages réseau
-            else -> viewModel.loadLocalFiles()
+            else -> viewModel.loadLocalFiles(initPath)
         }
     }
 
@@ -83,6 +83,30 @@ class BrowserFragment : Fragment() {
                     binding.toolbarSelection.visibility = android.view.View.GONE
                 }
             }
+        binding.root.findViewById<android.widget.Button>(R.id.btnAddToPlaylist)
+            ?.setOnClickListener {
+                val selected = adapter.getSelectedItems()
+                val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
+                val category = if (isNetwork)
+                    fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
+                else
+                    fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
+                val tracks = selected.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.path, it.name) }
+                fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(requireContext(), category, tracks) {
+                    adapter.clearSelection()
+                    binding.toolbarSelection.visibility = android.view.View.GONE
+                }
+            }
+        // Sans ça, le mode sélection s'activait (case à cocher visible) mais la barre d'actions
+        // en haut ne s'affichait jamais : onSelectionChanged n'était jamais branché.
+        adapter.onSelectionChanged = { selected ->
+            if (selected.isEmpty()) {
+                binding.toolbarSelection.visibility = android.view.View.GONE
+            } else {
+                binding.toolbarSelection.visibility = android.view.View.VISIBLE
+                binding.tvSelectionCount.text = "${selected.size} sélectionné(s)"
+            }
+        }
     }
 
 

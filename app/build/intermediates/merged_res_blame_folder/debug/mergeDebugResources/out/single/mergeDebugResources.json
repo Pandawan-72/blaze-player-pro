@@ -1,0 +1,802 @@
+[
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_setting.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_setting.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_setting_choice.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_setting_choice.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_info.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_info.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_media_card.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_media_card.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_hero_icon_green.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_hero_icon_green.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_audio_browser.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_audio_browser.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_activity_audio_browser.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/activity_audio_browser.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_refresh.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_refresh.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_activity_audio_player.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/activity_audio_player.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_timer.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_timer.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_browser.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_browser.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_activity_youtube_player.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/activity_youtube_player.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/xml_data_extraction_rules.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_network_share.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_network_share.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xhdpi_ic_launcher_foreground.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable-xxxhdpi_ic_blaze_logo.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable-xxxhdpi/ic_blaze_logo.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_favorites_list.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/dialog_favorites_list.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_fill_yellow.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_fill_yellow.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_music_note_large.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_music_note_large.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-mdpi_ic_launcher_foreground.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-mdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_badge_orange.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_badge_orange.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_favorite_border.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_favorite_border.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_touch_zone.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_touch_zone.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_blaze_logo.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_blaze_logo.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_badge_yellow.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_badge_yellow.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_playlist_chip.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_playlist_chip.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_pro_badge.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_pro_badge.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_add.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_add.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_google.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_google.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_replay_15.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_replay_15.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_search.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_search.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_playlist_manager.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/dialog_playlist_manager.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_setting_item.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_setting_item.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_subtitles.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_subtitles.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_arrow_back.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_arrow_back.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_playlist.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_playlist.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_activity_network_video_browser.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/activity_network_video_browser.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_chevron_right.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_chevron_right.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_stop_btn_player.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_stop_btn_player.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_trial_banner.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_trial_banner.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_saved_playlist.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_saved_playlist.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_replay_30.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_replay_30.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_equalizer.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_equalizer.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_progress_thumb.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_progress_thumb.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_badge_green.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_badge_green.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_favorite_folder.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_favorite_folder.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_youtube_favorite.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_youtube_favorite.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_share.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_share.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_play_white.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_play_white.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bottom_nav_background.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bottom_nav_background.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_gradient_top.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/gradient_top.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_add_network_share.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/dialog_add_network_share.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_folder.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_folder.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_bottom_sheet.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_bottom_sheet.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_dialog_rounded.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_dialog_rounded.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable-hdpi_ic_blaze_logo.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable-hdpi/ic_blaze_logo.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable-xhdpi_ic_blaze_logo.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable-xhdpi/ic_blaze_logo.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_tab_inactive.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_tab_inactive.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_play.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_play.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_skip_previous.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_skip_previous.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_edit.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_edit.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_icon_green_bordered.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_icon_green_bordered.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_pro_entry.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_pro_entry.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_gradient_bottom.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/gradient_bottom.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_aspect_ratio.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_aspect_ratio.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_equalizer.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/dialog_equalizer.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_pause.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_pause.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_network_shares.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_network_shares.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_screen_cast.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_screen_cast.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_chevron_down.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_chevron_down.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/xml_locale_config.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/xml/locale_config.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_repeat.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_repeat.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_youtube_tab.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_youtube_tab.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_repeat_one.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_repeat_one.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_network_video.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_network_video.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_play_small.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_play_small.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_add_circle.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_add_circle.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_smartphone.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_smartphone.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_skip_next.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_skip_next.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_mini_player.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_mini_player.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/xml_network_security_config.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/xml/network_security_config.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_icon_green.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_icon_green.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_seek_indicator.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_seek_indicator.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_audio_folder.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_audio_folder.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_replay_5.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_replay_5.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_bottom_nav.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_bottom_nav.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_shuffle.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_shuffle.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_more_vert.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_more_vert.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_play_button.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_play_button.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable-xxhdpi_ic_blaze_logo.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable-xxhdpi/ic_blaze_logo.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_replay_10.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_replay_10.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_activity_main.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/activity_main.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_folder_open.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_folder_open.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xxhdpi_ic_launcher_foreground.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_volume.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_volume.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_hero_card.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_hero_card.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_surface_card.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_surface_card.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_forgot_password.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_forgot_password.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_badge_blue.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_badge_blue.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_check.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_check.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_folder.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_folder.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/xml_backup_rules.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_icon_red.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_icon_red.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_track_option.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_track_option.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_fill_blue.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_fill_blue.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_settings.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_settings.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_flame.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_flame.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_sort.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_sort.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_audio_simple.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_audio_simple.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_pixel_dancer_f1.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/pixel_dancer_f1.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_logo_blaze.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/logo_blaze.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_network_connect.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/dialog_network_connect.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_layout.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_layout.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_login.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_login.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_home.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_home.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_logout.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_logout.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/font_oswald.ttf.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/font/oswald.ttf"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_forward_10.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_forward_10.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_network_device.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_network_device.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_replay_60.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_replay_60.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_delete_sweep.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_delete_sweep.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/color_bottom_nav_selector.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/color/bottom_nav_selector.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_pixel_dancer_2.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/pixel_dancer_2.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_animated_eq.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/animated_eq.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_track_selector.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/dialog_track_selector.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_icon_purple.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_icon_purple.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-hdpi_ic_launcher_foreground.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-hdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_star.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_star.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_icon_gray.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_icon_gray.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_launcher_background.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_pixel_dancer_1.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/pixel_dancer_1.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_cpu.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_cpu.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable-nodpi_ic_blaze_logo.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable-nodpi/ic_blaze_logo.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_badge_gray.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_badge_gray.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_media_file.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_media_file.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_icon_yellow.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_icon_yellow.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/menu_bottom_nav_menu.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/menu/bottom_nav_menu.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_artwork.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_artwork.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_home.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_home.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_thumbnail.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_thumbnail.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_folder_header.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_folder_header.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_pixel_dancer_f2.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/pixel_dancer_f2.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_register.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_register.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_remove_circle.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_remove_circle.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_ind_blue.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_ind_blue.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_wifi.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_wifi.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_history.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_history.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_paywall.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_paywall.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_network_folder.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_network_folder.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_cast.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_cast.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_activity_player.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/activity_player.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_youtube_video.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_youtube_video.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_activity_audio_pick.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/activity_audio_pick.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_dialog.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_dialog.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_tab_selected.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_tab_selected.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_success_chip.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_success_chip.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_language.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_language.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_pro_banner.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_pro_banner.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_settings.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_settings.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_icon_blue.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_icon_blue.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_close.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_close.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_tab_active.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_tab_active.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_rewind_10.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_rewind_10.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_sun.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_sun.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_search_field.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_search_field.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_network.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_network.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_layout_list.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_layout_list.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_sleep_timer.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_sleep_timer.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_play_audio.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_play_audio.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_settings_choice.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/dialog_settings_choice.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_tab_group.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_tab_group.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable-mdpi_ic_blaze_logo.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable-mdpi/ic_blaze_logo.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-xxxhdpi_ic_launcher_foreground.png.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-xxxhdpi/ic_launcher_foreground.png"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/raw_youtube_player.html.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/raw/youtube_player.html"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_audio.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_audio.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_play_circle.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_play_circle.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_check_circle.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_check_circle.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_ind_bar.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_ind_bar.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_search.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_search.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_ind_yellow.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_ind_yellow.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_grid_overlay.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_grid_overlay.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_stop.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_stop.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_player_btn.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_player_btn.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_gift.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/ic_gift.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_play_hero.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_play_hero.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_item_media_file_grid.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_media_file_grid.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_play_btn_player.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_play_btn_player.xml"
+    }
+]

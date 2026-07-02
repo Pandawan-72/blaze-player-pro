@@ -15,6 +15,10 @@ object SmbClientPool {
         .withTimeout(30, TimeUnit.SECONDS)
         .withReadTimeout(300, TimeUnit.SECONDS) // timeout etendu pour gros fichiers/remux Blu-ray/Wi-Fi faible
         .withSoTimeout(300, TimeUnit.SECONDS)
+        // Buffer SMB2 négocié à 8 Mo (défaut smbj : 1 Mo) : aligné sur le buffer de lecture côté
+        // app (SmbDataSource) pour profiter pleinement de la capacité en un seul aller-retour
+        // réseau, recommandé pour un débit confortable en 4K.
+        .withBufferSize(8 * 1024 * 1024)
         .build()
 
     @Volatile

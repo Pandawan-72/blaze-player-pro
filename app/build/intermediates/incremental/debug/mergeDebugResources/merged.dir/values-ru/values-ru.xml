@@ -1,0 +1,552 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2" xmlns:ns2="http://schemas.android.com/tools">
+    <string-array name="exo_controls_playback_speeds">
+    <item>0,25</item>
+    <item>0,5</item>
+    <item>0,75</item>
+    <item>Обычная</item>
+    <item>1,25</item>
+    <item>1,5</item>
+    <item>2</item>
+  </string-array>
+    <plurals name="exo_controls_fastforward_by_amount_description">
+    <item quantity="one">Перемотать на %d секунду вперед</item>
+    <item quantity="few">Перемотать на %d секунды вперед</item>
+    <item quantity="many">Перемотать на %d секунд вперед</item>
+    <item quantity="other">Перемотать на %d секунды вперед</item>
+  </plurals>
+    <plurals name="exo_controls_rewind_by_amount_description">
+    <item quantity="one">Перемотать на %d секунду назад</item>
+    <item quantity="few">Перемотать на %d секунды назад</item>
+    <item quantity="many">Перемотать на %d секунд назад</item>
+    <item quantity="other">Перемотать на %d секунды назад</item>
+  </plurals>
+    <plurals name="mtrl_badge_content_description">
+    <item quantity="one">%d новое уведомление</item>
+    <item quantity="few">%d новых уведомления</item>
+    <item quantity="many">%d новых уведомлений</item>
+    <item quantity="other">%d нового уведомления</item>
+  </plurals>
+    <string msgid="5976598919945601918" name="abc_action_bar_home_description">"Перейти на главный экран"</string>
+    <string msgid="8388173803310557296" name="abc_action_bar_up_description">"Перейти вверх"</string>
+    <string msgid="3937310113216875497" name="abc_action_menu_overflow_description">"Ещё"</string>
+    <string msgid="4692188335987374352" name="abc_action_mode_done">"Готово"</string>
+    <string msgid="1189761859438369441" name="abc_activity_chooser_view_see_all">"Показать все"</string>
+    <string msgid="2165779757652331008" name="abc_activitychooserview_choose_application">"Выберите приложение"</string>
+    <string msgid="4215997306490295099" name="abc_capital_off">"ВЫКЛ"</string>
+    <string msgid="884982626291842264" name="abc_capital_on">"ВКЛ"</string>
+    <string msgid="8833365367933412986" name="abc_menu_alt_shortcut_label">"Alt +"</string>
+    <string msgid="2223301931652355242" name="abc_menu_ctrl_shortcut_label">"Ctrl +"</string>
+    <string msgid="838001238306846836" name="abc_menu_delete_shortcut_label">"Delete"</string>
+    <string msgid="7986526966204849475" name="abc_menu_enter_shortcut_label">"Ввод"</string>
+    <string msgid="375214403600139847" name="abc_menu_function_shortcut_label">"Fn +"</string>
+    <string msgid="4192209724446364286" name="abc_menu_meta_shortcut_label">"Meta +"</string>
+    <string msgid="4741552369836443843" name="abc_menu_shift_shortcut_label">"Shift +"</string>
+    <string msgid="5473865519181928982" name="abc_menu_space_shortcut_label">"Пробел"</string>
+    <string msgid="6180552449598693998" name="abc_menu_sym_shortcut_label">"Sym +"</string>
+    <string msgid="5520303668377388990" name="abc_prepend_shortcut_label">"Меню +"</string>
+    <string msgid="7208076849092622260" name="abc_search_hint">"Введите запрос"</string>
+    <string msgid="3741173234950517107" name="abc_searchview_description_clear">"Удалить запрос"</string>
+    <string msgid="693312494995508443" name="abc_searchview_description_query">"Поисковый запрос"</string>
+    <string msgid="3417662926640357176" name="abc_searchview_description_search">"Поиск"</string>
+    <string msgid="1486535517437947103" name="abc_searchview_description_submit">"Отправить запрос"</string>
+    <string msgid="2293578557972875415" name="abc_searchview_description_voice">"Голосовой поиск"</string>
+    <string msgid="8875138169939072951" name="abc_shareactionprovider_share_with">"Поделиться с помощью"</string>
+    <string msgid="9055268688411532828" name="abc_shareactionprovider_share_with_application">"Поделиться с помощью <ns1:g id="APPLICATION_NAME">%s</ns1:g>"</string>
+    <string msgid="1656852541809559762" name="abc_toolbar_collapse_description">"Свернуть"</string>
+    <string name="about_text">Версия 0.9.0-alpha\n\nРазработано Retro-Spare\n\nMedia3 / ExoPlayer</string>
+    <string name="about_version">Blaze Player v0.9.0-alpha</string>
+    <string name="add">Добавить</string>
+    <string name="add_all">Добавить все</string>
+    <string name="add_manually">Добавить вручную</string>
+    <string name="add_network_path">Добавить сетевой путь</string>
+    <string name="add_tracks">Треки</string>
+    <string name="add_tracks_title">Добавить треки</string>
+    <string msgid="8397015543330865059" name="android.credentials.TYPE_PASSWORD_CREDENTIAL">"Пароль"</string>
+    <string msgid="3929015085059320822" name="androidx.credentials.TYPE_PUBLIC_KEY_CREDENTIAL">"Ключ доступа"</string>
+    <string msgid="8719607706653693137" name="androidx_compose_foundation_autofill">"Автозаполнение"</string>
+    <string msgid="1150566100598813236" name="androidx_compose_ui_autofill">"Автозаполнение"</string>
+    <string name="app_name">BlazePlayer</string>
+    <string name="audio_lang">Предпочитаемый язык аудио</string>
+    <string name="auto_next">Автовоспроизведение следующего</string>
+    <string name="auto_play_next">Автовоспроизведение следующего файла</string>
+    <string name="available_devices">Доступные устройства</string>
+    <string name="blaze_player_title">Blaze Player</string>
+    <string name="bottomsheet_action_collapse">Свернуть нижний экран</string>
+    <string name="bottomsheet_action_expand">Развернуть нижний экран</string>
+    <string name="bottomsheet_action_expand_halfway">Развернуть наполовину</string>
+    <string name="bottomsheet_drag_handle_clicked">Двойное нажатие на маркер перемещения</string>
+    <string name="bottomsheet_drag_handle_content_description">Маркер перемещения</string>
+    <string name="btn_navigate">Обзор</string>
+    <string name="btn_navigate_path">Обзор этого пути</string>
+    <string name="buy_pro">Купить Pro - 3,99 EUR навсегда</string>
+    <string msgid="881409763997275156" name="call_notification_answer_action">"Ответить"</string>
+    <string msgid="8793775615905189152" name="call_notification_answer_video_action">"Видео"</string>
+    <string msgid="3229508546291798546" name="call_notification_decline_action">"Отклонить"</string>
+    <string msgid="2659457946726154263" name="call_notification_hang_up_action">"Завершить"</string>
+    <string msgid="6107532579223922871" name="call_notification_incoming_text">"Входящий вызов"</string>
+    <string msgid="8623827134497363134" name="call_notification_ongoing_text">"Текущий вызов"</string>
+    <string msgid="59049573811482460" name="call_notification_screening_text">"Фильтрация входящего вызова"</string>
+    <string name="cancel">Отмена</string>
+    <string name="cast_ad_label">Объявление</string>
+    <string name="cast_casting_to_device">Трансляция на устройство \"%1$s\"</string>
+    <string name="cast_closed_captions">Субтитры</string>
+    <string name="cast_closed_captions_unavailable">Субтитры недоступны</string>
+    <string name="cast_connecting_to_device">Подключение к %1$s…</string>
+    <string name="cast_disconnect">Отключить</string>
+    <string name="cast_dynamic_group_name_format">%1$s + %2$d</string>
+    <string name="cast_expanded_controller_ad_image_description">Изображение, показанное во время трансляции объявления</string>
+    <string name="cast_expanded_controller_ad_in_progress">Трансляция объявления…</string>
+    <string name="cast_expanded_controller_background_image">Обложка</string>
+    <string name="cast_expanded_controller_live_head_description">Текущая позиция: начало трансляции</string>
+    <string name="cast_expanded_controller_live_stream_indicator">Прямой эфир</string>
+    <string name="cast_expanded_controller_loading">Загрузка…</string>
+    <string name="cast_expanded_controller_skip_ad_label">Пропустить</string>
+    <string name="cast_expanded_controller_skip_ad_text">Можно пропустить через %1$d…</string>
+    <string name="cast_forward">Перемотать вперед</string>
+    <string name="cast_forward_10">Перемотать на 10 секунд вперед</string>
+    <string name="cast_forward_30">Перемотать на 30 секунд вперед</string>
+    <string name="cast_intro_overlay_button_text">@android:string/ok</string>
+    <string name="cast_live_label">В ЭФИРЕ</string>
+    <string name="cast_mute">Отключить звук</string>
+    <string name="cast_notification_connected_message">Подключено к %1$s</string>
+    <string name="cast_notification_connecting_message">Подключение к %1$s…</string>
+    <string name="cast_notification_default_channel_name">Cast</string>
+    <string name="cast_notification_disconnect">Отключить</string>
+    <string name="cast_pause">Приостановить</string>
+    <string name="cast_play">Воспроизвести</string>
+    <string name="cast_rewind">Перемотать назад</string>
+    <string name="cast_rewind_10">Перемотать на 10 секунд назад</string>
+    <string name="cast_rewind_30">Перемотать на 30 секунд назад</string>
+    <string name="cast_seek_bar">Ползунок перемотки</string>
+    <string name="cast_skip_next">Перейти к следующему объекту</string>
+    <string name="cast_skip_prev">Перейти к предыдущему объекту</string>
+    <string name="cast_stop">Остановить</string>
+    <string name="cast_stop_live_stream">Остановить трансляцию</string>
+    <string name="cast_tracks_chooser_dialog_audio">Аудио</string>
+    <string name="cast_tracks_chooser_dialog_cancel">Отмена</string>
+    <string name="cast_tracks_chooser_dialog_closed_captions">Субтитры</string>
+    <string name="cast_tracks_chooser_dialog_default_track_name">Трек %1$d</string>
+    <string name="cast_tracks_chooser_dialog_none">Нет</string>
+    <string name="cast_tracks_chooser_dialog_ok">ОК</string>
+    <string name="cast_tracks_chooser_dialog_subtitles">Субтитры</string>
+    <string name="cast_unmute">Включить звук</string>
+    <string name="character_counter_content_description">Введено символов: %1$d из %2$d</string>
+    <string name="character_counter_overflowed_content_description">Превышено ограничение на количество символов (%1$d из %2$d)</string>
+    <string name="choose_language">Выбрать язык</string>
+    <string name="choose_share">Выбрать ресурс</string>
+    <string name="clear">Очистить</string>
+    <string name="clear_history">Очистить историю</string>
+    <string name="clear_history_confirm">Удалить все недавно воспроизведённые файлы?</string>
+    <string name="clear_history_desc">Удалить все недавно воспроизведённые файлы</string>
+    <string name="clear_text_end_icon_content_description">Очистить текстовое поле</string>
+    <string name="click_to_explore">Нажмите на устройство для просмотра.</string>
+    <string name="close">Закрыть</string>
+    <string msgid="406453423630273620" name="close_drawer">"Закрыть меню навигации"</string>
+    <string msgid="7573152094250666567" name="close_sheet">"Закрыть лист"</string>
+    <string msgid="2523291102206661146" name="common_google_play_services_enable_button">Включить</string>
+    <string msgid="227660514972886228" name="common_google_play_services_enable_text">Для работы приложения \"%1$s\" требуется включить сервисы Google Play.</string>
+    <string msgid="5122002158466380389" name="common_google_play_services_enable_title">Включите сервисы Google Play</string>
+    <string msgid="7153882981874058840" name="common_google_play_services_install_button">Установить</string>
+    <string name="common_google_play_services_install_text">Для работы приложения \"%1$s\" требуется установить сервисы Google Play.</string>
+    <string msgid="7215213145546190223" name="common_google_play_services_install_title">Установите сервисы Google Play</string>
+    <string name="common_google_play_services_notification_channel_name">Доступность сервисов Google Play</string>
+    <string name="common_google_play_services_notification_ticker">Ошибка сервисов Google Play</string>
+    <string name="common_google_play_services_unknown_issue">Приложению \"%1$s\" не удается подключиться к сервисам Google Play. Повторите попытку.</string>
+    <string name="common_google_play_services_unsupported_text">Для работы с приложением \"%1$s\" требуются сервисы Google Play. Они не поддерживаются на вашем устройстве.</string>
+    <string msgid="6556509956452265614" name="common_google_play_services_update_button">Обновить</string>
+    <string msgid="9053896323427875356" name="common_google_play_services_update_text">Чтобы запустить приложение \"%1$s\", обновите сервисы Google Play.</string>
+    <string msgid="6006316683626838685" name="common_google_play_services_update_title">Обновите сервисы Google Play</string>
+    <string name="common_google_play_services_updating_text">Сервисы Google Play, необходимые для работы приложения \"%1$s\", в настоящий момент обновляются.</string>
+    <string name="common_google_play_services_wear_update_text">Версия сервисов Google Play устарела. Они автоматически обновятся в ближайшее время.</string>
+    <string name="common_open_on_phone">Открыть на телефоне</string>
+    <string name="common_signin_button_text">Войти</string>
+    <string name="common_signin_button_text_long">Войти через аккаунт Google</string>
+    <string msgid="5912733858573823945" name="confirm_device_credential_password">"Ввести пароль"</string>
+    <string name="continue_google">Продолжить с Google</string>
+    <string name="create_account">Создать аккаунт</string>
+    <string name="create_my_account">Создать мой аккаунт</string>
+    <string msgid="8038256446254964252" name="default_error_message">"Неправильный ввод"</string>
+    <string msgid="4776854077120974966" name="default_error_msg">"Неизвестная ошибка"</string>
+    <string name="default_notification_channel_name">Играет сейчас</string>
+    <string name="default_path">Путь по умолчанию</string>
+    <string msgid="6312721426453364202" name="default_popup_window_title">"Всплывающее окно"</string>
+    <string name="default_value">По умолчанию</string>
+    <string name="detected_devices">ОБНАРУЖЕННЫЕ УСТРОЙСТВА</string>
+    <string name="dlna">DLNA</string>
+    <string msgid="1890207353314751437" name="dropdown_menu">"Раскрывающееся меню"</string>
+    <string name="email_sent">Письмо отправлено! Проверьте почту.</string>
+    <string name="enjoy_trial">Наслаждайтесь 15 днями бесплатно</string>
+    <string name="equalizer">Эквалайзер</string>
+    <string name="error_a11y_label">Ошибка: недопустимое значение</string>
+    <string name="error_icon_content_description">Ошибка</string>
+    <string name="error_message_authentication_expired">Чтобы использовать это приложение, войдите в аккаунт.</string>
+    <string name="error_message_bad_value">Введены неверные данные.</string>
+    <string name="error_message_concurrent_stream_limit">Слишком много устройств, на которых воспроизводится аудио.</string>
+    <string name="error_message_content_already_playing">Этот контент уже воспроизводится.</string>
+    <string name="error_message_disconnected">Нет подключения к приложению для мультимедиа.</string>
+    <string name="error_message_end_of_playlist">В очереди воспроизведения нет других файлов.</string>
+    <string name="error_message_fallback">Произошла ошибка. Повторите попытку позже.</string>
+    <string name="error_message_info_cancelled">Не удалось выполнить действие. Повторите попытку.</string>
+    <string name="error_message_invalid_state">Сейчас это действие недоступно.</string>
+    <string name="error_message_io">При вводе или выводе данных произошла ошибка.</string>
+    <string name="error_message_not_available_in_region">Контент недоступен в вашем регионе.</string>
+    <string name="error_message_not_supported">Действие недоступно в этом приложении.</string>
+    <string name="error_message_parental_control_restricted">Контент заблокирован.</string>
+    <string name="error_message_permission_denied">Доступ запрещен.</string>
+    <string name="error_message_premium_account_required">Требуется премиум-аккаунт.</string>
+    <string name="error_message_setup_required">Требуется настройка.</string>
+    <string name="error_message_skip_limit_reached">Пропускать треки больше нельзя.</string>
+    <string name="exo_controls_cc_disabled_description">Включить субтитры</string>
+    <string name="exo_controls_cc_enabled_description">Выключить субтитры</string>
+    <string name="exo_controls_fastforward_description">Перемотать вперед</string>
+    <string name="exo_controls_fullscreen_enter_description">Полноэкранный режим</string>
+    <string name="exo_controls_fullscreen_exit_description">Выйти из полноэкранного режима</string>
+    <string name="exo_controls_hide">Скрыть панель управления</string>
+    <string name="exo_controls_next_description">Следующий трек</string>
+    <string name="exo_controls_overflow_hide_description">Скрыть дополнительные настройки</string>
+    <string name="exo_controls_overflow_show_description">Показать дополнительные настройки</string>
+    <string name="exo_controls_pause_description">Приостановить</string>
+    <string name="exo_controls_play_description">Воспроизвести</string>
+    <string name="exo_controls_playback_speed">Скорость</string>
+    <string name="exo_controls_previous_description">Предыдущий трек</string>
+    <string name="exo_controls_repeat_all_description">Выбрано: повторять все. Изменить режим повтора.</string>
+    <string name="exo_controls_repeat_off_description">Выбрано: не повторять. Изменить режим повтора.</string>
+    <string name="exo_controls_repeat_one_description">Выбрано: повторять один раз. Изменить режим повтора.</string>
+    <string name="exo_controls_rewind_description">Перемотать назад</string>
+    <string name="exo_controls_seek_bar_description">Полоса прокрутки воспроизведения</string>
+    <string name="exo_controls_settings_description">Настройки</string>
+    <string name="exo_controls_show">Показать панель управления</string>
+    <string name="exo_controls_shuffle_off_description">Включить перемешивание</string>
+    <string name="exo_controls_shuffle_on_description">Отключить перемешивание</string>
+    <string name="exo_controls_stop_description">Остановить</string>
+    <string name="exo_controls_vr_description">VR-режим</string>
+    <string name="exo_download_completed">Скачивание завершено</string>
+    <string name="exo_download_description">Скачать</string>
+    <string name="exo_download_downloading">Скачивание…</string>
+    <string name="exo_download_failed">Ошибка скачивания</string>
+    <string name="exo_download_notification_channel_name">Скачивания</string>
+    <string name="exo_download_paused">Скачивание приостановлено</string>
+    <string name="exo_download_paused_for_network">Ожидание подключения к сети</string>
+    <string name="exo_download_paused_for_wifi">Ожидание подключения к Wi-Fi</string>
+    <string name="exo_download_removing">Удаление скачанных файлов…</string>
+    <string name="exo_item_list">%1$s, %2$s</string>
+    <string name="exo_track_bitrate">%1$.2f Мбит/сек</string>
+    <string name="exo_track_mono">Моно</string>
+    <string name="exo_track_resolution">%1$d × %2$d</string>
+    <string name="exo_track_role_alternate">Другая запись</string>
+    <string name="exo_track_role_closed_captions">Субтитры</string>
+    <string name="exo_track_role_commentary">Комментарии</string>
+    <string name="exo_track_role_supplementary">Дополнительные материалы</string>
+    <string name="exo_track_selection_auto">Авто</string>
+    <string name="exo_track_selection_none">Нет</string>
+    <string name="exo_track_selection_title_audio">Аудио</string>
+    <string name="exo_track_stereo">Стерео</string>
+    <string name="exo_track_surround">Объемный звук</string>
+    <string name="exo_track_surround_5_point_1">Система объемного звука 5.1</string>
+    <string name="exo_track_surround_7_point_1">Система объемного звука 7.1</string>
+    <string name="exo_track_unknown">Неизвестный трек</string>
+    <string name="exo_track_unknown_name">Неизвестно (%1$s)</string>
+    <string name="exposed_dropdown_menu_content_description">Показать раскрывающееся меню</string>
+    <string name="films">Фильмы</string>
+    <string msgid="1072308044213194243" name="fingerprint_dialog_touch_sensor">"Коснитесь сканера отпечатков."</string>
+    <string msgid="8216738333501875566" name="fingerprint_error_hw_not_available">"Сканер отпечатков пальцев недоступен."</string>
+    <string msgid="6306988885793029438" name="fingerprint_error_hw_not_present">"На этом устройстве нет сканера отпечатков пальцев."</string>
+    <string msgid="7291787166416782245" name="fingerprint_error_lockout">"Слишком много попыток входа. Попробуйте ещё раз позже."</string>
+    <string msgid="7520712796891883488" name="fingerprint_error_no_fingerprints">"Нет отсканированных отпечатков пальцев."</string>
+    <string msgid="7627716295344353987" name="fingerprint_error_user_canceled">"Операция с отпечатком пальца отменена пользователем."</string>
+    <string msgid="3873359464293253009" name="fingerprint_not_recognized">"Не распознано"</string>
+    <string name="folder">Папка</string>
+    <string name="folders_count">0 папок - 0 файлов</string>
+    <string name="forgot_password">Забыли пароль?</string>
+    <string name="forgot_password_desc">Введите email и мы отправим ссылку для сброса.</string>
+    <string name="forgot_password_title">Забытый пароль</string>
+    <string name="free">Бесплатно</string>
+    <string msgid="3791785319221634505" name="generic_error_no_device_credential">"Не заданы PIN-код, пароль или графический ключ."</string>
+    <string msgid="1807436368654974044" name="generic_error_no_keyguard">"На этом устройстве не поддерживаются PIN-код, графический ключ и пароль."</string>
+    <string msgid="7309881387583143581" name="generic_error_user_canceled">"Аутентификация отменена пользователем."</string>
+    <string name="hidden_files">Файлы начинающиеся с точки (.)</string>
+    <string name="history_cleared">История очищена</string>
+    <string name="history_local">Локальная история</string>
+    <string name="history_network">История сети</string>
+    <string msgid="9119039724000326934" name="ic_media_route_learn_more_accessibility">"Как начать трансляцию"</string>
+    <string name="icon_content_description">Значок диалогового окна</string>
+    <string msgid="6827826412747255547" name="in_progress">"Выполняется"</string>
+    <string msgid="7933458017204019916" name="indeterminate">"Отмечено частично"</string>
+    <string name="informations">Информация</string>
+    <string name="infos">Инфо</string>
+    <string name="item_view_role_description">Вкладка</string>
+    <string name="language">Язык</string>
+    <string name="language_system">Системный</string>
+    <string name="local_storage">Локальное хранилище</string>
+    <string name="login_optional">Вход (необязательно)</string>
+    <string name="login_required">Войдите, чтобы продолжить</string>
+    <string msgid="2988463736136100848" name="m3c_bottom_sheet_collapse_description">"Свернуть нижний экран"</string>
+    <string msgid="1555567894577437024" name="m3c_bottom_sheet_dismiss_description">"Закрыть нижний экран"</string>
+    <string msgid="8403354765404029791" name="m3c_bottom_sheet_drag_handle_description">"Маркер перемещения"</string>
+    <string msgid="6670819569745899763" name="m3c_bottom_sheet_expand_description">"Развернуть нижний экран"</string>
+    <string msgid="3010635850035863127" name="m3c_bottom_sheet_pane_title">"Нижний экран"</string>
+    <string msgid="8166741421776570875" name="m3c_date_input_headline">"Введенная дата"</string>
+    <string msgid="229313757840775812" name="m3c_date_input_headline_description">"Введенная дата: %1$s"</string>
+    <string msgid="6116910750161463197" name="m3c_date_input_invalid_for_pattern">"Дата не соответствует допустимому шаблону: %1$s"</string>
+    <string msgid="2521768508935305279" name="m3c_date_input_invalid_not_allowed">"Недопустимая дата: %1$s"</string>
+    <string msgid="7052898923934555305" name="m3c_date_input_invalid_year_range">"Дата не входит в допустимый диапазон: %1$s–%2$s"</string>
+    <string msgid="2895559812010326913" name="m3c_date_input_label">"Дата"</string>
+    <string msgid="1237013946323089826" name="m3c_date_input_no_input_description">"Нет"</string>
+    <string msgid="7306227249789210568" name="m3c_date_input_title">"Выберите дату"</string>
+    <string msgid="7605002211875882969" name="m3c_date_picker_headline">"Выбранная дата"</string>
+    <string msgid="3664277305226978227" name="m3c_date_picker_headline_description">"Текущий выбор: %1$s"</string>
+    <string msgid="8436650776581492840" name="m3c_date_picker_navigate_to_year_description">"Переход к %1$s году"</string>
+    <string msgid="5811000998184572395" name="m3c_date_picker_no_selection_description">"Нет"</string>
+    <string msgid="7813882352367152251" name="m3c_date_picker_scroll_to_earlier_years">"Прокрутите до более ранних лет"</string>
+    <string msgid="5727367015496556177" name="m3c_date_picker_scroll_to_later_years">"Прокрутите до более поздних лет"</string>
+    <string msgid="1804346892470238807" name="m3c_date_picker_switch_to_calendar_mode">"Перейти в режим выбора даты"</string>
+    <string msgid="395627960681594326" name="m3c_date_picker_switch_to_day_selection">"Проведите по экрану, чтобы выбрать год, или нажмите, чтобы вернуться к выбору дня."</string>
+    <string msgid="2219746470065162704" name="m3c_date_picker_switch_to_input_mode">"Перейти в режим ввода текста"</string>
+    <string msgid="7142101321095356500" name="m3c_date_picker_switch_to_next_month">"Перейти к следующему месяцу"</string>
+    <string msgid="228438865139394590" name="m3c_date_picker_switch_to_previous_month">"Перейти к предыдущему месяцу"</string>
+    <string msgid="791651718641787594" name="m3c_date_picker_switch_to_year_selection">"Перейти к выбору года"</string>
+    <string msgid="7430790972741451689" name="m3c_date_picker_title">"Выберите дату"</string>
+    <string msgid="3199387177749801575" name="m3c_date_picker_today_description">"Сегодня"</string>
+    <string msgid="2068382232816991922" name="m3c_date_picker_year_picker_pane_title">"Отображаемый выбор года"</string>
+    <string msgid="3190049423327661366" name="m3c_date_range_input_invalid_range_input">"Указан недопустимый диапазон дат."</string>
+    <string msgid="3148384720560189467" name="m3c_date_range_input_title">"Введите даты"</string>
+    <string msgid="2138321128465719402" name="m3c_date_range_picker_day_in_range">"День в диапазоне дат"</string>
+    <string msgid="4947636797751277713" name="m3c_date_range_picker_end_headline">"Конечная дата"</string>
+    <string msgid="602077859540990149" name="m3c_date_range_picker_scroll_to_next_month">"Прокрутите до следующего месяца"</string>
+    <string msgid="4592174524846109496" name="m3c_date_range_picker_scroll_to_previous_month">"Прокрутите до предыдущего месяца"</string>
+    <string msgid="4665981448952749820" name="m3c_date_range_picker_start_headline">"Начальная дата"</string>
+    <string msgid="3134165431120340385" name="m3c_date_range_picker_title">"Выберите даты"</string>
+    <string msgid="7617233117134790350" name="m3c_dialog">"Диалоговое окно"</string>
+    <string msgid="3177828188723359358" name="m3c_dropdown_menu_collapsed">"Свернуто"</string>
+    <string msgid="2360841780724299882" name="m3c_dropdown_menu_expanded">"Развернуто"</string>
+    <string msgid="8687821690726149911" name="m3c_dropdown_menu_toggle">"Показать или скрыть раскрывающееся меню"</string>
+    <string msgid="6072492480528318635" name="m3c_floating_toolbar_collapse">"Свернуть панель инструментов"</string>
+    <string msgid="6880757017246780255" name="m3c_floating_toolbar_expand">"Развернуть панель инструментов"</string>
+    <string msgid="6152806324422087846" name="m3c_search_bar_search">"Строка поиска"</string>
+    <string msgid="6152755701819882931" name="m3c_snackbar_dismiss">"Закрыть"</string>
+    <string msgid="3868801555855510515" name="m3c_snackbar_pane_title">"Оповещение"</string>
+    <string msgid="7655536806087401899" name="m3c_suggestions_available">"Подсказки показаны ниже"</string>
+    <string msgid="409352516511718051" name="m3c_time_input_dialog_title">"Укажите время"</string>
+    <string msgid="2786685010796619560" name="m3c_time_picker_am">"AM"</string>
+    <string msgid="7412665527536641863" name="m3c_time_picker_dialog_title">"Выберите время"</string>
+    <string msgid="2349193472625211372" name="m3c_time_picker_hour">"Часы"</string>
+    <string msgid="9179527532316922345" name="m3c_time_picker_hour_24h_suffix">"%1$d ч."</string>
+    <string msgid="8876759303332837035" name="m3c_time_picker_hour_selection">"Выбрать час"</string>
+    <string msgid="3458167507790628988" name="m3c_time_picker_hour_suffix">"%1$d ч."</string>
+    <string msgid="6973808109666874069" name="m3c_time_picker_hour_text_field">"часы"</string>
+    <string msgid="4313071914266462005" name="m3c_time_picker_minute">"Минуты"</string>
+    <string msgid="4699133535056739733" name="m3c_time_picker_minute_selection">"Выберите минуты"</string>
+    <string msgid="5064177921781937179" name="m3c_time_picker_minute_suffix">"%1$d мин."</string>
+    <string msgid="7661234488295443182" name="m3c_time_picker_minute_text_field">"минуты"</string>
+    <string msgid="5865171949528594571" name="m3c_time_picker_period_toggle_description">"Выбрать AM (до полудня) или PM (после полудня)"</string>
+    <string msgid="6616362054113087709" name="m3c_time_picker_pm">"PM"</string>
+    <string msgid="4145073906612931838" name="m3c_time_picker_toggle_keyboard">"Указать время, используя режим ввода текста"</string>
+    <string msgid="8841786098195101324" name="m3c_time_picker_toggle_touch">"Выбрать время, используя режим часов"</string>
+    <string msgid="1805687647081129904" name="m3c_tooltip_long_press_label">"Показать подсказку"</string>
+    <string msgid="5460405025248574620" name="m3c_tooltip_pane_description">"Подсказка"</string>
+    <string msgid="6564222473543418073" name="m3c_wide_navigation_rail_close_rail">"Закрыть боковую панель"</string>
+    <string msgid="8350283435461615411" name="m3c_wide_navigation_rail_pane_title">"Боковая панель навигации"</string>
+    <string name="material_clock_toggle_content_description">Выберите AM (до полудня) или PM (после полудня)</string>
+    <string name="material_hour_24h_suffix">%1$s ч.</string>
+    <string name="material_hour_selection">Выберите час</string>
+    <string name="material_hour_suffix">%1$s ч.</string>
+    <string name="material_minute_selection">Выберите минуты</string>
+    <string name="material_minute_suffix">%1$s мин.</string>
+    <string name="material_timepicker_am">AM</string>
+    <string name="material_timepicker_clock_mode_description">Чтобы ввести время, перейдите в режим часов.</string>
+    <string name="material_timepicker_hour">Час</string>
+    <string name="material_timepicker_minute">Минуты</string>
+    <string name="material_timepicker_pm">PM</string>
+    <string name="material_timepicker_select_time">Выбор времени</string>
+    <string name="material_timepicker_text_input_mode_description">Чтобы ввести время, перейдите в режим ввода текста.</string>
+    <string msgid="8471891128988107974" name="mc2_snackbar_pane_title">"Оповещение"</string>
+    <string name="media3_controls_pause_description">Приостановить</string>
+    <string name="media3_controls_play_description">Воспроизвести</string>
+    <string name="media3_controls_seek_back_description">Перемотать назад</string>
+    <string name="media3_controls_seek_forward_description">Перемотать вперед</string>
+    <string name="media3_controls_seek_to_next_description">К следующему файлу</string>
+    <string name="media3_controls_seek_to_previous_description">К предыдущему файлу</string>
+    <string name="media_notification_channel_name">Cast</string>
+    <string name="mini_player">Мини-плеер</string>
+    <string msgid="2939063992730535343" name="mr_button_content_description">"Транслировать"</string>
+    <string msgid="6073720094880410356" name="mr_cast_button_connected">"Транслировать. Подключено"</string>
+    <string msgid="6629927151350192407" name="mr_cast_button_connecting">"Транслировать. Идет подключение"</string>
+    <string msgid="8071109333469380363" name="mr_cast_button_disconnected">"Транслировать. Не подключено"</string>
+    <string msgid="2175930138959078155" name="mr_cast_dialog_title_view_placeholder">"Данных нет"</string>
+    <string msgid="4257319068277776035" name="mr_chooser_looking_for_devices">"Поиск устройств…"</string>
+    <string msgid="6114250663023140921" name="mr_chooser_searching">"Поиск устройств…"</string>
+    <string msgid="1419936397646839840" name="mr_chooser_title">"Транслировать на"</string>
+    <string msgid="3799500840179081429" name="mr_chooser_wifi_learn_more"><a href="https://support.google.com/chromecast/?p=trouble-finding-devices">"Подробнее…"</a></string>
+    <string msgid="2998902945608081567" name="mr_chooser_wifi_warning_description_car">"Убедитесь, что другое устройство подключено к той же сети Wi-Fi, что и автомобиль"</string>
+    <string msgid="2555886884770958244" name="mr_chooser_wifi_warning_description_phone">"Убедитесь, что другое устройство подключено к той же сети Wi-Fi, что и телефон"</string>
+    <string msgid="6038748488793588164" name="mr_chooser_wifi_warning_description_tablet">"Убедитесь, что другое устройство подключено к той же сети Wi-Fi, что и планшет"</string>
+    <string msgid="5845921667085074878" name="mr_chooser_wifi_warning_description_tv">"Убедитесь, что другое устройство подключено к той же сети Wi-Fi, что и телевизор"</string>
+    <string msgid="3459891599800041449" name="mr_chooser_wifi_warning_description_unknown">"Убедитесь, что другое устройство подключено к той же сети Wi-Fi, что и это устройство"</string>
+    <string msgid="5255021372884233706" name="mr_chooser_wifi_warning_description_watch">"Убедитесь, что другое устройство подключено к той же сети Wi-Fi, что и часы"</string>
+    <string msgid="5213435473397442608" name="mr_chooser_zero_routes_found_title">"Нет доступных устройств"</string>
+    <string msgid="3330502667672708728" name="mr_controller_album_art">"Обложка"</string>
+    <string msgid="9171231064758955152" name="mr_controller_casting_screen">"Трансляция экрана…"</string>
+    <string msgid="5684434439232634509" name="mr_controller_close_description">"Закрыть"</string>
+    <string msgid="2585048604188129749" name="mr_controller_collapse_group">"Скрыть"</string>
+    <string msgid="7812275474138309497" name="mr_controller_disconnect">"Отключить"</string>
+    <string msgid="4521419834052044261" name="mr_controller_expand_group">"Показать"</string>
+    <string msgid="855271725131981086" name="mr_controller_no_info_available">"Данных нет"</string>
+    <string msgid="5495452265246139458" name="mr_controller_no_media_selected">"Медиафайл не выбран"</string>
+    <string msgid="747801650871398383" name="mr_controller_pause">"Приостановить"</string>
+    <string msgid="1253345086594430054" name="mr_controller_play">"Воспроизвести"</string>
+    <string msgid="5497722768305745508" name="mr_controller_stop">"Остановить"</string>
+    <string msgid="804210341192624074" name="mr_controller_stop_casting">"Остановить трансляцию"</string>
+    <string msgid="2955862765169128170" name="mr_controller_volume_slider">"Регулятор громкости"</string>
+    <string msgid="4115858704575247342" name="mr_dialog_default_group_name">"Группа"</string>
+    <string msgid="4307018456678388936" name="mr_dialog_groupable_header">"Добавление устройства"</string>
+    <string msgid="6068257520605505468" name="mr_dialog_transferable_header">"Воспроизведение в группе"</string>
+    <string msgid="5056346328175584455" name="mr_route_name_bluetooth">"Bluetooth"</string>
+    <string msgid="708574147123374685" name="mr_route_name_speaker">"Динамик"</string>
+    <string msgid="8041420425123528188" name="mr_route_name_tv">"Телевизор"</string>
+    <string msgid="5538521943939635302" name="mr_route_name_unknown">"Неизвестно"</string>
+    <string msgid="7449553026175453403" name="mr_system_route_name">"Система"</string>
+    <string msgid="4088331695424166162" name="mr_user_route_category_name">"Устройства"</string>
+    <string name="mtrl_badge_numberless_content_description">Новое уведомление</string>
+    <string name="mtrl_checkbox_state_description_checked">Флажок установлен.</string>
+    <string name="mtrl_checkbox_state_description_indeterminate">Флажки установлены частично.</string>
+    <string name="mtrl_checkbox_state_description_unchecked">Флажок не установлен.</string>
+    <string name="mtrl_chip_close_icon_content_description">Удалить \"%1$s\"</string>
+    <string name="mtrl_exceed_max_badge_number_content_description" ns2:ignore="PluralsCandidate">Новых уведомлений больше %1$d</string>
+    <string name="mtrl_picker_a11y_next_month">Перейти к следующему месяцу</string>
+    <string name="mtrl_picker_a11y_prev_month">Перейти к предыдущему месяцу</string>
+    <string name="mtrl_picker_announce_current_range_selection">Выбранная дата начала: %1$s. Выбранная дата окончания: %2$s.</string>
+    <string name="mtrl_picker_announce_current_selection">Выбранный элемент: %1$s</string>
+    <string name="mtrl_picker_announce_current_selection_none">нет</string>
+    <string name="mtrl_picker_cancel">Отмена</string>
+    <string name="mtrl_picker_confirm">ОК</string>
+    <string name="mtrl_picker_date_header_selected">%1$s</string>
+    <string name="mtrl_picker_date_header_title">Выберите дату</string>
+    <string name="mtrl_picker_date_header_unselected">Выбранная дата</string>
+    <string name="mtrl_picker_day_of_week_column_header">%1$s</string>
+    <string name="mtrl_picker_end_date_description">Дата окончания: %1$s</string>
+    <string name="mtrl_picker_invalid_format">Недействительный формат.</string>
+    <string name="mtrl_picker_invalid_format_example">Пример: %1$s</string>
+    <string name="mtrl_picker_invalid_format_use">Используйте: %1$s</string>
+    <string name="mtrl_picker_invalid_range">Недопустимый диапазон.</string>
+    <string name="mtrl_picker_navigate_to_current_year_description">Перейти к текущему году: %1$d</string>
+    <string name="mtrl_picker_navigate_to_year_description">Перейти к %1$d году</string>
+    <string name="mtrl_picker_out_of_range">Вне диапазона: %1$s</string>
+    <string name="mtrl_picker_range_header_only_end_selected">Дата начала – %1$s</string>
+    <string name="mtrl_picker_range_header_only_start_selected">%1$s – дата окончания</string>
+    <string name="mtrl_picker_range_header_selected">%1$s – %2$s</string>
+    <string name="mtrl_picker_range_header_title">Выберите диапазон дат</string>
+    <string name="mtrl_picker_range_header_unselected">Дата начала – дата окончания</string>
+    <string name="mtrl_picker_save">Сохранить</string>
+    <string name="mtrl_picker_start_date_description">Дата начала: %1$s</string>
+    <string name="mtrl_picker_text_input_date_hint">Дата</string>
+    <string name="mtrl_picker_text_input_date_range_end_hint">Дата окончания</string>
+    <string name="mtrl_picker_text_input_date_range_start_hint">Дата начала</string>
+    <string name="mtrl_picker_text_input_day_abbr">д</string>
+    <string name="mtrl_picker_text_input_month_abbr">м</string>
+    <string name="mtrl_picker_text_input_year_abbr">г</string>
+    <string name="mtrl_picker_today_description">Сегодня: %1$s</string>
+    <string name="mtrl_picker_toggle_to_calendar_input_mode">Перейти в режим выбора дней</string>
+    <string name="mtrl_picker_toggle_to_day_selection">Нажмите, чтобы перейти к Календарю</string>
+    <string name="mtrl_picker_toggle_to_text_input_mode">Перейти в режим ввода текста</string>
+    <string name="mtrl_picker_toggle_to_year_selection">Нажмите, чтобы выбрать год</string>
+    <string name="mtrl_timepicker_cancel">Отмена</string>
+    <string name="mtrl_timepicker_confirm">ОК</string>
+    <string name="my_playlists">МОИ ПЛЕЙЛИСТЫ</string>
+    <string msgid="6301633601645100427" name="nav_app_bar_navigate_up_description">"Перейти вверх"</string>
+    <string msgid="7456070600745802113" name="nav_app_bar_open_drawer_description">"Открыть панель навигации"</string>
+    <string msgid="542007171693138492" name="navigation_menu">"Меню навигации"</string>
+    <string name="network_local">Локальная сеть</string>
+    <string name="no_account">Ещё нет аккаунта?</string>
+    <string name="no_account_found">Аккаунт с этим email не найден</string>
+    <string name="no_audio_track">Нет аудиодорожки</string>
+    <string name="no_commitment">Без обязательств - Отмена в любое время</string>
+    <string name="no_network_device">Сетевые устройства не обнаружены.</string>
+    <string name="no_network_path">Сетевой путь не настроен</string>
+    <string name="no_path_configured">Путь не настроен. Нажмите Сканировать.</string>
+    <string name="no_preference">Без предпочтений</string>
+    <string name="no_track_selected">Трек не выбран</string>
+    <string msgid="6610465462668679431" name="not_selected">"Не выбрано"</string>
+    <string name="now_playing">СЕЙЧАС ИГРАЕТ</string>
+    <string name="ok">ОК</string>
+    <string name="on">ВКЛ</string>
+    <string name="one_time_payment">Единовременный платёж, навсегда. Без подписки.</string>
+    <string name="open_default_navigate">Открывать по умолчанию при обзоре</string>
+    <string name="or">или</string>
+    <string name="orientation">Ориентация по умолчанию</string>
+    <string name="orientation_auto">Авто</string>
+    <string name="orientation_landscape">Пейзаж</string>
+    <string name="orientation_portrait">Портрет</string>
+    <string name="password_toggle_content_description">Показать пароль</string>
+    <string name="payment_secure">Безопасная оплата через Google Play. Без автопродления.</string>
+    <string name="pip_auto">Авто PiP</string>
+    <string name="pip_desc">Переключиться в режим картинка-в-картинке при смене приложения</string>
+    <string name="play">Воспроизвести</string>
+    <string name="playback_speed">Скорость воспроизведения</string>
+    <string name="playlist_queue">ОЧЕРЕДЬ</string>
+    <string name="pro">Pro</string>
+    <string name="pro_badge">PRO</string>
+    <string msgid="5941395253238309765" name="range_end">"Конец диапазона"</string>
+    <string msgid="7097486360902471446" name="range_start">"Начало диапазона"</string>
+    <string name="register">Зарегистрироваться</string>
+    <string name="remember_volume">Запомнить громкость</string>
+    <string name="remember_volume_desc">Сохранять уровень громкости между воспроизведениями</string>
+    <string name="remove_from_history">Удалить из истории</string>
+    <string name="restore_coming_soon">Восстановление покупок... (скоро)</string>
+    <string name="restore_existing">Восстановить существующую покупку</string>
+    <string name="restore_purchase">Восстановить покупки</string>
+    <string name="resume_always">Всегда</string>
+    <string name="resume_ask">Спрашивать</string>
+    <string name="resume_never">Никогда</string>
+    <string name="resume_playback">Возобновить воспроизведение</string>
+    <string name="save_playlist">Сохранить текущий список</string>
+    <string name="saved_paths">СОХРАНЁННЫЕ ПУТИ</string>
+    <string name="search">Поиск</string>
+    <string name="search_hint">Поиск во всех папках...</string>
+    <string msgid="6264217191555673260" name="search_menu_title">"Поиск"</string>
+    <string name="searchview_clear_text_content_description">Очистить текстовое поле</string>
+    <string name="searchview_navigation_content_description">Назад</string>
+    <string name="section_about">О ПРОГРАММЕ</string>
+    <string name="section_audio">АУДИО</string>
+    <string name="section_bass_boost">УСИЛЕНИЕ БАСОВ</string>
+    <string name="section_blaze_audio">BLAZE AUDIO</string>
+    <string name="section_data">ДАННЫЕ</string>
+    <string name="section_interface">ИНТЕРФЕЙС</string>
+    <string name="section_playback">ВОСПРОИЗВЕДЕНИЕ</string>
+    <string name="section_presets">ПРЕДУСТАНОВКИ</string>
+    <string name="section_ratio">СООТНОШЕНИЕ</string>
+    <string name="section_virtualizer">3D ВИРТУАЛИЗАТОР</string>
+    <string name="seek_duration">Длительность перемотки</string>
+    <string name="seek_minus_10">-10с</string>
+    <string name="seek_plus_10">+10с</string>
+    <string msgid="6043586758067023" name="selected">"Выбрано"</string>
+    <string name="send_link">Отправить ссылку</string>
+    <string name="settings">Настройки</string>
+    <string name="show_hidden_files">Показать скрытые файлы</string>
+    <string name="show_mini_player">Показать мини-плеер в приложении</string>
+    <string name="show_results">Показать результаты</string>
+    <string name="side_sheet_accessibility_pane_title">Боковая панель</string>
+    <string name="sign_in">Войти</string>
+    <string name="smb">SMB</string>
+    <string msgid="2792228137354697160" name="snackbar_pane_title">"Оповещение"</string>
+    <string name="sort_name">Имя</string>
+    <string name="sort_name_az">Имя А-Я</string>
+    <string msgid="4139871816613051306" name="state_empty">"Пусто"</string>
+    <string msgid="5834637030682409883" name="state_off">"Отключено"</string>
+    <string msgid="1490883874751719580" name="state_on">"Включено"</string>
+    <string msgid="6277540029070332960" name="status_bar_notification_info_overflow">">999"</string>
+    <string msgid="2561197295334830845" name="switch_role">"Переключатель"</string>
+    <string msgid="1672349317127674378" name="tab">"Вкладка"</string>
+    <string name="tab_blaze_audio">Blaze Audio</string>
+    <string name="tab_local">Локально</string>
+    <string name="tab_network">Сеть</string>
+    <string msgid="5946805113151406391" name="template_percent">"Процентов: <ns1:g id="PERCENTAGE">%1$d</ns1:g>."</string>
+    <string name="timer">Таймер</string>
+    <string msgid="3765533235322692011" name="tooltip_description">"Подсказка"</string>
+    <string msgid="3124740595719787496" name="tooltip_label">"Показать подсказку"</string>
+    <string name="tracks_found">0 трек найден</string>
+    <string name="trial_days">15 дней бесплатного периода</string>
+    <string name="unknown_artist">Неизвестный исполнитель</string>
+    <string name="unknown_title">Неизвестное название</string>
+    <string name="upgrade_pro">Перейти на Blaze Pro</string>
+</resources>

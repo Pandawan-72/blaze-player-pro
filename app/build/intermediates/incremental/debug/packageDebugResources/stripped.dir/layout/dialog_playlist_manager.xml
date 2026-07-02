@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingBottom="24dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
+        android:background="#44FFFFFF" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MES PLAYLISTS"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="11sp"
+        android:fontFamily="sans-serif-condensed"
+        android:letterSpacing="0.1"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="8dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerSavedPlaylists"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="300dp"
+        android:overScrollMode="never" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSaveCurrentPlaylist"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:text="Sauvegarder la liste en cours"
+        android:textSize="13sp"
+        android:textColor="#FF000000"
+        android:paddingHorizontal="20dp"
+        android:includeFontPadding="false"
+            android:gravity="center"
+            app:backgroundTint="@color/green_accent"
+        app:cornerRadius="20dp"
+        app:icon="@drawable/ic_add_circle"
+        app:iconSize="16dp"
+        app:iconTint="#FF000000"
+        app:iconGravity="textStart" />
+
+</LinearLayout>

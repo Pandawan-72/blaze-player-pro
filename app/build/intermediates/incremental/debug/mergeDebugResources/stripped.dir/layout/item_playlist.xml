@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="5dp"
+    android:background="?attr/selectableItemBackground">
+
+    <!-- Indicateur lecture en cours -->
+    <View
+        android:id="@+id/playingIndicator"
+        android:layout_width="3dp"
+        android:layout_height="52dp"
+        android:background="@color/green_accent"
+        android:layout_marginEnd="6dp"
+        android:visibility="invisible" />
+
+    <!-- Carte -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_surface_card"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="8dp">
+
+        <!-- Numéro de piste -->
+        <TextView
+            android:id="@+id/tvTrackIndex"
+            android:layout_width="24dp"
+            android:layout_height="wrap_content"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:layout_marginEnd="8dp" />
+
+
+
+        <!-- Cover -->
+        <FrameLayout
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_thumbnail"
+            android:clipToOutline="true"
+            android:layout_marginEnd="10dp">
+
+            <ImageView
+                android:id="@+id/ivPlaylistCover"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_play_circle"
+                android:contentDescription="@null" />
+
+        </FrameLayout>
+
+        <!-- Titre + badges -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="start">
+
+            <TextView
+                android:id="@+id/tvTrackName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-condensed"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:layout_marginBottom="2dp" />
+
+                <TextView
+                    android:id="@+id/tvTrackArtist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-condensed"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:layout_marginBottom="4dp"
+                    android:visibility="gone" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvPlaylistCodec"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_gray"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:textSize="10sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:fontFamily="sans-serif-condensed"
+                    android:layout_marginEnd="4dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvPlaylistBitrate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_gray"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:textSize="10sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:fontFamily="sans-serif-condensed"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- EQ animé -->
+        <fr.retrospare.blazeplayer.widget.MiniEqualizerView
+            android:id="@+id/eqView"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:layout_marginStart="8dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</LinearLayout>

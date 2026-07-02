@@ -51,19 +51,7 @@ class MainActivity : AppCompatActivity() {
         // Observe le state — collecte sur toute la durée de vie de l'Activity
         lifecycleScope.launch {
             miniPlayerVm.state.collect { state ->
-                binding.miniPlayerBar.visibility =
-                    if (state.isVisible) android.view.View.VISIBLE else android.view.View.GONE
-                if (state.isVisible) {
-                    binding.tvMiniTitle.text = state.title.ifEmpty { "Titre inconnu" }
-                    binding.tvMiniArtist.text = state.artist
-                    val art = state.artworkData
-                    if (art != null) binding.ivMiniArtwork.setImageBitmap(
-                        android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size))
-                    binding.btnMiniPlayPause.setImageResource(
-                        if (state.isPlaying) fr.retrospare.blazeplayer.R.drawable.ic_pause
-                        else fr.retrospare.blazeplayer.R.drawable.ic_play
-                    )
-                }
+                applyMiniPlayerState(state)
             }
         }
 
@@ -74,6 +62,86 @@ class MainActivity : AppCompatActivity() {
         binding.btnMiniPrev.setOnClickListener { miniPlayerVm.controller?.seekToPreviousMediaItem() }
         binding.btnMiniNext.setOnClickListener { miniPlayerVm.controller?.seekToNextMediaItem() }
         binding.miniPlayerBar.setOnClickListener { openBlazeAudio() }
+        setupMiniPlayerDrag()
+    }
+
+    /** Applique l'état courant du mini player à la vue. Extrait de setupMiniPlayer() pour pouvoir
+     *  être rappelé depuis onResume() : un StateFlow ne redéclenche pas le collector si la valeur
+     *  n'a pas changé, ce qui pouvait laisser le mini player caché (retour d'une vidéo locale,
+     *  réveil de l'écran...) tant qu'aucun changement d'onglet ne forçait une nouvelle valeur. */
+    private fun applyMiniPlayerState(state: fr.retrospare.blazeplayer.player.MiniPlayerState) {
+        binding.miniPlayerBar.visibility =
+            if (state.isVisible) android.view.View.VISIBLE else android.view.View.GONE
+        if (state.isVisible) {
+            binding.tvMiniTitle.text = state.title.ifEmpty { "Titre inconnu" }
+            binding.tvMiniArtist.text = state.artist
+            val art = state.artworkData
+            if (art != null) binding.ivMiniArtwork.setImageBitmap(
+                android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size))
+            binding.btnMiniPlayPause.setImageResource(
+                if (state.isPlaying) fr.retrospare.blazeplayer.R.drawable.ic_pause
+                else fr.retrospare.blazeplayer.R.drawable.ic_play
+            )
+        }
+    }
+
+    /** Permet de glisser le mini player au doigt n'importe où dans la page. Un simple tap
+     *  (sans déplacement notable) ouvre toujours le lecteur Blaze Audio comme avant. */
+    private fun setupMiniPlayerDrag() {
+        val miniPlayer = binding.miniPlayerBar
+        val touchSlop = android.view.ViewConfiguration.get(this).scaledTouchSlop
+
+        var downRawX = 0f
+        var downRawY = 0f
+        var startTranslationX = 0f
+        var startTranslationY = 0f
+        var isDragging = false
+
+        miniPlayer.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    downRawX = event.rawX
+                    downRawY = event.rawY
+                    startTranslationX = view.translationX
+                    startTranslationY = view.translationY
+                    isDragging = false
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - downRawX
+                    val dy = event.rawY - downRawY
+                    if (!isDragging && (kotlin.math.abs(dx) > touchSlop || kotlin.math.abs(dy) > touchSlop)) {
+                        isDragging = true
+                    }
+                    if (isDragging) {
+                        val parent = view.parent as android.view.View
+
+                        // Bornes calculées à partir de la position posée par le layout, pour
+                        // que le mini player ne puisse jamais sortir de l'écran.
+                        val minTx = -view.left.toFloat()
+                        val maxTx = (parent.width - view.right).toFloat()
+                        val minTy = -view.top.toFloat()
+                        val maxTy = (parent.height - view.bottom).toFloat()
+
+                        view.translationX = (startTranslationX + dx).coerceIn(minTx, maxTx)
+                        view.translationY = (startTranslationY + dy).coerceIn(minTy, maxTy)
+                    }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP -> {
+                    if (!isDragging) {
+                        view.performClick()
+                    }
+                    isDragging = false
+                    true
+                }
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    isDragging = false
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     fun setInAudioPlayer(inPlayer: Boolean) {
@@ -82,9 +150,27 @@ class MainActivity : AppCompatActivity() {
 
     fun getMiniPlayerViewModel() = miniPlayerVm
 
+    /** Force la resynchronisation du mini player : à appeler depuis n'importe quel fragment qui
+     *  vient d'(re)créer sa vue (ex: HomeFragment de retour de Réglages ou d'une vidéo locale),
+     *  car la simple recréation d'un Fragment ne déclenche PAS onResume() de l'Activity (elle
+     *  reste résumée tout du long), donc le mini player pouvait rester caché/masqué sans qu'aucun
+     *  évènement ne force sa réapparition. bringToFront() re-garantit aussi qu'il reste au-dessus
+     *  du contenu qui vient d'être réinflaté, au cas où l'ordre de dessin aurait été perturbé. */
+    fun refreshMiniPlayer() {
+        miniPlayerVm.refresh()
+        if (::binding.isInitialized) {
+            applyMiniPlayerState(miniPlayerVm.state.value)
+            binding.miniPlayerBar.bringToFront()
+            binding.miniPlayerBar.requestLayout()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         miniPlayerVm.refresh()
+        if (::binding.isInitialized) {
+            applyMiniPlayerState(miniPlayerVm.state.value)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -140,16 +226,23 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Initialise explicitement le CastContext en tout premier (avant tout autre code) - sans cet
-        // appel precoce, la decouverte des appareils Chromecast peut ne jamais demarrer.
-        try {
-            com.google.android.gms.cast.framework.CastContext.getSharedInstance(applicationContext)
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "CastContext init failed", e)
-        }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Initialise le CastContext juste après avoir posté le premier frame de la fenêtre (et non
+        // plus AVANT setContentView) : cet appel peut être lent (vérif Play Services, découverte
+        // des routes Cast) et le faire de façon bloquante avant même la création de la fenêtre
+        // retardait son tout premier rendu — symptôme classique d'appli qu'il faut lancer deux fois
+        // depuis l'icône (le 1er tap démarre le process sans rien afficher à temps). On le garde
+        // suffisamment tôt pour ne pas casser la découverte Chromecast (cf. contexte plus bas).
+        window.decorView.post {
+            try {
+                com.google.android.gms.cast.framework.CastContext.getSharedInstance(applicationContext)
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "CastContext init failed", e)
+            }
+        }
         // Edge-to-edge : le contenu gère lui-même les insets
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -183,7 +276,8 @@ class MainActivity : AppCompatActivity() {
             arrayOf(
                 Manifest.permission.READ_MEDIA_VIDEO,
                 Manifest.permission.NEARBY_WIFI_DEVICES,
-                Manifest.permission.READ_MEDIA_AUDIO
+                Manifest.permission.READ_MEDIA_AUDIO,
+                Manifest.permission.POST_NOTIFICATIONS
             )
         } else {
             arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)

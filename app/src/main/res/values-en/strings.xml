@@ -30,7 +30,6 @@
     <string name="section_interface">INTERFACE</string>
     <string name="section_data">DATA</string>
     <string name="section_about">ABOUT</string>
-    <string name="section_subtitles">SUBTITLES</string>
     <string name="section_blaze_audio">BLAZE AUDIO</string>
     <string name="section_presets">PRESETS</string>
     <string name="section_ratio">RATIO</string>
@@ -84,7 +83,6 @@
     <string name="language">Language</string>
     <string name="language_system">System</string>
     <string name="auto_play_next">Auto-play next file</string>
-    <string name="show_subtitles">Show subtitles</string>
     <string name="show_mini_player">Show mini player in app</string>
     <string name="show_hidden_files">Show hidden files</string>
     <string name="cancel">Cancel</string>
@@ -123,9 +121,6 @@
     <string name="audio_lang">Preferred audio language</string>
     <string name="remember_volume">Remember volume</string>
     <string name="remember_volume_desc">Retain volume level between playbacks</string>
-    <string name="enable_subtitles">Enable subtitles by default</string>
-    <string name="subtitle_lang">Subtitle language</string>
-    <string name="subtitle_lang_pref">Preferred subtitle language</string>
     <string name="mini_player">Mini player</string>
     <string name="hidden_files">Files starting with a dot (.)</string>
     <string name="clear_history">Clear history</string>

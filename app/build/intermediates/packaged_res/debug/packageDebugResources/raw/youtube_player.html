@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        html, body { margin: 0; padding: 0; background: #000; width: 100%; height: 100%; overflow: hidden; }
+        #player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="player"></div>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        var player;
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                videoId: '__VIDEO_ID__',
+                playerVars: {
+                    autoplay: 1,
+                    playsinline: 1,
+                    rel: 0,
+                    modestbranding: 1
+                },
+                events: {
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED && window.BlazeYoutubeBridge) {
+                window.BlazeYoutubeBridge.onVideoEnded();
+            }
+        }
+    </script>
+</body>
+</html>

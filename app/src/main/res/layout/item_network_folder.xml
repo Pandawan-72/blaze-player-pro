@@ -6,45 +6,66 @@
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingHorizontal="8dp"
-    android:paddingVertical="8dp"
+    android:paddingVertical="9dp"
     android:background="?attr/selectableItemBackground">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/bg_surface_card"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="14dp">
-
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_folder_open"
-            android:tint="@color/green_accent"
-            android:layout_marginEnd="16dp"
-            android:contentDescription="@null" />
-
-        <TextView
-            android:id="@+id/tvFolderName"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textColor="@color/on_surface"
-            android:textSize="15sp"
-            android:fontFamily="sans-serif-condensed"
-            android:singleLine="true"
-            android:ellipsize="end" />
+    <FrameLayout
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_icon_blue"
+        android:layout_marginEnd="12dp">
 
         <ImageView
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:src="@drawable/ic_chevron_down"
-            android:rotation="-90"
-            android:tint="@color/on_surface_variant"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_folder"
+            android:tint="@color/blue_accent"
             android:contentDescription="@null" />
 
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvFolderName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-condensed"
+            android:ellipsize="end"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/tvFolderCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="11sp"
+            android:layout_marginTop="2dp" />
+
     </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btnFolderMore"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="2dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_more_vert"
+        android:tint="@color/on_surface_variant"
+        android:contentDescription="Options" />
+
+    <ImageView
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:src="@drawable/ic_chevron_right"
+        android:tint="@color/on_surface_variant"
+        android:contentDescription="@null" />
 
 </LinearLayout>

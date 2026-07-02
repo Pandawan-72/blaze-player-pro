@@ -102,6 +102,18 @@ class AudioBrowserActivity : AppCompatActivity() {
             setResult(android.app.Activity.RESULT_OK, intent)
             finish()
         }
+        binding.btnAddToSavedPlaylist.setOnClickListener {
+            if (selectedItems.isEmpty()) {
+                android.widget.Toast.makeText(this, "Sélectionne d'abord des pistes (coche à gauche de chaque fichier)", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val tracks = selectedItems.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.first, it.second) }
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
+                this, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, tracks
+            ) {
+                selectedItems.clear()
+            }
+        }
 
         // Recherche globale dans tous les fichiers audio locaux
         binding.btnSearch.setOnClickListener {

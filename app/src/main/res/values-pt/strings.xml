@@ -30,7 +30,6 @@
     <string name="section_interface">INTERFACE</string>
     <string name="section_data">DADOS</string>
     <string name="section_about">SOBRE</string>
-    <string name="section_subtitles">LEGENDAS</string>
     <string name="section_blaze_audio">BLAZE AUDIO</string>
     <string name="section_presets">PREDEFINICOES</string>
     <string name="section_ratio">PROPORCAO</string>
@@ -84,7 +83,6 @@
     <string name="language">Idioma</string>
     <string name="language_system">Sistema</string>
     <string name="auto_play_next">Reproduzir automaticamente o proximo ficheiro</string>
-    <string name="show_subtitles">Mostrar legendas</string>
     <string name="show_mini_player">Mostrar mini player na app</string>
     <string name="show_hidden_files">Mostrar ficheiros ocultos</string>
     <string name="cancel">Cancelar</string>
@@ -123,9 +121,6 @@
     <string name="audio_lang">Idioma de audio preferido</string>
     <string name="remember_volume">Memorizar volume</string>
     <string name="remember_volume_desc">Manter nivel de volume entre reproducoes</string>
-    <string name="enable_subtitles">Ativar legendas por defeito</string>
-    <string name="subtitle_lang">Idioma das legendas</string>
-    <string name="subtitle_lang_pref">Idioma das legendas preferido</string>
     <string name="mini_player">Mini player</string>
     <string name="hidden_files">Ficheiros que comecam com ponto (.)</string>
     <string name="clear_history">Limpar historico</string>

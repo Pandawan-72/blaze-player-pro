@@ -19,7 +19,11 @@ import java.io.File
 @UnstableApi
 object MediaCacheManager {
 
-    private const val CACHE_SIZE_BYTES = 500L * 1024 * 1024 // 500 Mo
+    // 500 Mo était trop juste pour du 4K (rempli en quelques minutes sur un flux haut débit),
+    // ce qui forçait des re-lectures réseau constantes sur les seeks/reprises au lieu de servir
+    // depuis le cache. 2 Go laisse une marge confortable pour un film 4K entier ou plusieurs
+    // épisodes, tout en restant raisonnable en usage disque sur un téléphone.
+    private const val CACHE_SIZE_BYTES = 2L * 1024 * 1024 * 1024 // 2 Go
 
     @Volatile
     private var cache: SimpleCache? = null

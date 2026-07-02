@@ -1,0 +1,1048 @@
+-- Merging decision tree log ---
+provider#com.google.firebase.provider.FirebaseInitProvider
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:121:9-125:31
+	tools:node
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:125:9-28
+	android:authorities
+		INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:123:9-68
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:124:9-33
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:122:9-73
+manifest
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-142:12
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-142:12
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-142:12
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-142:12
+MERGED from [androidx.databinding:viewbinding:9.2.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/90fdd286b1455b1fb12d4d26d15d240f/transformed/viewbinding-9.2.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.hilt:hilt-navigation-fragment:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c4e3c5ebf61148e3febf8608476a59b9/transformed/hilt-navigation-fragment-1.2.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.hilt:hilt-navigation:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0095b00a00aabd4f49f5974bd893e38a/transformed/hilt-navigation-1.2.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.dagger:hilt-android:2.59.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/58296cd28ae9a915190b14f8a40aab2c/transformed/hilt-android-2.59.2/AndroidManifest.xml:16:1-19:12
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bf7db6a68e72347291554834ef023078/transformed/navigation-runtime-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-common-android:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a70a22c09f54fa012be6e59bb75325f7/transformed/navigation-common-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-fragment:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/aa937547547191fcbaa0ff230b49dc0e/transformed/navigation-fragment-2.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-fragment-ktx:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4999dc7c6b7164bb75df1874eacbb50c/transformed/navigation-fragment-ktx-2.9.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-ui-ktx:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3626cccac17c7db7a6e22d5145b0692a/transformed/navigation-ui-ktx-2.9.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-ui:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2c7fbcd6185ad8febf3ad7d61715c9b4/transformed/navigation-ui-2.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [com.google.android.material:material:1.12.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c8a1e967435affb3194efc0c6e244d49/transformed/material-1.12.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.media3:media3-exoplayer-hls:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4f2483bfcefda8a5010997b7dd418221/transformed/media3-exoplayer-hls-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-exoplayer-dash:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1786824e3ef1862cc56ea51ad56d0f8d/transformed/media3-exoplayer-dash-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1] /Users/pandawan/.gradle/caches/9.4.1/transforms/9d99803c1a68752fe06557faf9e89b63/transformed/media3-ffmpeg-decoder-1.9.0+1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-exoplayer:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e20117c3167bdaa1b93f3f35b2e624f7/transformed/media3-exoplayer-1.9.0/AndroidManifest.xml:17:1-25:12
+MERGED from [androidx.media3:media3-ui:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/78037eb7fe7b587864de3afa53b266b1/transformed/media3-ui-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-session:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b76414a3084eab1e86bc3422bc60cf58/transformed/media3-session-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-datasource:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/83375a38068b1731ad160d48dd9c215f/transformed/media3-datasource-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-database:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/909e7f82e43f77a89b7e1f902c0cbc98/transformed/media3-database-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-extractor:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/dc95165a29ed60affab1536e0d868094/transformed/media3-extractor-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-container:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0e8c087437732c2f53d198e9089bfa06/transformed/media3-container-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-decoder:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5e37b0845b560998aa4fb945a4051206/transformed/media3-decoder-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media3:media3-common:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/51f76befafbee5db68f3e6bf330ff711/transformed/media3-common-1.9.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.media3:media3-cast:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/92a78b12817aec2e3faa353ad326e088/transformed/media3-cast-1.9.0/AndroidManifest.xml:17:1-22:12
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:2:1-28:12
+MERGED from [com.google.android.gms:play-services-cast:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f5e1f2f97641cc6722d905b92a2e7cb3/transformed/play-services-cast-22.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.mediarouter:mediarouter:1.8.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b0538e3dc8593dc229e45fd1ce79619b/transformed/mediarouter-1.8.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b68f142aaad466f465377709f1ddf8dd/transformed/constraintlayout-2.0.1/AndroidManifest.xml:2:1-11:12
+MERGED from [io.coil-kt:coil:2.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e93d5dfbc38f2a56c93d023d177a9c13/transformed/coil-2.7.0/AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt:coil-base:2.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/08a1e8be31fa4fcf412411e7bcc75fbe/transformed/coil-base-2.7.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.appcompat:appcompat-resources:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ae7708372514ca3b156ad19527dcab2b/transformed/appcompat-resources-1.7.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:17:1-52:12
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2924ee86efe8732d771c7dea9590d7c9/transformed/googleid-1.2.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.credentials:credentials:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b47c22097f0b366ba4c13dfd1e09caba/transformed/credentials-1.6.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:17:1-29:12
+MERGED from [androidx.appcompat:appcompat:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7745ae3fc47be1f0ff404b403b3677d4/transformed/appcompat-1.7.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/d50ddf0157b9591b9c9ed8fd5f586e88/transformed/navigationevent/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9fd7e1f305911ac9a9ed5f795129e8b4/transformed/navigationevent-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/399af8e2f17b94de406e96224ed2c3a8/transformed/material3/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.material:material-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/ebc8c2969cff8684652c616f2caf3bb3/transformed/material/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/d35a32c5f20b98ee8d755d9a42a9bd80/transformed/material-ripple/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/da3a2ea47e1b37a9b59195e3ab26a3be/transformed/foundation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/8b048519d5629cde6113677152efe630/transformed/animation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/abb6716dcf5d132ac8e3f6a6bbf21741/transformed/foundation-layout/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-core-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/3583bf378fd511d84ff2d85c6486ab48/transformed/animation-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/edcaec15f04912e39ba38a4a0ce42370/transformed/ui-tooling-data/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/b9229a213e493aa789fac509a1a2aec2/transformed/ui-unit/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/586eee05be0aa6702d18007576e864e6/transformed/ui-geometry/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/001f299f7251038bb56aacad53ed8b32/transformed/ui-util/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/68f606be4d466218e888a714024e8427/transformed/ui-text/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/a18f552e40f465e645fd09503dc223a2/transformed/ui-tooling-preview/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/0ce7597f85540753cd3185c552167115/transformed/ui-graphics/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/84aead90e504ec1e0438d76917e5f446/transformed/ui/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:17:1-29:12
+MERGED from [androidx.fragment:fragment-ktx:1.8.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/67cb61c6caa891a741fda0cca1c3b421/transformed/fragment-ktx-1.8.8/AndroidManifest.xml:2:1-7:12
+MERGED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:2:1-16:12
+MERGED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:2:1-35:12
+MERGED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:17:1-40:12
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c6a4999a203d0047edce632c3846c880/transformed/play-services-auth-blockstore-16.4.0/AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/14587557e05d7d844d5d6c3733ea1644/transformed/play-services-fido-21.0.0/AndroidManifest.xml:2:1-10:12
+MERGED from [com.google.android.gms:play-services-identity-credentials:16.0.0-alpha08] /Users/pandawan/.gradle/caches/9.4.1/transforms/e83c74484d3e74e4e4ea9f9976ff61ad/transformed/play-services-identity-credentials-16.0.0-alpha08/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-flags:18.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/79bc355565eb94b13962b3e36cb432bf/transformed/play-services-flags-18.1.0/AndroidManifest.xml:2:1-6:12
+MERGED from [com.google.android.gms:play-services-location:19.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ee2235b5f82762740f497a4b6287a994/transformed/play-services-location-19.0.0/AndroidManifest.xml:2:1-9:12
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/e5e07d39c41e548f86bfea09a65e09dd/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] /Users/pandawan/.gradle/caches/9.4.1/transforms/77fe2cd4c158d6b1f5b840203979fb95/transformed/play-services-auth-base-18.0.10/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:2:1-7:12
+MERGED from [com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3c511d64fd9a5df855ba746629341122/transformed/core-13.0.0/AndroidManifest.xml:2:1-10:12
+MERGED from [androidx.activity:activity-ktx:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/67971cd67f861d868ec127c77a934cef/transformed/activity-ktx-1.13.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/06d3ee24c3a783f83e5d4216566fbaab/transformed/viewpager2-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5a17aba90164e809a124d19726e5ca90/transformed/recyclerview-1.3.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/41044b1d8aafddae3936ca4cd1e005a4/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/2a7a52c013579047e1be90d14a46f69a/transformed/runtime-annotation/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/91f557f7ffd99170bd639a7c80e7464c/transformed/runtime-retain/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7463393eed0e8d7b793b908e1ed122a4/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/84ccef1576b4d9c8b600779419286151/transformed/savedstate/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b1f77837e7d9ad7377b9d4f743c671dc/transformed/savedstate-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/63b6ad5675e2e193bcad72a83ae15b93/transformed/runtime/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/30bfd88c37fb8a6da2b5f32f5e916c13/transformed/runtime-saveable/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9ea824f45c8760535504814ebe4d132d/transformed/lifecycle-runtime-compose/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1fe99560e090b6dccddf682dabb4e2a9/transformed/lifecycle-runtime/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/21c43bc613811ea2d4e64ba650a21f8c/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.core:core-ktx:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/86f440bc6f10f1339128faa3f5d98756/transformed/core-ktx-1.18.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.media:media:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/74334ff8a513d51bfaafa9ec840be65e/transformed/media-1.7.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/87fad7dc3bc85dc2995ff2a31b781d48/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/7c10771946cd18e6349447ecc462e11d/transformed/drawerlayout-1.1.1/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/61d9820b5096d86035aaf486a44129c7/transformed/slidingpanelayout-1.2.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.transition:transition:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/935faa5e83e20645cd4df4fa43c0fca0/transformed/transition-1.6.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9d04db7c405e9312a7ef7ffa9a025f24/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/43755794cceb117e707e0eb90fec0a0a/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/505f9f1bf5f9d0442077f94bce3873e5/transformed/vectordrawable-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ab05338575e71472e30b0995da07e394/transformed/viewpager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.customview:customview:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/978731a57942c93aab30380be61b5f3b/transformed/customview-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.palette:palette:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4c847d62ca751299f08ab52689617e71/transformed/palette-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/39dfafc3002f6f4e7842b38940b6a9d4/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.loader:loader:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5a191fbc4a92a7c217e4f6d1ae84e945/transformed/loader-1.1.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.window:window-core-android:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/cc6ab9ad615d56e993bda29aeeadc38a/transformed/window-core/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/99341f969333d388946fb9f0ba8d6a7f/transformed/autofill-1.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b22c7732e78a96bfe7d4fbef341c7ce9/transformed/graphics-path-1.0.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/d7678bb42de03e03c006f0893eed62c1/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0738e704bb4e614982d3418fbdc0fdcd/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:2:1-5:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/190afef4577da28c6fc1ce6505a8bd66/transformed/lifecycle-viewmodel/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b658b1a2022c3ab7a9cd162ded4b8537/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/806534a8e73286c991a0377567216eb6/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2e0b51a291d7d9b904af728e380f69e9/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f646496fc4dad05ae24642720e4e47be/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1189e1962a8aff66a27dd3a34ce3a9e3/transformed/lifecycle-livedata-ktx-2.10.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0b651e452b7d50a2bce775899090fd5d/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.datastore:datastore-core-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/893ef667e991ea344b67c6338da36dda/transformed/datastore-core-release/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.datastore:datastore-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/7dc82b6f601af892990e06428ef99c24/transformed/datastore-release/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/fcdf64d4ff073d407079cd455eec2492/transformed/datastore-preferences-release/AndroidManifest.xml:17:1-22:12
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5036628b6ec4d5b4165261ca63b9e4a0/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:2:1-5:12
+MERGED from [com.google.android.gms:play-services-ads-identifier:17.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/1f7d243f0367a50a9447c63fc3dd6d8b/transformed/play-services-ads-identifier-17.0.1/AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5cad498262568e724d7b238f0715df4b/transformed/play-services-places-placereport-17.0.0/AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:16:1-26:12
+MERGED from [androidx.fragment:fragment:1.8.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/c64dc770abfc301aecf05155c644921c/transformed/fragment-1.8.8/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f26ad7ff77403eea8ee3f13ba4048821/transformed/activity-1.13.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.activity:activity-compose:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/18637678e13e2c0f84b3c94360de16e3/transformed/activity-compose-1.13.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.core:core-viewtree:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/65f3d9f6ddc7d26ce4f12c2dcf246a55/transformed/core-viewtree-1.0.0/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/4097c6d3bc78be7a986aaad31905a24e/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:17:1-55:12
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:15:1-37:12
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:15:1-41:12
+MERGED from [com.google.android.datatransport:transport-api:3.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0cc36dda3cf22013b5436827ad068613/transformed/transport-api-3.0.0/AndroidManifest.xml:15:1-22:12
+MERGED from [androidx.cardview:cardview:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a9cfb97e4f9c92679b3c422af09261e7/transformed/cardview-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/102c5b2d58a26152bf7efe068caef3dd/transformed/cursoradapter-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/874a7b1bef3f5a4ef37ffe5612c0901e/transformed/startup-runtime-1.1.1/AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c281f21c2d97316c145d9f9eca094c09/transformed/tracing-1.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a728055fcc4cb65ab9b2b44790da8ebd/transformed/interpolator-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/376c32c9382b1106a7f8d19aad4da064/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/486138b5a994d6318604e4df60d73080/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.exifinterface:exifinterface:1.3.7] /Users/pandawan/.gradle/caches/9.4.1/transforms/c38fd027223e543042900ce8e94a589e/transformed/exifinterface-1.3.7/AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1b92f0ff158f6703ed1f545e5367ab7b/transformed/firebase-encoders-json-18.0.0/AndroidManifest.xml:15:1-23:12
+MERGED from [androidx.documentfile:documentfile:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/81c794d98012b0918cb80aad845ac278/transformed/documentfile-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2ab6cfbee64e02e9234439c44a16972d/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.print:print:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4f02d99fff5f7fff6a0ba87722b58e4b/transformed/print-1.0.0/AndroidManifest.xml:17:1-22:12
+MERGED from [com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/c17ebef37224c171bd9b8dcd0c4e9410/transformed/ffmpeg-kit-16kb-6.1.1/AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.dagger:dagger-lint-aar:2.59.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/42e81f425d5e85a0efa142b031c8aa56/transformed/dagger-lint-aar-2.59.2/AndroidManifest.xml:16:1-19:12
+	package
+		INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+	android:versionName
+		INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+	xmlns:tools
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:3:5-51
+	android:versionCode
+		INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:11-69
+uses-permission#android.permission.INTERNET
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:6:5-67
+MERGED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:7:5-67
+MERGED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:7:5-67
+MERGED from [com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3c511d64fd9a5df855ba746629341122/transformed/core-13.0.0/AndroidManifest.xml:7:5-67
+MERGED from [com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3c511d64fd9a5df855ba746629341122/transformed/core-13.0.0/AndroidManifest.xml:7:5-67
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:25:5-67
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:25:5-67
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:6:22-64
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:7:5-79
+MERGED from [androidx.media3:media3-exoplayer:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e20117c3167bdaa1b93f3f35b2e624f7/transformed/media3-exoplayer-1.9.0/AndroidManifest.xml:22:5-79
+MERGED from [androidx.media3:media3-exoplayer:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e20117c3167bdaa1b93f3f35b2e624f7/transformed/media3-exoplayer-1.9.0/AndroidManifest.xml:22:5-79
+MERGED from [androidx.media3:media3-common:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/51f76befafbee5db68f3e6bf330ff711/transformed/media3-common-1.9.0/AndroidManifest.xml:22:5-79
+MERGED from [androidx.media3:media3-common:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/51f76befafbee5db68f3e6bf330ff711/transformed/media3-common-1.9.0/AndroidManifest.xml:22:5-79
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:10:5-79
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:10:5-79
+MERGED from [com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3c511d64fd9a5df855ba746629341122/transformed/core-13.0.0/AndroidManifest.xml:8:5-79
+MERGED from [com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3c511d64fd9a5df855ba746629341122/transformed/core-13.0.0/AndroidManifest.xml:8:5-79
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:24:5-79
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:22:5-79
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:22:5-79
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:7:22-76
+uses-permission#android.permission.ACCESS_WIFI_STATE
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:8:5-76
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:8:22-73
+uses-permission#android.permission.CHANGE_WIFI_MULTICAST_STATE
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:9:5-86
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:9:22-83
+uses-permission#android.permission.NEARBY_WIFI_DEVICES
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:11:5-125
+	android:usesPermissionFlags
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:11:76-122
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:11:22-75
+uses-permission#android.permission.READ_EXTERNAL_STORAGE
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:14:5-16:38
+	android:maxSdkVersion
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:16:9-35
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:15:9-64
+uses-permission#android.permission.READ_MEDIA_VIDEO
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:19:5-75
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:19:22-72
+uses-permission#android.permission.READ_MEDIA_AUDIO
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:20:5-75
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:20:22-72
+uses-permission#android.permission.WRITE_SETTINGS
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:23:5-24:47
+	tools:ignore
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:23:22-70
+uses-permission#android.permission.WAKE_LOCK
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:27:5-68
+MERGED from [androidx.media3:media3-exoplayer:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e20117c3167bdaa1b93f3f35b2e624f7/transformed/media3-exoplayer-1.9.0/AndroidManifest.xml:23:5-68
+MERGED from [androidx.media3:media3-exoplayer:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e20117c3167bdaa1b93f3f35b2e624f7/transformed/media3-exoplayer-1.9.0/AndroidManifest.xml:23:5-68
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:27:22-65
+uses-permission#android.permission.FOREGROUND_SERVICE
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:28:5-77
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:12:5-77
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:12:5-77
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:28:22-74
+uses-permission#android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:29:5-92
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:29:22-89
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:32:5-77
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:32:22-74
+application
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:34:5-140:15
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:34:5-140:15
+MERGED from [com.google.android.material:material:1.12.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c8a1e967435affb3194efc0c6e244d49/transformed/material-1.12.0/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.material:material:1.12.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c8a1e967435affb3194efc0c6e244d49/transformed/material-1.12.0/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:18:5-26:19
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:18:5-26:19
+MERGED from [com.google.android.gms:play-services-cast:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f5e1f2f97641cc6722d905b92a2e7cb3/transformed/play-services-cast-22.1.0/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-cast:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f5e1f2f97641cc6722d905b92a2e7cb3/transformed/play-services-cast-22.1.0/AndroidManifest.xml:22:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b68f142aaad466f465377709f1ddf8dd/transformed/constraintlayout-2.0.1/AndroidManifest.xml:9:5-20
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b68f142aaad466f465377709f1ddf8dd/transformed/constraintlayout-2.0.1/AndroidManifest.xml:9:5-20
+MERGED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:23:5-50:19
+MERGED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:23:5-50:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:22:5-27:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:22:5-27:19
+MERGED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:9:5-14:19
+MERGED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:9:5-14:19
+MERGED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:18:5-33:19
+MERGED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:18:5-33:19
+MERGED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:22:5-38:19
+MERGED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:22:5-38:19
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c6a4999a203d0047edce632c3846c880/transformed/play-services-auth-blockstore-16.4.0/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c6a4999a203d0047edce632c3846c880/transformed/play-services-auth-blockstore-16.4.0/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/14587557e05d7d844d5d6c3733ea1644/transformed/play-services-fido-21.0.0/AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/14587557e05d7d844d5d6c3733ea1644/transformed/play-services-fido-21.0.0/AndroidManifest.xml:7:5-8:19
+MERGED from [com.google.android.gms:play-services-location:19.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ee2235b5f82762740f497a4b6287a994/transformed/play-services-location-19.0.0/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-location:19.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ee2235b5f82762740f497a4b6287a994/transformed/play-services-location-19.0.0/AndroidManifest.xml:7:5-20
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:4:5-6:19
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:4:5-6:19
+MERGED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
+MERGED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:22:5-29:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:28:5-89
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:23:5-33:19
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5036628b6ec4d5b4165261ca63b9e4a0/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5036628b6ec4d5b4165261ca63b9e4a0/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:4:5-20
+MERGED from [com.google.android.gms:play-services-ads-identifier:17.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/1f7d243f0367a50a9447c63fc3dd6d8b/transformed/play-services-ads-identifier-17.0.1/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-ads-identifier:17.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/1f7d243f0367a50a9447c63fc3dd6d8b/transformed/play-services-ads-identifier-17.0.1/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5cad498262568e724d7b238f0715df4b/transformed/play-services-places-placereport-17.0.0/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5cad498262568e724d7b238f0715df4b/transformed/play-services-places-placereport-17.0.0/AndroidManifest.xml:22:5-20
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:20:5-24:19
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:20:5-24:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:23:5-53:19
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:27:5-35:19
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:27:5-35:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:25:5-39:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:25:5-39:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/874a7b1bef3f5a4ef37ffe5612c0901e/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/874a7b1bef3f5a4ef37ffe5612c0901e/transformed/startup-runtime-1.1.1/AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/376c32c9382b1106a7f8d19aad4da064/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/376c32c9382b1106a7f8d19aad4da064/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
+	android:extractNativeLibs
+		INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:42:9-35
+	android:label
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:40:9-41
+	android:hardwareAccelerated
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:9-43
+	android:fullBackupContent
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:38:9-54
+	android:roundIcon
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:41:9-54
+	android:icon
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:39:9-43
+	android:allowBackup
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:36:9-35
+	android:theme
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:43:9-49
+	android:networkSecurityConfig
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:44:9-69
+	android:dataExtractionRules
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:37:9-65
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:35:9-39
+activity#fr.retrospare.blazeplayer.MainActivity
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:47:9-59:20
+	android:label
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:50:13-45
+	android:launchMode
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:51:13-43
+	android:windowSoftInputMode
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:54:13-55
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:49:13-36
+	android:configChanges
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:53:13-106
+	android:theme
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:52:13-53
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:48:13-41
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:55:13-58:29
+action#android.intent.action.MAIN
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:56:17-69
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:56:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:57:17-77
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:57:27-74
+service#fr.retrospare.blazeplayer.player.BlazePlayerService
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:61:9-68:19
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:64:13-37
+	android:foregroundServiceType
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:63:13-58
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:62:1-42
+intent-filter#action:name:androidx.media3.session.MediaSessionService
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:65:13-67:29
+action#androidx.media3.session.MediaSessionService
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:66:17-85
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:66:25-83
+service#fr.retrospare.blazeplayer.player.VideoPlaybackService
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:73:9-80:19
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:76:13-37
+	android:foregroundServiceType
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:75:13-58
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:74:13-56
+activity#fr.retrospare.blazeplayer.player.PlayerActivity
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:82:9-106:20
+	android:screenOrientation
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:88:13-51
+	android:launchMode
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:87:13-43
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:85:13-36
+	android:supportsPictureInPicture
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:84:13-52
+	android:configChanges
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:86:13-115
+	android:theme
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:89:13-64
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:83:13-50
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:mimeType:video/*
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:90:13-95:29
+action#android.intent.action.VIEW
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:17-69
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:25-66
+category#android.intent.category.DEFAULT
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:17-76
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:27-73
+category#android.intent.category.BROWSABLE
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:93:17-78
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:93:27-75
+data
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:17-52
+	android:mimeType
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:23-49
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.DEFAULT+data:mimeType:video/mp4
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:96:13-100:29
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.DEFAULT+data:mimeType:video/x-matroska
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:101:13-105:29
+activity#fr.retrospare.blazeplayer.player.AudioBrowserActivity
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:108:9-112:56
+	android:screenOrientation
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:111:13-49
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:110:13-37
+	android:theme
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:112:13-53
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:109:13-56
+meta-data#com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:114:9-116:82
+	android:value
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:116:13-79
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:115:13-93
+receiver#androidx.mediarouter.media.MediaTransferReceiver
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:9-120:40
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:13-37
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:13-76
+activity#fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:127:5-130:52
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:129:9-33
+	android:theme
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:130:9-49
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:128:9-59
+activity#fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:132:5-138:52
+	android:screenOrientation
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:135:9-47
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:134:9-33
+	android:supportsPictureInPicture
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:137:9-48
+	android:configChanges
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:136:9-109
+	android:theme
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:138:9-49
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:133:9-54
+uses-sdk
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+MERGED from [androidx.databinding:viewbinding:9.2.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/90fdd286b1455b1fb12d4d26d15d240f/transformed/viewbinding-9.2.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.databinding:viewbinding:9.2.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/90fdd286b1455b1fb12d4d26d15d240f/transformed/viewbinding-9.2.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.hilt:hilt-navigation-fragment:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c4e3c5ebf61148e3febf8608476a59b9/transformed/hilt-navigation-fragment-1.2.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.hilt:hilt-navigation-fragment:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c4e3c5ebf61148e3febf8608476a59b9/transformed/hilt-navigation-fragment-1.2.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.hilt:hilt-navigation:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0095b00a00aabd4f49f5974bd893e38a/transformed/hilt-navigation-1.2.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.hilt:hilt-navigation:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0095b00a00aabd4f49f5974bd893e38a/transformed/hilt-navigation-1.2.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.dagger:hilt-android:2.59.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/58296cd28ae9a915190b14f8a40aab2c/transformed/hilt-android-2.59.2/AndroidManifest.xml:18:3-42
+MERGED from [com.google.dagger:hilt-android:2.59.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/58296cd28ae9a915190b14f8a40aab2c/transformed/hilt-android-2.59.2/AndroidManifest.xml:18:3-42
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bf7db6a68e72347291554834ef023078/transformed/navigation-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime-android:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bf7db6a68e72347291554834ef023078/transformed/navigation-runtime-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-android:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a70a22c09f54fa012be6e59bb75325f7/transformed/navigation-common-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-android:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a70a22c09f54fa012be6e59bb75325f7/transformed/navigation-common-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-fragment:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/aa937547547191fcbaa0ff230b49dc0e/transformed/navigation-fragment-2.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-fragment:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/aa937547547191fcbaa0ff230b49dc0e/transformed/navigation-fragment-2.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-fragment-ktx:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4999dc7c6b7164bb75df1874eacbb50c/transformed/navigation-fragment-ktx-2.9.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-fragment-ktx:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4999dc7c6b7164bb75df1874eacbb50c/transformed/navigation-fragment-ktx-2.9.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-ui-ktx:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3626cccac17c7db7a6e22d5145b0692a/transformed/navigation-ui-ktx-2.9.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-ui-ktx:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3626cccac17c7db7a6e22d5145b0692a/transformed/navigation-ui-ktx-2.9.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-ui:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2c7fbcd6185ad8febf3ad7d61715c9b4/transformed/navigation-ui-2.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-ui:2.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2c7fbcd6185ad8febf3ad7d61715c9b4/transformed/navigation-ui-2.9.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.material:material:1.12.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c8a1e967435affb3194efc0c6e244d49/transformed/material-1.12.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.material:material:1.12.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c8a1e967435affb3194efc0c6e244d49/transformed/material-1.12.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-exoplayer-hls:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4f2483bfcefda8a5010997b7dd418221/transformed/media3-exoplayer-hls-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-exoplayer-hls:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4f2483bfcefda8a5010997b7dd418221/transformed/media3-exoplayer-hls-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-exoplayer-dash:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1786824e3ef1862cc56ea51ad56d0f8d/transformed/media3-exoplayer-dash-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-exoplayer-dash:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1786824e3ef1862cc56ea51ad56d0f8d/transformed/media3-exoplayer-dash-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1] /Users/pandawan/.gradle/caches/9.4.1/transforms/9d99803c1a68752fe06557faf9e89b63/transformed/media3-ffmpeg-decoder-1.9.0+1/AndroidManifest.xml:20:5-44
+MERGED from [org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1] /Users/pandawan/.gradle/caches/9.4.1/transforms/9d99803c1a68752fe06557faf9e89b63/transformed/media3-ffmpeg-decoder-1.9.0+1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-exoplayer:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e20117c3167bdaa1b93f3f35b2e624f7/transformed/media3-exoplayer-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-exoplayer:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e20117c3167bdaa1b93f3f35b2e624f7/transformed/media3-exoplayer-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-ui:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/78037eb7fe7b587864de3afa53b266b1/transformed/media3-ui-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-ui:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/78037eb7fe7b587864de3afa53b266b1/transformed/media3-ui-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-session:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b76414a3084eab1e86bc3422bc60cf58/transformed/media3-session-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-session:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b76414a3084eab1e86bc3422bc60cf58/transformed/media3-session-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-datasource:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/83375a38068b1731ad160d48dd9c215f/transformed/media3-datasource-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-datasource:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/83375a38068b1731ad160d48dd9c215f/transformed/media3-datasource-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-database:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/909e7f82e43f77a89b7e1f902c0cbc98/transformed/media3-database-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-database:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/909e7f82e43f77a89b7e1f902c0cbc98/transformed/media3-database-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-extractor:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/dc95165a29ed60affab1536e0d868094/transformed/media3-extractor-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-extractor:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/dc95165a29ed60affab1536e0d868094/transformed/media3-extractor-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-container:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0e8c087437732c2f53d198e9089bfa06/transformed/media3-container-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-container:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0e8c087437732c2f53d198e9089bfa06/transformed/media3-container-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-decoder:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5e37b0845b560998aa4fb945a4051206/transformed/media3-decoder-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-decoder:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5e37b0845b560998aa4fb945a4051206/transformed/media3-decoder-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-common:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/51f76befafbee5db68f3e6bf330ff711/transformed/media3-common-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-common:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/51f76befafbee5db68f3e6bf330ff711/transformed/media3-common-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-cast:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/92a78b12817aec2e3faa353ad326e088/transformed/media3-cast-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media3:media3-cast:1.9.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/92a78b12817aec2e3faa353ad326e088/transformed/media3-cast-1.9.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:6:5-8:41
+MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:6:5-8:41
+MERGED from [com.google.android.gms:play-services-cast:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f5e1f2f97641cc6722d905b92a2e7cb3/transformed/play-services-cast-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-cast:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f5e1f2f97641cc6722d905b92a2e7cb3/transformed/play-services-cast-22.1.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.mediarouter:mediarouter:1.8.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b0538e3dc8593dc229e45fd1ce79619b/transformed/mediarouter-1.8.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.mediarouter:mediarouter:1.8.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b0538e3dc8593dc229e45fd1ce79619b/transformed/mediarouter-1.8.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b68f142aaad466f465377709f1ddf8dd/transformed/constraintlayout-2.0.1/AndroidManifest.xml:5:5-7:41
+MERGED from [androidx.constraintlayout:constraintlayout:2.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b68f142aaad466f465377709f1ddf8dd/transformed/constraintlayout-2.0.1/AndroidManifest.xml:5:5-7:41
+MERGED from [io.coil-kt:coil:2.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e93d5dfbc38f2a56c93d023d177a9c13/transformed/coil-2.7.0/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil:2.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/e93d5dfbc38f2a56c93d023d177a9c13/transformed/coil-2.7.0/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-base:2.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/08a1e8be31fa4fcf412411e7bcc75fbe/transformed/coil-base-2.7.0/AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-base:2.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/08a1e8be31fa4fcf412411e7bcc75fbe/transformed/coil-base-2.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ae7708372514ca3b156ad19527dcab2b/transformed/appcompat-resources-1.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ae7708372514ca3b156ad19527dcab2b/transformed/appcompat-resources-1.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:21:5-44
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2924ee86efe8732d771c7dea9590d7c9/transformed/googleid-1.2.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.libraries.identity.googleid:googleid:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2924ee86efe8732d771c7dea9590d7c9/transformed/googleid-1.2.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b47c22097f0b366ba4c13dfd1e09caba/transformed/credentials-1.6.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.credentials:credentials:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b47c22097f0b366ba4c13dfd1e09caba/transformed/credentials-1.6.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.appcompat:appcompat:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7745ae3fc47be1f0ff404b403b3677d4/transformed/appcompat-1.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.appcompat:appcompat:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7745ae3fc47be1f0ff404b403b3677d4/transformed/appcompat-1.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/d50ddf0157b9591b9c9ed8fd5f586e88/transformed/navigationevent/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-android:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/d50ddf0157b9591b9c9ed8fd5f586e88/transformed/navigationevent/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9fd7e1f305911ac9a9ed5f795129e8b4/transformed/navigationevent-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigationevent:navigationevent-compose-android:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9fd7e1f305911ac9a9ed5f795129e8b4/transformed/navigationevent-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/399af8e2f17b94de406e96224ed2c3a8/transformed/material3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/399af8e2f17b94de406e96224ed2c3a8/transformed/material3/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material:material-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/ebc8c2969cff8684652c616f2caf3bb3/transformed/material/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/ebc8c2969cff8684652c616f2caf3bb3/transformed/material/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/d35a32c5f20b98ee8d755d9a42a9bd80/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/d35a32c5f20b98ee8d755d9a42a9bd80/transformed/material-ripple/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/da3a2ea47e1b37a9b59195e3ab26a3be/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/da3a2ea47e1b37a9b59195e3ab26a3be/transformed/foundation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/8b048519d5629cde6113677152efe630/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/8b048519d5629cde6113677152efe630/transformed/animation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/abb6716dcf5d132ac8e3f6a6bbf21741/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/abb6716dcf5d132ac8e3f6a6bbf21741/transformed/foundation-layout/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/3583bf378fd511d84ff2d85c6486ab48/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/3583bf378fd511d84ff2d85c6486ab48/transformed/animation-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/edcaec15f04912e39ba38a4a0ce42370/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/edcaec15f04912e39ba38a4a0ce42370/transformed/ui-tooling-data/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/b9229a213e493aa789fac509a1a2aec2/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/b9229a213e493aa789fac509a1a2aec2/transformed/ui-unit/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/586eee05be0aa6702d18007576e864e6/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/586eee05be0aa6702d18007576e864e6/transformed/ui-geometry/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/001f299f7251038bb56aacad53ed8b32/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/001f299f7251038bb56aacad53ed8b32/transformed/ui-util/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/68f606be4d466218e888a714024e8427/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/68f606be4d466218e888a714024e8427/transformed/ui-text/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/a18f552e40f465e645fd09503dc223a2/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/a18f552e40f465e645fd09503dc223a2/transformed/ui-tooling-preview/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/0ce7597f85540753cd3185c552167115/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/0ce7597f85540753cd3185c552167115/transformed/ui-graphics/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/84aead90e504ec1e0438d76917e5f446/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/84aead90e504ec1e0438d76917e5f446/transformed/ui/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:20:5-44
+MERGED from [androidx.fragment:fragment-ktx:1.8.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/67cb61c6caa891a741fda0cca1c3b421/transformed/fragment-ktx-1.8.8/AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment-ktx:1.8.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/67cb61c6caa891a741fda0cca1c3b421/transformed/fragment-ktx-1.8.8/AndroidManifest.xml:5:5-44
+MERGED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:6:5-8:41
+MERGED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:6:5-8:41
+MERGED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c6a4999a203d0047edce632c3846c880/transformed/play-services-auth-blockstore-16.4.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-blockstore:16.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c6a4999a203d0047edce632c3846c880/transformed/play-services-auth-blockstore-16.4.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/14587557e05d7d844d5d6c3733ea1644/transformed/play-services-fido-21.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-fido:21.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/14587557e05d7d844d5d6c3733ea1644/transformed/play-services-fido-21.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-identity-credentials:16.0.0-alpha08] /Users/pandawan/.gradle/caches/9.4.1/transforms/e83c74484d3e74e4e4ea9f9976ff61ad/transformed/play-services-identity-credentials-16.0.0-alpha08/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-identity-credentials:16.0.0-alpha08] /Users/pandawan/.gradle/caches/9.4.1/transforms/e83c74484d3e74e4e4ea9f9976ff61ad/transformed/play-services-identity-credentials-16.0.0-alpha08/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-flags:18.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/79bc355565eb94b13962b3e36cb432bf/transformed/play-services-flags-18.1.0/AndroidManifest.xml:4:5-44
+MERGED from [com.google.android.gms:play-services-flags:18.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/79bc355565eb94b13962b3e36cb432bf/transformed/play-services-flags-18.1.0/AndroidManifest.xml:4:5-44
+MERGED from [com.google.android.gms:play-services-location:19.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ee2235b5f82762740f497a4b6287a994/transformed/play-services-location-19.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-location:19.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ee2235b5f82762740f497a4b6287a994/transformed/play-services-location-19.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/e5e07d39c41e548f86bfea09a65e09dd/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-api-phone:18.0.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/e5e07d39c41e548f86bfea09a65e09dd/transformed/play-services-auth-api-phone-18.0.2/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] /Users/pandawan/.gradle/caches/9.4.1/transforms/77fe2cd4c158d6b1f5b840203979fb95/transformed/play-services-auth-base-18.0.10/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-auth-base:18.0.10] /Users/pandawan/.gradle/caches/9.4.1/transforms/77fe2cd4c158d6b1f5b840203979fb95/transformed/play-services-auth-base-18.0.10/AndroidManifest.xml:5:5-44
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:3:5-44
+MERGED from [com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3c511d64fd9a5df855ba746629341122/transformed/core-13.0.0/AndroidManifest.xml:5:5-44
+MERGED from [com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/3c511d64fd9a5df855ba746629341122/transformed/core-13.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/67971cd67f861d868ec127c77a934cef/transformed/activity-ktx-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/67971cd67f861d868ec127c77a934cef/transformed/activity-ktx-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/06d3ee24c3a783f83e5d4216566fbaab/transformed/viewpager2-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager2:viewpager2:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/06d3ee24c3a783f83e5d4216566fbaab/transformed/viewpager2-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5a17aba90164e809a124d19726e5ca90/transformed/recyclerview-1.3.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.recyclerview:recyclerview:1.3.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5a17aba90164e809a124d19726e5ca90/transformed/recyclerview-1.3.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/41044b1d8aafddae3936ca4cd1e005a4/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/41044b1d8aafddae3936ca4cd1e005a4/transformed/customview-poolingcontainer-1.0.0/AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/2a7a52c013579047e1be90d14a46f69a/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-annotation-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/2a7a52c013579047e1be90d14a46f69a/transformed/runtime-annotation/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/91f557f7ffd99170bd639a7c80e7464c/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-retain-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/91f557f7ffd99170bd639a7c80e7464c/transformed/runtime-retain/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7463393eed0e8d7b793b908e1ed122a4/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7463393eed0e8d7b793b908e1ed122a4/transformed/savedstate-ktx-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/84ccef1576b4d9c8b600779419286151/transformed/savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/84ccef1576b4d9c8b600779419286151/transformed/savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b1f77837e7d9ad7377b9d4f743c671dc/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.savedstate:savedstate-compose-android:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b1f77837e7d9ad7377b9d4f743c671dc/transformed/savedstate-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/63b6ad5675e2e193bcad72a83ae15b93/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/63b6ad5675e2e193bcad72a83ae15b93/transformed/runtime/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/30bfd88c37fb8a6da2b5f32f5e916c13/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/30bfd88c37fb8a6da2b5f32f5e916c13/transformed/runtime-saveable/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9ea824f45c8760535504814ebe4d132d/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9ea824f45c8760535504814ebe4d132d/transformed/lifecycle-runtime-compose/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1fe99560e090b6dccddf682dabb4e2a9/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1fe99560e090b6dccddf682dabb4e2a9/transformed/lifecycle-runtime/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/21c43bc613811ea2d4e64ba650a21f8c/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/21c43bc613811ea2d4e64ba650a21f8c/transformed/lifecycle-viewmodel-savedstate/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core-ktx:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/86f440bc6f10f1339128faa3f5d98756/transformed/core-ktx-1.18.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/86f440bc6f10f1339128faa3f5d98756/transformed/core-ktx-1.18.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.media:media:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/74334ff8a513d51bfaafa9ec840be65e/transformed/media-1.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.media:media:1.7.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/74334ff8a513d51bfaafa9ec840be65e/transformed/media-1.7.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/87fad7dc3bc85dc2995ff2a31b781d48/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.coordinatorlayout:coordinatorlayout:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/87fad7dc3bc85dc2995ff2a31b781d48/transformed/coordinatorlayout-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/7c10771946cd18e6349447ecc462e11d/transformed/drawerlayout-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.drawerlayout:drawerlayout:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/7c10771946cd18e6349447ecc462e11d/transformed/drawerlayout-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/61d9820b5096d86035aaf486a44129c7/transformed/slidingpanelayout-1.2.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/61d9820b5096d86035aaf486a44129c7/transformed/slidingpanelayout-1.2.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.transition:transition:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/935faa5e83e20645cd4df4fa43c0fca0/transformed/transition-1.6.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.transition:transition:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/935faa5e83e20645cd4df4fa43c0fca0/transformed/transition-1.6.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9d04db7c405e9312a7ef7ffa9a025f24/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.dynamicanimation:dynamicanimation:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/9d04db7c405e9312a7ef7ffa9a025f24/transformed/dynamicanimation-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/43755794cceb117e707e0eb90fec0a0a/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/43755794cceb117e707e0eb90fec0a0a/transformed/vectordrawable-animated-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/505f9f1bf5f9d0442077f94bce3873e5/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/505f9f1bf5f9d0442077f94bce3873e5/transformed/vectordrawable-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ab05338575e71472e30b0995da07e394/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ab05338575e71472e30b0995da07e394/transformed/viewpager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/978731a57942c93aab30380be61b5f3b/transformed/customview-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/978731a57942c93aab30380be61b5f3b/transformed/customview-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.palette:palette:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4c847d62ca751299f08ab52689617e71/transformed/palette-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.palette:palette:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4c847d62ca751299f08ab52689617e71/transformed/palette-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/39dfafc3002f6f4e7842b38940b6a9d4/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.legacy:legacy-support-core-utils:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/39dfafc3002f6f4e7842b38940b6a9d4/transformed/legacy-support-core-utils-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5a191fbc4a92a7c217e4f6d1ae84e945/transformed/loader-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.loader:loader:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5a191fbc4a92a7c217e4f6d1ae84e945/transformed/loader-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.window:window-core-android:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/cc6ab9ad615d56e993bda29aeeadc38a/transformed/window-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window-core-android:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/cc6ab9ad615d56e993bda29aeeadc38a/transformed/window-core/AndroidManifest.xml:5:5-44
+MERGED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/99341f969333d388946fb9f0ba8d6a7f/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/99341f969333d388946fb9f0ba8d6a7f/transformed/autofill-1.0.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b22c7732e78a96bfe7d4fbef341c7ce9/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.graphics:graphics-path:1.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/b22c7732e78a96bfe7d4fbef341c7ce9/transformed/graphics-path-1.0.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/d7678bb42de03e03c006f0893eed62c1/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2-views-helper:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/d7678bb42de03e03c006f0893eed62c1/transformed/emoji2-views-helper-1.4.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0738e704bb4e614982d3418fbdc0fdcd/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0738e704bb4e614982d3418fbdc0fdcd/transformed/lifecycle-viewmodel-2.10.0/AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/190afef4577da28c6fc1ce6505a8bd66/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/190afef4577da28c6fc1ce6505a8bd66/transformed/lifecycle-viewmodel/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b658b1a2022c3ab7a9cd162ded4b8537/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/b658b1a2022c3ab7a9cd162ded4b8537/transformed/lifecycle-livedata-core-2.10.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/806534a8e73286c991a0377567216eb6/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/806534a8e73286c991a0377567216eb6/transformed/lifecycle-livedata-2.10.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2e0b51a291d7d9b904af728e380f69e9/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2e0b51a291d7d9b904af728e380f69e9/transformed/lifecycle-livedata-core-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f646496fc4dad05ae24642720e4e47be/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f646496fc4dad05ae24642720e4e47be/transformed/lifecycle-runtime-ktx/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1189e1962a8aff66a27dd3a34ce3a9e3/transformed/lifecycle-livedata-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1189e1962a8aff66a27dd3a34ce3a9e3/transformed/lifecycle-livedata-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0b651e452b7d50a2bce775899090fd5d/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0b651e452b7d50a2bce775899090fd5d/transformed/lifecycle-viewmodel-ktx-2.10.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-core-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/893ef667e991ea344b67c6338da36dda/transformed/datastore-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-core-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/893ef667e991ea344b67c6338da36dda/transformed/datastore-core-release/AndroidManifest.xml:5:5-44
+MERGED from [androidx.datastore:datastore-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/7dc82b6f601af892990e06428ef99c24/transformed/datastore-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/7dc82b6f601af892990e06428ef99c24/transformed/datastore-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/fcdf64d4ff073d407079cd455eec2492/transformed/datastore-preferences-release/AndroidManifest.xml:20:5-44
+MERGED from [androidx.datastore:datastore-preferences-android:1.1.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/fcdf64d4ff073d407079cd455eec2492/transformed/datastore-preferences-release/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5036628b6ec4d5b4165261ca63b9e4a0/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-tasks:18.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5036628b6ec4d5b4165261ca63b9e4a0/transformed/play-services-tasks-18.2.0/AndroidManifest.xml:3:5-44
+MERGED from [com.google.android.gms:play-services-ads-identifier:17.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/1f7d243f0367a50a9447c63fc3dd6d8b/transformed/play-services-ads-identifier-17.0.1/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-ads-identifier:17.0.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/1f7d243f0367a50a9447c63fc3dd6d8b/transformed/play-services-ads-identifier-17.0.1/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5cad498262568e724d7b238f0715df4b/transformed/play-services-places-placereport-17.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-places-placereport:17.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/5cad498262568e724d7b238f0715df4b/transformed/play-services-places-placereport-17.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:18:5-43
+MERGED from [com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:18:5-43
+MERGED from [androidx.fragment:fragment:1.8.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/c64dc770abfc301aecf05155c644921c/transformed/fragment-1.8.8/AndroidManifest.xml:5:5-44
+MERGED from [androidx.fragment:fragment:1.8.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/c64dc770abfc301aecf05155c644921c/transformed/fragment-1.8.8/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f26ad7ff77403eea8ee3f13ba4048821/transformed/activity-1.13.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/f26ad7ff77403eea8ee3f13ba4048821/transformed/activity-1.13.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-compose:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/18637678e13e2c0f84b3c94360de16e3/transformed/activity-compose-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.13.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/18637678e13e2c0f84b3c94360de16e3/transformed/activity-compose-1.13.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-viewtree:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/65f3d9f6ddc7d26ce4f12c2dcf246a55/transformed/core-viewtree-1.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-viewtree:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/65f3d9f6ddc7d26ce4f12c2dcf246a55/transformed/core-viewtree-1.0.0/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/4097c6d3bc78be7a986aaad31905a24e/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/4097c6d3bc78be7a986aaad31905a24e/transformed/annotation-experimental-1.4.1/AndroidManifest.xml:5:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:21:5-44
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-api:3.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0cc36dda3cf22013b5436827ad068613/transformed/transport-api-3.0.0/AndroidManifest.xml:18:5-20:41
+MERGED from [com.google.android.datatransport:transport-api:3.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0cc36dda3cf22013b5436827ad068613/transformed/transport-api-3.0.0/AndroidManifest.xml:18:5-20:41
+MERGED from [androidx.cardview:cardview:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a9cfb97e4f9c92679b3c422af09261e7/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cardview:cardview:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a9cfb97e4f9c92679b3c422af09261e7/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/102c5b2d58a26152bf7efe068caef3dd/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/102c5b2d58a26152bf7efe068caef3dd/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/874a7b1bef3f5a4ef37ffe5612c0901e/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/874a7b1bef3f5a4ef37ffe5612c0901e/transformed/startup-runtime-1.1.1/AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c281f21c2d97316c145d9f9eca094c09/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.tracing:tracing:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c281f21c2d97316c145d9f9eca094c09/transformed/tracing-1.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a728055fcc4cb65ab9b2b44790da8ebd/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/a728055fcc4cb65ab9b2b44790da8ebd/transformed/interpolator-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/376c32c9382b1106a7f8d19aad4da064/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/376c32c9382b1106a7f8d19aad4da064/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/486138b5a994d6318604e4df60d73080/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/486138b5a994d6318604e4df60d73080/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.exifinterface:exifinterface:1.3.7] /Users/pandawan/.gradle/caches/9.4.1/transforms/c38fd027223e543042900ce8e94a589e/transformed/exifinterface-1.3.7/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.exifinterface:exifinterface:1.3.7] /Users/pandawan/.gradle/caches/9.4.1/transforms/c38fd027223e543042900ce8e94a589e/transformed/exifinterface-1.3.7/AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1b92f0ff158f6703ed1f545e5367ab7b/transformed/firebase-encoders-json-18.0.0/AndroidManifest.xml:19:5-21:41
+MERGED from [com.google.firebase:firebase-encoders-json:18.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1b92f0ff158f6703ed1f545e5367ab7b/transformed/firebase-encoders-json-18.0.0/AndroidManifest.xml:19:5-21:41
+MERGED from [androidx.documentfile:documentfile:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/81c794d98012b0918cb80aad845ac278/transformed/documentfile-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.documentfile:documentfile:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/81c794d98012b0918cb80aad845ac278/transformed/documentfile-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2ab6cfbee64e02e9234439c44a16972d/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.localbroadcastmanager:localbroadcastmanager:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/2ab6cfbee64e02e9234439c44a16972d/transformed/localbroadcastmanager-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4f02d99fff5f7fff6a0ba87722b58e4b/transformed/print-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [androidx.print:print:1.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4f02d99fff5f7fff6a0ba87722b58e4b/transformed/print-1.0.0/AndroidManifest.xml:20:5-44
+MERGED from [com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/c17ebef37224c171bd9b8dcd0c4e9410/transformed/ffmpeg-kit-16kb-6.1.1/AndroidManifest.xml:5:5-44
+MERGED from [com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/c17ebef37224c171bd9b8dcd0c4e9410/transformed/ffmpeg-kit-16kb-6.1.1/AndroidManifest.xml:5:5-44
+MERGED from [com.google.dagger:dagger-lint-aar:2.59.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/42e81f425d5e85a0efa142b031c8aa56/transformed/dagger-lint-aar-2.59.2/AndroidManifest.xml:18:3-42
+MERGED from [com.google.dagger:dagger-lint-aar:2.59.2] /Users/pandawan/.gradle/caches/9.4.1/transforms/42e81f425d5e85a0efa142b031c8aa56/transformed/dagger-lint-aar-2.59.2/AndroidManifest.xml:18:3-42
+	android:targetSdkVersion
+		INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
+queries
+ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:14:5-16:15
+MERGED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:12:5-16:15
+MERGED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:12:5-16:15
+package#com.google.android.gms.policy_cast_dynamite
+ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:15:9-79
+	android:name
+		ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:15:18-76
+receiver#com.google.android.gms.cast.framework.media.MediaIntentReceiver
+ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:19:9-21:40
+	android:exported
+		ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:21:13-37
+	android:name
+		ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:20:13-91
+service#com.google.android.gms.cast.framework.ReconnectionService
+ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:23:9-25:40
+	android:exported
+		ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:24:13-85
+service#androidx.credentials.playservices.CredentialProviderMetadataHolder
+ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:24:9-32:19
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:26:13-35
+	android:exported
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:27:13-37
+	tools:ignore
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:28:13-60
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:25:13-94
+meta-data#androidx.credentials.CREDENTIAL_PROVIDER_KEY
+ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:29:13-31:104
+	android:value
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:31:17-101
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:30:17-76
+activity#androidx.credentials.playservices.controllers.identityauth.HiddenActivity
+ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:34:9-41:20
+	android:fitsSystemWindows
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:39:13-45
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:38:13-37
+	android:configChanges
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:36:13-87
+	android:theme
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:40:13-48
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:35:13-101
+activity#androidx.credentials.playservices.controllers.identitycredentials.IdentityCredentialApiHiddenActivity
+ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:42:9-49:20
+	android:fitsSystemWindows
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:47:13-45
+	android:enabled
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:45:13-35
+	android:exported
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:46:13-37
+	android:configChanges
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:44:13-87
+	android:theme
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:48:13-48
+	android:name
+		ADDED from [androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:43:13-129
+uses-permission#android.permission.USE_BIOMETRIC
+ADDED from [androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:24:5-72
+	android:name
+		ADDED from [androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:24:22-69
+uses-permission#android.permission.USE_FINGERPRINT
+ADDED from [androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:27:5-74
+	android:name
+		ADDED from [androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:27:22-71
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:24:13-71
+activity#androidx.activity.ComponentActivity
+ADDED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:23:9-26:79
+	android:exported
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:25:13-36
+	android:theme
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:26:13-76
+	android:name
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:24:13-63
+activity#com.revenuecat.purchases.amazon.purchasing.ProxyAmazonBillingActivity
+ADDED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:10:9-13:75
+	android:configChanges
+		ADDED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:12:13-96
+	android:theme
+		ADDED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:13:13-72
+	android:name
+		ADDED from [com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:11:13-97
+uses-permission#com.android.vending.BILLING
+ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:10:5-67
+	android:name
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:10:22-64
+intent#action:name:com.android.vending.billing.InAppBillingService.BIND
+ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:13:9-15:18
+action#com.android.vending.billing.InAppBillingService.BIND
+ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:14:13-91
+	android:name
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:14:21-88
+meta-data#com.google.android.play.billingclient.version
+ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:19:9-21:37
+	android:value
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:21:13-34
+	android:name
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:20:13-73
+activity#com.android.billingclient.api.ProxyBillingActivity
+ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:23:9-27:75
+	android:exported
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:26:13-37
+	android:configChanges
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:25:13-96
+	android:theme
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:27:13-72
+	android:name
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:24:13-78
+activity#com.android.billingclient.api.ProxyBillingActivityV2
+ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:28:9-32:75
+	android:exported
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:31:13-37
+	android:configChanges
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:30:13-96
+	android:theme
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:32:13-72
+	android:name
+		ADDED from [com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:29:13-80
+activity#com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:23:9-27:75
+	android:excludeFromRecents
+		ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:25:13-46
+	android:exported
+		ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:26:13-37
+	android:theme
+		ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:27:13-72
+	android:name
+		ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:24:13-93
+service#com.google.android.gms.auth.api.signin.RevocationBoundService
+ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:33:9-37:51
+	android:exported
+		ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:35:13-36
+	android:visibleToInstantApps
+		ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:37:13-48
+	android:permission
+		ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:36:13-107
+	android:name
+		ADDED from [com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:34:13-89
+activity#com.google.android.gms.common.api.GoogleApiActivity
+ADDED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:9-173
+	android:exported
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:146-170
+	android:theme
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:86-145
+	android:name
+		ADDED from [com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:19-85
+uses-library#androidx.window.extensions
+ADDED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
+	android:required
+		ADDED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
+	android:name
+		ADDED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
+uses-library#androidx.window.sidecar
+ADDED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
+	android:required
+		ADDED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
+	android:name
+		ADDED from [androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/874a7b1bef3f5a4ef37ffe5612c0901e/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/874a7b1bef3f5a4ef37ffe5612c0901e/transformed/startup-runtime-1.1.1/AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
+permission#fr.retrospare.blazeplayer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
+uses-permission#fr.retrospare.blazeplayer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:30:17-78
+meta-data#com.google.android.gms.version
+ADDED from [com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:21:9-23:69
+	android:value
+		ADDED from [com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:23:13-66
+	android:name
+		ADDED from [com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:22:13-58
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92
+service#com.google.android.datatransport.runtime.backends.TransportBackendDiscovery
+ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:28:9-34:19
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:36:9-38:40
+MERGED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:36:9-38:40
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:30:13-37
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:29:13-103
+meta-data#backend:com.google.android.datatransport.cct.CctBackendFactory
+ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:31:13-33:39
+	android:value
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:33:17-36
+	android:name
+		ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:32:17-94
+service#com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService
+ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:26:9-30:19
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:28:13-37
+	android:permission
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:29:13-69
+	android:name
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:27:13-117
+receiver#com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver
+ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:32:9-34:40
+	android:exported
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:34:13-37
+	android:name
+		ADDED from [com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:33:13-132

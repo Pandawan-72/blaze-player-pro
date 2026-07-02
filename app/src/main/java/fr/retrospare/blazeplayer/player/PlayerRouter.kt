@@ -42,6 +42,22 @@ object PlayerRouter {
         context.startActivity(intent)
     }
 
+    /** Lance une playlist vidéo (locale ou réseau) : la première piste démarre immédiatement, les
+     *  suivantes s'enchaînent automatiquement en fin de lecture (voir PlayerActivity.playNext()). */
+    fun openPlaylist(context: Context, tracks: List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef>, startIndex: Int = 0) {
+        if (tracks.isEmpty()) return
+        val safeIndex = startIndex.coerceIn(0, tracks.size - 1)
+        val first = tracks[safeIndex]
+        val intent = Intent(context, PlayerActivity::class.java).apply {
+            putExtra("mediaPath", first.path)
+            putExtra("mediaName", first.name)
+            putStringArrayListExtra("queuePaths", ArrayList(tracks.map { it.path }))
+            putStringArrayListExtra("queueNames", ArrayList(tracks.map { it.name }))
+            putExtra("queueIndex", safeIndex)
+        }
+        context.startActivity(intent)
+    }
+
     private fun openAudio(context: Context, path: String, name: String) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP

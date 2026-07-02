@@ -1,0 +1,27 @@
+<navigation
+xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:app="http://schemas.android.com/apk/res-auto"
+xmlns:tools="http://schemas.android.com/tools"
+android:id="@+id/nav_audio_pick"
+app:startDestination="@id/browserFragment" >
+<fragment
+    android:id="@+id/browserFragment"
+    android:name="fr.retrospare.blazeplayer.browser.BrowserFragment"
+    android:label="Choisir un fichier"
+    tools:layout="@layout/fragment_browser" >
+
+    <argument
+        android:name="audioPickMode"
+        android:defaultValue="true"
+        app:argType="boolean" />
+    <argument
+        android:name="isNetwork"
+        android:defaultValue="false"
+        app:argType="boolean" />
+    <argument
+        android:name="path"
+        android:defaultValue=""
+        app:argType="string" />
+
+</fragment>
+</navigation>
