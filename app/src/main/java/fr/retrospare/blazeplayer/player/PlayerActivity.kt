@@ -36,6 +36,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.cast.VideoStreamServerManager
+import fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.debug.CrashReporter
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
@@ -204,6 +205,7 @@ class PlayerActivity : AppCompatActivity() {
         binding.tvTotalTime.text = "0:00:00"
 
         setupControls()
+        setupCastButton()
         setupProgressBar()
         setupGestures()
         saveHistory()
@@ -751,9 +753,21 @@ class PlayerActivity : AppCompatActivity() {
                     val deviceName = session?.castDevice?.friendlyName
                     binding.tvSubtitle.text = if (deviceName != null) getString(R.string.casting_on_device, deviceName) else getString(R.string.casting_chromecast)
                     binding.tvSubtitle.visibility = View.VISIBLE
+                    binding.castStatusCard.visibility = View.GONE
+                    binding.tvCastDeviceName.text = deviceName ?: getString(R.string.casting_chromecast)
+                    binding.tvCastMediaTitle.text = mediaName.ifBlank { binding.tvTitle.text?.toString().orEmpty() }
+                    // En Cast, l'écran local devient noir, mais les contrôles doivent rester
+                    // utilisables : ils pilotent le CastPlayer distant via Media3.
+                    binding.centerTransportControls.visibility = View.VISIBLE
+                    binding.bottomControlsContainer.visibility = View.VISIBLE
+                    binding.touchZoneLeft.visibility = View.GONE
+                    binding.touchZoneRight.visibility = View.GONE
                     warnIfIncompatible(session?.castDevice?.modelName)
                 } else {
                     binding.tvSubtitle.visibility = View.GONE
+                    binding.castStatusCard.visibility = View.GONE
+                    binding.centerTransportControls.visibility = View.VISIBLE
+                    binding.bottomControlsContainer.visibility = View.VISIBLE
                 }
             }
         })
@@ -884,6 +898,25 @@ class PlayerActivity : AppCompatActivity() {
         tuneTouchPanel(binding.touchZoneRight, android.view.Gravity.END)
     }
 
+
+    private fun setupCastButton() {
+        // Bouton Cast natif dans le lecteur vidéo : il ouvre le sélecteur Chromecast et laisse
+        // CastPlayer/Media3 transférer automatiquement le MediaItem courant, sa position et son état.
+        // On diffère l'initialisation pour ne pas bloquer le premier frame si CastContext scanne le réseau.
+        binding.btnHeaderCast.post {
+            if (isFinishing || isDestroyed) return@post
+            try {
+                binding.btnHeaderCast.setDialogFactory(BlazeMediaRouteDialogFactory())
+                com.google.android.gms.cast.framework.CastButtonFactory
+                    .setUpMediaRouteButton(this, binding.btnHeaderCast)
+                binding.btnHeaderCast.visibility = View.VISIBLE
+            } catch (e: Exception) {
+                CrashReporter.log(this, "Player Cast button setup failed", e)
+                binding.btnHeaderCast.visibility = View.GONE
+            }
+        }
+    }
+
     private fun setupControls() {
         binding.btnBack.setOnClickListener { goBackToHistory() }
 
@@ -918,12 +951,6 @@ class PlayerActivity : AppCompatActivity() {
         binding.btnAudio.setOnClickListener { scheduleHide(); showAudioTracks() }
         binding.btnSubtitles.setOnClickListener { scheduleHide(); showSubtitles() }
         binding.btnSpeed.setOnClickListener { scheduleHide(); cyclePlaybackSpeed() }
-        binding.btnHeaderCast.setOnClickListener {
-            scheduleHide()
-            binding.seekIndicator.text = "Chromecast disponible depuis le bouton Cast système"
-            binding.seekIndicator.visibility = View.VISIBLE
-            uiHandler.postDelayed({ binding.seekIndicator.visibility = View.GONE }, 2000)
-        }
         binding.uiOverlay.setOnClickListener { if (uiVisible) hideUI() else showUI() }
         binding.playerView.setOnClickListener { if (uiVisible) hideUI() else showUI() }
 
@@ -931,6 +958,10 @@ class PlayerActivity : AppCompatActivity() {
         // VideoPlaybackService se détruire pour retirer immédiatement la notification Android.
         binding.btnStop.setOnClickListener {
             stopVideoPlaybackFromUi()
+        }
+
+        binding.btnStopCasting.setOnClickListener {
+            stopChromecastFromUi()
         }
     }
 
@@ -983,6 +1014,26 @@ class PlayerActivity : AppCompatActivity() {
             stopService(android.content.Intent(this, VideoPlaybackService::class.java))
         } catch (e: Exception) {
             CrashReporter.log(this, "Failed to stop VideoPlaybackService from stop button", e)
+        }
+    }
+
+
+    private fun stopChromecastFromUi() {
+        cancelHide()
+        try {
+            val castContext = com.google.android.gms.cast.framework.CastContext.getSharedInstance(applicationContext)
+            castContext.sessionManager.endCurrentSession(true)
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to stop Chromecast session from player card", e)
+        }
+        try {
+            binding.castStatusCard.visibility = View.GONE
+            binding.castBlackout.visibility = View.GONE
+            binding.centerTransportControls.visibility = View.VISIBLE
+            binding.bottomControlsContainer.visibility = View.VISIBLE
+            showUI()
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to reset cast card UI", e)
         }
     }
 
@@ -1174,10 +1225,21 @@ class PlayerActivity : AppCompatActivity() {
         uiVisible = true
         binding.uiOverlay.visibility = View.VISIBLE
         binding.uiOverlay.animate().alpha(1f).setDuration(200).start()
-        binding.touchZoneLeft.visibility = View.VISIBLE
-        binding.touchZoneLeft.animate().alpha(1f).setDuration(200).start()
-        binding.touchZoneRight.visibility = View.VISIBLE
-        binding.touchZoneRight.animate().alpha(1f).setDuration(200).start()
+        val isCasting = ::player.isInitialized && player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE
+        binding.castStatusCard.visibility = View.GONE
+        binding.centerTransportControls.visibility = View.VISIBLE
+        binding.bottomControlsContainer.visibility = View.VISIBLE
+        if (isCasting) {
+            // Les zones luminosité/volume concernent l'appareil local, pas la TV Cast. On les
+            // garde donc masquées, tout en laissant les vrais contrôles de lecture visibles.
+            binding.touchZoneLeft.visibility = View.GONE
+            binding.touchZoneRight.visibility = View.GONE
+        } else {
+            binding.touchZoneLeft.visibility = View.VISIBLE
+            binding.touchZoneLeft.animate().alpha(1f).setDuration(200).start()
+            binding.touchZoneRight.visibility = View.VISIBLE
+            binding.touchZoneRight.animate().alpha(1f).setDuration(200).start()
+        }
         scheduleHide()
     }
 

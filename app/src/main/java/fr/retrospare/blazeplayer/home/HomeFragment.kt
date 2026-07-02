@@ -57,6 +57,11 @@ class HomeFragment : Fragment() {
         view.post {
             if (!isAdded) return@post
             try {
+                // Même dialog custom que dans le lecteur : quand une session Cast est active,
+                // le second appui sur l'icône de l'accueil ouvre le panneau Blaze au lieu du
+                // vieux contrôleur MediaRouter gris/vert. Le sélecteur d'appareils initial
+                // reste celui du SDK Google Cast.
+                binding.btnCast.setDialogFactory(fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory())
                 com.google.android.gms.cast.framework.CastButtonFactory
                     .setUpMediaRouteButton(requireContext(), binding.btnCast)
             } catch (e: Exception) {
