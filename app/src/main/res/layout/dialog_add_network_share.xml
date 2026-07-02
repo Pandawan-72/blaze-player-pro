@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/tvDialogTitle"
-            android:text="Ajouter un chemin réseau"
+            android:text="@string/add_network_path"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:fontFamily="sans-serif-condensed"
@@ -187,7 +187,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Chemin par défaut"
+                android:text="@string/default_path"
                 android:textColor="@color/on_surface"
                 android:textSize="14sp" />
             <androidx.appcompat.widget.SwitchCompat

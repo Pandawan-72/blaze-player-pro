@@ -92,6 +92,29 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
         "Acoustic"   to listOf(400, 200, 100, 200, 300)
     )
 
+    /** Nom traduit à afficher pour un préréglage, à partir de sa clé interne (stable, toujours en
+     *  anglais — utilisée pour le stockage et la logique). Ne jamais traduire les clés elles-mêmes :
+     *  ça casserait la lecture des préréglages déjà sauvegardés par les utilisateurs existants. */
+    fun getPresetDisplayName(context: Context, key: String): String {
+        val resId = when (key) {
+            "Custom" -> fr.retrospare.blazeplayer.R.string.preset_custom
+            "Flat" -> fr.retrospare.blazeplayer.R.string.preset_flat
+            "Rock" -> fr.retrospare.blazeplayer.R.string.preset_rock
+            "Pop" -> fr.retrospare.blazeplayer.R.string.preset_pop
+            "Jazz" -> fr.retrospare.blazeplayer.R.string.preset_jazz
+            "Classical" -> fr.retrospare.blazeplayer.R.string.preset_classical
+            "Hip-Hop" -> fr.retrospare.blazeplayer.R.string.preset_hiphop
+            "Electronic" -> fr.retrospare.blazeplayer.R.string.preset_electronic
+            "Funk" -> fr.retrospare.blazeplayer.R.string.preset_funk
+            "Bass Boost" -> fr.retrospare.blazeplayer.R.string.preset_bassboost
+            "Treble" -> fr.retrospare.blazeplayer.R.string.preset_treble
+            "Vocal" -> fr.retrospare.blazeplayer.R.string.preset_vocal
+            "Acoustic" -> fr.retrospare.blazeplayer.R.string.preset_acoustic
+            else -> null
+        }
+        return if (resId != null) context.getString(resId) else key
+    }
+
     fun applyPreset(name: String) {
         if (name == "Custom") {
             applyCustom()

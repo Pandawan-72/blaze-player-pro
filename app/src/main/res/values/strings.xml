@@ -1,5 +1,342 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BlazePlayer</string>
+    <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Lecture audio</string>
     <string name="notif_channel_video">Lecture vidéo</string>
+
+    <!-- Onglets accueil -->
+    <string name="tab_local">Local</string>
+    <string name="tab_network">Réseau</string>
+    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_audio">Blaze Audio</string>
+
+    <!-- Sections accueil -->
+    <string name="section_local_history">Historique local</string>
+    <string name="section_network_history">Historique réseau</string>
+    <string name="local_files">Fichiers locaux</string>
+    <string name="network_files">Fichiers réseau</string>
+    <string name="favorites">Favoris</string>
+    <string name="playlists_label">Playlists</string>
+    <string name="my_playlists">MES PLAYLISTS</string>
+
+    <!-- Recherche YouTube -->
+    <string name="youtube_search_hint">Rechercher sur YouTube…</string>
+    <string name="youtube_no_favorites">Aucun favori pour le moment</string>
+    <string name="youtube_no_results">Aucun résultat pour \"%1$s\"</string>
+    <string name="youtube_history">Historique</string>
+    <string name="youtube_close_favorites">Fermer les favoris</string>
+    <string name="youtube_add_to_playlist">Ajouter à la playlist</string>
+    <string name="youtube_remove_from_history">Effacer de l\'historique</string>
+    <string name="youtube_no_api_key">Aucune clé API YouTube configurée</string>
+    <string name="cast_screen">Caster l\'écran du téléphone</string>
+
+    <!-- Réseau -->
+    <string name="add_network_path">Ajouter un chemin réseau</string>
+    <string name="add_manually">Ajouter manuellement</string>
+    <string name="saved_paths">CHEMINS SAUVEGARDÉS</string>
+    <string name="detected_devices">APPAREILS DÉTECTÉS</string>
+    <string name="available_devices">Appareils disponibles</string>
+    <string name="no_path_configured">Aucun chemin configuré.\nCliquez sur Scanner pour détecter les appareils.</string>
+    <string name="default_path">Chemin par défaut</string>
+    <string name="browse_this_path">Naviguer dans ce chemin</string>
+    <string name="example_smb_path">smb://192.168.1.10/Films</string>
+    <string name="name_label">Nom</string>
+
+    <!-- Player -->
+    <string name="unknown_artist">Artiste inconnu</string>
+    <string name="unknown_title">Titre inconnu</string>
+    <string name="audio_track">Piste audio</string>
+    <string name="tracks">Pistes</string>
+    <string name="subtitles_short">ST</string>
+    <string name="ratio_label">RATIO</string>
+    <string name="timer">Minuteur</string>
+    <string name="equalizer">Égaliseur</string>
+    <string name="rewind_10s">-10s</string>
+    <string name="forward_10s">+10s</string>
+    <string name="loading">Chargement…</string>
+    <string name="no_track_found">0 piste trouvée</string>
+    <string name="zero_time">0:00</string>
+    <string name="zero_time_long">0:00:00</string>
+
+    <!-- Playlists / sélection -->
+    <string name="add_tracks">Ajouter des pistes</string>
+    <string name="add_selection_to_playlist">Ajouter la sélection à une playlist</string>
+    <string name="play_selection">Lire la sélection</string>
+    <string name="add_all">Tout ajouter</string>
+    <string name="save_current_list">Sauvegarder la liste en cours</string>
+    <string name="sort_name_az">Nom A–Z</string>
+    <string name="now_playing">EN LECTURE</string>
+    <string name="queue">FILE D\'ATTENTE</string>
+    <string name="add">Ajouter</string>
+    <string name="info">Infos</string>
+    <string name="folder">Dossier</string>
+    <string name="movies">Films</string>
+
+    <!-- Compte / Pro -->
+    <string name="settings">Paramètres</string>
+    <string name="login_optional">Connexion (optionnel)</string>
+    <string name="login_to_continue">Connectez-vous pour continuer</string>
+    <string name="continue_with_google">Continuer avec Google</string>
+    <string name="create_my_account">Créer mon compte</string>
+    <string name="create_account">Créer un compte</string>
+    <string name="sign_in">Se connecter</string>
+    <string name="sign_up">S\'inscrire</string>
+    <string name="no_account_yet">Pas encore de compte ? </string>
+    <string name="or_separator">ou</string>
+    <string name="forgot_password">Mot de passe oublié</string>
+    <string name="forgot_password_question">Mot de passe oublié ?</string>
+    <string name="forgot_password_description">Entrez votre email et nous vous enverrons un lien de réinitialisation.</string>
+    <string name="send_link">Envoyer le lien</string>
+    <string name="email_sent">Email envoyé ! Vérifiez votre boîte mail.</string>
+    <string name="upgrade_to_pro">⭐ Passer à Blaze Pro</string>
+    <string name="free_trial_15_days">15 jours d\'essai gratuit</string>
+    <string name="enjoy_free_trial">Profitez de 15 jours d\'essai gratuit</string>
+    <string name="buy_pro_lifetime">Acheter Pro — 3,99 € à vie</string>
+    <string name="one_time_payment">Un seul paiement, à vie.\nAucun abonnement, aucune surprise.</string>
+    <string name="secure_payment_google_play">Paiement sécurisé via Google Play. Aucun renouvellement automatique.\nEn continuant, vous acceptez nos conditions d\'utilisation et notre politique de confidentialité.</string>
+    <string name="no_commitment_cancel_anytime">Sans engagement · Annulable à tout moment</string>
+    <string name="restore_purchases">Restaurer les achats</string>
+    <string name="restore_existing_purchase">Restaurer un achat existant</string>
+    <string name="free_label">Gratuit</string>
+    <string name="pro_label">Pro</string>
+    <string name="pro_badge">PRO</string>
+    <string name="about_section">À PROPOS</string>
+    <string name="interface_section">INTERFACE</string>
+    <string name="data_section">DONNÉES</string>
+    <string name="presets_section">PRÉRÉGLAGES</string>
+    <string name="local_network_label">Réseau local</string>
+
+    <!-- Paramètres : lecture -->
+    <string name="settings_resume_playback">Reprendre la lecture</string>
+    <string name="resume_always">Toujours</string>
+    <string name="resume_ask">Demander</string>
+    <string name="resume_never">Jamais</string>
+    <string name="settings_autoplay_next">Lecture automatique suivante</string>
+    <string name="settings_autoplay_next_desc">Lire automatiquement le fichier suivant</string>
+    <string name="settings_playback_speed">Vitesse de lecture</string>
+    <string name="speed_normal">1x (normal)</string>
+    <string name="settings_seek_duration">Durée de l\'avance rapide</string>
+    <string name="seconds_5">5 secondes</string>
+    <string name="seconds_10">10 secondes</string>
+    <string name="seconds_15">15 secondes</string>
+    <string name="seconds_30">30 secondes</string>
+    <string name="seconds_60">60 secondes</string>
+    <string name="settings_default_orientation">Orientation par défaut</string>
+    <string name="orientation_auto">Automatique</string>
+    <string name="orientation_portrait">Portrait</string>
+    <string name="orientation_landscape">Paysage</string>
+    <string name="settings_auto_pip">PiP automatique</string>
+    <string name="settings_auto_pip_desc">Passer en Picture-in-Picture lors du changement d\'app</string>
+
+    <!-- Paramètres : audio -->
+    <string name="lang_no_preference">Pas de préférence</string>
+    <string name="lang_french">Français</string>
+    <string name="lang_english">Anglais</string>
+    <string name="lang_spanish">Espagnol</string>
+    <string name="lang_german">Allemand</string>
+    <string name="lang_italian">Italien</string>
+    <string name="lang_japanese">Japonais</string>
+    <string name="lang_portuguese">Portugais</string>
+    <string name="lang_dutch">Néerlandais</string>
+    <string name="lang_russian">Russe</string>
+    <string name="lang_chinese">Chinois</string>
+    <string name="settings_preferred_audio_lang">Langue audio préférée</string>
+    <string name="settings_remember_volume">Mémoriser le volume</string>
+    <string name="settings_remember_volume_desc">Retenir le niveau de volume entre les lectures</string>
+
+    <!-- Paramètres : interface -->
+    <string name="settings_mini_player">Mini player</string>
+    <string name="settings_mini_player_desc">Afficher le mini player dans l\'app</string>
+    <string name="settings_show_hidden_files">Afficher les fichiers cachés</string>
+    <string name="settings_show_hidden_files_desc">Fichiers commençant par un point (.)</string>
+
+    <!-- Paramètres : données -->
+    <string name="settings_clear_history">Effacer l\'historique</string>
+    <string name="settings_clear_history_desc">Supprimer tous les fichiers récemment lus</string>
+    <string name="dialog_clear_history_message">Supprimer tous les fichiers récemment lus ?</string>
+    <string name="action_clear">Effacer</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="toast_history_cleared">Historique effacé</string>
+
+    <!-- Paramètres : à propos / langue -->
+    <string name="settings_about">À propos</string>
+    <string name="settings_about_desc">Ce qu\'il faut savoir sur Blaze Player</string>
+    <string name="about_dialog_message">Blaze Player\n\nVersion %1$s\n\nDéveloppé par Retro-Spare\n\nVotre lecteur multimédia pour Android</string>
+    <string name="action_ok">OK</string>
+    <string name="settings_language">Langue</string>
+    <string name="language_system_auto">Système (auto)</string>
+    <string name="dialog_choose_language">Choisir la langue</string>
+    <string name="toast_restore_purchases_soon">Restauration des achats… (bientôt disponible)</string>
+
+    <!-- PlayerActivity -->
+    <string name="ratio_auto">Auto</string>
+    <string name="ratio_zoom">Zoom</string>
+    <string name="ratio_stretched">Étiré</string>
+    <string name="ratio_full">Plein</string>
+    <string name="toast_no_audio_track">Aucune piste audio</string>
+    <string name="track_generic">Piste</string>
+    <string name="subtitles_disabled">Désactivés</string>
+    <string name="dialog_title_subtitles">Sous-titres</string>
+    <string name="toast_chromecast_incompatible">Ton Chromecast (%1$s) n\'est probablement pas compatible avec cette vidéo : %2$s.</string>
+    <string name="unknown_model">modèle inconnu</string>
+    <string name="casting_on_device">Diffusion sur %1$s</string>
+    <string name="casting_chromecast">Diffusion Chromecast</string>
+    <string name="dialog_resume_message">Reprendre depuis %1$d:%2$02d ?</string>
+    <string name="action_resume">Reprendre</string>
+    <string name="action_from_beginning">Depuis le début</string>
+    <string name="dialog_title_network_error">Erreur de lecture réseau</string>
+    <string name="dialog_network_error_message">La lecture de cette vidéo a échoué (connexion au NAS interrompue, Wi-Fi instable, ou fichier inaccessible).</string>
+    <string name="action_retry">Réessayer</string>
+    <string name="action_quit">Quitter</string>
+
+    <!-- AudioBrowserActivity -->
+    <string name="toast_no_track_selected">Aucune piste sélectionnée</string>
+    <string name="toast_select_tracks_first">Sélectionne d\'abord des pistes (coche à gauche de chaque fichier)</string>
+    <string name="search_hint_all_folders">Rechercher dans tous les dossiers…</string>
+    <string name="action_search">Rechercher</string>
+    <string name="action_show_results">Afficher les résultats</string>
+    <string name="search_enter_term">Saisissez un terme de recherche</string>
+    <string name="toast_no_network_path_configured">Aucun chemin réseau configuré</string>
+    <string name="dialog_choose_network_path">Choisir un chemin réseau</string>
+    <string name="local_storage">Stockage local</string>
+    <string name="lossless_label">Lossless</string>
+
+    <plurals name="folder_count">
+        <item quantity="one">%1$d dossier</item>
+        <item quantity="other">%1$d dossiers</item>
+    </plurals>
+    <plurals name="track_count_found">
+        <item quantity="one">%1$d piste trouvée</item>
+        <item quantity="other">%1$d pistes trouvées</item>
+    </plurals>
+
+    <!-- Noms d'affichage des préréglages de l'égaliseur — les clés internes (stockage, logique)
+         restent en anglais, seul le libellé montré à l'utilisateur est traduit. -->
+    <string name="preset_flat">Neutre</string>
+    <string name="preset_custom">Personnalisé</string>
+    <string name="preset_rock">Rock</string>
+    <string name="preset_pop">Pop</string>
+    <string name="preset_jazz">Jazz</string>
+    <string name="preset_classical">Classique</string>
+    <string name="preset_hiphop">Hip-Hop</string>
+    <string name="preset_electronic">Électronique</string>
+    <string name="preset_funk">Funk</string>
+    <string name="preset_bassboost">Boost de basses</string>
+    <string name="preset_treble">Aigus</string>
+    <string name="preset_vocal">Voix</string>
+    <string name="preset_acoustic">Acoustique</string>
+
+    <!-- NetworkSharesFragment -->
+    <string name="toast_no_device_detected">Aucun appareil réseau détecté.</string>
+    <string name="toast_click_device_to_explore">Cliquez sur un appareil pour l\'explorer.</string>
+    <string name="scan_in_progress">Scan en cours…</string>
+    <string name="scan_complete">Scan terminé</string>
+    <string name="dialog_choose_share">Choisir un partage</string>
+    <string name="action_add_to_favorites">Ajouter aux favoris</string>
+    <string name="toast_added_to_favorites">%1$s ajouté aux favoris</string>
+    <string name="dialog_edit_path">Modifier le chemin</string>
+    <string name="action_save">Sauvegarder</string>
+    <string name="toast_name_host_required">Nom et hôte requis</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="dialog_delete_message">Supprimer \"%1$s\" ?</string>
+
+    <plurals name="devices_found">
+        <item quantity="one">%1$d appareil trouvé</item>
+        <item quantity="other">%1$d appareils trouvés</item>
+    </plurals>
+
+    <!-- FavoriteDialogs -->
+    <string name="dialog_title_already_favorite">Déjà en favoris</string>
+    <string name="dialog_already_favorite_message">« %1$s » est déjà dans tes dossiers favoris.</string>
+    <string name="dialog_add_favorite_folder">Ajouter dossier favori</string>
+    <string name="dialog_add_favorite_message">Ajouter « %1$s » à tes dossiers favoris ? Tu pourras y accéder directement depuis l\'accueil.</string>
+    <string name="toast_added_to_favorites_short">Ajouté aux favoris</string>
+    <string name="dialog_no_favorite_folders">Aucun dossier favori pour l\'instant.\n\nDans le navigateur, ouvre le menu (⋮) à côté d\'un dossier pour l\'ajouter à tes favoris.</string>
+    <string name="dialog_favorite_folders">Dossiers favoris</string>
+    <string name="action_manage">Gérer</string>
+    <string name="action_close">Fermer</string>
+    <string name="dialog_remove_favorites">Retirer des favoris</string>
+    <string name="action_remove">Retirer</string>
+
+    <!-- AudioPlayerFragment -->
+    <string name="unknown_generic">Inconnu</string>
+    <string name="dialog_track_info_message">Titre : %1$s\nArtiste : %2$s\nAlbum : %3$s</string>
+    <string name="sleep_timer_title">Minuteur de veille</string>
+    <string name="minutes_5">5 minutes</string>
+    <string name="minutes_15">15 minutes</string>
+    <string name="minutes_30">30 minutes</string>
+    <string name="hour_1">1 heure</string>
+    <string name="toast_list_already_empty">Liste déjà vide</string>
+    <string name="dialog_clean_list">Nettoyer la liste</string>
+    <string name="action_remove_selection">Retirer sélection</string>
+    <string name="action_clear_all">Tout effacer</string>
+
+    <!-- PlaylistDialogs -->
+    <string name="toast_no_file_selected">Aucun fichier sélectionné</string>
+    <string name="dialog_which_playlist">Ajouter à quelle playlist ?</string>
+    <string name="playlist_slot_name">Playlist %1$d</string>
+    <string name="playlist_empty">(vide)</string>
+    <string name="playlist_added_to_slot">%1$s à la playlist %2$d</string>
+    <string name="playlist_added_partial">%1$s (%2$s)</string>
+    <string name="dialog_playlist_empty_message">Cette playlist est vide.\n\nDepuis le navigateur, sélectionne des fichiers puis utilise \"Ajouter à la playlist\" pour la remplir.</string>
+    <string name="action_play_playlist">Jouer la playlist</string>
+    <string name="action_empty_playlist">Vider</string>
+    <string name="toast_playlist_emptied">Playlist %1$d vidée</string>
+
+    <plurals name="playlist_item_count">
+        <item quantity="one">%1$d élément</item>
+        <item quantity="other">%1$d éléments</item>
+    </plurals>
+    <plurals name="playlist_items_added">
+        <item quantity="one">%1$d élément ajouté</item>
+        <item quantity="other">%1$d éléments ajoutés</item>
+    </plurals>
+    <plurals name="playlist_items_already_present">
+        <item quantity="one">%1$d déjà présent</item>
+        <item quantity="other">%1$d déjà présents</item>
+    </plurals>
+
+    <!-- Noms d'affichage des catégories de playlist — la clé interne de stockage (prefKey) reste
+         stable en anglais, seul ce libellé montré à l'utilisateur est traduit. -->
+    <string name="category_local">Local</string>
+    <string name="category_network">Réseau</string>
+    <string name="category_audio">Audio</string>
+
+    <!-- NetworkVideoBrowserActivity -->
+    <string name="toast_error_generic">Erreur : %1$s</string>
+    <string name="action_play">Lire</string>
+    <string name="action_information">Informations</string>
+    <string name="unknown_size">Inconnue</string>
+    <string name="dialog_video_info_message">Chemin : %1$s\n\nConteneur : %2$s\nDurée : %3$s\nTaille : %4$s</string>
+
+    <plurals name="video_count">
+        <item quantity="one">%1$d vidéo</item>
+        <item quantity="other">%1$d vidéos</item>
+    </plurals>
+
+    <!-- HomeFragment (le reste réutilise des clés déjà créées) -->
+    <string name="toast_cannot_open_screen_cast_settings">Impossible d\'ouvrir les paramètres de diffusion d\'écran</string>
+    <string name="toast_share_not_found">Partage introuvable pour ce favori</string>
+    <string name="action_remove_from_history">Retirer de l\'historique</string>
+
+    <!-- BrowserViewModel : labels de tri (traduits côté BrowserFragment, le ViewModel n'a pas de
+         Context) -->
+    <string name="sort_name_za">Nom Z–A</string>
+    <string name="sort_date_recent">Date récente</string>
+    <string name="sort_size">Taille</string>
+
+    <!-- MainActivity -->
+    <string name="dialog_permission_needed">Permission nécessaire</string>
+    <string name="dialog_permission_message">Blaze Player a besoin d\'accéder à vos fichiers vidéo pour fonctionner.</string>
+    <string name="action_allow">Autoriser</string>
+    <string name="action_ignore">Ignorer</string>
+
+    <!-- Derniers fichiers : NetworkSharesAdapter, BrowserFragment, NetworkSharesViewModel -->
+    <string name="action_edit">Modifier</string>
+    <string name="browser_files_audio">Mes fichiers audio</string>
+    <string name="browser_files_local">Mes fichiers locaux</string>
+    <string name="breadcrumb_home">Accueil</string>
+    <string name="toast_path_saved">Chemin sauvegardé</string>
+    <string name="toast_path_deleted">Chemin supprimé</string>
+    <string name="toast_scan_unavailable_emulator">Scan non disponible sur émulateur</string>
 </resources>

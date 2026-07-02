@@ -19,11 +19,15 @@ class NetworkSharesViewModel @Inject constructor(
     private val networkScanner: NetworkScanner
 ) : ViewModel() {
 
+    /** Type de message plutôt que texte brut : le ViewModel n'a pas de Context pour traduire,
+     *  c'est donc NetworkSharesFragment (qui en a un) qui fait la traduction à l'affichage. */
+    enum class NetworkMessage { PATH_SAVED, PATH_DELETED, SCAN_UNAVAILABLE_EMULATOR }
+
     val shares: StateFlow<List<NetworkShare>> get() = _shares.asStateFlow()
     private val _shares = MutableStateFlow<List<NetworkShare>>(emptyList())
 
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _message = MutableStateFlow<NetworkMessage?>(null)
+    val message: StateFlow<NetworkMessage?> = _message.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -33,12 +37,12 @@ class NetworkSharesViewModel @Inject constructor(
 
     fun saveShare(share: NetworkShare) = viewModelScope.launch {
         networkRepository.saveShare(share)
-        _message.value = "Chemin sauvegardé"
+        _message.value = NetworkMessage.PATH_SAVED
     }
 
     fun deleteShare(id: String) = viewModelScope.launch {
         networkRepository.deleteShare(id)
-        _message.value = "Chemin supprimé"
+        _message.value = NetworkMessage.PATH_DELETED
     }
 
     fun setDefault(share: NetworkShare) = viewModelScope.launch {
@@ -89,7 +93,7 @@ class NetworkSharesViewModel @Inject constructor(
 
     fun scanNetwork_old() {
         // old stub
-        _message.value = "Scan non disponible sur émulateur"
+        _message.value = NetworkMessage.SCAN_UNAVAILABLE_EMULATOR
     }
 
     fun clearMessage() { _message.value = null }

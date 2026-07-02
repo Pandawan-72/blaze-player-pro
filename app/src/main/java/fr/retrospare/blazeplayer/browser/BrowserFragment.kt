@@ -42,7 +42,7 @@ class BrowserFragment : Fragment() {
         if (audioOnlyMode) {
             viewModel.setAudioOnlyMode(true)
             // Titre correct selon le type de navigateur
-            binding.tvTitle.text = if (isNetwork) "Réseau" else "Mes fichiers audio"
+            binding.tvTitle.text = if (isNetwork) getString(R.string.tab_network) else getString(R.string.browser_files_audio)
         }
 
         setupRecyclerView()
@@ -157,7 +157,12 @@ class BrowserFragment : Fragment() {
         }
         binding.btnSort.setOnClickListener {
             viewModel.cycleSortMode()
-            binding.tvSortLabel.text = viewModel.sortLabel()
+            binding.tvSortLabel.text = when (viewModel.sortMode.value) {
+                fr.retrospare.blazeplayer.browser.BrowserViewModel.SortMode.NAME_ASC -> getString(R.string.sort_name_az)
+                fr.retrospare.blazeplayer.browser.BrowserViewModel.SortMode.NAME_DESC -> getString(R.string.sort_name_za)
+                fr.retrospare.blazeplayer.browser.BrowserViewModel.SortMode.DATE_DESC -> getString(R.string.sort_date_recent)
+                fr.retrospare.blazeplayer.browser.BrowserViewModel.SortMode.SIZE_DESC -> getString(R.string.sort_size)
+            }
         }
 
         // showAudio et showHidden sont chargés automatiquement depuis DataStore dans le ViewModel
@@ -234,9 +239,9 @@ class BrowserFragment : Fragment() {
                         val isNet = arguments?.getBoolean("isNetwork", false) ?: false
                         binding.tvTitle.text = when {
                             breadcrumbParts.isNotEmpty() -> breadcrumbParts.last()
-                            audioOnly && isNet -> "Réseau"
-                            audioOnly -> "Mes fichiers audio"
-                            else -> "Mes fichiers locaux"
+                            audioOnly && isNet -> getString(R.string.tab_network)
+                            audioOnly -> getString(R.string.browser_files_audio)
+                            else -> getString(R.string.browser_files_local)
                         }
                     }
                 }
@@ -246,7 +251,7 @@ class BrowserFragment : Fragment() {
 
     private fun updateBreadcrumb() {
         binding.breadcrumbContainer.removeAllViews()
-        val allParts = listOf("Accueil") + breadcrumbParts
+        val allParts = listOf(getString(R.string.breadcrumb_home)) + breadcrumbParts
         allParts.forEachIndexed { index, part ->
             val tv = TextView(requireContext()).apply {
                 text = part

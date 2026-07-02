@@ -92,7 +92,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         }
         binding.btnConfirm.setOnClickListener {
             if (selectedItems.isEmpty()) {
-                android.widget.Toast.makeText(this, "Aucune piste sélectionnée", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(this, getString(R.string.toast_no_track_selected), android.widget.Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val intent = android.content.Intent().apply {
@@ -104,7 +104,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         }
         binding.btnAddToSavedPlaylist.setOnClickListener {
             if (selectedItems.isEmpty()) {
-                android.widget.Toast.makeText(this, "Sélectionne d'abord des pistes (coche à gauche de chaque fichier)", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(this, getString(R.string.toast_select_tracks_first), android.widget.Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val tracks = selectedItems.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.first, it.second) }
@@ -118,15 +118,15 @@ class AudioBrowserActivity : AppCompatActivity() {
         // Recherche globale dans tous les fichiers audio locaux
         binding.btnSearch.setOnClickListener {
             val searchBar = android.widget.SearchView(this).apply {
-                queryHint = "Rechercher dans tous les dossiers..."
+                queryHint = getString(R.string.search_hint_all_folders)
                 isIconified = false
             }
             var allAudioFiles: List<AudioFile> = emptyList()
             var lastFilteredResults: List<AudioFile> = emptyList()
             val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Rechercher")
+                .setTitle(getString(R.string.action_search))
                 .setView(searchBar)
-                .setPositiveButton("Afficher les résultats") { d, _ ->
+                .setPositiveButton(getString(R.string.action_show_results)) { d, _ ->
                     d.dismiss()
                     if (lastFilteredResults.isNotEmpty()) {
                         // Pousse l'état actuel pour pouvoir revenir
@@ -141,7 +141,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                         if (folderStack.isEmpty()) loadLocalFiles()
                     }
                 }
-                .setNegativeButton("Annuler") { d, _ ->
+                .setNegativeButton(getString(R.string.action_cancel)) { d, _ ->
                     d.dismiss()
                     if (folderStack.isEmpty()) loadLocalFiles()
                 }
@@ -159,7 +159,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                     if (q.isEmpty()) {
                         // Vide - ne rien afficher, attendre une saisie
                         binding.recyclerAudio.adapter = null
-                        binding.tvSelected.text = "Saisissez un terme de recherche"
+                        binding.tvSelected.text = getString(R.string.search_enter_term)
                         return true
                     }
                     val filtered = allAudioFiles.filter { it.name.lowercase().contains(q) }
@@ -170,7 +170,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                         updateCounter()
                     }
                     binding.recyclerAudio.adapter = adapter
-                    binding.tvSelected.text = "${filtered.size} piste${if (filtered.size > 1) "s" else ""} trouvée${if (filtered.size > 1) "s" else ""}"
+                    binding.tvSelected.text = resources.getQuantityString(R.plurals.track_count_found, filtered.size, filtered.size)
                     return true
                 }
             })
@@ -196,7 +196,7 @@ class AudioBrowserActivity : AppCompatActivity() {
     private fun loadLocalFiles() {
         folderStack.clear()
         lifecycleScope.launch {
-            binding.tvSelected.text = "Chargement..."
+            binding.tvSelected.text = getString(R.string.loading)
             val folders = withContext(Dispatchers.IO) {
                 android.os.Environment.getExternalStorageDirectory()
                     .listFiles()?.filter { it.isDirectory && !it.name.startsWith(".") }
@@ -217,7 +217,7 @@ class AudioBrowserActivity : AppCompatActivity() {
             }
         }
         lifecycleScope.launch {
-            binding.tvSelected.text = "Chargement..."
+            binding.tvSelected.text = getString(R.string.loading)
             val subFolders = withContext(Dispatchers.IO) {
                 folder.listFiles()?.filter { it.isDirectory && !it.name.startsWith(".") }
                     ?.sortedBy { it.name } ?: emptyList()
@@ -231,7 +231,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         val adapter = FolderAdapter(folders) { folder -> browseFolderAudio(folder) }
         binding.recyclerAudio.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         binding.recyclerAudio.adapter = adapter
-        binding.tvSelected.text = "${folders.size} dossier${if (folders.size > 1) "s" else ""}"
+        binding.tvSelected.text = resources.getQuantityString(R.plurals.folder_count, folders.size, folders.size)
     }
 
     private fun showMixedList(folders: List<java.io.File>, files: List<AudioFile>) {
@@ -248,7 +248,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         )
         binding.recyclerAudio.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         binding.recyclerAudio.adapter = adapter
-        binding.tvSelected.text = "${files.size} piste${if (files.size > 1) "s" else ""} trouvée${if (files.size > 1) "s" else ""}"
+        binding.tvSelected.text = resources.getQuantityString(R.plurals.track_count_found, files.size, files.size)
     }
 
     private fun loadNetworkShares() {
@@ -256,14 +256,14 @@ class AudioBrowserActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val shares = networkRepository.getShares().first()
             if (shares.isEmpty()) {
-                Toast.makeText(this@AudioBrowserActivity, "Aucun chemin réseau configuré", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@AudioBrowserActivity, getString(R.string.toast_no_network_path_configured), Toast.LENGTH_SHORT).show()
                 return@launch
             }
             if (shares.size == 1) {
                 browseNetworkShare(shares.first(), "")
             } else {
                 AlertDialog.Builder(this@AudioBrowserActivity)
-                    .setTitle("Choisir un chemin réseau")
+                    .setTitle(getString(R.string.dialog_choose_network_path))
                     .setItems(shares.map { it.name }.toTypedArray()) { _, i ->
                         browseNetworkShare(shares[i], "")
                     }.show()
@@ -285,7 +285,7 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     private fun browseNetworkShare(share: NetworkShare, path: String) {
         lifecycleScope.launch {
-            binding.tvSelected.text = "Chargement..."
+            binding.tvSelected.text = getString(R.string.loading)
             val result = withContext(Dispatchers.IO) { smbBrowser.listFiles(share, path) }
             result.onSuccess { items ->
                 val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }
@@ -294,7 +294,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                 
                 // Dossiers navigables
                 val folderNames = folders.map { "📁 ${it.name}" }
-                val fileItems = audioFiles.map { AudioFile(it.name, it.path, it.duration, "Réseau") }
+                val fileItems = audioFiles.map { AudioFile(it.name, it.path, it.duration, getString(R.string.tab_network)) }
                 displayItems.addAll(fileItems)
                 currentItems = fileItems // Necessaire pour le bouton "Tout ajouter"
 
@@ -491,7 +491,7 @@ class AudioBrowserAdapter(
 
         fun bind(item: AudioBrowserActivity.AudioFile, isSelected: Boolean, onToggle: (Boolean) -> Unit) {
             tvTitle.text = item.name.substringBeforeLast(".")
-            tvArtist.text = item.artist.ifEmpty { "<inconnu>" }
+            tvArtist.text = item.artist.ifEmpty { itemView.context.getString(R.string.unknown_artist) }
             val dur = item.duration
             tvDuration.text = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else ""
             checkbox.setOnCheckedChangeListener(null)
@@ -508,7 +508,7 @@ class AudioBrowserAdapter(
             val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
             when {
                 lossless -> {
-                    tvBitrate.text = "Lossless"
+                    tvBitrate.text = itemView.context.getString(R.string.lossless_label)
                     tvBitrate.visibility = android.view.View.VISIBLE
                 }
                 item.bitrate > 0 -> {
@@ -627,8 +627,8 @@ class FolderBrowserAdapter(
         when (getItemViewType(position)) {
             TYPE_HEADER -> {
                 val folderName = currentPath.substringAfterLast("/")
-                holder.itemView.findViewById<TextView>(R.id.tvFolderPath)?.text = currentPath.replace("/sdcard", "Local")
-                holder.itemView.findViewById<TextView>(R.id.tvFolderName2)?.text = if (folderName.isEmpty() || folderName == "sdcard") "Stockage local" else folderName
+                holder.itemView.findViewById<TextView>(R.id.tvFolderPath)?.text = currentPath.replace("/sdcard", holder.itemView.context.getString(R.string.tab_local))
+                holder.itemView.findViewById<TextView>(R.id.tvFolderName2)?.text = if (folderName.isEmpty() || folderName == "sdcard") holder.itemView.context.getString(R.string.local_storage) else folderName
                 holder.itemView.findViewById<View>(R.id.btnAddAllFolder)?.setOnClickListener {
                     onAddAll(files)
                 }
@@ -702,7 +702,7 @@ class MixedAudioAdapter(
             val item = files[filePos]
             val v = holder.itemView
             v.findViewById<android.widget.TextView>(R.id.tvAudioTitle)?.text = item.name.substringBeforeLast(".")
-            v.findViewById<android.widget.TextView>(R.id.tvAudioArtist)?.text = item.artist.ifEmpty { "<inconnu>" }
+            v.findViewById<android.widget.TextView>(R.id.tvAudioArtist)?.text = item.artist.ifEmpty { v.context.getString(R.string.unknown_artist) }
             val dur = item.duration
             v.findViewById<android.widget.TextView>(R.id.tvAudioDuration)?.text = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else ""
             val ext = item.name.substringAfterLast(".", "").uppercase()
@@ -712,7 +712,7 @@ class MixedAudioAdapter(
             val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
             val tvBitrate = v.findViewById<android.widget.TextView>(R.id.tvAudioBitrate)
             when {
-                lossless -> { tvBitrate?.text = "Lossless"; tvBitrate?.visibility = android.view.View.VISIBLE }
+                lossless -> { tvBitrate?.text = v.context.getString(R.string.lossless_label); tvBitrate?.visibility = android.view.View.VISIBLE }
                 item.bitrate > 0 -> { tvBitrate?.text = "${item.bitrate / 1000} kbps"; tvBitrate?.visibility = android.view.View.VISIBLE }
                 else -> tvBitrate?.visibility = android.view.View.GONE
             }

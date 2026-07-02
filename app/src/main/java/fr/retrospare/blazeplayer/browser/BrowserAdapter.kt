@@ -118,7 +118,7 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
             }
             btnMore?.setOnClickListener { v ->
                 val popup = android.widget.PopupMenu(v.context, v)
-                popup.menu.add(0, 1, 0, "Ajouter dossier favori")
+                popup.menu.add(0, 1, 0, v.context.getString(R.string.dialog_add_favorite_folder))
                 popup.setOnMenuItemClickListener { mi ->
                     when (mi.itemId) {
                         1 -> {
@@ -214,8 +214,8 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
             itemView.setOnClickListener { onClick(item) }
             btnMore.setOnClickListener { v ->
                 val popup = android.widget.PopupMenu(v.context, v)
-                popup.menu.add(0, 1, 0, "Lire")
-                popup.menu.add(0, 2, 1, "Informations")
+                popup.menu.add(0, 1, 0, v.context.getString(R.string.action_play))
+                popup.menu.add(0, 2, 1, v.context.getString(R.string.action_information))
                                 popup.setOnMenuItemClickListener { mi ->
                     when (mi.itemId) {
                         1 -> { onClick(item); true }
@@ -225,19 +225,16 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                                 val sz = when {
                                     info.sizeBytes > 0 -> android.text.format.Formatter.formatShortFileSize(v.context, info.sizeBytes)
                                     item.size > 0 -> android.text.format.Formatter.formatShortFileSize(v.context, item.size)
-                                    else -> "Inconnue"
+                                    else -> v.context.getString(R.string.unknown_size)
                                 }
                                 val ds = if (info.duration > 0) info.formattedDuration
                                     else if (item.duration > 0) "%d:%02d".format(item.duration / 60, item.duration % 60)
                                     else "N/A"
-                                val msg = "Chemin : ${item.path}\n\n" +
-                                    "Conteneur : ${item.extension.uppercase()}\n" +
-                                    "Durée : $ds\n" +
-                                    "Taille : $sz"
+                                val msg = v.context.getString(R.string.dialog_video_info_message, item.path, item.extension.uppercase(), ds, sz)
                                 android.app.AlertDialog.Builder(v.context)
                                     .setTitle(item.name)
                                     .setMessage(msg)
-                                    .setPositiveButton("OK", null)
+                                    .setPositiveButton(v.context.getString(R.string.action_ok), null)
                                     .show()
                             }
                             true

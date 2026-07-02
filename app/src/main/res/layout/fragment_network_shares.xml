@@ -35,7 +35,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Réseau local"
+                android:text="@string/local_network_label"
                 android:textColor="@color/on_background"
                 android:textSize="20sp"
                 android:fontFamily="sans-serif-condensed" />
@@ -43,7 +43,7 @@
                 android:id="@+id/tvSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Appareils disponibles"
+                android:text="@string/available_devices"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -74,7 +74,7 @@
         android:id="@+id/tvSectionSaved"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="CHEMINS SAUVEGARDÉS"
+        android:text="@string/saved_paths"
         android:textColor="@color/on_surface_variant"
         android:textSize="10sp"
         android:fontFamily="sans-serif-condensed"
@@ -97,7 +97,7 @@
         android:id="@+id/tvSectionDiscovered"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="APPAREILS DÉTECTÉS"
+        android:text="@string/detected_devices"
         android:textColor="@color/on_surface_variant"
         android:textSize="10sp"
         android:fontFamily="sans-serif-condensed"
@@ -124,7 +124,7 @@
         android:id="@+id/tvEmpty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Aucun chemin configuré.\nCliquez sur Scanner pour détecter les appareils."
+        android:text="@string/no_path_configured"
         android:textColor="@color/on_surface_variant"
         android:textSize="13sp"
         android:gravity="center"
@@ -146,7 +146,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Ajouter manuellement"
+            android:text="@string/add_manually"
             android:textColor="@color/on_surface"
             android:textSize="13sp" />
 
@@ -154,7 +154,7 @@
             android:id="@+id/btnAdd"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:text="Ajouter"
+            android:text="@string/add"
             android:textSize="12sp"
             android:textColor="#000000"
             android:paddingHorizontal="14dp"

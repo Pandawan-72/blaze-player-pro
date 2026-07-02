@@ -15,6 +15,16 @@ enum class PlaylistCategory(val prefKey: String, val label: String) {
     YOUTUBE("youtube", "Blaze Tube")
 }
 
+/** Nom traduit à afficher pour une catégorie de playlist. "Blaze Tube" est un nom de marque et
+ *  reste identique dans toutes les langues (comme "Blaze Player", "Blaze Audio"). Le champ [label]
+ *  de l'enum reste stable en français en interne — seul cet affichage est traduit. */
+fun PlaylistCategory.displayLabel(context: Context): String = when (this) {
+    PlaylistCategory.LOCAL_VIDEO -> context.getString(fr.retrospare.blazeplayer.R.string.category_local)
+    PlaylistCategory.NETWORK_VIDEO -> context.getString(fr.retrospare.blazeplayer.R.string.category_network)
+    PlaylistCategory.AUDIO -> context.getString(fr.retrospare.blazeplayer.R.string.category_audio)
+    PlaylistCategory.YOUTUBE -> label
+}
+
 /** Gère les 9 playlists sauvegardées (3 catégories x 3 emplacements), en local via
  *  SharedPreferences (même approche que AudioRepository/SharedAudioViewModel dans ce projet). */
 object PlaylistManager {

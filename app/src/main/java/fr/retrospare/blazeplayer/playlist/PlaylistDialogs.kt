@@ -15,29 +15,34 @@ object PlaylistDialogs {
         onAdded: ((slot: Int) -> Unit)? = null
     ) {
         if (tracks.isEmpty()) {
-            Toast.makeText(context, "Aucun fichier sélectionné", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(fr.retrospare.blazeplayer.R.string.toast_no_file_selected), Toast.LENGTH_SHORT).show()
             return
         }
         val counts = PlaylistManager.getAllSlotCounts(context, category)
         val labels = (1..PlaylistManager.SLOT_COUNT).map { slot ->
             val count = counts[slot - 1]
-            "Playlist $slot" + if (count > 0) " ($count élément${if (count > 1) "s" else ""})" else " (vide)"
+            context.getString(fr.retrospare.blazeplayer.R.string.playlist_slot_name, slot) + " " +
+                (if (count > 0) "(" + context.resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.playlist_item_count, count, count) + ")"
+                 else context.getString(fr.retrospare.blazeplayer.R.string.playlist_empty))
         }.toTypedArray()
 
         AlertDialog.Builder(context)
-            .setTitle("Ajouter à quelle playlist ?")
+            .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.dialog_which_playlist))
             .setItems(labels) { _, which ->
                 val slot = which + 1
                 val added = PlaylistManager.addToPlaylist(context, category, slot, tracks)
+                val addedText = context.resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.playlist_items_added, added, added)
                 val msg = if (added == tracks.size) {
-                    "$added élément${if (added > 1) "s" else ""} ajouté${if (added > 1) "s" else ""} à la playlist $slot"
+                    context.getString(fr.retrospare.blazeplayer.R.string.playlist_added_to_slot, addedText, slot)
                 } else {
-                    "$added élément${if (added > 1) "s" else ""} ajouté${if (added > 1) "s" else ""} (${tracks.size - added} déjà présent(s))"
+                    val remaining = tracks.size - added
+                    val remainingText = context.resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.playlist_items_already_present, remaining, remaining)
+                    context.getString(fr.retrospare.blazeplayer.R.string.playlist_added_partial, addedText, remainingText)
                 }
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 onAdded?.invoke(slot)
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
             .show()
     }
 
@@ -55,22 +60,22 @@ object PlaylistDialogs {
         val tracks = PlaylistManager.getPlaylist(context, category, slot)
         if (tracks.isEmpty()) {
             AlertDialog.Builder(context)
-                .setTitle("Playlist $slot — ${category.label}")
-                .setMessage("Cette playlist est vide.\n\nDepuis le navigateur, sélectionne des fichiers puis utilise \"Ajouter à la playlist\" pour la remplir.")
-                .setPositiveButton("OK", null)
+                .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.playlist_slot_name, slot) + " — " + category.displayLabel(context))
+                .setMessage(context.getString(fr.retrospare.blazeplayer.R.string.dialog_playlist_empty_message))
+                .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_ok), null)
                 .show()
             return
         }
         val names = tracks.map { it.name }.toTypedArray()
         AlertDialog.Builder(context)
-            .setTitle("Playlist $slot — ${category.label} (${tracks.size})")
+            .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.playlist_slot_name, slot) + " — " + category.displayLabel(context) + " (${tracks.size})")
             .setItems(names) { _, which -> onPlayOne(tracks[which]) }
-            .setPositiveButton("Jouer la playlist") { _, _ -> onPlayAll(tracks) }
-            .setNeutralButton("Vider") { _, _ ->
+            .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_play_playlist)) { _, _ -> onPlayAll(tracks) }
+            .setNeutralButton(context.getString(fr.retrospare.blazeplayer.R.string.action_empty_playlist)) { _, _ ->
                 PlaylistManager.clearPlaylist(context, category, slot)
-                Toast.makeText(context, "Playlist $slot vidée", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(fr.retrospare.blazeplayer.R.string.toast_playlist_emptied, slot), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Fermer", null)
+            .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_close), null)
             .show()
     }
 }

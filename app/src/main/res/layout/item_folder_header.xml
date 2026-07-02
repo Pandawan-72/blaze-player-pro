@@ -61,7 +61,7 @@
             android:id="@+id/btnAddAllFolder"
             android:layout_width="wrap_content"
             android:layout_height="34dp"
-            android:text="Dossier"
+            android:text="@string/folder"
             app:icon="@drawable/ic_add_circle"
             app:iconSize="14dp"
             app:iconTint="#FF000000"

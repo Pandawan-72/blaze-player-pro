@@ -95,7 +95,7 @@ class HomeFragment : Fragment() {
                 }
             }
             if (!opened) {
-                android.widget.Toast.makeText(activity, "Impossible d'ouvrir les paramètres de diffusion d'écran", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(activity, getString(R.string.toast_cannot_open_screen_cast_settings), android.widget.Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -222,7 +222,7 @@ class HomeFragment : Fragment() {
                     (binding.listYoutubeSearch.adapter as? fr.retrospare.blazeplayer.youtube.YouTubeVideoAdapter)
                         ?.updateItems(result.items)
                     if (result.items.isEmpty()) {
-                        binding.tvYoutubeError.text = "Aucun résultat pour \"$query\""
+                        binding.tvYoutubeError.text = getString(R.string.youtube_no_results, query)
                         binding.tvYoutubeError.visibility = View.VISIBLE
                     }
                 }
@@ -255,7 +255,7 @@ class HomeFragment : Fragment() {
             onMoreClick = { item, anchor -> showYoutubeItemMenu(item, anchor) }
         )
         if (favorites.isEmpty()) {
-            binding.tvYoutubeError.text = "Aucun favori pour le moment"
+            binding.tvYoutubeError.text = getString(R.string.youtube_no_favorites)
             binding.tvYoutubeError.visibility = View.VISIBLE
         }
     }
@@ -280,8 +280,8 @@ class HomeFragment : Fragment() {
      *  puisque removeFromHistory ne fait rien si l'entrée n'y est pas). */
     private fun showYoutubeItemMenu(item: fr.retrospare.blazeplayer.youtube.YouTubeVideoItem, anchor: View) {
         val popup = android.widget.PopupMenu(requireContext(), anchor)
-        popup.menu.add(0, 1, 0, "Ajouter à la playlist")
-        popup.menu.add(0, 2, 1, "Effacer de l'historique")
+        popup.menu.add(0, 1, 0, getString(R.string.youtube_add_to_playlist))
+        popup.menu.add(0, 2, 1, getString(R.string.youtube_remove_from_history))
         popup.setOnMenuItemClickListener { mi ->
             when (mi.itemId) {
                 1 -> { showYoutubeAddToPlaylist(item); true }
@@ -568,7 +568,7 @@ class HomeFragment : Fragment() {
             ) { favorite ->
                 val shareId = favorite.shareId
                 if (shareId.isNullOrEmpty()) {
-                    android.widget.Toast.makeText(requireContext(), "Partage introuvable pour ce favori", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_share_not_found), android.widget.Toast.LENGTH_SHORT).show()
                     return@showFavoritesList
                 }
                 val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity::class.java)
@@ -701,21 +701,18 @@ class HomeFragment : Fragment() {
                 val btnMore = v.findViewById<android.view.View>(R.id.btnMore)
                 btnMore?.setOnClickListener { anchor ->
                     val popup = android.widget.PopupMenu(requireContext(), anchor)
-                    popup.menu.add(0, 1, 0, "Lire")
-                    popup.menu.add(0, 2, 1, "Informations")
-                    popup.menu.add(0, 3, 2, "Ajouter à la playlist")
-                    popup.menu.add(0, 4, 3, "Retirer de l'historique")
+                    popup.menu.add(0, 1, 0, getString(R.string.action_play))
+                    popup.menu.add(0, 2, 1, getString(R.string.action_information))
+                    popup.menu.add(0, 3, 2, getString(R.string.youtube_add_to_playlist))
+                    popup.menu.add(0, 4, 3, getString(R.string.action_remove_from_history))
                     popup.setOnMenuItemClickListener { mi ->
                         when (mi.itemId) {
                             1 -> { PlayerRouter.open(requireContext(), item.path, item.name); true }
                             2 -> {
-                                val sz = if (item.size > 0) android.text.format.Formatter.formatShortFileSize(requireContext(), item.size) else "Inconnue"
+                                val sz = if (item.size > 0) android.text.format.Formatter.formatShortFileSize(requireContext(), item.size) else getString(R.string.unknown_size)
                                 val dur = item.duration
                                 val ds = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else "N/A"
-                                val msg = "Chemin : ${item.path}\n\n" +
-                                    "Conteneur : ${item.extension.uppercase()}\n" +
-                                    "Durée : $ds\n" +
-                                    "Taille : $sz"
+                                val msg = getString(R.string.dialog_video_info_message, item.path, item.extension.uppercase(), ds, sz)
                                 android.app.AlertDialog.Builder(requireContext())
                                     .setTitle(item.name)
                                     .setMessage(msg)

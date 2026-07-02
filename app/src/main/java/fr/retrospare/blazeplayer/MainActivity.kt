@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity() {
         binding.miniPlayerBar.visibility =
             if (state.isVisible) android.view.View.VISIBLE else android.view.View.GONE
         if (state.isVisible) {
-            binding.tvMiniTitle.text = state.title.ifEmpty { "Titre inconnu" }
+            binding.tvMiniTitle.text = state.title.ifEmpty { getString(R.string.unknown_title) }
             binding.tvMiniArtist.text = state.artist
             val art = state.artworkData
             if (art != null) binding.ivMiniArtwork.setImageBitmap(
@@ -294,10 +294,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPermissionRationale() {
         androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Permission nécessaire")
-            .setMessage("Blaze Player a besoin d'accéder à vos fichiers vidéo pour fonctionner.")
-            .setPositiveButton("Autoriser") { _, _ -> requestStoragePermissions() }
-            .setNegativeButton("Ignorer", null)
+            .setTitle(getString(R.string.dialog_permission_needed))
+            .setMessage(getString(R.string.dialog_permission_message))
+            .setPositiveButton(getString(R.string.action_allow)) { _, _ -> requestStoragePermissions() }
+            .setNegativeButton(getString(R.string.action_ignore), null)
             .show()
     }
 }

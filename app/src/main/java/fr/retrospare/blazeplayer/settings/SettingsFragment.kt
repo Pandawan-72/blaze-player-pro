@@ -51,36 +51,39 @@ class SettingsFragment : Fragment() {
         setupChoice(
             binding.settingResume.root,
             R.drawable.ic_play,
-            "Reprendre la lecture",
-            listOf("Toujours", "Demander", "Jamais"),
+            getString(R.string.settings_resume_playback),
+            listOf(getString(R.string.resume_always), getString(R.string.resume_ask), getString(R.string.resume_never)),
             viewModel.getResumeMode(),
-            "Reprendre la lecture"
+            getString(R.string.settings_resume_playback)
         ) { viewModel.setResumeMode(it) }
 
         setupToggle(
             binding.settingAutoPlay.root,
             R.drawable.ic_skip_next,
-            "Lecture automatique suivante",
-            "Lire automatiquement le fichier suivant",
+            getString(R.string.settings_autoplay_next),
+            getString(R.string.settings_autoplay_next_desc),
             viewModel.getAutoPlay()
         ) { viewModel.setAutoPlay(it) }
 
         setupChoice(
             binding.settingSpeed.root,
             R.drawable.ic_settings,
-            "Vitesse de lecture",
-            listOf("0.25x", "0.5x", "0.75x", "1x (normal)", "1.25x", "1.5x", "2x"),
+            getString(R.string.settings_playback_speed),
+            listOf("0.25x", "0.5x", "0.75x", getString(R.string.speed_normal), "1.25x", "1.5x", "2x"),
             viewModel.getSpeedIndex(),
-            "Vitesse de lecture"
+            getString(R.string.settings_playback_speed)
         ) { viewModel.setSpeedIndex(it) }
 
         setupChoice(
             binding.settingSeekTime.root,
             R.drawable.ic_forward_10,
-            "Durée de l'avance rapide",
-            listOf("5 secondes", "10 secondes", "15 secondes", "30 secondes", "60 secondes"),
+            getString(R.string.settings_seek_duration),
+            listOf(
+                getString(R.string.seconds_5), getString(R.string.seconds_10), getString(R.string.seconds_15),
+                getString(R.string.seconds_30), getString(R.string.seconds_60)
+            ),
             viewModel.getSeekTimeIndex(),
-            "Durée de l'avance rapide"
+            getString(R.string.settings_seek_duration)
         ) { viewModel.setSeekTimeIndex(it) }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -88,42 +91,47 @@ class SettingsFragment : Fragment() {
             setupChoice(
                 binding.settingOrientation.root,
                 R.drawable.ic_settings,
-                "Orientation par défaut",
-                listOf("Automatique", "Portrait", "Paysage"),
+                getString(R.string.settings_default_orientation),
+                listOf(getString(R.string.orientation_auto), getString(R.string.orientation_portrait), getString(R.string.orientation_landscape)),
                 orientIdx,
-                "Orientation par défaut"
+                getString(R.string.settings_default_orientation)
             ) { viewModel.setOrientationIndex(it) }
         }
 
         setupToggle(
             binding.settingPip.root,
             R.drawable.ic_settings,
-            "PiP automatique",
-            "Passer en Picture-in-Picture lors du changement d'app",
+            getString(R.string.settings_auto_pip),
+            getString(R.string.settings_auto_pip_desc),
             viewModel.getPip()
         ) { viewModel.setPip(it) }
 
 
 
         // AUDIO
-        val audioLangs = listOf("Pas de préférence", "Français", "Anglais", "Espagnol", "Allemand", "Italien", "Japonais", "Portugais", "Néerlandais", "Russe", "Chinois")
+        val audioLangs = listOf(
+            getString(R.string.lang_no_preference), getString(R.string.lang_french), getString(R.string.lang_english),
+            getString(R.string.lang_spanish), getString(R.string.lang_german), getString(R.string.lang_italian),
+            getString(R.string.lang_japanese), getString(R.string.lang_portuguese), getString(R.string.lang_dutch),
+            getString(R.string.lang_russian), getString(R.string.lang_chinese)
+        )
         viewLifecycleOwner.lifecycleScope.launch {
             val idx = viewModel.getAudioLangIndexAsync()
             setupChoice(
                 binding.settingAudioLang.root,
                 R.drawable.ic_language,
-                "Langue audio préférée",
+                getString(R.string.settings_preferred_audio_lang),
                 audioLangs,
                 idx,
-                "Langue audio préférée"
+                getString(R.string.settings_preferred_audio_lang)
             ) { viewModel.setAudioLangIndex(it) }
         }
 
         setupToggle(
             binding.settingRememberVolume.root,
             R.drawable.ic_settings,
-            "Mémoriser le volume",
-            "Retenir le niveau de volume entre les lectures",
+            getString(R.string.settings_remember_volume),
+            getString(R.string.settings_remember_volume_desc),
             viewModel.getRememberVolume()
         ) { viewModel.setRememberVolume(it) }
 
@@ -137,8 +145,8 @@ class SettingsFragment : Fragment() {
             setupToggle(
                 binding.settingMiniPlayer.root,
                 fr.retrospare.blazeplayer.R.drawable.ic_layout_list,
-                "Mini player",
-                "Afficher le mini player dans l'app",
+                getString(R.string.settings_mini_player),
+                getString(R.string.settings_mini_player_desc),
                 enabled
             ) { isEnabled ->
                 miniVm?.setMiniPlayerEnabled(isEnabled)
@@ -147,8 +155,8 @@ class SettingsFragment : Fragment() {
         setupToggle(
             binding.settingShowHidden.root,
             R.drawable.ic_settings,
-            "Afficher les fichiers cachés",
-            "Fichiers commençant par un point (.)",
+            getString(R.string.settings_show_hidden_files),
+            getString(R.string.settings_show_hidden_files_desc),
             viewModel.getShowHidden()
         ) { viewModel.setShowHidden(it) }
 
@@ -158,17 +166,17 @@ class SettingsFragment : Fragment() {
         setupAction(
             binding.settingClearHistory.root,
             R.drawable.ic_history,
-            "Effacer l'historique",
-            "Supprimer tous les fichiers récemment lus"
+            getString(R.string.settings_clear_history),
+            getString(R.string.settings_clear_history_desc)
         ) {
             android.app.AlertDialog.Builder(requireContext())
-                .setTitle("Effacer l'historique")
-                .setMessage("Supprimer tous les fichiers récemment lus ?")
-                .setPositiveButton("Effacer") { _, _ ->
+                .setTitle(getString(R.string.settings_clear_history))
+                .setMessage(getString(R.string.dialog_clear_history_message))
+                .setPositiveButton(getString(R.string.action_clear)) { _, _ ->
                     viewModel.clearAllData()
-                    Toast.makeText(requireContext(), "Historique effacé", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.toast_history_cleared), Toast.LENGTH_SHORT).show()
                 }
-                .setNegativeButton("Annuler", null)
+                .setNegativeButton(getString(R.string.action_cancel), null)
                 .show()
         }
 
@@ -179,16 +187,73 @@ class SettingsFragment : Fragment() {
         setupAction(
             binding.settingAbout.root,
             R.drawable.ic_settings,
-            "À propos",
-            "Ce qu'il faut savoir sur Blaze Player"
+            getString(R.string.settings_about),
+            getString(R.string.settings_about_desc)
         ) {
             android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Blaze Player")
-                .setMessage("Blaze Player\n\nVersion $appVersion\n\nDéveloppé par Retro-Spare\n\nVotre lecteur multimédia pour Android")
-                .setPositiveButton("OK", null)
+                .setMessage(getString(R.string.about_dialog_message, appVersion))
+                .setPositiveButton(getString(R.string.action_ok), null)
                 .show()
         }
+
+        // LANGUE
+        setupAction(
+            binding.settingLanguage.root,
+            R.drawable.ic_language,
+            getString(R.string.settings_language),
+            currentLanguageLabel()
+        ) {
+            showLanguagePicker()
         }
+        }
+    }
+
+    /** Langues supportées : tag BCP-47 -> nom affiché dans SA PROPRE langue (convention standard
+     *  des sélecteurs de langue — chacun reconnaît son nom, peu importe la langue actuelle de
+     *  l'app). null = suit la langue du système. */
+    private val supportedLanguages: List<Pair<String?, String>>
+        get() = listOf(
+            null to getString(R.string.language_system_auto),
+            "fr" to "Français",
+            "en" to "English",
+            "es" to "Español",
+            "it" to "Italiano",
+            "pt" to "Português",
+            "de" to "Deutsch",
+            "nl" to "Nederlands",
+            "ru" to "Русский"
+        )
+
+    private fun currentLanguageLabel(): String {
+        val currentTags = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
+        if (currentTags.isEmpty) return getString(R.string.language_system_auto)
+        val currentTag = currentTags[0]?.language
+        return supportedLanguages.firstOrNull { it.first == currentTag }?.second ?: getString(R.string.language_system_auto)
+    }
+
+    private fun showLanguagePicker() {
+        val currentTags = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
+        val currentTag = if (currentTags.isEmpty) null else currentTags[0]?.language
+        val languages = supportedLanguages
+        val selectedIndex = languages.indexOfFirst { it.first == currentTag }.let { if (it < 0) 0 else it }
+        val labels = languages.map { it.second }.toTypedArray()
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.dialog_choose_language))
+            .setSingleChoiceItems(labels, selectedIndex) { dialog, which ->
+                val tag = languages[which].first
+                val locales = if (tag == null) {
+                    androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+                } else {
+                    androidx.core.os.LocaleListCompat.forLanguageTags(tag)
+                }
+                // Applique la nouvelle langue à toute l'app — androidx s'occupe de la persistance
+                // (survit au redémarrage de l'app) et recrée automatiquement les écrans affichés.
+                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(locales)
+                dialog.dismiss()
+            }
+            .setNegativeButton(getString(R.string.action_cancel), null)
+            .show()
     }
 
     private fun setupToggle(view: View, icon: Int, title: String, subtitle: String, value: Boolean, onChange: (Boolean) -> Unit) {
@@ -229,7 +294,7 @@ class SettingsFragment : Fragment() {
 
     private fun setupLogout() {
         binding.btnRestorePurchases.setOnClickListener {
-            android.widget.Toast.makeText(requireContext(), "Restauration des achats... (bientôt disponible)", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(requireContext(), getString(R.string.toast_restore_purchases_soon), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 

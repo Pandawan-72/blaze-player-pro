@@ -122,7 +122,7 @@ class PlaylistAdapter(
             if (cached != null) {
                 applyMeta(cached, trackTitle, tvArtist, tvCodec, tvBitrate, ivCover, tvName)
             } else {
-                tvArtist?.text = metaArtist ?: "Artiste inconnu"
+                tvArtist?.text = metaArtist ?: itemView.context.getString(R.string.unknown_artist)
                 tvArtist?.visibility = View.VISIBLE
                 tvCodec?.visibility = View.GONE
                 tvBitrate?.visibility = View.GONE
@@ -209,7 +209,7 @@ class PlaylistAdapter(
                     }
 
                     val artist = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)
-                        ?.ifEmpty { null } ?: "Artiste inconnu"
+                        ?.ifEmpty { null } ?: itemView.context.getString(R.string.unknown_artist)
                     val bitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
                     val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
                     val durationSec = durationMs / 1000
@@ -219,7 +219,7 @@ class PlaylistAdapter(
                     val ext = name.substringAfterLast(".", "").uppercase()
                     val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
                     val bitrateLabel = when {
-                        lossless -> "Lossless"
+                        lossless -> itemView.context.getString(R.string.lossless_label)
                         bitrate > 0 -> "${bitrate / 1000} kbps"
                         else -> ""
                     }
@@ -235,7 +235,7 @@ class PlaylistAdapter(
                     retriever.release()
                 }
             } catch (_: Exception) {
-                TrackMeta("Artiste inconnu", "", "", "", null)
+                TrackMeta(itemView.context.getString(R.string.unknown_artist), "", "", "", null)
             } finally {
                 try { smbDataSource?.close() } catch (_: Exception) {}
             }

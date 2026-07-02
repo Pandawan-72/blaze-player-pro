@@ -98,11 +98,11 @@ class NetworkSharesFragment : Fragment() {
                         binding.tvSectionDiscovered.visibility = if (visible) View.VISIBLE else View.GONE
                         binding.recyclerDiscovered.visibility = if (visible) View.VISIBLE else View.GONE
                         if (devices.isNotEmpty()) {
-                            binding.tvSubtitle.text = "${devices.size} appareil(s) trouvé(s)"
+                            binding.tvSubtitle.text = resources.getQuantityString(R.plurals.devices_found, devices.size, devices.size)
                         }
                         // Message bas dynamique
                         if (!viewModel.isScanning.value) {
-                            binding.tvEmpty.text = if (devices.isEmpty()) "Aucun appareil réseau détecté." else "Cliquez sur un appareil pour l'explorer."
+                            binding.tvEmpty.text = if (devices.isEmpty()) getString(R.string.toast_no_device_detected) else getString(R.string.toast_click_device_to_explore)
                             binding.tvEmpty.visibility = View.VISIBLE
                         }
                     }
@@ -114,7 +114,7 @@ class NetworkSharesFragment : Fragment() {
                         binding.progressBar.visibility = if (scanning) View.VISIBLE else View.GONE
                         binding.btnScan.isEnabled = !scanning
                         binding.btnScan.alpha = if (scanning) 0.5f else 1f
-                        binding.tvSubtitle.text = if (scanning) "Scan en cours..." else "Scan terminé"
+                        binding.tvSubtitle.text = if (scanning) getString(R.string.scan_in_progress) else getString(R.string.scan_complete)
                     }
                 }
 
@@ -122,7 +122,12 @@ class NetworkSharesFragment : Fragment() {
                 launch {
                     viewModel.message.collect { msg ->
                         msg?.let {
-                            android.widget.Toast.makeText(requireContext(), it, android.widget.Toast.LENGTH_SHORT).show()
+                            val text = when (it) {
+                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.PATH_SAVED -> getString(R.string.toast_path_saved)
+                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.PATH_DELETED -> getString(R.string.toast_path_deleted)
+                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.SCAN_UNAVAILABLE_EMULATOR -> getString(R.string.toast_scan_unavailable_emulator)
+                            }
+                            android.widget.Toast.makeText(requireContext(), text, android.widget.Toast.LENGTH_SHORT).show()
                             viewModel.clearMessage()
                         }
                     }
@@ -154,7 +159,7 @@ class NetworkSharesFragment : Fragment() {
                 if (shares.size > 1) {
                     etShare.setOnClickListener {
                         AlertDialog.Builder(requireContext())
-                            .setTitle("Choisir un partage")
+                            .setTitle(getString(R.string.dialog_choose_share))
                             .setItems(shares.toTypedArray()) { _: DialogInterface, j: Int ->
                                 etShare.setText(shares[j])
                             }.show()
@@ -166,7 +171,7 @@ class NetworkSharesFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle(null)
             .setView(dialogView)
-            .setPositiveButton("Ajouter aux favoris") { _, _ ->
+            .setPositiveButton(getString(R.string.action_add_to_favorites)) { _, _ ->
                 val share = NetworkShare(
                     id = "${device.type.name.lowercase()}_${device.ip}",
                     name = device.name,
@@ -178,9 +183,9 @@ class NetworkSharesFragment : Fragment() {
                     type = device.type
                 )
                 viewModel.saveShare(share)
-                android.widget.Toast.makeText(requireContext(), "${device.name} ajouté aux favoris", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(requireContext(), getString(R.string.toast_added_to_favorites, device.name), android.widget.Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton(getString(R.string.action_cancel), null)
             .create().also { d ->
                 d.show()
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
@@ -192,7 +197,7 @@ class NetworkSharesFragment : Fragment() {
         val dialogBinding = DialogAddNetworkShareBinding.bind(dialogView)
         var selectedType = ShareType.SMB
 
-        dialogBinding.tvDialogTitle.text = if (existing == null) "Ajouter un chemin réseau" else "Modifier le chemin"
+        dialogBinding.tvDialogTitle.text = if (existing == null) getString(R.string.add_network_path) else getString(R.string.dialog_edit_path)
 
         existing?.let {
             dialogBinding.etName.setText(it.name)
@@ -220,12 +225,12 @@ class NetworkSharesFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle(null)
             .setView(dialogView)
-            .setPositiveButton("Sauvegarder") { _, _ ->
+            .setPositiveButton(getString(R.string.action_save)) { _, _ ->
                 val name = dialogBinding.etName.text.toString().trim()
                 val host = dialogBinding.etHost.text.toString().trim()
                 val shareName = dialogBinding.etShareName.text.toString().trim()
                 if (name.isEmpty() || host.isEmpty()) {
-                    android.widget.Toast.makeText(requireContext(), "Nom et hôte requis", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_name_host_required), android.widget.Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 val share = existing?.copy(
@@ -242,7 +247,7 @@ class NetworkSharesFragment : Fragment() {
                     selectedType, dialogBinding.switchDefault.isChecked)
                 viewModel.saveShare(share)
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton(getString(R.string.action_cancel), null)
             .create().also { d ->
                 d.show()
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
@@ -251,10 +256,10 @@ class NetworkSharesFragment : Fragment() {
 
     private fun confirmDelete(share: NetworkShare) {
         AlertDialog.Builder(requireContext())
-            .setTitle("Supprimer")
-            .setMessage("Supprimer \"${share.name}\" ?")
-            .setPositiveButton("Supprimer") { _, _ -> viewModel.deleteShare(share.id) }
-            .setNegativeButton("Annuler", null)
+            .setTitle(getString(R.string.action_delete))
+            .setMessage(getString(R.string.dialog_delete_message, share.name))
+            .setPositiveButton(getString(R.string.action_delete)) { _, _ -> viewModel.deleteShare(share.id) }
+            .setNegativeButton(getString(R.string.action_cancel), null)
             .show()
     }
 

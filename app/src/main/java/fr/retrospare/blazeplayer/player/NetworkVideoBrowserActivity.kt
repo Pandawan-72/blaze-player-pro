@@ -114,7 +114,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
 
     private fun loadCurrentPath() {
         tvPath.text = if (currentPath.isEmpty()) share.host else "${share.host}/$currentPath"
-        tvCount.text = "Chargement..."
+        tvCount.text = getString(R.string.loading)
         selectedVideos.clear()
         updateSelectionToolbar()
         lifecycleScope.launch {
@@ -125,10 +125,10 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     it.mimeType != "folder" && it.mimeType != "share" && it.extension.lowercase() in videoExtensions
                 }.sortedBy { it.name.lowercase() }
                 currentVideos = videos
-                tvCount.text = "${folders.size} dossier${if (folders.size > 1) "s" else ""} - ${videos.size} video${if (videos.size > 1) "s" else ""}"
+                tvCount.text = resources.getQuantityString(R.plurals.folder_count, folders.size, folders.size) + " - " + resources.getQuantityString(R.plurals.video_count, videos.size, videos.size)
                 showList(folders, videos)
             }.onFailure {
-                tvCount.text = "Erreur: ${it.message}"
+                tvCount.text = getString(R.string.toast_error_generic, it.message)
             }
         }
     }
@@ -160,7 +160,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     }
                     holder.itemView.findViewById<View>(R.id.btnFolderMore)?.setOnClickListener { anchor ->
                         val popup = android.widget.PopupMenu(this@NetworkVideoBrowserActivity, anchor)
-                        popup.menu.add(0, 1, 0, "Ajouter dossier favori")
+                        popup.menu.add(0, 1, 0, getString(R.string.dialog_add_favorite_folder))
                         popup.setOnMenuItemClickListener { mi ->
                             when (mi.itemId) {
                                 1 -> {
@@ -236,8 +236,8 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
 
                     v.findViewById<View>(R.id.btnMore)?.setOnClickListener { anchor ->
                         val popup = android.widget.PopupMenu(this@NetworkVideoBrowserActivity, anchor)
-                        popup.menu.add(0, 1, 0, "Lire")
-                        popup.menu.add(0, 2, 1, "Informations")
+                        popup.menu.add(0, 1, 0, getString(R.string.action_play))
+                        popup.menu.add(0, 2, 1, getString(R.string.action_information))
                         popup.setOnMenuItemClickListener { mi ->
                             when (mi.itemId) {
                                 1 -> {
@@ -250,16 +250,13 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                                 2 -> {
                                     lifecycleScope.launch {
                                         val info = VideoMetadataExtractor.extract(this@NetworkVideoBrowserActivity, video.path)
-                                        val sz = if (info.sizeBytes > 0) android.text.format.Formatter.formatShortFileSize(this@NetworkVideoBrowserActivity, info.sizeBytes) else "Inconnue"
+                                        val sz = if (info.sizeBytes > 0) android.text.format.Formatter.formatShortFileSize(this@NetworkVideoBrowserActivity, info.sizeBytes) else getString(R.string.unknown_size)
                                         val ds = if (info.duration > 0) info.formattedDuration else "N/A"
-                                        val msg = "Chemin : ${video.path}\n\n" +
-                                            "Conteneur : ${video.extension.uppercase()}\n" +
-                                            "Durée : $ds\n" +
-                                            "Taille : $sz"
+                                        val msg = getString(R.string.dialog_video_info_message, video.path, video.extension.uppercase(), ds, sz)
                                         android.app.AlertDialog.Builder(this@NetworkVideoBrowserActivity)
                                             .setTitle(video.name)
                                             .setMessage(msg)
-                                            .setPositiveButton("OK", null)
+                                            .setPositiveButton(getString(R.string.action_ok), null)
                                             .show()
                                     }
                                     true

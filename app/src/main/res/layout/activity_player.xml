@@ -112,9 +112,9 @@
                 android:orientation="horizontal"
                 android:layout_marginTop="4dp"
                 android:layout_marginBottom="8dp">
-                <TextView android:id="@+id/tvCurrentTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0:00:00" android:textColor="#FFFFFF" android:textSize="12sp" android:fontFamily="monospace" />
+                <TextView android:id="@+id/tvCurrentTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/zero_time_long" android:textColor="#FFFFFF" android:textSize="12sp" android:fontFamily="monospace" />
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" / " android:textColor="#55FFFFFF" android:textSize="12sp" />
-                <TextView android:id="@+id/tvTotalTime" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="0:00:00" android:textColor="#55FFFFFF" android:textSize="12sp" android:fontFamily="monospace" />
+                <TextView android:id="@+id/tvTotalTime" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/zero_time_long" android:textColor="#55FFFFFF" android:textSize="12sp" android:fontFamily="monospace" />
             </LinearLayout>
 
             <LinearLayout
@@ -126,7 +126,7 @@
                 <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="horizontal" android:gravity="center">
                     <LinearLayout android:id="@+id/btnSubtitles" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
                         <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/ic_subtitles" android:tint="#CCFFFFFF" android:contentDescription="ST" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ST" android:textColor="#66FFFFFF" android:textSize="9sp" android:layout_marginTop="3dp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/subtitles_short" android:textColor="#66FFFFFF" android:textSize="9sp" android:layout_marginTop="3dp" />
                     </LinearLayout>
                     <LinearLayout android:id="@+id/btnAudio" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
                         <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/ic_language" android:tint="#CCFFFFFF" android:contentDescription="Audio" />
@@ -137,7 +137,7 @@
                     </LinearLayout>
                     <LinearLayout android:id="@+id/btnRewind" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
                         <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/ic_rewind_10" android:tint="#FFFFFF" android:contentDescription="Reculer" />
-                        <TextView android:id="@+id/tvRewindLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-10s" android:textColor="#66FFFFFF" android:textSize="9sp" android:layout_marginTop="3dp" />
+                        <TextView android:id="@+id/tvRewindLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/rewind_10s" android:textColor="#66FFFFFF" android:textSize="9sp" android:layout_marginTop="3dp" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -152,14 +152,14 @@
                 <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="horizontal" android:gravity="center">
                     <LinearLayout android:id="@+id/btnForward" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
                         <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/ic_forward_10" android:tint="#FFFFFF" android:contentDescription="Avancer" />
-                        <TextView android:id="@+id/tvForwardLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+10s" android:textColor="#66FFFFFF" android:textSize="9sp" android:layout_marginTop="3dp" />
+                        <TextView android:id="@+id/tvForwardLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/forward_10s" android:textColor="#66FFFFFF" android:textSize="9sp" android:layout_marginTop="3dp" />
                     </LinearLayout>
                     <LinearLayout android:id="@+id/btnNext" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
                         <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/ic_skip_next" android:tint="#FFFFFF" android:contentDescription="Suivant" />
                     </LinearLayout>
                     <LinearLayout android:id="@+id/btnRatio" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
                         <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/ic_aspect_ratio" android:tint="#CCFFFFFF" android:contentDescription="Ratio" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="RATIO" android:textColor="#66FFFFFF" android:textSize="9sp" android:layout_marginTop="3dp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ratio_label" android:textColor="#66FFFFFF" android:textSize="9sp" android:layout_marginTop="3dp" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -186,6 +186,6 @@
         </LinearLayout>
     </FrameLayout>
 
-    <TextView android:id="@+id/seekIndicator" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:background="@drawable/bg_seek_indicator" android:paddingHorizontal="20dp" android:paddingVertical="8dp" android:text="0:00:00" android:textColor="#FFFFFF" android:textSize="16sp" android:fontFamily="sans-serif-condensed" android:visibility="gone" />
+    <TextView android:id="@+id/seekIndicator" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:background="@drawable/bg_seek_indicator" android:paddingHorizontal="20dp" android:paddingVertical="8dp" android:text="@string/zero_time_long" android:textColor="#FFFFFF" android:textSize="16sp" android:fontFamily="sans-serif-condensed" android:visibility="gone" />
 
 </FrameLayout>

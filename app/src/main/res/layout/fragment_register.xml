@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:fontFamily="sans-serif-condensed"
-            android:text="Créer un compte"
+            android:text="@string/create_account"
             android:textColor="@color/on_background"
             android:textSize="26sp" />
 
@@ -36,7 +36,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:text="Profitez de 15 jours d'essai gratuit"
+            android:text="@string/enjoy_free_trial"
             android:textColor="@color/on_surface_variant"
             android:textSize="14sp" />
 
@@ -108,7 +108,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="32dp"
-            android:text="Créer mon compte"
+            android:text="@string/create_my_account"
             android:textSize="16sp"
             android:includeFontPadding="false"
             android:gravity="center"
@@ -143,7 +143,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
-                android:text="ou"
+                android:text="@string/or_separator"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="13sp" />
 
@@ -161,7 +161,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="16dp"
-            android:text="Continuer avec Google"
+            android:text="@string/continue_with_google"
             android:textColor="@color/on_background"
             android:textSize="15sp"
             app:cornerRadius="12dp"

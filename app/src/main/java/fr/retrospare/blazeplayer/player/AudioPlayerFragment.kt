@@ -68,7 +68,7 @@ class AudioPlayerFragment : Fragment() {
 
             // Source unique de verite = le Player. Ajout immediat avec MediaItem simples (sans connexion reseau).
             val simpleMediaItems = paths.mapIndexed { i, path ->
-                AudioRepository.buildSimpleMediaItem(path, names[i])
+                AudioRepository.buildSimpleMediaItem(requireContext(), path, names[i])
             }
             val wasEmpty = ctrl.mediaItemCount == 0
             ctrl.addMediaItems(simpleMediaItems)
@@ -186,7 +186,7 @@ class AudioPlayerFragment : Fragment() {
                 val (savedItems, savedIndex) = AudioRepository.load(requireContext())
                 if (savedItems.isNotEmpty()) {
                     // Chargement rapide : MediaItem simples d'abord, metadonnees enrichies ensuite
-                    val simpleItems = savedItems.map { AudioRepository.buildSimpleMediaItem(it.path, it.name) }
+                    val simpleItems = savedItems.map { AudioRepository.buildSimpleMediaItem(requireContext(), it.path, it.name) }
                     launch(Dispatchers.Main) {
                         ctrl.setMediaItems(simpleItems, savedIndex.coerceIn(0, savedItems.size - 1), 0L)
                         ctrl.prepare()
@@ -223,7 +223,7 @@ class AudioPlayerFragment : Fragment() {
             val existingPaths = (0 until ctrl.mediaItemCount).map { ctrl.getMediaItemAt(it).localConfiguration?.uri.toString() }.toSet()
             val newTracks = pending.filter { it.path !in existingPaths }
             if (newTracks.isNotEmpty()) {
-                val simpleItems = newTracks.map { AudioRepository.buildSimpleMediaItem(it.path, it.name) }
+                val simpleItems = newTracks.map { AudioRepository.buildSimpleMediaItem(requireContext(), it.path, it.name) }
                 ctrl.addMediaItems(simpleItems)
                 playlistAdapter.refresh()
                 ctrl.prepare()
@@ -293,8 +293,8 @@ class AudioPlayerFragment : Fragment() {
 
         // Lit directement depuis MediaMetadata - pas de MediaMetadataRetriever
         _binding?.tvTitle?.text = meta.title?.toString()?.ifEmpty { null }
-            ?: mediaItem.localConfiguration?.uri?.lastPathSegment ?: "Titre inconnu"
-        _binding?.tvArtist?.text = meta.artist?.toString() ?: "Artiste inconnu"
+            ?: mediaItem.localConfiguration?.uri?.lastPathSegment ?: getString(fr.retrospare.blazeplayer.R.string.unknown_title)
+        _binding?.tvArtist?.text = meta.artist?.toString() ?: getString(fr.retrospare.blazeplayer.R.string.unknown_artist)
         _binding?.tvAlbum?.text = meta.albumTitle?.toString() ?: ""
 
         val ext = (mediaItem.localConfiguration?.uri?.lastPathSegment ?: "").substringAfterLast(".", "").uppercase()
@@ -323,7 +323,7 @@ class AudioPlayerFragment : Fragment() {
                         val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
                         when {
                             lossless -> {
-                                _binding?.tvBitrate?.text = "Lossless"
+                                _binding?.tvBitrate?.text = getString(fr.retrospare.blazeplayer.R.string.lossless_label)
                                 _binding?.tvBitrate?.visibility = View.VISIBLE
                             }
                             bitrate > 0 -> {
@@ -488,7 +488,7 @@ class AudioPlayerFragment : Fragment() {
         val exists = (0 until ctrl.mediaItemCount).any { ctrl.getMediaItemAt(it).localConfiguration?.uri.toString() == path }
         if (exists) return
 
-        val simpleItem = AudioRepository.buildSimpleMediaItem(path, name)
+        val simpleItem = AudioRepository.buildSimpleMediaItem(requireContext(), path, name)
         ctrl.addMediaItem(simpleItem)
         playlistAdapter.refresh()
         if (ctrl.playbackState == Player.STATE_IDLE) {
@@ -588,19 +588,19 @@ class AudioPlayerFragment : Fragment() {
         binding.btnInfos?.setOnClickListener {
             val ctrl = controller ?: return@setOnClickListener
             val meta = ctrl.currentMediaItem?.mediaMetadata
-            val title = meta?.title ?: "Inconnu"
-            val artist = meta?.artist ?: "Inconnu"
-            val album = meta?.albumTitle ?: "Inconnu"
+            val title = meta?.title ?: getString(fr.retrospare.blazeplayer.R.string.unknown_generic)
+            val artist = meta?.artist ?: getString(fr.retrospare.blazeplayer.R.string.unknown_generic)
+            val album = meta?.albumTitle ?: getString(fr.retrospare.blazeplayer.R.string.unknown_generic)
             android.app.AlertDialog.Builder(requireContext())
-                .setTitle("Infos")
-                .setMessage("Titre : $title\nArtiste : $artist\nAlbum : $album")
+                .setTitle(getString(fr.retrospare.blazeplayer.R.string.info))
+                .setMessage(getString(fr.retrospare.blazeplayer.R.string.dialog_track_info_message, title, artist, album))
                 .setPositiveButton("OK", null)
                 .show()
         }
         binding.btnSleepTimer.setOnClickListener {
-            val options = arrayOf("5 minutes", "15 minutes", "30 minutes", "1 heure", "Annuler")
+            val options = arrayOf(getString(fr.retrospare.blazeplayer.R.string.minutes_5), getString(fr.retrospare.blazeplayer.R.string.minutes_15), getString(fr.retrospare.blazeplayer.R.string.minutes_30), getString(fr.retrospare.blazeplayer.R.string.hour_1), getString(fr.retrospare.blazeplayer.R.string.action_cancel))
             android.app.AlertDialog.Builder(requireContext())
-                .setTitle("Sleep Timer")
+                .setTitle(getString(fr.retrospare.blazeplayer.R.string.sleep_timer_title))
                 .setItems(options) { _, which ->
                     sleepTimerJob?.cancel()
                     val minutes = when (which) { 0->5L; 1->15L; 2->30L; 3->60L; else->0L }
@@ -677,7 +677,7 @@ class AudioPlayerFragment : Fragment() {
     private fun showCleanDialog() {
         val ctrl = controller ?: return
         if (ctrl.mediaItemCount == 0) {
-            android.widget.Toast.makeText(requireContext(), "Liste déjà vide", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.toast_list_already_empty), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         val itemsSnapshot = (0 until ctrl.mediaItemCount).map { i ->
@@ -686,9 +686,9 @@ class AudioPlayerFragment : Fragment() {
         }
         val checked = BooleanArray(itemsSnapshot.size) { false }
         androidx.appcompat.app.AlertDialog.Builder(requireContext())
-            .setTitle("Nettoyer la liste")
+            .setTitle(getString(fr.retrospare.blazeplayer.R.string.dialog_clean_list))
             .setMultiChoiceItems(itemsSnapshot.toTypedArray(), checked) { _, i, c -> checked[i] = c }
-            .setPositiveButton("Retirer sélection") { _, _ ->
+            .setPositiveButton(getString(fr.retrospare.blazeplayer.R.string.action_remove_selection)) { _, _ ->
                 val c = controller ?: return@setPositiveButton
                 // Supprime du plus grand index au plus petit pour ne pas decaler les indices
                 checked.indices.reversed().forEach { i ->
@@ -699,12 +699,12 @@ class AudioPlayerFragment : Fragment() {
                 playlistAdapter.refresh()
                 savePlaylistFromController()
             }
-            .setNeutralButton("Tout effacer") { _, _ ->
+            .setNeutralButton(getString(fr.retrospare.blazeplayer.R.string.action_clear_all)) { _, _ ->
                 controller?.clearMediaItems()
                 playlistAdapter.refresh()
                 AudioRepository.clear(requireContext())
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton(getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
             .show()
     }
 }

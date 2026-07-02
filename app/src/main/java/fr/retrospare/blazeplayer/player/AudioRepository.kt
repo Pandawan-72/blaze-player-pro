@@ -43,13 +43,13 @@ object AudioRepository {
      * Utilise pour un ajout immediat et rapide a la playlist (notamment reseau SMB),
      * les metadonnees etant ensuite chargees en arriere-plan.
      */
-    fun buildSimpleMediaItem(path: String, fileName: String): MediaItem {
+    fun buildSimpleMediaItem(context: Context, path: String, fileName: String): MediaItem {
         return MediaItem.Builder()
             .setUri(Uri.parse(path))
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(fileName.substringBeforeLast("."))
-                    .setArtist("Artiste inconnu")
+                    .setArtist(context.getString(fr.retrospare.blazeplayer.R.string.unknown_artist))
                     .build()
             )
             .build()
@@ -70,7 +70,7 @@ object AudioRepository {
             val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)?.ifEmpty { null }
                 ?: fileName.substringBeforeLast(".")
             val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)?.ifEmpty { null }
-                ?: "Artiste inconnu"
+                ?: context.getString(fr.retrospare.blazeplayer.R.string.unknown_artist)
             val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)?.ifEmpty { null } ?: ""
             val artworkData = retriever.embeddedPicture
             MediaItem.Builder()
@@ -90,7 +90,7 @@ object AudioRepository {
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(fileName.substringBeforeLast("."))
-                        .setArtist("Artiste inconnu")
+                        .setArtist(context.getString(fr.retrospare.blazeplayer.R.string.unknown_artist))
                         .build()
                 )
                 .build()

@@ -291,7 +291,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private var currentRatioIndex = 0
-    private val ratioLabels = listOf("Auto", "Zoom", "Étiré", "Plein")
+    private val ratioLabels = listOf(getString(R.string.ratio_auto), getString(R.string.ratio_zoom), getString(R.string.ratio_stretched), getString(R.string.ratio_full))
 
     private fun cycleAspectRatio() {
         currentRatioIndex = (currentRatioIndex + 1) % ratioLabels.size
@@ -310,12 +310,12 @@ class PlayerActivity : AppCompatActivity() {
         val tracks = player.currentTracks
         val audioGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
         if (audioGroups.isEmpty()) {
-            android.widget.Toast.makeText(this, "Aucune piste audio", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this, getString(R.string.toast_no_audio_track), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         val labels = audioGroups.mapIndexed { i, group ->
             val format = group.getTrackFormat(0)
-            val baseLang = format.language ?: "Piste"
+            val baseLang = format.language ?: getString(R.string.track_generic)
             val label = format.label
             when {
                 !label.isNullOrBlank() -> label
@@ -324,7 +324,7 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
         val selectedIndex = audioGroups.indexOfFirst { it.isSelected }
-        showTrackSelector("Piste audio", labels, selectedIndex) { i ->
+        showTrackSelector(getString(R.string.audio_track), labels, selectedIndex) { i ->
             val override = TrackSelectionOverride(audioGroups[i].mediaTrackGroup, 0)
             player.trackSelectionParameters = player.trackSelectionParameters
                 .buildUpon()
@@ -364,7 +364,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun showSubtitles() {
         val tracks = player.currentTracks
         val subGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
-        val labels = mutableListOf("Désactivés")
+        val labels = mutableListOf(getString(R.string.subtitles_disabled))
         subGroups.forEachIndexed { i, group ->
             val format = group.getTrackFormat(0)
             val baseLang = format.language ?: "ST"
@@ -376,7 +376,7 @@ class PlayerActivity : AppCompatActivity() {
             })
         }
         val selectedIndex = if (subGroups.none { it.isSelected }) 0 else subGroups.indexOfFirst { it.isSelected } + 1
-        showTrackSelector("Sous-titres", labels, selectedIndex) { i ->
+        showTrackSelector(getString(R.string.dialog_title_subtitles), labels, selectedIndex) { i ->
             if (i == 0) {
                 player.trackSelectionParameters = player.trackSelectionParameters
                     .buildUpon()
@@ -475,7 +475,7 @@ class PlayerActivity : AppCompatActivity() {
                         if (isDestroyed || isFinishing) return@withContext
                         android.widget.Toast.makeText(
                             this@PlayerActivity,
-                            "Ton Chromecast (${modelName ?: "modèle inconnu"}) n'est probablement pas compatible avec cette vidéo : $reason.",
+                            getString(R.string.toast_chromecast_incompatible, modelName ?: getString(R.string.unknown_model), reason),
                             android.widget.Toast.LENGTH_LONG
                         ).show()
                     }
@@ -566,7 +566,7 @@ class PlayerActivity : AppCompatActivity() {
                             .sessionManager.currentCastSession
                     } catch (e: Exception) { null }
                     val deviceName = session?.castDevice?.friendlyName
-                    binding.tvSubtitle.text = if (deviceName != null) "Diffusion sur $deviceName" else "Diffusion Chromecast"
+                    binding.tvSubtitle.text = if (deviceName != null) getString(R.string.casting_on_device, deviceName) else getString(R.string.casting_chromecast)
                     binding.tvSubtitle.visibility = View.VISIBLE
                     warnIfIncompatible(session?.castDevice?.modelName)
                 } else {
@@ -584,10 +584,10 @@ class PlayerActivity : AppCompatActivity() {
         when (prefResumeMode) {
             0 -> player.seekTo(savedMs)
             1 -> android.app.AlertDialog.Builder(this)
-                .setTitle("Reprendre la lecture")
-                .setMessage("Reprendre depuis %d:%02d ?".format(savedMs / 60000, (savedMs / 1000) % 60))
-                .setPositiveButton("Reprendre") { _, _ -> player.seekTo(savedMs) }
-                .setNegativeButton("Depuis le début") { _, _ -> player.seekTo(0) }
+                .setTitle(getString(R.string.settings_resume_playback))
+                .setMessage(getString(R.string.dialog_resume_message, savedMs / 60000, (savedMs / 1000) % 60))
+                .setPositiveButton(getString(R.string.action_resume)) { _, _ -> player.seekTo(savedMs) }
+                .setNegativeButton(getString(R.string.action_from_beginning)) { _, _ -> player.seekTo(0) }
                 .show()
         }
     }
@@ -608,15 +608,15 @@ class PlayerActivity : AppCompatActivity() {
         if (networkErrorDialogShown) return
         networkErrorDialogShown = true
         android.app.AlertDialog.Builder(this)
-            .setTitle("Erreur de lecture réseau")
-            .setMessage("La lecture de cette vidéo a échoué (connexion au NAS interrompue, Wi-Fi instable, ou fichier inaccessible).")
+            .setTitle(getString(R.string.dialog_title_network_error))
+            .setMessage(getString(R.string.dialog_network_error_message))
             .setCancelable(false)
-            .setPositiveButton("Réessayer") { _, _ ->
+            .setPositiveButton(getString(R.string.action_retry)) { _, _ ->
                 networkErrorDialogShown = false
                 player.prepare()
                 player.play()
             }
-            .setNegativeButton("Quitter") { _, _ -> finish() }
+            .setNegativeButton(getString(R.string.action_quit)) { _, _ -> finish() }
             .show()
     }
 

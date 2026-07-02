@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="Égaliseur"
+            android:text="@string/equalizer"
             android:textColor="@color/on_background"
             android:textSize="18sp"
             android:fontFamily="sans-serif-condensed" />
@@ -127,7 +127,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="PRÉRÉGLAGES"
+                android:text="@string/presets_section"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-condensed"

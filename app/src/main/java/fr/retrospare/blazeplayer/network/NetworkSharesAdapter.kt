@@ -61,7 +61,7 @@ class NetworkSharesAdapter(
             btnBrowse.setOnClickListener { onBrowse(share) }
             btnEdit.setOnClickListener {
                 android.app.AlertDialog.Builder(itemView.context)
-                    .setItems(arrayOf("Modifier", "Supprimer")) { _, which ->
+                    .setItems(arrayOf(itemView.context.getString(fr.retrospare.blazeplayer.R.string.action_edit), itemView.context.getString(fr.retrospare.blazeplayer.R.string.action_delete))) { _, which ->
                         when (which) {
                             0 -> onEdit(share)
                             1 -> onDelete(share)

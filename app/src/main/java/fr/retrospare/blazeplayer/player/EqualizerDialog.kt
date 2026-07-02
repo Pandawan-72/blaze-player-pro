@@ -136,7 +136,7 @@ class EqualizerDialog(
     private fun setupPresets() {
         eqManager.presets.keys.forEach { presetName ->
             val chip = Chip(requireContext()).apply {
-                text = presetName
+                text = eqManager.getPresetDisplayName(requireContext(), presetName)
                 isCheckable = true
                 isChecked = presetName == selectedPreset
                 chipBackgroundColor = android.content.res.ColorStateList(

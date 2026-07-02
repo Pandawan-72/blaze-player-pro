@@ -32,7 +32,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Paramètres"
+            android:text="@string/settings"
             android:textColor="@color/on_background"
             android:textSize="22sp"
             android:fontFamily="sans-serif-condensed" />
@@ -65,7 +65,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="⭐ Passer à Blaze Pro"
+                    android:text="@string/upgrade_to_pro"
                     android:textColor="@color/on_background"
                     android:textSize="15sp"
                     android:fontFamily="sans-serif-condensed" />
@@ -140,7 +140,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="INTERFACE"
+                android:text="@string/interface_section"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-condensed"
@@ -156,7 +156,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="DONNÉES"
+                android:text="@string/data_section"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-condensed"
@@ -173,7 +173,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="À PROPOS"
+                android:text="@string/about_section"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-condensed"
@@ -182,6 +182,8 @@
                 android:paddingBottom="4dp" />
 
             <include android:id="@+id/settingAbout" layout="@layout/item_setting" />
+
+            <include android:id="@+id/settingLanguage" layout="@layout/item_setting" />
 
             <View android:layout_width="match_parent" android:layout_height="1dp"
                 android:background="#1FFFFFFF" android:layout_marginVertical="16dp" />
@@ -209,7 +211,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Restaurer les achats"
+                    android:text="@string/restore_purchases"
                     android:textColor="@color/green_accent"
                     android:textSize="15sp"
                     android:fontFamily="sans-serif-condensed" />

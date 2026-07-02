@@ -10,20 +10,20 @@ object FavoriteDialogs {
         val alreadyFavorite = FavoritesManager.isFavorite(context, category, folder.path, folder.shareId)
         if (alreadyFavorite) {
             android.app.AlertDialog.Builder(context)
-                .setTitle("Déjà en favoris")
-                .setMessage("« ${folder.name} » est déjà dans tes dossiers favoris.")
-                .setPositiveButton("OK", null)
+                .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.dialog_title_already_favorite))
+                .setMessage(context.getString(fr.retrospare.blazeplayer.R.string.dialog_already_favorite_message, folder.name))
+                .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_ok), null)
                 .show()
             return
         }
         android.app.AlertDialog.Builder(context)
-            .setTitle("Ajouter dossier favori")
-            .setMessage("Ajouter « ${folder.name} » à tes dossiers favoris ? Tu pourras y accéder directement depuis l'accueil.")
-            .setPositiveButton("Ajouter") { _, _ ->
+            .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.dialog_add_favorite_folder))
+            .setMessage(context.getString(fr.retrospare.blazeplayer.R.string.dialog_add_favorite_message, folder.name))
+            .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.add)) { _, _ ->
                 FavoritesManager.addFavorite(context, category, folder)
-                Toast.makeText(context, "Ajouté aux favoris", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(fr.retrospare.blazeplayer.R.string.toast_added_to_favorites_short), Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
             .show()
     }
 
@@ -37,9 +37,9 @@ object FavoriteDialogs {
         val favorites = FavoritesManager.getFavorites(context, category)
         if (favorites.isEmpty()) {
             android.app.AlertDialog.Builder(context)
-                .setTitle("Favoris")
-                .setMessage("Aucun dossier favori pour l'instant.\n\nDans le navigateur, ouvre le menu (⋮) à côté d'un dossier pour l'ajouter à tes favoris.")
-                .setPositiveButton("OK", null)
+                .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.favorites))
+                .setMessage(context.getString(fr.retrospare.blazeplayer.R.string.dialog_no_favorite_folders))
+                .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_ok), null)
                 .show()
             return
         }
@@ -49,10 +49,10 @@ object FavoriteDialogs {
         recycler.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(context)
 
         val dialog = android.app.AlertDialog.Builder(context)
-            .setTitle("Dossiers favoris")
+            .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.dialog_favorite_folders))
             .setView(view)
-            .setNegativeButton("Gérer", null)
-            .setPositiveButton("Fermer", null)
+            .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_manage), null)
+            .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_close), null)
             .create()
 
         recycler.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
@@ -96,14 +96,14 @@ object FavoriteDialogs {
         }.toTypedArray()
         val checked = BooleanArray(favorites.size)
         android.app.AlertDialog.Builder(context)
-            .setTitle("Retirer des favoris")
+            .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.dialog_remove_favorites))
             .setMultiChoiceItems(labels, checked) { _, i, isChecked -> checked[i] = isChecked }
-            .setPositiveButton("Retirer") { _, _ ->
+            .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_remove)) { _, _ ->
                 favorites.forEachIndexed { i, f ->
                     if (checked[i]) FavoritesManager.removeFavorite(context, category, f.path, f.shareId)
                 }
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
             .show()
     }
 }

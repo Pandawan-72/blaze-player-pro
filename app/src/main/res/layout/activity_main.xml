@@ -59,7 +59,7 @@
                 android:id="@+id/tvMiniTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Titre inconnu"
+                android:text="@string/unknown_title"
                 android:textColor="@color/on_surface"
                 android:textSize="15sp"
                 android:fontFamily="sans-serif-condensed"
