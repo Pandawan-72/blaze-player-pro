@@ -24,6 +24,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
+import fr.retrospare.blazeplayer.debug.CrashReporter
 import fr.retrospare.blazeplayer.databinding.ActivityAudioPlayerBinding
 import fr.retrospare.blazeplayer.home.SharedAudioViewModel
 import kotlinx.coroutines.Dispatchers
@@ -171,8 +172,13 @@ class AudioPlayerFragment : Fragment() {
         val token = SessionToken(requireContext(), ComponentName(requireContext(), BlazePlayerService::class.java))
         controllerFuture = MediaController.Builder(requireContext(), token).buildAsync()
         controllerFuture?.addListener({
-            controller = controllerFuture?.get()
-            onControllerReady()
+            try {
+                controller = controllerFuture?.get()
+                onControllerReady()
+            } catch (e: Exception) {
+                CrashReporter.log(requireContext(), "AudioPlayer MediaController connection failed", e)
+                controller = null
+            }
         }, MoreExecutors.directExecutor())
     }
 
@@ -206,7 +212,9 @@ class AudioPlayerFragment : Fragment() {
                                     playlistAdapter.notifyItemChanged(i)
                                 }
                             }
-                        } catch (_: Exception) { }
+                        } catch (e: Exception) {
+                            CrashReporter.log(requireContext(), "Audio metadata enrichment failed", e)
+                        }
                     }
                 }
             }

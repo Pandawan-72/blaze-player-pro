@@ -20,6 +20,7 @@ import fr.retrospare.blazeplayer.network.SmbBrowser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -256,7 +257,12 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                                 }
                                 2 -> {
                                     lifecycleScope.launch {
-                                        val info = VideoMetadataExtractor.extract(this@NetworkVideoBrowserActivity, video.path)
+                                        val info = withContext(Dispatchers.IO) {
+                                            withTimeoutOrNull(8_000L) {
+                                                VideoMetadataExtractor.extractFull(this@NetworkVideoBrowserActivity, video.path)
+                                            } ?: VideoTechnicalInfo()
+                                        }
+                                        if (isFinishing || isDestroyed) return@launch
                                         val sz = if (info.sizeBytes > 0) android.text.format.Formatter.formatShortFileSize(this@NetworkVideoBrowserActivity, info.sizeBytes) else getString(R.string.unknown_size)
                                         val ds = if (info.duration > 0) info.formattedDuration else "N/A"
                                         val res = info.resolutionLabel.ifEmpty { "N/A" }

@@ -20,7 +20,6 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -93,8 +92,7 @@ class BrowserViewModel @Inject constructor(
         }
     }
 
-    fun isShowAudioFromSettings(): Boolean = 
-        runBlocking { dataStore.data.first()[booleanPreferencesKey("show_audio")] ?: false }
+    fun isShowAudioFromSettings(): Boolean = _showAudio.value
 
     fun toggleShowAudio() {
         _showAudio.value = !_showAudio.value

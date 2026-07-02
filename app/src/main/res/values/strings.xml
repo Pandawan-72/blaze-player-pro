@@ -396,4 +396,5 @@
     <!-- Notification vidéo YouTube -->
     <string name="notif_channel_youtube">Lecture YouTube</string>
     <string name="action_pause">Pause</string>
+    <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
 </resources>

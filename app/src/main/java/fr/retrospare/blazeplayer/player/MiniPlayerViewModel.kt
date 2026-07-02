@@ -15,6 +15,7 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.retrospare.blazeplayer.R
+import fr.retrospare.blazeplayer.debug.CrashReporter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -104,6 +105,7 @@ class MiniPlayerViewModel @Inject constructor(
                 })
                 refreshFromController()
             } catch (e: Exception) {
+                CrashReporter.log(context, "MiniPlayer MediaController connection failed", e)
                 _hasMedia.value = false
             }
         }, MoreExecutors.directExecutor())

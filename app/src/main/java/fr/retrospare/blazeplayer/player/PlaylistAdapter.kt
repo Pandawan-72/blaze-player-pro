@@ -128,11 +128,15 @@ class PlaylistAdapter(
                         if (loadToken != token) return@submit
                         // Extension toujours derivee du path (URI reelle), pas du nom affiche (titre sans extension)
                         val meta = kotlinx.coroutines.runBlocking {
-                            AudioMetadataExtractor.extract(itemView.context, path, path.substringAfterLast("/"))
+                            kotlinx.coroutines.withTimeoutOrNull(3_000L) {
+                                AudioMetadataExtractor.extract(itemView.context, path, path.substringAfterLast("/"))
+                            }
                         }
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            if (loadToken == token) {
-                                applyMeta(meta, trackTitle, tvArtist, tvCodec, tvBitrate, tvName)
+                        if (meta != null) {
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                if (loadToken == token) {
+                                    applyMeta(meta, trackTitle, tvArtist, tvCodec, tvBitrate, tvName)
+                                }
                             }
                         }
                     }

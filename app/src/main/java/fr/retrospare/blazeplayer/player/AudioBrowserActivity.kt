@@ -523,6 +523,10 @@ class AudioBrowserAdapter(
     private val onToggle: (Int, String, String, Boolean) -> Unit
 ) : RecyclerView.Adapter<AudioBrowserAdapter.ViewHolder>() {
 
+    companion object {
+        private val coverExecutor = java.util.concurrent.Executors.newFixedThreadPool(2)
+    }
+
     private val selected = mutableSetOf<Int>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
@@ -581,11 +585,14 @@ class AudioBrowserAdapter(
             // de re-décoder la pochette à chaque scroll comme c'était le cas avant.
             ivCover.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_artwork)
             if (item.path.isNotEmpty()) {
-                Thread {
+                val boundPath = item.path
+                coverExecutor.execute {
                     kotlinx.coroutines.runBlocking {
-                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(itemView.context, item.path, ivCover)
+                        kotlinx.coroutines.withTimeoutOrNull(2_000L) {
+                            fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(itemView.context, boundPath, ivCover)
+                        }
                     }
-                }.start()
+                }
             }
         }
     }
@@ -600,7 +607,11 @@ class CombinedAudioAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val selected = mutableSetOf<Int>()
-    companion object { const val TYPE_FOLDER = 0; const val TYPE_FILE = 1 }
+    companion object {
+        const val TYPE_FOLDER = 0
+        const val TYPE_FILE = 1
+        private val coverExecutor = java.util.concurrent.Executors.newFixedThreadPool(2)
+    }
 
     override fun getItemViewType(position: Int) = if (position < folders.size) TYPE_FOLDER else TYPE_FILE
     override fun getItemCount() = folders.size + files.size
@@ -734,7 +745,11 @@ class MixedAudioAdapter(
 ) : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
 
     private val selected = mutableSetOf<Int>()
-    companion object { const val TYPE_FOLDER = 0; const val TYPE_FILE = 1 }
+    companion object {
+        const val TYPE_FOLDER = 0
+        const val TYPE_FILE = 1
+        private val coverExecutor = java.util.concurrent.Executors.newFixedThreadPool(2)
+    }
 
     override fun getItemViewType(position: Int) = if (position < folders.size) TYPE_FOLDER else TYPE_FILE
     override fun getItemCount() = folders.size + files.size
@@ -786,11 +801,14 @@ class MixedAudioAdapter(
             val ivCover = v.findViewById<android.widget.ImageView>(R.id.ivAudioCover)
             ivCover?.setImageResource(R.drawable.bg_artwork)
             if (item.path.isNotEmpty() && ivCover != null) {
-                Thread {
+                val boundPath = item.path
+                coverExecutor.execute {
                     kotlinx.coroutines.runBlocking {
-                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(v.context, item.path, ivCover)
+                        kotlinx.coroutines.withTimeoutOrNull(2_000L) {
+                            fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(v.context, boundPath, ivCover)
+                        }
                     }
-                }.start()
+                }
             }
         }
     }

@@ -33,9 +33,56 @@ class SmbDataSource : BaseDataSource(true) {
     // On lit par blocs de 8 Mo depuis le reseau et on sert les petites lectures de Media3 depuis ce buffer.
     // 8 Mo est la taille minimale recommandée pour un débit confortable en 4K (1 Mo était trop
     // juste pour des flux haut débit et multipliait les allers-retours réseau).
-    private val readBuffer = ByteArray(8 * 1024 * 1024)
+    private val readBuffer = ByteArray(DEFAULT_READ_BUFFER_BYTES)
     private var readBufferStart: Long = -1
     private var readBufferLength: Int = 0
+
+    private fun computeNetworkReadSize(bytesWanted: Int): Int {
+        // Media3 demande souvent de très petits blocs au démarrage pour parser MP4/MKV.
+        // Lire systématiquement 8 Mo bloquait le premier frame des longues vidéos sur SMB.
+        // On précharge quand même assez pour lisser le débit, mais sans imposer une énorme
+        // lecture réseau avant que le player puisse commencer à analyser le conteneur.
+        return when {
+            bytesWanted <= 64 * 1024 -> 512 * 1024
+            bytesWanted <= 512 * 1024 -> 1024 * 1024
+            else -> minOf(DEFAULT_READ_BUFFER_BYTES, bytesWanted * 2)
+        }
+    }
+
+    private fun openSmbFile(parsed: ParsedSmbUri): Triple<DiskShare, SmbFile, Long> {
+        val share = SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
+        val file = share.openFile(
+            parsed.filePath,
+            EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
+            null,
+            SMB2ShareAccess.ALL,
+            SMB2CreateDisposition.FILE_OPEN,
+            EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
+        )
+        val size = file.getFileInformation(FileStandardInformation::class.java).endOfFile
+        return Triple(share, file, size)
+    }
+
+    private fun reopenAfterReadFailure(error: Exception): Boolean {
+        val parsed = parsedUri ?: return false
+        android.util.Log.w("SmbDataSource", "SMB read failed at $currentPosition, reconnecting once", error)
+        try { smbFile?.close() } catch (_: Exception) {}
+        try { diskShare?.close() } catch (_: Exception) {}
+        smbFile = null
+        diskShare = null
+        SmbSessionPool.invalidate(parsed.host, parsed.port, parsed.username, parsed.shareName)
+        return try {
+            val (share, file, _) = openSmbFile(parsed)
+            diskShare = share
+            smbFile = file
+            readBufferStart = -1
+            readBufferLength = 0
+            true
+        } catch (e: Exception) {
+            android.util.Log.e("SmbDataSource", "SMB reconnect failed after read error", e)
+            false
+        }
+    }
 
     override fun open(dataSpec: DataSpec): Long {
         uri = dataSpec.uri
@@ -46,19 +93,7 @@ class SmbDataSource : BaseDataSource(true) {
         // getShare()) : le DiskShare renvoyé peut devenir obsolète/fermé entre son obtention et
         // son utilisation, si un autre consommateur concurrent (le relais HTTP de cast, une
         // extraction de sous-titres...) l'invalide entre-temps.
-        fun attemptOpen(): Triple<DiskShare, SmbFile, Long> {
-            val share = SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
-            val file = share.openFile(
-                parsed.filePath,
-                EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
-                null,
-                SMB2ShareAccess.ALL,
-                SMB2CreateDisposition.FILE_OPEN,
-                EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
-            )
-            val size = file.getFileInformation(FileStandardInformation::class.java).endOfFile
-            return Triple(share, file, size)
-        }
+        fun attemptOpen(): Triple<DiskShare, SmbFile, Long> = openSmbFile(parsed)
 
         val (share, file, fileSize) = try {
             attemptOpen()
@@ -104,21 +139,31 @@ class SmbDataSource : BaseDataSource(true) {
             return toCopy
         }
 
-        // Recharge le buffer interne par gros bloc depuis le reseau
+        // Recharge le buffer interne par gros bloc depuis le reseau.
+        // IMPORTANT : une exception SMB n'est PAS une fin de fichier. Avant ce correctif, on
+        // renvoyait END_OF_INPUT sur timeout/connexion NAS perdue, ce qui arrêtait l'audio sans
+        // erreur visible. On tente une reconnexion au même offset, puis on laisse Media3 gérer une
+        // vraie IOException si la lecture reste impossible.
         var read = -2
         var attempts = 0
-        while (attempts < 5) {
+        var lastError: Exception? = null
+        while (attempts < 3) {
             read = try {
-                smbFile?.read(readBuffer, currentPosition, 0, readBuffer.size) ?: -1
+                smbFile?.read(readBuffer, currentPosition, 0, computeNetworkReadSize(bytesWanted)) ?: -1
             } catch (e: Exception) {
-                android.util.Log.e("SmbDataSource", "Read failed at position $currentPosition", e)
-                -1
+                lastError = e
+                if (attempts == 0 && reopenAfterReadFailure(e)) {
+                    attempts++
+                    continue
+                }
+                throw java.io.IOException("SMB read failed at position $currentPosition", e)
             }
             if (read != 0) break
             attempts++
         }
 
         if (read < 0) {
+            if (lastError != null) throw java.io.IOException("SMB read failed at position $currentPosition", lastError)
             return C.RESULT_END_OF_INPUT
         }
         if (read == 0) {
@@ -162,6 +207,8 @@ class SmbDataSource : BaseDataSource(true) {
     )
 
     companion object {
+        private const val DEFAULT_READ_BUFFER_BYTES = 2 * 1024 * 1024
+
         fun parseSmbUri(uri: Uri): ParsedSmbUri {
             // smb://[user[:pass]@]host[:port]/share/path/to/file
             val userInfo = uri.userInfo

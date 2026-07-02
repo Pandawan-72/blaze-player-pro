@@ -9,7 +9,14 @@ import android.util.LruCache
 import android.widget.ImageView
 import fr.retrospare.blazeplayer.R
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import java.util.concurrent.ConcurrentHashMap
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
@@ -26,6 +33,8 @@ object ThumbnailUtils {
     private val cache = object : LruCache<String, Bitmap>(15 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
+    private val inFlight = ConcurrentHashMap<String, Deferred<Bitmap?>>()
+    private val networkThumbnailSemaphore = Semaphore(2)
 
     // Cache DISQUE persistant (survit aux redémarrages de l'app) : c'est lui qui évite de
     // devoir rouvrir une connexion SMB et re-décoder une frame vidéo / une pochette audio à
@@ -107,16 +116,43 @@ object ThumbnailUtils {
     suspend fun getThumbnailBitmap(
         context: Context,
         path: String,
-        timeUs: Long = 30_000_000L
-    ): Bitmap? = withContext(Dispatchers.IO) {
-        try {
-            // 1. Cache mémoire (le plus rapide, RAM)
-            cache.get(path)?.let { return@withContext it }
+        timeUs: Long = if (path.startsWith("smb://")) 10_000_000L else 5_000_000L
+    ): Bitmap? = coroutineScope {
+        // Cache mémoire immédiat avant de passer sur IO.
+        cache.get(path)?.let { return@coroutineScope it }
 
-            // 2. Cache disque (rapide, local, pas de reseau/SMB requis)
+        // Déduplique les demandes simultanées causées par RecyclerView + notification.
+        inFlight[path]?.let { return@coroutineScope it.await() }
+
+        val deferred = async(Dispatchers.IO) {
+            withTimeoutOrNull(if (path.startsWith("smb://")) 3_500L else 6_000L) {
+                if (path.startsWith("smb://")) {
+                    networkThumbnailSemaphore.withPermit {
+                        extractThumbnailInternal(context.applicationContext, path, timeUs)
+                    }
+                } else {
+                    extractThumbnailInternal(context.applicationContext, path, timeUs)
+                }
+            } ?: run {
+                android.util.Log.w("ThumbnailUtils", "Thumbnail timeout for $path")
+                null
+            }
+        }
+        inFlight[path] = deferred
+        try {
+            deferred.await()
+        } finally {
+            inFlight.remove(path, deferred)
+        }
+    }
+
+    private fun extractThumbnailInternal(context: Context, path: String, timeUs: Long): Bitmap? {
+        return try {
+            cache.get(path)?.let { return it }
+
             readFromDisk(context, path)?.let { fromDisk ->
                 cache.put(path, fromDisk)
-                return@withContext fromDisk
+                return fromDisk
             }
 
             val ext = path.substringAfterLast('.', "").lowercase()
@@ -124,35 +160,33 @@ object ThumbnailUtils {
 
             if (isAudio) {
                 val bitmap = try {
-                    if (path.startsWith("content://")) {
-                        val id = path.substringAfterLast("/").toLongOrNull()
-                        if (id != null) {
-                            val albumUri = Uri.parse("content://media/external/audio/media/$id/albumart")
-                            context.contentResolver.openInputStream(albumUri)?.use {
-                                val opts = BitmapFactory.Options().apply {
-                                    inSampleSize = 2 // réduit de moitié à la lecture
-                                }
-                                BitmapFactory.decodeStream(it, null, opts)
-                            }
-                        } else null
-                    } else if (path.startsWith("smb://")) {
-                        // Pochette embarquée d'un fichier audio réseau : nécessite le DataSource SMB
-                        // dédié (MediaMetadataRetriever#setDataSource(String) ne comprend pas smb://).
-                        var smbDataSourceAudio: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
-                        try {
-                            smbDataSourceAudio = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
-                            MediaMetadataRetriever().use { r ->
-                                r.setDataSource(smbDataSourceAudio)
-                                r.embeddedPicture?.let {
+                    when {
+                        path.startsWith("content://") -> {
+                            val id = path.substringAfterLast("/").toLongOrNull()
+                            if (id != null) {
+                                val albumUri = Uri.parse("content://media/external/audio/media/$id/albumart")
+                                context.contentResolver.openInputStream(albumUri)?.use {
                                     val opts = BitmapFactory.Options().apply { inSampleSize = 2 }
-                                    BitmapFactory.decodeByteArray(it, 0, it.size, opts)
+                                    BitmapFactory.decodeStream(it, null, opts)
                                 }
-                            }
-                        } finally {
-                            try { smbDataSourceAudio?.close() } catch (_: Exception) {}
+                            } else null
                         }
-                    } else {
-                        MediaMetadataRetriever().use { r ->
+                        path.startsWith("smb://") -> {
+                            var smbDataSourceAudio: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
+                            try {
+                                smbDataSourceAudio = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
+                                MediaMetadataRetriever().use { r ->
+                                    r.setDataSource(smbDataSourceAudio)
+                                    r.embeddedPicture?.let {
+                                        val opts = BitmapFactory.Options().apply { inSampleSize = 2 }
+                                        BitmapFactory.decodeByteArray(it, 0, it.size, opts)
+                                    }
+                                }
+                            } finally {
+                                try { smbDataSourceAudio?.close() } catch (_: Exception) {}
+                            }
+                        }
+                        else -> MediaMetadataRetriever().use { r ->
                             r.setDataSource(path)
                             r.embeddedPicture?.let {
                                 val opts = BitmapFactory.Options().apply { inSampleSize = 2 }
@@ -160,18 +194,17 @@ object ThumbnailUtils {
                             }
                         }
                     }
-                } catch (e: Exception) { null }
+                } catch (_: Exception) { null }
 
-                if (bitmap != null) {
-                    val scaled = scaleBitmap(bitmap, 128)
+                bitmap?.let {
+                    val scaled = scaleBitmap(it, 128)
                     cache.put(path, scaled)
                     writeToDisk(context, path, scaled)
                     scaled
-                } else {
-                    null
                 }
             } else {
-                // Vidéo - réduit la résolution d'extraction
+                // Réseau SMB : frame à 10s + sync frame. Une miniature à 30s force
+                // souvent des seeks profonds et lents dans les longs MKV/MP4 réseau.
                 val retriever = MediaMetadataRetriever()
                 var smbDataSource: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
                 try {
@@ -181,12 +214,11 @@ object ThumbnailUtils {
                     } else {
                         retriever.setDataSource(context, Uri.parse(path))
                     }
-                    var bitmap = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST)
-                    if (bitmap == null) {
-                        bitmap = retriever.frameAtTime
-                    }
+                    val option = if (path.startsWith("smb://")) MediaMetadataRetriever.OPTION_CLOSEST_SYNC else MediaMetadataRetriever.OPTION_CLOSEST
+                    var bitmap = retriever.getFrameAtTime(timeUs, option)
+                    if (bitmap == null && !path.startsWith("smb://")) bitmap = retriever.frameAtTime
                     bitmap?.let {
-                        val scaled = scaleBitmap(it, 160)
+                        val scaled = scaleBitmap(it, if (path.startsWith("smb://")) 144 else 160)
                         cache.put(path, scaled)
                         writeToDisk(context, path, scaled)
                         scaled
@@ -206,12 +238,14 @@ object ThumbnailUtils {
         context: Context,
         path: String,
         imageView: ImageView,
-        timeUs: Long = 30_000_000L
+        timeUs: Long = if (path.startsWith("smb://")) 10_000_000L else 5_000_000L
     ) {
+        imageView.setTag(R.id.ivThumbnail, path)
         val bitmap = getThumbnailBitmap(context, path, timeUs)
         val ext = path.substringAfterLast('.', "").lowercase()
         val isAudio = ext in audioExtensions
         withContext(Dispatchers.Main) {
+            if (imageView.getTag(R.id.ivThumbnail) != path) return@withContext
             if (bitmap != null) {
                 imageView.setImageBitmap(bitmap)
                 imageView.scaleType = ImageView.ScaleType.CENTER_CROP

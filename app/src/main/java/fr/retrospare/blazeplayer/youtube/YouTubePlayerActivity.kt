@@ -14,6 +14,12 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import kotlinx.coroutines.flow.first
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import coil.imageLoader
 import coil.request.ImageRequest
 import kotlinx.coroutines.launch
@@ -48,11 +54,15 @@ import fr.retrospare.blazeplayer.R
  *  pas de MediaSessionService automatique comme pour la vidéo locale/réseau. Une MediaSessionCompat
  *  "manuelle" pilote ici une notification MediaStyle (titre, chaîne, miniature, lecture/pause, et
  *  précédent/suivant si on est dans une playlist), affichée pendant que l'activité est active. */
+@AndroidEntryPoint
 class YouTubePlayerActivity : AppCompatActivity() {
+
+    @Inject lateinit var dataStore: DataStore<Preferences>
 
     private lateinit var youTubePlayerView: YouTubePlayerView
     private var youTubePlayer: YouTubePlayer? = null
     private var isCurrentlyPlaying = false
+    private var prefPip = false
 
     private var playlistIds: List<String> = emptyList()
     private var playlistTitles: List<String> = emptyList()
@@ -129,6 +139,15 @@ class YouTubePlayerActivity : AppCompatActivity() {
         createNotificationChannel()
         setupMediaSession()
         registerNotificationActionReceiver()
+
+        lifecycleScope.launch {
+            try {
+                prefPip = dataStore.data.first()[booleanPreferencesKey("pip")] ?: false
+            } catch (e: Exception) {
+                android.util.Log.w("YouTubePlayerActivity", "Lecture préférence PiP impossible", e)
+                prefPip = false
+            }
+        }
 
         youTubePlayerView = findViewById(R.id.youtubePlayerView)
         lifecycle.addObserver(youTubePlayerView)
@@ -370,6 +389,9 @@ class YouTubePlayerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        try { youTubePlayer?.pause() } catch (e: Exception) {
+            android.util.Log.w("YouTubePlayerActivity", "Échec pause lecteur YouTube en fermeture", e)
+        }
         super.onDestroy()
         try {
             androidx.core.app.NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID)
@@ -400,7 +422,7 @@ class YouTubePlayerActivity : AppCompatActivity() {
      *  activement en cours de lecture. */
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (isCurrentlyPlaying && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        if (prefPip && isCurrentlyPlaying && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             try {
                 enterPictureInPictureMode(buildPipParams())
             } catch (e: Exception) {

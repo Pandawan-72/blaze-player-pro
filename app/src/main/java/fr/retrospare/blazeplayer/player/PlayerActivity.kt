@@ -4,12 +4,18 @@ import android.content.pm.ActivityInfo
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
+import android.content.res.Configuration
 import android.os.Handler
 import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
+import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -31,6 +37,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.cast.VideoStreamServerManager
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
+import fr.retrospare.blazeplayer.debug.CrashReporter
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +47,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
@@ -104,6 +113,8 @@ class PlayerActivity : AppCompatActivity() {
     private var maxVolume = 0
     private var networkErrorDialogShown = false
     private var compatWarningShown = false
+    private var hasEnteredPip = false
+    private var videoStoppedByUser = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -119,9 +130,15 @@ class PlayerActivity : AppCompatActivity() {
 
         binding = ActivityPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applyImmersiveMode()
+        applyResponsivePlayerLayout()
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-            binding.uiOverlay.setPadding(0, systemBars.top, 0, systemBars.bottom)
+            if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                binding.uiOverlay.setPadding(0, 0, 0, 0)
+            } else {
+                binding.uiOverlay.setPadding(0, systemBars.top, 0, systemBars.bottom)
+            }
             insets
         }
 
@@ -139,20 +156,47 @@ class PlayerActivity : AppCompatActivity() {
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
         // Démarre tout de suite le relais HTTP local : le MediaItem construit plus bas en a besoin.
-        VideoStreamServerManager.startServer(applicationContext, mediaPath)
+        try {
+            VideoStreamServerManager.startServer(applicationContext, mediaPath)
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to start local video stream server for $mediaPath", e)
+            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
 
         // Met l'audio en pause (sans arrêter le service ni sa notification) pour pouvoir la
         // relancer facilement une fois la vidéo terminée, au lieu de couper BlazePlayerService.
         pauseAudioPlaybackKeepingNotification()
 
-        // Démarre VideoPlaybackService (ExoPlayer + CastPlayer + MediaSession vidéo)
-        startService(android.content.Intent(this, VideoPlaybackService::class.java))
+        // Démarre VideoPlaybackService (ExoPlayer + CastPlayer + MediaSession vidéo). Toute erreur
+        // ici était auparavant fatale ou silencieuse selon les appareils : on la loggue et on sort
+        // proprement au lieu de laisser l'Activity attendre un player qui n'arrivera jamais.
+        try {
+            startService(android.content.Intent(this, VideoPlaybackService::class.java))
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to start VideoPlaybackService", e)
+            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
 
         val token = SessionToken(this, android.content.ComponentName(this, VideoPlaybackService::class.java))
         controllerFuture = MediaController.Builder(this, token).buildAsync()
         controllerFuture!!.addListener({
-            player = controllerFuture!!.get()
-            playerReady.complete(Unit)
+            try {
+                player = controllerFuture!!.get()
+                playerReady.complete(Unit)
+            } catch (e: Exception) {
+                CrashReporter.log(this, "MediaController connection failed for video service", e)
+                if (!playerReady.isCompleted) playerReady.completeExceptionally(e)
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+                        finish()
+                    }
+                }
+            }
         }, MoreExecutors.directExecutor())
 
         binding.tvTitle.text = mediaName
@@ -185,7 +229,21 @@ class PlayerActivity : AppCompatActivity() {
             binding.tvRewindLabel.text = "−${SEEK_LABELS.getOrElse(prefSeekIndex) { "10s" }}"
             binding.tvForwardLabel.text = "+${SEEK_LABELS.getOrElse(prefSeekIndex) { "10s" }}"
 
-            playerReady.await()
+            val ready = try {
+                withTimeoutOrNull(6_000) {
+                    playerReady.await()
+                    true
+                } ?: false
+            } catch (e: Exception) {
+                CrashReporter.log(this@PlayerActivity, "Video player controller failed for $mediaPath", e)
+                false
+            }
+            if (!ready || !::player.isInitialized) {
+                CrashReporter.log(this@PlayerActivity, "Video player controller timeout for $mediaPath")
+                android.widget.Toast.makeText(this@PlayerActivity, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+                finish()
+                return@launch
+            }
             onPlayerReady()
 
             val audioLang = SUB_LANG_CODES.getOrNull(prefAudioLangIndex)
@@ -194,41 +252,52 @@ class PlayerActivity : AppCompatActivity() {
                 .apply { if (audioLang != null) setPreferredAudioLanguage(audioLang) }
                 .build()
             player.setPlaybackSpeed(SPEEDS.getOrElse(prefSpeedIndex) { 1.0f })
+            updateSpeedLabel()
 
             val savedMs = getSharedPreferences("blaze_positions", MODE_PRIVATE).getLong(mediaPath, 0L)
-            val startPosition = if (prefResumeMode != 2 && savedMs > 3000L) savedMs else 0L
-            if (startPosition > 0L) resumeHandled = true
+            val hasResumePosition = savedMs > 3000L
+            val startPosition = when {
+                // Mode "toujours reprendre" : on démarre directement à la dernière position.
+                prefResumeMode == 0 && hasResumePosition -> savedMs
+                // Mode "demander" : on doit laisser handleResume() afficher le modal.
+                // Ne pas pré-positionner ici, sinon le dialogue est court-circuité.
+                else -> 0L
+            }
+            resumeHandled = prefResumeMode != 1 && startPosition > 0L
 
             loadMedia(mediaPath, mediaName, startPosition)
 
             startProgressLoop()
         }
 
-        // Extrait miniature vidéo en arrière-plan (pour l'historique/les vignettes)
+        // Extrait miniature vidéo en arrière-plan, bornée dans le temps. Sur SMB, le retriever
+        // natif peut rester coincé longtemps : on ne doit jamais laisser ce job concurrencer la lecture.
         lifecycleScope.launch(Dispatchers.IO) {
-            var smbDataSourceThumb: SmbMediaDataSource? = null
-            try {
+            withTimeoutOrNull(2_000) {
+                var smbDataSourceThumb: SmbMediaDataSource? = null
                 val r = android.media.MediaMetadataRetriever()
-                when {
-                    mediaPath.startsWith("smb://") -> {
-                        smbDataSourceThumb = SmbMediaDataSource(mediaPath)
-                        r.setDataSource(smbDataSourceThumb)
+                try {
+                    when {
+                        mediaPath.startsWith("smb://") -> {
+                            smbDataSourceThumb = SmbMediaDataSource(mediaPath)
+                            r.setDataSource(smbDataSourceThumb)
+                        }
+                        mediaPath.startsWith("content://") -> r.setDataSource(this@PlayerActivity, Uri.parse(mediaPath))
+                        else -> r.setDataSource(mediaPath)
                     }
-                    mediaPath.startsWith("content://") -> r.setDataSource(this@PlayerActivity, Uri.parse(mediaPath))
-                    else -> r.setDataSource(mediaPath)
+                    val frame = r.getFrameAtTime(10_000_000)
+                    frame?.let {
+                        val scale = 256f / maxOf(it.width, it.height)
+                        if (scale < 1f) android.graphics.Bitmap.createScaledBitmap(it, (it.width * scale).toInt(), (it.height * scale).toInt(), true).also { _ -> it.recycle() }
+                        else it
+                    }
+                } catch (e: Exception) {
+                    CrashReporter.log(this@PlayerActivity, "Thumbnail extraction failed for $mediaPath", e)
+                } finally {
+                    try { r.release() } catch (_: Exception) {}
+                    try { smbDataSourceThumb?.close() } catch (_: Exception) {}
                 }
-                val frame = r.getFrameAtTime(1_000_000)
-                frame?.let {
-                    val scale = 256f / maxOf(it.width, it.height)
-                    if (scale < 1f) android.graphics.Bitmap.createScaledBitmap(it, (it.width * scale).toInt(), (it.height * scale).toInt(), true).also { _ -> it.recycle() }
-                    else it
-                }
-                r.release()
-                try { smbDataSourceThumb?.close() } catch (_: Exception) {}
-            } catch (e: Exception) {
-                android.util.Log.e("PlayerActivity", "Thumbnail extraction failed for $mediaPath", e)
-                try { smbDataSourceThumb?.close() } catch (_: Exception) {}
-            }
+            } ?: CrashReporter.log(this@PlayerActivity, "Thumbnail extraction timeout for $mediaPath")
         }
     }
 
@@ -275,6 +344,7 @@ class PlayerActivity : AppCompatActivity() {
     /** Point d'entrée UNIQUE pour charger un média. API Player standard uniquement :
      *  setMediaItem -> prepare -> play. Pas de RemoteMediaClient, pas de MediaQueueItem manuel. */
     private fun loadMedia(path: String, name: String, positionMs: Long = 0L) {
+        videoStoppedByUser = false
         val item = buildMediaItem(path, name)
         android.util.Log.i(
             "CAST",
@@ -298,17 +368,41 @@ class PlayerActivity : AppCompatActivity() {
      *  pour afficher l'image dans la notification Android. */
     private fun loadNotificationArtwork(path: String) {
         lifecycleScope.launch(Dispatchers.IO) {
+            // Miniature notification vidéo réseau : on tente d'abord le cache/ThumbnailUtils
+            // habituel, puis un fallback via l'URL HTTP locale déjà servie au player. Sans ce
+            // fallback, une extraction SMB directe lente ou refusée laissait souvent la notification
+            // Android sans artwork pour les vidéos réseau.
             val bitmap = try {
-                fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(applicationContext, path)
+                withTimeoutOrNull(3_500) {
+                    fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(applicationContext, path, if (path.startsWith("smb://")) 10_000_000L else 5_000_000L)
+                }
             } catch (e: Exception) {
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail primary extraction failed", e)
+                null
+            } ?: try {
+                val streamUrl = fr.retrospare.blazeplayer.cast.VideoStreamServerManager.getStreamUrl()
+                if (streamUrl != null && (path.startsWith("smb://") || path.startsWith("ftp://") || path.startsWith("http://") || path.startsWith("https://"))) {
+                    android.media.MediaMetadataRetriever().use { retriever ->
+                        retriever.setDataSource(applicationContext, android.net.Uri.parse(streamUrl))
+                        retriever.getFrameAtTime(10_000_000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                            ?: retriever.frameAtTime
+                    }
+                } else null
+            } catch (e: Exception) {
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail HTTP fallback failed", e)
                 null
             } ?: return@launch
 
             val artworkData = try {
+                val scaled = if (bitmap.width > 512 || bitmap.height > 512) {
+                    val ratio = 512f / maxOf(bitmap.width, bitmap.height)
+                    android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * ratio).toInt(), (bitmap.height * ratio).toInt(), true)
+                } else bitmap
                 val stream = java.io.ByteArrayOutputStream()
-                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, stream)
+                scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 86, stream)
                 stream.toByteArray()
             } catch (e: Exception) {
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail encoding failed", e)
                 null
             } ?: return@launch
 
@@ -318,20 +412,28 @@ class PlayerActivity : AppCompatActivity() {
                 val current = player.currentMediaItem ?: return@withContext
                 if (current.mediaId != path) return@withContext
                 // Envoyée au service (qui détient l'instance réelle du player) plutôt que
-                // d'appeler replaceMediaItem() directement ici sur le MediaController : ce
-                // dernier ne répercute pas fiablement la mise à jour vers la notification —
-                // problème connu de Media3 (issue androidx/media#706).
+                // d'appeler replaceMediaItem() directement ici sur le MediaController.
                 val args = android.os.Bundle().apply {
                     putString(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_MEDIA_ID, path)
                     putByteArray(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_DATA, artworkData)
                 }
-                (player as? MediaController)?.sendCustomCommand(
+                val future = (player as? MediaController)?.sendCustomCommand(
                     androidx.media3.session.SessionCommand(
                         fr.retrospare.blazeplayer.player.VideoPlaybackService.CUSTOM_COMMAND_SET_ARTWORK,
                         android.os.Bundle.EMPTY
                     ),
                     args
                 )
+                future?.addListener({
+                    try {
+                        val result = future.get()
+                        if (result.resultCode != androidx.media3.session.SessionResult.RESULT_SUCCESS) {
+                            android.util.Log.w("PlayerActivity", "Artwork command failed result=${result.resultCode}")
+                        }
+                    } catch (e: Exception) {
+                        fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification artwork command failed", e)
+                    }
+                }, androidx.core.content.ContextCompat.getMainExecutor(this@PlayerActivity))
             }
         }
     }
@@ -453,6 +555,11 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        applyImmersiveMode()
+    }
+
     override fun onPause() {
         super.onPause()
         if (!::player.isInitialized) return
@@ -472,9 +579,11 @@ class PlayerActivity : AppCompatActivity() {
             getSharedPreferences("blaze_positions", MODE_PRIVATE).edit().putLong(mediaPath, pos).apply()
             lifecycleScope.launch { mediaRepository.updateProgress(mediaPath, pos / 1000) }
         }
-        val isCasting = player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE
+        // Home / app switch : on détache uniquement la surface pour éviter les leaks UI.
+        // La lecture continue dans VideoPlaybackService ; si le PiP est activé, Android garde
+        // la surface PiP. L'arrêt réel se fait dans VideoPlaybackService.onTaskRemoved() lors
+        // du swipe depuis les tâches récentes.
         binding.playerView.player = null
-        if (!isCasting) player.pause()
     }
 
     override fun onDestroy() {
@@ -484,10 +593,29 @@ class PlayerActivity : AppCompatActivity() {
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controllerFuture = null
         val isCasting = if (::player.isInitialized) player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE else false
-        if (!isCasting) VideoStreamServerManager.stopServer()
-        // BlazePlayerService n'est plus jamais arrêté à l'ouverture d'une vidéo (juste mis en
-        // pause) : cet appel garantit simplement qu'il tourne toujours après fermeture du player.
-        startService(android.content.Intent(this, BlazePlayerService::class.java))
+        // Si l'utilisateur ferme la fenêtre Picture-in-Picture avec la croix système, Android
+        // détruit l'Activity PiP sans passer par notre bouton Stop. Dans ce cas seulement, on
+        // coupe la lecture et le service pour supprimer immédiatement la notification vidéo.
+        if (hasEnteredPip && !isChangingConfigurations) {
+            try {
+                if (::player.isInitialized) {
+                    player.pause()
+                    player.stop()
+                    player.clearMediaItems()
+                }
+            } catch (e: Exception) {
+                CrashReporter.log(this, "Failed to stop video after PiP close", e)
+            }
+            try { stopService(android.content.Intent(this, VideoPlaybackService::class.java)) } catch (e: Exception) {
+                CrashReporter.log(this, "Failed to stop VideoPlaybackService after PiP close", e)
+            }
+            try { VideoStreamServerManager.stopServer() } catch (e: Exception) {
+                CrashReporter.log(this, "Failed to stop local video stream server after PiP close", e)
+            }
+        } else if (!isCasting) VideoStreamServerManager.stopServer()
+        // Ne pas relancer artificiellement le service audio ici : après un swipe de fermeture,
+        // cela recréait une notification audio fantôme. La reprise audio doit venir d'une action
+        // utilisateur explicite ou d'un contrôleur déjà connecté, pas de la destruction du player.
     }
 
     /** Met en pause la lecture audio (BlazePlayerService) sans arrêter le service ni sa
@@ -518,7 +646,9 @@ class PlayerActivity : AppCompatActivity() {
         if (compatWarningShown) return
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val info = VideoMetadataExtractor.extract(applicationContext, mediaPath)
+                val info = withTimeoutOrNull(2_000) {
+                    VideoMetadataExtractor.extractLight(applicationContext, mediaPath)
+                } ?: VideoTechnicalInfo()
                 val reason = fr.retrospare.blazeplayer.cast.ChromecastCompatibility.incompatibilityReason(info, modelName)
                 if (reason != null) {
                     compatWarningShown = true
@@ -531,7 +661,9 @@ class PlayerActivity : AppCompatActivity() {
                         ).show()
                     }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                CrashReporter.log(this@PlayerActivity, "Chromecast compatibility check failed for $mediaPath", e)
+            }
         }
     }
 
@@ -671,10 +803,95 @@ class PlayerActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun showQuickVideoInfo() {
+        val duration = if (::player.isInitialized && player.duration > 0) formatTime(player.duration) else "--:--"
+        val sizeLabel = if (mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) "Réseau" else "Local"
+        binding.seekIndicator.text = "$mediaName • $duration • $sizeLabel"
+        binding.seekIndicator.visibility = View.VISIBLE
+        uiHandler.postDelayed({ binding.seekIndicator.visibility = View.GONE }, 2600)
+    }
+
+    private fun applyImmersiveMode() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.hide(WindowInsetsCompat.Type.navigationBars())
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) applyImmersiveMode()
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyImmersiveMode()
+        applyResponsivePlayerLayout()
+    }
+
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    /** Ajustements fins du layout vidéo selon l'orientation.
+     *
+     * Portrait : les boutons -10/+10 sont placés plus près du vrai milieu entre le bouton Play
+     * et les barres tactiles latérales, pour éviter l'impression de contrôles éparpillés.
+     * Paysage : la timeline est volontairement plus courte, et les barres tactiles remontent un
+     * peu en se rapprochant du centre afin de ne plus chevaucher les contrôles système/lecteur.
+     */
+    private fun applyResponsivePlayerLayout() {
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+        (binding.btnPlayPause.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
+            val margin = if (landscape) dp(34) else dp(18)
+            lp.marginStart = margin
+            lp.marginEnd = margin
+            binding.btnPlayPause.layoutParams = lp
+        }
+
+        binding.bottomControlsContainer.setPadding(
+            if (landscape) dp(54) else dp(14),
+            binding.bottomControlsContainer.paddingTop,
+            if (landscape) dp(54) else dp(14),
+            if (landscape) dp(14) else dp(18)
+        )
+
+        binding.timelineRow.setPadding(
+            if (landscape) dp(10) else dp(2),
+            binding.timelineRow.paddingTop,
+            if (landscape) dp(10) else dp(2),
+            binding.timelineRow.paddingBottom
+        )
+
+        fun tuneTouchPanel(panel: View, gravitySide: Int) {
+            val lp = (panel.layoutParams as? FrameLayout.LayoutParams) ?: return
+            lp.gravity = android.view.Gravity.CENTER_VERTICAL or gravitySide
+            if (gravitySide == android.view.Gravity.START) {
+                lp.marginStart = if (landscape) dp(72) else dp(24)
+                lp.marginEnd = 0
+            } else {
+                lp.marginEnd = if (landscape) dp(72) else dp(24)
+                lp.marginStart = 0
+            }
+            panel.translationY = if (landscape) -dp(38).toFloat() else 0f
+            panel.layoutParams = lp
+        }
+        tuneTouchPanel(binding.touchZoneLeft, android.view.Gravity.START)
+        tuneTouchPanel(binding.touchZoneRight, android.view.Gravity.END)
+    }
+
     private fun setupControls() {
         binding.btnBack.setOnClickListener { goBackToHistory() }
 
         binding.btnPlayPause.setOnClickListener {
+            if (videoStoppedByUser) {
+                lifecycleScope.launch { restartVideoAfterUserStop() }
+                return@setOnClickListener
+            }
             if (!::player.isInitialized) return@setOnClickListener
             if (player.isPlaying) player.pause() else player.play()
             scheduleHide()
@@ -697,19 +914,94 @@ class PlayerActivity : AppCompatActivity() {
         binding.btnNext.setOnClickListener { scheduleHide(); playNext() }
 
         binding.btnRatio.setOnClickListener { scheduleHide(); cycleAspectRatio() }
+        binding.btnSeekInfo.setOnClickListener { scheduleHide(); showQuickVideoInfo() }
         binding.btnAudio.setOnClickListener { scheduleHide(); showAudioTracks() }
         binding.btnSubtitles.setOnClickListener { scheduleHide(); showSubtitles() }
+        binding.btnSpeed.setOnClickListener { scheduleHide(); cyclePlaybackSpeed() }
+        binding.btnHeaderCast.setOnClickListener {
+            scheduleHide()
+            binding.seekIndicator.text = "Chromecast disponible depuis le bouton Cast système"
+            binding.seekIndicator.visibility = View.VISIBLE
+            uiHandler.postDelayed({ binding.seekIndicator.visibility = View.GONE }, 2000)
+        }
         binding.uiOverlay.setOnClickListener { if (uiVisible) hideUI() else showUI() }
         binding.playerView.setOnClickListener { if (uiVisible) hideUI() else showUI() }
 
-        // Stop réel (pas juste pause) : remet la lecture au tout début et met en pause, à la
-        // différence de play/pause qui ne fait qu'alterner l'état sans revenir en arrière.
+        // Stop réel : coupe la session vidéo, remet l'écran du lecteur au noir et laisse
+        // VideoPlaybackService se détruire pour retirer immédiatement la notification Android.
         binding.btnStop.setOnClickListener {
-            scheduleHide()
-            if (::player.isInitialized) {
+            stopVideoPlaybackFromUi()
+        }
+    }
+
+
+    /**
+     * Bouton STOP du lecteur vidéo.
+     *
+     * Comportement attendu : contrairement au bouton Home, c'est une fermeture explicite de la
+     * lecture. On ne revient pas simplement à 0 en pause : on supprime la surface vidéo pour que
+     * l'écran devienne noir, on vide la session Media3, on coupe le relais HTTP local et on arrête
+     * VideoPlaybackService afin que la notification Android disparaisse.
+     */
+    private fun stopVideoPlaybackFromUi() {
+        cancelHide()
+        videoStoppedByUser = true
+        try {
+            binding.playerView.player = null
+            binding.playerView.setShutterBackgroundColor(android.graphics.Color.BLACK)
+            binding.playerView.setBackgroundColor(android.graphics.Color.BLACK)
+            binding.tvCurrentTime.text = "0:00:00"
+            binding.tvTotalTime.text = "0:00:00"
+            binding.progressFill.layoutParams.width = 0
+            binding.progressFill.requestLayout()
+            binding.progressThumb.translationX = 0f
+            binding.progressBuffer.layoutParams.width = 0
+            binding.progressBuffer.requestLayout()
+            binding.ivPlayPause.setImageResource(R.drawable.ic_play)
+            hideUI()
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to reset video UI on stop", e)
+        }
+
+        if (::player.isInitialized) {
+            try {
                 player.pause()
-                player.seekTo(0L)
+                player.stop()
+                player.clearMediaItems()
+            } catch (e: Exception) {
+                CrashReporter.log(this, "Failed to stop video player from stop button", e)
             }
+        }
+
+        try {
+            VideoStreamServerManager.stopServer()
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to stop local video stream server from stop button", e)
+        }
+
+        try {
+            stopService(android.content.Intent(this, VideoPlaybackService::class.java))
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to stop VideoPlaybackService from stop button", e)
+        }
+    }
+
+    private fun updateSpeedLabel() {
+        val speed = SPEEDS.getOrElse(prefSpeedIndex) { 1.0f }
+        binding.tvSpeedValue.text = String.format(Locale.US, "%.2f×", speed)
+    }
+
+    private fun cyclePlaybackSpeed() {
+        if (!::player.isInitialized) return
+        prefSpeedIndex = (prefSpeedIndex + 1) % SPEEDS.size
+        val speed = SPEEDS.getOrElse(prefSpeedIndex) { 1.0f }
+        player.setPlaybackSpeed(speed)
+        updateSpeedLabel()
+        binding.seekIndicator.text = String.format(Locale.US, "%.2f×", speed)
+        binding.seekIndicator.visibility = View.VISIBLE
+        uiHandler.postDelayed({ binding.seekIndicator.visibility = View.GONE }, 1400)
+        lifecycleScope.launch {
+            dataStore.edit { it[intPreferencesKey("speed_index")] = prefSpeedIndex }
         }
     }
 
@@ -746,9 +1038,60 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+
+    private suspend fun restartVideoAfterUserStop() {
+        if (mediaPath.isBlank()) return
+        cancelHide()
+        try {
+            VideoStreamServerManager.startServer(applicationContext, mediaPath)
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to restart local video stream server after user stop for $mediaPath", e)
+            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+
+        try {
+            startService(android.content.Intent(this, VideoPlaybackService::class.java))
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to restart VideoPlaybackService after user stop", e)
+            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+
+        try {
+            controllerFuture?.let { MediaController.releaseFuture(it) }
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to release old video MediaController after user stop", e)
+        }
+
+        val token = SessionToken(this, android.content.ComponentName(this, VideoPlaybackService::class.java))
+        val newFuture = MediaController.Builder(this, token).buildAsync()
+        controllerFuture = newFuture
+        val controller = try {
+            withContext(Dispatchers.IO) { newFuture.get(6, TimeUnit.SECONDS) }
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to reconnect video MediaController after user stop", e)
+            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+
+        player = controller
+        binding.playerView.player = player
+        binding.playerView.setShutterBackgroundColor(android.graphics.Color.BLACK)
+        binding.playerView.setBackgroundColor(android.graphics.Color.BLACK)
+        playNextCalled = false
+        // Après STOP puis PLAY, on relance le média comme une nouvelle ouverture :
+        // le mode "demander" doit donc afficher le modal de reprise si une position existe.
+        resumeHandled = false
+        loadMedia(mediaPath, mediaName, 0L)
+        startProgressLoop()
+        showUI()
+        scheduleHide()
+    }
+
     private fun setupGestures() {
         binding.touchZoneLeft.setOnTouchListener { _, ev ->
-            val h = binding.touchZoneLeft.height.toFloat()
+            val h = (binding.touchZoneLeftFill.parent as View).height.toFloat().coerceAtLeast(1f)
             when (ev.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     zoneTouching = true; cancelHide()
@@ -759,6 +1102,7 @@ class PlayerActivity : AppCompatActivity() {
                     setBrightness(b)
                     binding.touchZoneLeftFill.layoutParams.height = (h * b).toInt()
                     binding.touchZoneLeftFill.requestLayout()
+                    binding.touchZoneLeftThumb.translationY = -h * b
                     binding.tvBrightnessZone.text = "${(b * 100).toInt()}%"
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { zoneTouching = false; scheduleHide() }
@@ -766,7 +1110,7 @@ class PlayerActivity : AppCompatActivity() {
             true
         }
         binding.touchZoneRight.setOnTouchListener { _, ev ->
-            val h = binding.touchZoneRight.height.toFloat()
+            val h = (binding.touchZoneRightFill.parent as View).height.toFloat().coerceAtLeast(1f)
             when (ev.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     zoneTouching = true; cancelHide()
@@ -779,6 +1123,7 @@ class PlayerActivity : AppCompatActivity() {
                     val pct = v.toFloat() / maxVolume
                     binding.touchZoneRightFill.layoutParams.height = (h * pct).toInt()
                     binding.touchZoneRightFill.requestLayout()
+                    binding.touchZoneRightThumb.translationY = -h * pct
                     binding.tvVolumeZone.text = "${(pct * 100).toInt()}%"
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { zoneTouching = false; scheduleHide() }
@@ -801,7 +1146,9 @@ class PlayerActivity : AppCompatActivity() {
                         lastKnownRemotePosition = pos
                     }
                     if (!seekBarDragging) withContext(Dispatchers.Main) { updateProgressUI(pos, dur) }
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    CrashReporter.log(this@PlayerActivity, "Progress loop failed", e)
+                }
             }
         }
     }
@@ -896,7 +1243,9 @@ class PlayerActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     if (!isDestroyed && !isFinishing) switchTo(next.first, next.second)
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                CrashReporter.log(this@PlayerActivity, "playNext failed", e)
+            }
         }
     }
 
@@ -924,7 +1273,9 @@ class PlayerActivity : AppCompatActivity() {
                 } else if (::player.isInitialized) {
                     withContext(Dispatchers.Main) { player.seekTo(0) }
                 }
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                CrashReporter.log(this@PlayerActivity, "playPrevious failed", e)
+            }
         }
     }
 
@@ -984,7 +1335,7 @@ class PlayerActivity : AppCompatActivity() {
             ))
 
             val info = withTimeoutOrNull(1500) {
-                VideoMetadataExtractor.extract(applicationContext, mediaPath)
+                VideoMetadataExtractor.extractLight(applicationContext, mediaPath)
             } ?: VideoTechnicalInfo()
 
             if (info.duration > 0L || info.videoCodec.isNotEmpty() || info.audioCodec.isNotEmpty()) {
@@ -1011,10 +1362,12 @@ class PlayerActivity : AppCompatActivity() {
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         if (isInPictureInPictureMode) {
+            hasEnteredPip = true
             binding.uiOverlay.visibility = View.GONE
             binding.touchZoneLeft.visibility = View.GONE
             binding.touchZoneRight.visibility = View.GONE
         } else {
+            hasEnteredPip = false
             showUI()
         }
     }
@@ -1023,7 +1376,7 @@ class PlayerActivity : AppCompatActivity() {
         if (!prefPip) return
         if (!player.isPlaying) return
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            try { enterPictureInPictureMode(buildPipParams(autoEnter = false)) } catch (e: Exception) {}
+            try { enterPictureInPictureMode(buildPipParams(autoEnter = false)) } catch (e: Exception) { CrashReporter.log(this, "enterPictureInPictureMode failed", e) }
         }
     }
 
@@ -1052,6 +1405,6 @@ class PlayerActivity : AppCompatActivity() {
     private fun updatePipParamsIfSupported() {
         if (!::player.isInitialized) return
         if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return
-        try { setPictureInPictureParams(buildPipParams(autoEnter = true)) } catch (e: Exception) {}
+        try { setPictureInPictureParams(buildPipParams(autoEnter = true)) } catch (e: Exception) { CrashReporter.log(this, "setPictureInPictureParams failed", e) }
     }
 }

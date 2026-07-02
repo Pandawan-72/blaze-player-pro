@@ -108,7 +108,12 @@ object VideoMetadataExtractor {
             // 3. Extraction réelle, seulement si rien en cache — dédupliquée si déjà en cours.
             inFlightLight[key]?.let { return@withContext it.await() }
             val deferred = async {
-                val info = extractLightInternal(context, path)
+                val info = kotlinx.coroutines.withTimeoutOrNull(if (path.startsWith("smb://")) 3_000L else 5_000L) {
+                    extractLightInternal(context, path)
+                } ?: run {
+                    android.util.Log.w("VideoMetadataExtractor", "Light metadata timeout for $path")
+                    VideoTechnicalInfo()
+                }
                 cache[key] = info
                 saveToDisk(context, key, info)
                 info
@@ -139,7 +144,12 @@ object VideoMetadataExtractor {
             }
             inFlightFull[key]?.let { return@withContext it.await() }
             val deferred = async {
-                val info = extractFullInternal(context, path)
+                val info = kotlinx.coroutines.withTimeoutOrNull(if (path.startsWith("smb://")) 8_000L else 12_000L) {
+                    extractFullInternal(context, path)
+                } ?: run {
+                    android.util.Log.w("VideoMetadataExtractor", "Full metadata timeout for $path")
+                    VideoTechnicalInfo()
+                }
                 cache[key] = info
                 saveToDisk(context, key, info)
                 info
@@ -255,7 +265,9 @@ object VideoMetadataExtractor {
                         )
                         callbackMutex.withLock { onItemReady(index, enriched) }
                     } catch (e: Exception) {
-                        // Le badge devine (extension) reste affiché, rien de plus à faire.
+                        // Le badge deviné (extension) reste affiché, mais on loggue pour éviter les
+                        // échecs silencieux en debug terrain.
+                        android.util.Log.w("VideoMetadataExtractor", "Incremental metadata failed for ${item.path}", e)
                     }
                 }
             }
@@ -305,6 +317,7 @@ object VideoMetadataExtractor {
                 sizeBytes = parts.getOrNull(10)?.toLongOrNull() ?: 0L
             )
         } catch (e: Exception) {
+            android.util.Log.w("VideoMetadataExtractor", "Failed to read metadata disk cache", e)
             null
         }
     }
@@ -499,6 +512,7 @@ object VideoMetadataExtractor {
             height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
                 ?.toIntOrNull() ?: 0
         } catch (e: Exception) {
+            android.util.Log.w("VideoMetadataExtractor", "Base metadata extraction failed for $path", e)
         } finally {
             try { retriever.release() } catch (_: Exception) {}
             try { smbDataSourceMeta?.close() } catch (_: Exception) {}
@@ -513,6 +527,11 @@ object VideoMetadataExtractor {
     private fun extractLightInternal(context: Context, path: String): VideoTechnicalInfo {
         val base = extractBaseInfo(context, path)
         if (base.duration > 0L && base.width > 0 && base.height > 0) return base
+
+        // Niveau 1 anti-freeze : en affichage liste, ne lance pas le repli Media3 sur SMB.
+        // Il peut faire plusieurs accès réseau profonds et consommer des workers pendant que la
+        // lecture démarre. Les vrais détails restent disponibles via extractFull()/écran Info.
+        if (path.startsWith("smb://")) return base
 
         val fallback = extractDurationAndDimensionsViaMedia3(context, path)
         return base.copy(

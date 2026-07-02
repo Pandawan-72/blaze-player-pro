@@ -384,4 +384,5 @@
 
     <string name="notif_channel_youtube">Воспроизведение YouTube</string>
     <string name="action_pause">Пауза</string>
+    <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
 </resources>

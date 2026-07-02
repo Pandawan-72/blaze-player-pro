@@ -7,9 +7,10 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -67,21 +68,34 @@ class BlazePlayerService : MediaSessionService() {
                 .build()
         )
 
-        // Cache disque partagé (avec la vidéo) pour les flux réseau (SMB) : Media3 route
-        // automatiquement les schémas connus (file/content/asset) vers leurs DataSource dédiées et
-        // ne passe par notre factory "base" que pour smb:// — donc seul l'audio réseau est mis en
-        // cache, la lecture locale (MediaStore) n'est pas affectée.
-        val cacheDataSourceFactory = CacheDataSource.Factory()
-            .setCache(MediaCacheManager.getCache(this))
-            .setUpstreamDataSourceFactory(SmbDataSource.Factory())
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-        val dataSourceFactory = DefaultDataSource.Factory(this, cacheDataSourceFactory)
+        // Niveau 1 anti-ANR : ne pas initialiser SimpleCache dans onCreate(). SimpleCache peut
+        // scanner/verrouiller le cache disque sur le thread principal au démarrage du service.
+        // Pour la fiabilité debug, on privilégie un DataSource direct ; le cache pourra revenir plus
+        // tard avec une initialisation lazy hors thread principal.
+        val dataSourceFactory = DefaultDataSource.Factory(this, SmbDataSource.Factory())
         val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
         val renderersFactory = DefaultRenderersFactory(this)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 
+        // Lecture audio réseau : on privilégie la stabilité sur SMB/Wi-Fi plutôt qu'un démarrage
+        // ultra agressif. Les valeurs ci-dessous gardent un démarrage raisonnable, mais exigent
+        // un tampon plus confortable après rebuffer afin d'éviter les micro-coupures et les arrêts
+        // silencieux sur NAS/Wi-Fi instables.
+        val loadControl = DefaultLoadControl.Builder()
+            .setAllocator(DefaultAllocator(true, 64 * 1024))
+            .setBufferDurationsMs(
+                /* minBufferMs = */ 45_000,
+                /* maxBufferMs = */ 180_000,
+                /* bufferForPlaybackMs = */ 2_500,
+                /* bufferForPlaybackAfterRebufferMs = */ 10_000
+            )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .setBackBuffer(15_000, true)
+            .build()
+
         val exoPlayer = ExoPlayer.Builder(this, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
+            .setLoadControl(loadControl)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -93,6 +107,21 @@ class BlazePlayerService : MediaSessionService() {
             // Garde le Wi-Fi actif pendant la lecture réseau (SMB) en arrière-plan/écran éteint.
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                    applicationContext,
+                    "Audio player error: code=${error.errorCodeName}",
+                    error
+                )
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == androidx.media3.common.Player.STATE_BUFFERING) {
+                    android.util.Log.i("BlazePlayerService", "Audio buffering…")
+                }
+            }
+        })
         player = exoPlayer
 
         val openIntent = PendingIntent.getActivity(
@@ -162,15 +191,18 @@ class BlazePlayerService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     /**
-     * Best practice Media3 : si l'utilisateur swipe l'app hors des tâches récentes alors qu'il n'y
-     * a rien en lecture (ou pas de média chargé), on arrête le service au lieu de laisser un
-     * service/notification fantôme tourner indéfiniment.
+     * Comportement attendu : bouton Home = lecture audio en arrière-plan avec notification ;
+     * swipe de l'app dans les tâches récentes = fermeture explicite, donc arrêt immédiat de la
+     * lecture et suppression de la notification Media3.
      */
     override fun onTaskRemoved(rootIntent: Intent?) {
-        val p = player
-        if (p == null || p.mediaItemCount == 0 || !p.playWhenReady) {
-            stopSelf()
+        try {
+            player?.stop()
+            player?.clearMediaItems()
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Audio onTaskRemoved stop failed", e)
         }
+        stopSelf()
         super.onTaskRemoved(rootIntent)
     }
 

@@ -236,7 +236,9 @@ class VideoPlaybackService : MediaSessionService() {
                     playerCommand: Int
                 ): Int {
                     if (playerCommand == Player.COMMAND_STOP) {
-                        android.os.Handler(android.os.Looper.getMainLooper()).post { stopSelf() }
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            stopPlaybackAndSelf("video stop command")
+                        }
                     }
                     return SessionResult.RESULT_SUCCESS
                 }
@@ -258,13 +260,35 @@ class VideoPlaybackService : MediaSessionService() {
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        val session = mediaSession
-        val isCasting = session?.player?.deviceInfo?.playbackType == androidx.media3.common.DeviceInfo.PLAYBACK_TYPE_REMOTE
-        val isActivelyPlaying = session?.player?.playWhenReady == true
-        if (!isCasting && !isActivelyPlaying) {
-            stopSelf()
+    private fun stopPlaybackAndSelf(reason: String) {
+        try {
+            mediaSession?.player?.pause()
+            mediaSession?.player?.stop()
+            mediaSession?.player?.clearMediaItems()
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video $reason session stop failed", e)
         }
+        try { castPlayer?.stop() } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video $reason cast stop failed", e)
+        }
+        try {
+            exoPlayer?.clearVideoSurface()
+            exoPlayer?.stop()
+            exoPlayer?.clearMediaItems()
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video $reason exo stop failed", e)
+        }
+        try { fr.retrospare.blazeplayer.cast.VideoStreamServerManager.stopServer() } catch (_: Exception) {}
+        stopSelf()
+    }
+
+    /**
+     * Home / retour launcher : l'activité passe en arrière-plan ou en PiP et le service continue.
+     * Swipe de l'app depuis les tâches récentes : fermeture explicite, donc on coupe aussi bien la
+     * lecture locale que Cast et on laisse MediaSessionService retirer sa notification.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        stopPlaybackAndSelf("onTaskRemoved")
         super.onTaskRemoved(rootIntent)
     }
 
