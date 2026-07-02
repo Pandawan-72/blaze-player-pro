@@ -21,6 +21,7 @@ class UserRepository @Inject constructor(
     companion object {
         private val KEY_MINI_PLAYER = androidx.datastore.preferences.core.booleanPreferencesKey("mini_player_enabled")
     private val KEY_IS_PRO = booleanPreferencesKey("is_pro")
+        private val KEY_IS_PRO_PLUS = booleanPreferencesKey("is_pro_plus")
         private val KEY_PLAYER_THEME = stringPreferencesKey("player_theme")
     }
 
@@ -30,10 +31,17 @@ class UserRepository @Inject constructor(
         dataStore.edit { it[KEY_MINI_PLAYER] = enabled }
     }
 
+    // DEBUG : toutes les options restent débloquées par défaut. En production, remplacer
+    // par les états réels RevenueCat/Play Billing persistés dans DataStore.
     val isProFlow: Flow<Boolean> = dataStore.data.map { true } // TODO: RevenueCat en production
+    val isProPlusFlow: Flow<Boolean> = dataStore.data.map { true } // TODO: RevenueCat en production
 
     suspend fun setProStatus(isPro: Boolean) {
         dataStore.edit { it[KEY_IS_PRO] = isPro }
+    }
+
+    suspend fun setProPlusStatus(isProPlus: Boolean) {
+        dataStore.edit { it[KEY_IS_PRO_PLUS] = isProPlus }
     }
 
     suspend fun setPlayerTheme(theme: String) {

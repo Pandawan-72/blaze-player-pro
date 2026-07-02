@@ -42,17 +42,6 @@
                 android:fontFamily="sans-serif-condensed"
                 android:letterSpacing="0.15" />
 
-            <androidx.mediarouter.app.MediaRouteButton
-                android:id="@+id/btnAudioCast"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_toStartOf="@id/btnPlaylistSheet"
-                android:layout_centerVertical="true"
-                android:layout_marginEnd="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Chromecast"
-                android:visibility="visible" />
-
             <ImageButton
                 android:id="@+id/btnPlaylistSheet"
                 android:layout_width="36dp"
@@ -459,8 +448,36 @@
                 android:id="@+id/btnAudioPlaylist3"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
                 android:gravity="center"
                 android:text="3"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-condensed"
+                android:background="@drawable/bg_playlist_chip"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btnAudioPlaylist4"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center"
+                android:text="4"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-condensed"
+                android:background="@drawable/bg_playlist_chip"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btnAudioPlaylist5"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:gravity="center"
+                android:text="5"
                 android:textColor="@color/on_surface"
                 android:textSize="13sp"
                 android:fontFamily="sans-serif-condensed"

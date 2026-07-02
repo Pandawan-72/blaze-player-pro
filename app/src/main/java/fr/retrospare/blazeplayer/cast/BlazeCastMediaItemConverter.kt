@@ -34,28 +34,17 @@ class BlazeCastMediaItemConverter : MediaItemConverter {
         val fallbackItem = fallback.toMediaQueueItem(mediaItem)
         val fallbackMedia = fallbackItem.media
 
-        // Pour l'audio, le player local doit lire l'URI originale (smb://, content://, file://),
-        // mais Chromecast ne sait lire qu'une URL HTTP accessible. AudioRepository stocke donc
-        // l'URL du relais audio dans MediaMetadata.extras["blaze_cast_url"].
-        val castRelayUrl = mediaItem.mediaMetadata.extras?.getString("blaze_cast_url")
-        val contentUrl = castRelayUrl ?: local.uri.toString()
+        // Cast vidéo uniquement : ne jamais lire d'URL relais ou d'extra audio ici.
+        // Le lecteur audio ne possède plus d'implémentation Chromecast afin d'éviter tout mélange
+        // d'état/métadonnées avec la vidéo.
+        val contentUrl = local.uri.toString()
         val contentId = contentUrl
-        val contentType = local.mimeType ?: guessContentType(Uri.parse(contentUrl).takeIf { castRelayUrl != null } ?: local.uri)
+        val contentType = local.mimeType ?: guessContentType(local.uri)
 
-        val isAudio = contentType.startsWith("audio/")
-        val castMetadata = MediaMetadata(if (isAudio) MediaMetadata.MEDIA_TYPE_MUSIC_TRACK else MediaMetadata.MEDIA_TYPE_MOVIE).apply {
+        val castMetadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply {
             mediaItem.mediaMetadata.title?.let { putString(MediaMetadata.KEY_TITLE, it.toString()) }
             mediaItem.mediaMetadata.subtitle?.let { putString(MediaMetadata.KEY_SUBTITLE, it.toString()) }
-            if (isAudio) {
-                mediaItem.mediaMetadata.artist?.let { putString(MediaMetadata.KEY_ARTIST, it.toString()) }
-                mediaItem.mediaMetadata.albumTitle?.let { putString(MediaMetadata.KEY_ALBUM_TITLE, it.toString()) }
-            }
-            val artworkFromExtras = mediaItem.mediaMetadata.extras
-                ?.getString("blaze_cast_artwork_url")
-                ?.takeIf { it.isNotBlank() }
-                ?.let { Uri.parse(it) }
-            val artworkUri = mediaItem.mediaMetadata.artworkUri ?: artworkFromExtras
-            artworkUri?.let { addImage(WebImage(it)) }
+            mediaItem.mediaMetadata.artworkUri?.let { addImage(WebImage(it)) }
         }
 
         val subtitleConfigs = local.subtitleConfigurations
@@ -130,11 +119,6 @@ class BlazeCastMediaItemConverter : MediaItemConverter {
             "mov" -> "video/quicktime"
             "avi" -> "video/x-msvideo"
             "ts", "m2ts", "mts" -> "video/mp2t"
-            "mp3" -> MimeTypes.AUDIO_MPEG
-            "m4a", "aac" -> MimeTypes.AUDIO_AAC
-            "flac" -> MimeTypes.AUDIO_FLAC
-            "wav" -> "audio/wav"
-            "ogg", "oga" -> "audio/ogg"
             else -> MimeTypes.VIDEO_MP4
         }
     }

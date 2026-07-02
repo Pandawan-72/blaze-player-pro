@@ -6,8 +6,8 @@ import androidx.appcompat.app.AlertDialog
 
 object PlaylistDialogs {
 
-    /** Affiche un choix "Playlist 1 / 2 / 3" (avec le nombre d'éléments déjà présents dans
-     *  chacune) et ajoute les éléments sélectionnés à la playlist choisie. */
+    /** Affiche un choix parmi les playlists sauvegardées, avec le nombre d'éléments déjà présents,
+     *  et ajoute les éléments sélectionnés à la playlist choisie. */
     fun showAddToPlaylistPicker(
         context: Context,
         category: PlaylistCategory,

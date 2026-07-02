@@ -348,6 +348,11 @@ class PlayerActivity : AppCompatActivity() {
                 MediaMetadata.Builder()
                     .setTitle(name)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MOVIE)
+                    .apply {
+                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailJpegBytes(applicationContext, path)?.let { bytes ->
+                            setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                        }
+                    }
                     .build()
             )
         return builder.build()
@@ -465,6 +470,10 @@ class PlayerActivity : AppCompatActivity() {
     // reference"), avant même que l'ANR ne puisse se manifester.
     private val ratioLabels by lazy { listOf(getString(R.string.ratio_auto), getString(R.string.ratio_zoom), getString(R.string.ratio_stretched), getString(R.string.ratio_full)) }
 
+
+    private fun isCastingVideo(): Boolean =
+        ::player.isInitialized && player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE
+
     private fun cycleAspectRatio() {
         currentRatioIndex = (currentRatioIndex + 1) % ratioLabels.size
         binding.playerView.resizeMode = when (currentRatioIndex) {
@@ -479,6 +488,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showAudioTracks() {
+        if (isCastingVideo()) {
+            android.widget.Toast.makeText(this, getString(R.string.cast_audio_language_unavailable), android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
         val tracks = player.currentTracks
         val audioGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
         if (audioGroups.isEmpty()) {
@@ -534,6 +547,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showSubtitles() {
+        if (isCastingVideo()) {
+            android.widget.Toast.makeText(this, getString(R.string.cast_subtitles_unavailable), android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
         val tracks = player.currentTracks
         val subGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
         val labels = mutableListOf(getString(R.string.subtitles_disabled))

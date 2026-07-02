@@ -365,4 +365,26 @@
     <string name="notif_channel_youtube">YouTube-Wiedergabe</string>
     <string name="action_pause">Pause</string>
     <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
+
+    <string name="cast_dialog_status">Übertragung läuft</string>
+    <string name="cast_dialog_stop">Übertragung beenden</string>
+    <string name="select_all">Alle auswählen</string>
+    <string name="cast_subtitles_unavailable">Untertitel beim Casten nicht verfügbar</string>
+    <string name="cast_audio_language_unavailable">Sprachwechsel beim Casten nicht verfügbar</string>
+    <string name="paywall_title">Blaze Player freischalten</string>
+    <string name="paywall_subtitle">Wähle die Version, die zu deiner Nutzung passt. Käufe werden später verbunden.</string>
+    <string name="paywall_free_title">Blaze Player Kostenlos</string>
+    <string name="paywall_free_desc">Lokale Videowiedergabe und lokales Video-Casting. Nur der lokale Tab.</string>
+    <string name="paywall_pro_title">Blaze Player Pro</string>
+    <string name="paywall_pro_price">3,99 €</string>
+    <string name="paywall_pro_desc">Schaltet SMB-Netzwerk, Blaze Audio und den Mini-Player frei.</string>
+    <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
+    <string name="paywall_pro_plus_price">5,99 €</string>
+    <string name="paywall_pro_plus_desc">Schaltet Blaze Tube für YouTube-Videos frei und enthält alle Pro-Funktionen.</string>
+    <string name="paywall_buy_pro">Pro freischalten — 3,99 €</string>
+    <string name="paywall_buy_pro_plus">Pro+ freischalten — 5,99 €</string>
+    <string name="paywall_debug_unlocked">Debug-Modus: Pro und Pro+ sind vorübergehend freigeschaltet.</string>
+    <string name="paywall_restore">Käufe wiederherstellen</string>
+    <string name="action_back">Zurück</string>
+    <string name="toast_billing_soon">Käufe bald verfügbar</string>
 </resources>

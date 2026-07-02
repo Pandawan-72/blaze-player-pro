@@ -73,7 +73,7 @@ object VideoMetadataExtractor {
     // Incrémenté à chaque changement du format de sérialisation disque : une entrée écrite par
     // une version antérieure est ignorée proprement (traitée comme un cache manquant) plutôt que
     // mal interprétée si l'ordre ou le nombre de champs a changé.
-    private const val CACHE_VERSION = 2
+    private const val CACHE_VERSION = 3
 
     // Déduplique les extractions concurrentes du même fichier (clé = cacheKey) : sans ça, un
     // défilement rapide peut redemander l'extraction du même élément plusieurs fois avant que la
@@ -268,7 +268,7 @@ object VideoMetadataExtractor {
         items.forEachIndexed { index, item ->
             if (item.mimeType == "folder" || item.mimeType == "share" || !item.mimeType.startsWith("video/")) return@forEachIndexed
             val cached = getCached(context, item.path, item.size)
-            if (cached != null && (item.duration <= 0L || item.resolution.isNullOrEmpty())) {
+            if (cached != null) {
                 val ext = item.extension.lowercase().ifEmpty { item.name.substringAfterLast('.', "").lowercase() }
                 val enriched = item.copy(
                     resolution = cached.qualityBadge.ifEmpty { normalizeResolution(item.resolution) },
@@ -277,15 +277,25 @@ object VideoMetadataExtractor {
                     duration = if (cached.duration > 0) cached.duration else item.duration
                 )
                 launch { callbackMutex.withLock { onItemReady(index, enriched) } }
-                return@forEachIndexed
+                // Si le cache contient déjà les vrais codecs + durée/résolution, rien à refaire.
+                if (cached.duration > 0L && cached.height > 0 && cached.videoCodec.isNotEmpty() && cached.audioCodec.isNotEmpty()) {
+                    return@forEachIndexed
+                }
             }
-            if (!item.resolution.isNullOrEmpty() && item.duration > 0 && !item.videoCodec.isNullOrEmpty() && !item.audioCodec.isNullOrEmpty()) return@forEachIndexed
+            // Ne pas sauter uniquement parce que l'UI possède déjà des badges devinés : on veut
+            // quand même remplir le cache persistant avec les vrais codecs/durée dès que possible.
             launch {
                 semaphore.withPermit {
                     try {
                         val ext = item.extension.lowercase().ifEmpty { item.name.substringAfterLast('.', "").lowercase() }
-                        val info = extractLight(context, item.path, item.size)
-                        if (info.duration <= 0L && info.width <= 0) return@withPermit
+                        // Pour les badges unifiés (accueil + navigateurs), on tente l'extraction
+                        // complète en arrière-plan : durée/résolution + vrais codecs. En attendant,
+                        // fastDecorate() affiche déjà des badges instantanés depuis l'extension/cache.
+                        // Le résultat complet est persisté par extractFull(), donc les prochains
+                        // affichages sont immédiats.
+                        val info = extractFull(context, item.path, item.size)
+                        val hasSomething = info.duration > 0L || info.width > 0 || info.videoCodec.isNotEmpty() || info.audioCodec.isNotEmpty()
+                        if (!hasSomething) return@withPermit
                         val enriched = item.copy(
                             resolution = info.qualityBadge.ifEmpty { normalizeResolution(item.resolution) },
                             videoCodec = info.videoCodec.ifEmpty { item.videoCodec ?: guessVideoCodecFromExt(ext) },

@@ -365,4 +365,26 @@
     <string name="notif_channel_youtube">YouTube playback</string>
     <string name="action_pause">Pause</string>
     <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
+
+    <string name="cast_dialog_status">Casting now</string>
+    <string name="cast_dialog_stop">Stop casting</string>
+    <string name="select_all">Select all</string>
+    <string name="cast_subtitles_unavailable">Subtitles unavailable while casting</string>
+    <string name="cast_audio_language_unavailable">Audio language change unavailable while casting</string>
+    <string name="paywall_title">Unlock Blaze Player</string>
+    <string name="paywall_subtitle">Choose the version that fits your use. Purchases will be connected later.</string>
+    <string name="paywall_free_title">Blaze Player Free</string>
+    <string name="paywall_free_desc">Local video playback and local video casting. Local tab only.</string>
+    <string name="paywall_pro_title">Blaze Player Pro</string>
+    <string name="paywall_pro_price">€3.99</string>
+    <string name="paywall_pro_desc">Unlocks SMB network playback, Blaze Audio and the mini player.</string>
+    <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
+    <string name="paywall_pro_plus_price">€5.99</string>
+    <string name="paywall_pro_plus_desc">Unlocks Blaze Tube for YouTube videos and includes all Pro features.</string>
+    <string name="paywall_buy_pro">Unlock Pro — €3.99</string>
+    <string name="paywall_buy_pro_plus">Unlock Pro+ — €5.99</string>
+    <string name="paywall_debug_unlocked">Debug mode: Pro and Pro+ are temporarily unlocked.</string>
+    <string name="paywall_restore">Restore purchases</string>
+    <string name="action_back">Back</string>
+    <string name="toast_billing_soon">Purchases coming soon</string>
 </resources>

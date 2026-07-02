@@ -34,7 +34,12 @@ class SettingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
-        binding.btnBecomePro.setOnClickListener { }
+        binding.btnBecomePro.setOnClickListener {
+            val navController = findNavController()
+            if (navController.currentDestination?.id == R.id.settingsFragment) {
+                navController.navigate(R.id.action_settings_to_paywall)
+            }
+        }
         setupSettings()
         setupLogout()
     }
@@ -181,9 +186,7 @@ class SettingsFragment : Fragment() {
         }
 
         // À PROPOS
-        val appVersion = try {
-            requireContext().packageManager.getPackageInfo(requireContext().packageName, 0).versionName
-        } catch (e: Exception) { "?" }
+        val appVersion = "v.0.8.1-beta"
         setupAction(
             binding.settingAbout.root,
             R.drawable.ic_settings,

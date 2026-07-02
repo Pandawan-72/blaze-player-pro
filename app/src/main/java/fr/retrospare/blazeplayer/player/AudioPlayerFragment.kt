@@ -123,7 +123,6 @@ class AudioPlayerFragment : Fragment() {
 
         initPlaylistUi()
         setupControls()
-        setupAudioCastButton()
         setupSeekBar()
         startProgressUpdate()
         connectMediaController()
@@ -168,16 +167,6 @@ class AudioPlayerFragment : Fragment() {
     }
 
 
-    private fun setupAudioCastButton() {
-        try {
-            binding.btnAudioCast.setDialogFactory(fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory())
-            com.google.android.gms.cast.framework.CastButtonFactory
-                .setUpMediaRouteButton(requireContext(), binding.btnAudioCast)
-        } catch (e: Exception) {
-            CrashReporter.log(requireContext(), "Audio cast button setup failed", e)
-            binding.btnAudioCast.visibility = android.view.View.GONE
-        }
-    }
     // ── MediaController ────────────────────────────────────────────────────────
 
     private fun connectMediaController() {
@@ -197,24 +186,42 @@ class AudioPlayerFragment : Fragment() {
     private fun onControllerReady() {
         val ctrl = controller ?: return
 
+        // Garde-fou d'isolation : si une ancienne version a laissé un MediaItem vidéo/cast dans la
+        // session audio, on l'élimine immédiatement avant que l'UI ou Play/Pause ne puisse le piloter.
+        purgeNonAudioItems(ctrl)
+
         // Charge la playlist sauvegardée dans ExoPlayer si vide. Le Player reste la seule source de verite ;
         // AudioRepository ne sert qu'a la persistance disque entre lancements de l'app.
         if (ctrl.mediaItemCount == 0) {
             viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                val (savedItems, savedIndex) = AudioRepository.load(requireContext())
+                val savedState = AudioRepository.loadState(requireContext())
+                val savedItems = savedState.items
                 if (savedItems.isNotEmpty()) {
                     // Chargement rapide : MediaItem simples d'abord, metadonnees enrichies ensuite
                     val simpleItems = savedItems.map { AudioRepository.buildSimpleMediaItem(requireContext(), it.path, it.name) }
                     launch(Dispatchers.Main) {
-                        ctrl.setMediaItems(simpleItems, savedIndex.coerceIn(0, savedItems.size - 1), 0L)
+                        ctrl.setMediaItems(
+                            simpleItems,
+                            savedState.index.coerceIn(0, savedItems.size - 1),
+                            savedState.positionMs
+                        )
+                        ctrl.repeatMode = savedState.repeatMode
+                        ctrl.shuffleModeEnabled = savedState.shuffle
                         ctrl.prepare()
                         playlistAdapter.refresh()
                         syncSelection()
                         syncMetadata()
                         syncButtons()
                     }
-                    // Enrichissement en arriere plan
-                    savedItems.forEachIndexed { i, item ->
+                    // Enrichissement en arriere-plan. On traite d'abord le morceau courant :
+                    // après une fermeture complète, la position revient immédiatement, mais les
+                    // métadonnées/cover du FLAC SMB peuvent être absentes du MediaItem minimal.
+                    // Prioriser l'index courant évite d'attendre toute la queue avant de revoir
+                    // titre/artiste/album/cover dans le lecteur.
+                    val ordered = savedItems.indices
+                        .sortedBy { if (it == savedState.index) 0 else 1 }
+                    ordered.forEach { i ->
+                        val item = savedItems[i]
                         try {
                             val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), item.path, item.name)
                             launch(Dispatchers.Main) {
@@ -222,6 +229,9 @@ class AudioPlayerFragment : Fragment() {
                                 if (i < c.mediaItemCount) {
                                     c.replaceMediaItem(i, enriched)
                                     playlistAdapter.notifyItemChanged(i)
+                                    if (i == c.currentMediaItemIndex) {
+                                        syncMetadata()
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
@@ -260,6 +270,9 @@ class AudioPlayerFragment : Fragment() {
                                 if (idx != null) {
                                     c.replaceMediaItem(idx, enriched)
                                     playlistAdapter.notifyItemChanged(idx)
+                                    if (idx == c.currentMediaItemIndex) {
+                                        syncMetadata()
+                                    }
                                 }
                             }
                         } catch (_: Exception) { }
@@ -311,26 +324,41 @@ class AudioPlayerFragment : Fragment() {
         val mediaItem = ctrl.currentMediaItem ?: return
         val meta = mediaItem.mediaMetadata
 
-        // Lit directement depuis MediaMetadata - pas de MediaMetadataRetriever
-        _binding?.tvTitle?.text = meta.title?.toString()?.ifEmpty { null }
-            ?: mediaItem.localConfiguration?.uri?.lastPathSegment ?: getString(fr.retrospare.blazeplayer.R.string.unknown_title)
-        _binding?.tvArtist?.text = meta.artist?.toString() ?: getString(fr.retrospare.blazeplayer.R.string.unknown_artist)
-        _binding?.tvAlbum?.text = meta.albumTitle?.toString() ?: ""
+        val pathForMeta = originalPathOf(mediaItem)
+        val cachedMeta = fr.retrospare.blazeplayer.player.AudioMetadataExtractor.getCached(requireContext(), pathForMeta)
+        val unknownArtist = getString(fr.retrospare.blazeplayer.R.string.unknown_artist)
+        val metaArtist = meta.artist?.toString()?.trim()
+            ?.takeIf { it.isNotEmpty() && !it.equals(unknownArtist, ignoreCase = true) && !it.equals("unknown", ignoreCase = true) }
 
-        val ext = (mediaItem.localConfiguration?.uri?.lastPathSegment ?: "").substringAfterLast(".", "").uppercase()
+        // Cache local prioritaire pour éviter le retour de "Unknown" après fermeture complète.
+        _binding?.tvTitle?.text = cachedMeta?.title?.ifEmpty { null }
+            ?: meta.title?.toString()?.ifEmpty { null }
+            ?: mediaItem.localConfiguration?.uri?.lastPathSegment ?: getString(fr.retrospare.blazeplayer.R.string.unknown_title)
+        _binding?.tvArtist?.text = cachedMeta?.artist?.ifEmpty { null }
+            ?: metaArtist
+            ?: unknownArtist
+        _binding?.tvAlbum?.text = cachedMeta?.album?.ifEmpty { null }
+            ?: meta.albumTitle?.toString() ?: ""
+
+        val ext = (mediaItem.localConfiguration?.uri?.lastPathSegment ?: pathForMeta).substringAfterLast(".", "").uppercase()
         if (ext.isNotEmpty()) {
-            _binding?.tvCodec?.text = ext
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(_binding?.tvCodec, ext)
             _binding?.tvCodec?.visibility = View.VISIBLE
         }
 
         // Bitrate via AudioMetadataExtractor (gère aussi smb://, avec cache disque — évite de
         // ré-extraire à chaque fois qu'on rouvre le même morceau)
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val path = originalPathOf(mediaItem).ifEmpty { return@launch }
+            val path = pathForMeta.ifEmpty { return@launch }
             val info = fr.retrospare.blazeplayer.player.AudioMetadataExtractor.extract(
                 requireContext(), path, path.substringAfterLast("/")
             )
             launch(Dispatchers.Main) {
+                if (originalPathOf(controller?.currentMediaItem ?: return@launch) == path) {
+                    if (info.title.isNotEmpty()) _binding?.tvTitle?.text = info.title
+                    if (info.artist.isNotEmpty()) _binding?.tvArtist?.text = info.artist
+                    if (info.album.isNotEmpty()) _binding?.tvAlbum?.text = info.album
+                }
                 when {
                     info.isLossless -> {
                         _binding?.tvBitrate?.text = getString(fr.retrospare.blazeplayer.R.string.lossless_label)
@@ -345,13 +373,38 @@ class AudioPlayerFragment : Fragment() {
             }
         }
 
-        // Artwork depuis MediaMetadata
+        // Artwork depuis MediaMetadata, puis cache disque/RAM si absent (réouverture app, SMB/FLAC).
         val artworkData = meta.artworkData
         if (artworkData != null) {
+            fr.retrospare.blazeplayer.ui.ThumbnailUtils.cacheAudioArtworkData(requireContext(), originalPathOf(mediaItem), artworkData)
             val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size)
             _binding?.ivArtwork?.setImageBitmap(bitmap)
         } else {
-            _binding?.ivArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_thumbnail)
+            val path = originalPathOf(mediaItem)
+            val cached = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(requireContext(), path)
+            if (cached != null) {
+                val bitmap = BitmapFactory.decodeByteArray(cached, 0, cached.size)
+                _binding?.ivArtwork?.setImageBitmap(bitmap)
+            } else {
+                _binding?.ivArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_thumbnail)
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    val bytes = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytes(requireContext(), path)
+                    if (bytes != null) {
+                        launch(Dispatchers.Main) {
+                            val c = controller ?: return@launch
+                            val current = c.currentMediaItem ?: return@launch
+                            if (originalPathOf(current) != path) return@launch
+                            val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                            _binding?.ivArtwork?.setImageBitmap(bitmap)
+                            val enrichedMeta = current.mediaMetadata.buildUpon()
+                                .setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                                .build()
+                            val enriched = current.buildUpon().setMediaMetadata(enrichedMeta).build()
+                            c.replaceMediaItem(c.currentMediaItemIndex, enriched)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -452,7 +505,9 @@ class AudioPlayerFragment : Fragment() {
         val buttons = listOf(
             binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist1),
             binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist2),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist3)
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist3),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist4),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist5)
         )
         val ctx = context
         val lastPlayed = if (ctx != null) fr.retrospare.blazeplayer.playlist.PlaylistManager
@@ -487,14 +542,23 @@ class AudioPlayerFragment : Fragment() {
         val ctx = context ?: return
         val ctrl = controller ?: return
         if (ctrl.mediaItemCount == 0) return
-        val items = (0 until ctrl.mediaItemCount).map { i ->
+        val items = (0 until ctrl.mediaItemCount).mapNotNull { i ->
             val mi = ctrl.getMediaItemAt(i)
             val path = originalPathOf(mi)
+            if (path.isBlank() || !AudioRepository.isAudioExtension(path)) return@mapNotNull null
             val name = mi.mediaMetadata.title?.toString()?.ifEmpty { null }
                 ?: mi.localConfiguration?.uri?.lastPathSegment ?: ""
             PlaylistItem(path, name)
         }
-        AudioRepository.save(ctx, items, ctrl.currentMediaItemIndex)
+        if (items.isEmpty()) return
+        AudioRepository.save(
+            ctx,
+            items,
+            ctrl.currentMediaItemIndex,
+            ctrl.currentPosition.coerceAtLeast(0L),
+            ctrl.repeatMode,
+            ctrl.shuffleModeEnabled
+        )
     }
 
     fun addTrack(path: String, name: String) {
@@ -560,12 +624,14 @@ class AudioPlayerFragment : Fragment() {
                     binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat_one)
                     binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)) }
             }
+            savePlaylistFromController()
         }
 
-        var isShuffled = false
+        var isShuffled = controller?.shuffleModeEnabled ?: false
         binding.btnShuffle.setOnClickListener {
             isShuffled = !isShuffled
             controller?.shuffleModeEnabled = isShuffled
+            savePlaylistFromController()
             binding.btnShuffle.setColorFilter(
                 if (isShuffled) requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)
                 else requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant)
@@ -649,7 +715,10 @@ class AudioPlayerFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 isSeekBarTracking = false
                 val dur = controller?.duration ?: 0L
-                if (dur > 0) controller?.seekTo(dur * seekBar.progress / 100)
+                if (dur > 0) {
+                    controller?.seekTo(dur * seekBar.progress / 100)
+                    savePlaylistFromController()
+                }
             }
         })
     }
@@ -721,9 +790,25 @@ class AudioPlayerFragment : Fragment() {
             .setNegativeButton(getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
             .show()
     }
+    private fun purgeNonAudioItems(ctrl: MediaController) {
+        try {
+            for (i in ctrl.mediaItemCount - 1 downTo 0) {
+                val path = originalPathOf(ctrl.getMediaItemAt(i))
+                if (path.isBlank() || !AudioRepository.isAudioExtension(path)) {
+                    ctrl.removeMediaItem(i)
+                }
+            }
+        } catch (e: Exception) {
+            CrashReporter.log(requireContext(), "Purge non-audio items from audio player failed", e)
+        }
+    }
+
     private fun originalPathOf(item: androidx.media3.common.MediaItem): String {
-        return item.mediaId.takeIf { it.isNotBlank() }
-            ?: item.localConfiguration?.uri?.toString()
+        val fromExtras = item.mediaMetadata.extras?.getString("blaze_original_path")
+            ?.takeIf { it.isNotBlank() && AudioRepository.isAudioExtension(it) }
+        if (fromExtras != null) return fromExtras
+        return item.mediaId.takeIf { it.isNotBlank() && AudioRepository.isAudioExtension(it) }
+            ?: item.localConfiguration?.uri?.toString()?.takeIf { AudioRepository.isAudioExtension(it) }
             ?: ""
     }
 

@@ -46,7 +46,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Diffusion en cours"
+                android:text="@string/cast_dialog_status"
                 android:textColor="#99FFFFFF"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -56,7 +56,7 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:background="@drawable/bg_top_icon_btn"
-            android:contentDescription="Fermer"
+            android:contentDescription="@string/action_close"
             android:padding="10dp"
             android:src="@drawable/ic_close"
             android:tint="#FFFFFF" />
@@ -88,7 +88,7 @@
         android:focusable="true"
         android:fontFamily="sans-serif-medium"
         android:gravity="center"
-        android:text="Arrêter la diffusion"
+        android:text="@string/cast_dialog_stop"
         android:textAllCaps="false"
         android:textColor="#FFFFFF"
         android:textSize="15sp" />

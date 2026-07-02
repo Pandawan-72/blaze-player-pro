@@ -205,19 +205,17 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     v.findViewById<TextView>(R.id.tvFileName)?.text = video.name
                     v.findViewById<TextView>(R.id.tvDuration)?.text = video.formattedDuration
 
-                    // Miniature (cache mémoire + disque via ThumbnailUtils, comme les autres
-                    // navigateurs) : n'existait pas du tout ici auparavant.
-                    val ivThumb = v.findViewById<android.widget.ImageView>(R.id.ivThumbnail)
-                    ivThumb?.setImageBitmap(null)
-                    lifecycleScope.launch {
-                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(
-                            this@NetworkVideoBrowserActivity, video.path, ivThumb ?: return@launch
-                        )
+                    // Navigateur réseau allégé : aucune extraction de miniature SMB en liste,
+                    // mais on garde le bloc statique pour afficher le badge conteneur coloré.
+                    v.findViewById<android.widget.ImageView>(R.id.ivThumbnail)?.let { thumb ->
+                        (thumb.parent as? android.view.View)?.visibility = android.view.View.VISIBLE
+                        thumb.setImageDrawable(null)
                     }
+                    v.findViewById<android.widget.ImageView>(R.id.ivPlayOverlay)?.visibility = android.view.View.GONE
 
                     val ext = video.extension.uppercase()
                     val tvFmt = v.findViewById<TextView>(R.id.tvFormat)
-                    tvFmt?.text = ext
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFmt, ext)
                     tvFmt?.visibility = if (ext.isNotEmpty()) View.VISIBLE else View.GONE
 
                     // Affichage direct et synchrone — un premier badge deviné depuis l'extension
@@ -228,6 +226,9 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     val tvRes = v.findViewById<TextView>(R.id.tvResolution)
                     val tvVid = v.findViewById<TextView>(R.id.tvVideoCodec)
                     val tvAud = v.findViewById<TextView>(R.id.tvAudioCodec)
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvRes)
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvVid)
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvAud)
                     tvRes?.text = video.resolution ?: ""
                     tvRes?.visibility = if (!video.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
                     tvVid?.text = video.videoCodec ?: ""

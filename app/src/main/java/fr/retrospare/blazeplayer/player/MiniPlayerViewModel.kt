@@ -16,6 +16,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.debug.CrashReporter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,7 +32,9 @@ data class MiniPlayerState(
     val title: String = "",
     val artist: String = "",
     val artworkData: ByteArray? = null,
-    val isPlaying: Boolean = false
+    val isPlaying: Boolean = false,
+    val positionMs: Long = 0L,
+    val durationMs: Long = 0L
 )
 
 @HiltViewModel
@@ -67,7 +70,9 @@ class MiniPlayerViewModel @Inject constructor(
             title = title,
             artist = artist,
             artworkData = artwork,
-            isPlaying = isPlaying
+            isPlaying = isPlaying,
+            positionMs = controller?.currentPosition?.coerceAtLeast(0L) ?: 0L,
+            durationMs = controller?.duration?.takeIf { it > 0 } ?: 0L
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MiniPlayerState())
 
@@ -130,10 +135,45 @@ class MiniPlayerViewModel @Inject constructor(
         _hasMedia.value = hasMedia
         _isPlaying.value = ctrl.isPlaying
         if (hasMedia) {
-            val meta = ctrl.currentMediaItem?.mediaMetadata
-            _title.value = meta?.title?.toString() ?: ""
-            _artist.value = meta?.artist?.toString() ?: ""
+            val item = ctrl.currentMediaItem
+            val meta = item?.mediaMetadata
+            val path = item?.mediaMetadata?.extras?.getString("blaze_original_path")?.takeIf { fr.retrospare.blazeplayer.player.AudioRepository.isAudioExtension(it) }
+                ?: item?.mediaId.orEmpty().takeIf { fr.retrospare.blazeplayer.player.AudioRepository.isAudioExtension(it) }
+                ?: ""
+            if (path.isEmpty()) {
+                _hasMedia.value = false
+                _artworkData.value = null
+                return
+            }
+            val cached = AudioMetadataExtractor.getCached(context, path)
+            _title.value = meta?.title?.toString()?.ifEmpty { null }
+                ?: cached?.title?.ifEmpty { null }
+                ?: path.substringAfterLast('/').substringBeforeLast('.')
+            val unknownArtist = context.getString(fr.retrospare.blazeplayer.R.string.unknown_artist)
+            val metaArtist = meta?.artist?.toString()?.trim()
+                ?.takeIf { it.isNotEmpty() && !it.equals(unknownArtist, ignoreCase = true) && !it.equals("unknown", ignoreCase = true) }
+            _artist.value = cached?.artist?.ifEmpty { null }
+                ?: metaArtist
+                ?: ""
             _artworkData.value = meta?.artworkData
+                ?: if (path.isNotEmpty()) fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, path) else null
+
+            if (path.isNotEmpty() && (cached == null || _artworkData.value == null)) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    val name = path.substringAfterLast('/')
+                    val info = AudioMetadataExtractor.extract(context, path, name)
+                    val art = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytes(context, path)
+                    kotlinx.coroutines.withContext(Dispatchers.Main) {
+                        val currentItem = controller?.currentMediaItem
+                        val current = currentItem?.mediaMetadata?.extras?.getString("blaze_original_path") ?: currentItem?.mediaId.orEmpty()
+                        if (current == path) {
+                            if (info.title.isNotEmpty()) _title.value = info.title
+                            if (info.artist.isNotEmpty()) _artist.value = info.artist
+                            if (art != null) _artworkData.value = art
+                        }
+                    }
+                }
+            }
         }
     }
 

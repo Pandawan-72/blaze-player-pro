@@ -108,6 +108,10 @@ class AudioBrowserActivity : AppCompatActivity() {
             setResult(android.app.Activity.RESULT_OK, intent)
             finish()
         }
+        binding.btnSelectAll.setOnClickListener {
+            selectAllCurrentFolderTracks()
+        }
+
         binding.btnAddToSavedPlaylist.setOnClickListener {
             if (selectedItems.isEmpty()) {
                 android.widget.Toast.makeText(this, getString(R.string.toast_select_tracks_first), android.widget.Toast.LENGTH_SHORT).show()
@@ -118,6 +122,10 @@ class AudioBrowserActivity : AppCompatActivity() {
                 this, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, tracks
             ) {
                 selectedItems.clear()
+                (binding.recyclerAudio.adapter as? AudioBrowserAdapter)?.clearSelection()
+                (binding.recyclerAudio.adapter as? CombinedAudioAdapter)?.clearSelection()
+                (binding.recyclerAudio.adapter as? MixedAudioAdapter)?.clearSelection()
+                updateCounter()
             }
         }
 
@@ -470,6 +478,27 @@ class AudioBrowserActivity : AppCompatActivity() {
         binding.tvSelected.text = resources.getQuantityString(R.plurals.selected_tracks_count, n, n)
     }
 
+    private fun selectAllCurrentFolderTracks() {
+        if (currentItems.isEmpty()) {
+            Toast.makeText(this, getString(R.string.toast_no_track_selected), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        currentItems.forEach { item ->
+            if (selectedItems.none { it.first == item.path }) {
+                selectedItems.add(Pair(item.path, item.name))
+            }
+        }
+
+        when (val adapter = binding.recyclerAudio.adapter) {
+            is AudioBrowserAdapter -> adapter.selectAll()
+            is CombinedAudioAdapter -> adapter.selectAllFiles()
+            is MixedAudioAdapter -> adapter.selectAllFiles()
+            else -> adapter?.notifyDataSetChanged()
+        }
+        updateCounter()
+    }
+
     private fun navigateFolderBack() {
         if (folderHistory.size > 1) {
             folderHistory.removeAt(folderHistory.lastIndex)
@@ -573,6 +602,15 @@ class AudioBrowserAdapter(
 
     override fun getItemCount() = items.size
     fun getAllItems() = items.map { Pair(it.path, it.name) }
+    fun selectAll() {
+        selected.clear()
+        selected.addAll(items.indices)
+        notifyDataSetChanged()
+    }
+    fun clearSelection() {
+        selected.clear()
+        notifyDataSetChanged()
+    }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvTitle: TextView = view.findViewById(R.id.tvAudioTitle)
@@ -595,7 +633,7 @@ class AudioBrowserAdapter(
 
             // Codec depuis extension
             val ext = item.name.substringAfterLast(".", "").uppercase()
-            tvCodec.text = ext
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
             tvCodec.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
 
             // Badge lossless ou bitrate
@@ -612,19 +650,9 @@ class AudioBrowserAdapter(
                 else -> tvBitrate.visibility = android.view.View.GONE
             }
 
-            // Cover : via ThumbnailUtils, qui a son propre cache disque dédié aux images — évite
-            // de re-décoder la pochette à chaque scroll comme c'était le cas avant.
-            ivCover.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_artwork)
-            if (item.path.isNotEmpty()) {
-                val boundPath = item.path
-                coverExecutor.execute {
-                    kotlinx.coroutines.runBlocking {
-                        kotlinx.coroutines.withTimeoutOrNull(2_000L) {
-                            fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(itemView.context, boundPath, ivCover)
-                        }
-                    }
-                }
-            }
+            // Navigateur audio allégé : pas de cover en liste. Les covers restent utilisées
+            // dans le lecteur/cast, mais on évite ici les décodages coûteux au scroll.
+            (ivCover.parent as? android.view.View)?.visibility = android.view.View.GONE
         }
     }
 }
@@ -646,6 +674,15 @@ class CombinedAudioAdapter(
 
     override fun getItemViewType(position: Int) = if (position < folders.size) TYPE_FOLDER else TYPE_FILE
     override fun getItemCount() = folders.size + files.size
+    fun selectAllFiles() {
+        selected.clear()
+        selected.addAll(files.indices)
+        notifyDataSetChanged()
+    }
+    fun clearSelection() {
+        selected.clear()
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return if (viewType == TYPE_FOLDER) {
@@ -784,6 +821,15 @@ class MixedAudioAdapter(
 
     override fun getItemViewType(position: Int) = if (position < folders.size) TYPE_FOLDER else TYPE_FILE
     override fun getItemCount() = folders.size + files.size
+    fun selectAllFiles() {
+        selected.clear()
+        selected.addAll(files.indices)
+        notifyDataSetChanged()
+    }
+    fun clearSelection() {
+        selected.clear()
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
         val inflater = android.view.LayoutInflater.from(parent.context)
@@ -811,7 +857,7 @@ class MixedAudioAdapter(
             v.findViewById<android.widget.TextView>(R.id.tvAudioDuration)?.text = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else ""
             val ext = item.name.substringAfterLast(".", "").uppercase()
             val tvCodec = v.findViewById<android.widget.TextView>(R.id.tvAudioCodec)
-            tvCodec?.text = ext
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
             tvCodec?.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
             val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
             val tvBitrate = v.findViewById<android.widget.TextView>(R.id.tvAudioBitrate)
@@ -830,17 +876,7 @@ class MixedAudioAdapter(
             }
             v.setOnClickListener { checkbox?.isChecked = !(checkbox?.isChecked ?: false) }
             val ivCover = v.findViewById<android.widget.ImageView>(R.id.ivAudioCover)
-            ivCover?.setImageResource(R.drawable.bg_artwork)
-            if (item.path.isNotEmpty() && ivCover != null) {
-                val boundPath = item.path
-                coverExecutor.execute {
-                    kotlinx.coroutines.runBlocking {
-                        kotlinx.coroutines.withTimeoutOrNull(2_000L) {
-                            fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(v.context, boundPath, ivCover)
-                        }
-                    }
-                }
-            }
+            ivCover?.let { (it.parent as? android.view.View)?.visibility = android.view.View.GONE }
         }
     }
 }

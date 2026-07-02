@@ -109,6 +109,140 @@ object ThumbnailUtils {
             .also { if (it != bitmap) bitmap.recycle() }
     }
 
+
+    // Caches séparés audio/vidéo : évite qu'une miniature vidéo (même chemin logique,
+    // ancien cache Vxx ou artworkUri Cast) soit réutilisée comme pochette audio.
+    private fun audioKey(path: String): String = "audio:$path"
+    private fun videoKey(path: String): String = "video:$path"
+
+    fun getCachedAudioArtworkJpegBytes(context: Context, path: String): ByteArray? {
+        val key = audioKey(path)
+        val bitmap = cache.get(key) ?: readFromDisk(context.applicationContext, key)?.also { cache.put(key, it) } ?: return null
+        return try {
+            java.io.ByteArrayOutputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, DISK_CACHE_JPEG_QUALITY, out)
+                out.toByteArray()
+            }
+        } catch (_: Exception) { null }
+    }
+
+    fun cacheAudioArtworkData(context: Context, path: String, artworkData: ByteArray?) {
+        if (artworkData == null || artworkData.isEmpty()) return
+        try {
+            val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size) ?: return
+            val scaled = scaleBitmap(bitmap, 256)
+            val key = audioKey(path)
+            cache.put(key, scaled)
+            writeToDisk(context.applicationContext, key, scaled)
+        } catch (e: Exception) {
+            android.util.Log.w("ThumbnailUtils", "Failed to cache audio artwork for $path", e)
+        }
+    }
+
+    suspend fun getAudioArtworkJpegBytes(context: Context, path: String): ByteArray? {
+        getCachedAudioArtworkJpegBytes(context, path)?.let { return it }
+        val bitmap = withContext(Dispatchers.IO) {
+            withTimeoutOrNull(if (path.startsWith("smb://")) 4_000L else 6_000L) {
+                extractAudioArtworkInternal(context.applicationContext, path)
+            }
+        } ?: return null
+        return withContext(Dispatchers.IO) {
+            try {
+                java.io.ByteArrayOutputStream().use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, DISK_CACHE_JPEG_QUALITY, out)
+                    out.toByteArray()
+                }
+            } catch (_: Exception) { null }
+        }
+    }
+
+    private fun extractAudioArtworkInternal(context: Context, path: String): Bitmap? {
+        val key = audioKey(path)
+        cache.get(key)?.let { return it }
+        readFromDisk(context, key)?.let { cache.put(key, it); return it }
+        val bitmap = try {
+            when {
+                path.startsWith("content://") -> MediaMetadataRetriever().use { r ->
+                    r.setDataSource(context, Uri.parse(path))
+                    r.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                }
+                path.startsWith("smb://") -> {
+                    var smbDataSourceAudio: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
+                    try {
+                        smbDataSourceAudio = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
+                        MediaMetadataRetriever().use { r ->
+                            r.setDataSource(smbDataSourceAudio)
+                            r.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                        }
+                    } finally {
+                        try { smbDataSourceAudio?.close() } catch (_: Exception) {}
+                    }
+                }
+                path.startsWith("http://") || path.startsWith("https://") -> MediaMetadataRetriever().use { r ->
+                    r.setDataSource(path, emptyMap())
+                    r.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                }
+                else -> MediaMetadataRetriever().use { r ->
+                    r.setDataSource(path)
+                    r.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                }
+            }
+        } catch (_: Exception) { null }
+        return bitmap?.let {
+            val scaled = scaleBitmap(it, 256)
+            cache.put(key, scaled)
+            writeToDisk(context, key, scaled)
+            scaled
+        }
+    }
+
+    /** Retourne immédiatement une image déjà en cache mémoire/disque, sans extraction réseau. */
+    fun getCachedThumbnailBitmap(context: Context, path: String): Bitmap? {
+        cache.get(path)?.let { return it }
+        return readFromDisk(context.applicationContext, path)?.also { cache.put(path, it) }
+    }
+
+    /** Retourne une pochette déjà cachée en JPEG, prête à être remise dans MediaMetadata. */
+    fun getCachedThumbnailJpegBytes(context: Context, path: String): ByteArray? {
+        val bitmap = getCachedThumbnailBitmap(context, path) ?: return null
+        return try {
+            java.io.ByteArrayOutputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, DISK_CACHE_JPEG_QUALITY, out)
+                out.toByteArray()
+            }
+        } catch (_: Exception) { null }
+    }
+
+    /** Met en cache disque/RAM une pochette extraite ailleurs, pour survivre aux fermetures. */
+    fun cacheArtworkData(context: Context, path: String, artworkData: ByteArray?) {
+        if (artworkData == null || artworkData.isEmpty()) return
+        try {
+            val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size) ?: return
+            val scaled = scaleBitmap(bitmap, 256)
+            cache.put(path, scaled)
+            writeToDisk(context.applicationContext, path, scaled)
+        } catch (e: Exception) {
+            android.util.Log.w("ThumbnailUtils", "Failed to cache artwork for $path", e)
+        }
+    }
+
+    /** Extraction avec retour bytes pour réhydrater le player/mini-player après relance app. */
+    suspend fun getThumbnailJpegBytes(
+        context: Context,
+        path: String,
+        timeUs: Long = if (path.startsWith("smb://")) 10_000_000L else 5_000_000L
+    ): ByteArray? {
+        val bitmap = getThumbnailBitmap(context, path, timeUs) ?: return null
+        return withContext(Dispatchers.IO) {
+            try {
+                java.io.ByteArrayOutputStream().use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, DISK_CACHE_JPEG_QUALITY, out)
+                    out.toByteArray()
+                }
+            } catch (_: Exception) { null }
+        }
+    }
+
     /** Coeur de l'extraction de miniature : mémoire → disque → extraction réelle, cache écrit
      *  au passage. Retourne le bitmap brut plutôt que de l'appliquer à une vue — utilisé à la
      *  fois par [loadThumbnail] (pour l'UI) et par tout appelant ayant besoin du bitmap lui-même

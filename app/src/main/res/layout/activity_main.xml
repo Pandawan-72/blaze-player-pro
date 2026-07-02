@@ -46,6 +46,13 @@
                 android:clipToOutline="true"
                 android:contentDescription="@null" />
 
+            <fr.retrospare.blazeplayer.widget.MiniEqualizerView
+                android:id="@+id/miniEqView"
+                android:layout_width="24dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
         </FrameLayout>
 
         <!-- Titre + artiste -->
@@ -78,6 +85,19 @@
                 android:ellipsize="end" />
 
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvMiniTime"
+            android:layout_width="96dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="8dp"
+            android:gravity="center"
+            android:text="0:00"
+            android:textColor="@color/on_surface_secondary"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-condensed"
+            android:singleLine="true"
+            android:ellipsize="end" />
 
         <!-- Contrôles : prev | pause | next -->
         <ImageButton

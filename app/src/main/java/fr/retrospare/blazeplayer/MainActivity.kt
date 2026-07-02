@@ -31,6 +31,12 @@ import fr.retrospare.blazeplayer.databinding.ActivityMainBinding
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
+    private val miniTimeTicker = object : Runnable {
+        override fun run() {
+            updateMiniPlayerTime()
+            handler.postDelayed(this, 1000L)
+        }
+    }
 
     private lateinit var binding: ActivityMainBinding
 
@@ -63,6 +69,28 @@ class MainActivity : AppCompatActivity() {
         binding.btnMiniNext.setOnClickListener { miniPlayerVm.controller?.seekToNextMediaItem() }
         binding.miniPlayerBar.setOnClickListener { openBlazeAudio() }
         setupMiniPlayerDrag()
+        handler.removeCallbacks(miniTimeTicker)
+        handler.post(miniTimeTicker)
+    }
+
+    private fun formatMiniTime(ms: Long): String {
+        val total = (ms / 1000L).coerceAtLeast(0L)
+        val h = total / 3600L
+        val m = (total % 3600L) / 60L
+        val s = total % 60L
+        return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+    }
+
+    private fun updateMiniPlayerTime() {
+        if (!::binding.isInitialized || binding.miniPlayerBar.visibility != android.view.View.VISIBLE) return
+        val c = miniPlayerVm.controller ?: return
+        val position = c.currentPosition.coerceAtLeast(0L)
+        val duration = c.duration.takeIf { it > 0 } ?: 0L
+        binding.tvMiniTime.text = if (duration > 0L) {
+            "${formatMiniTime(position)} / ${formatMiniTime(duration)}"
+        } else {
+            formatMiniTime(position)
+        }
     }
 
     /** Applique l'état courant du mini player à la vue. Extrait de setupMiniPlayer() pour pouvoir
@@ -76,12 +104,24 @@ class MainActivity : AppCompatActivity() {
             binding.tvMiniTitle.text = state.title.ifEmpty { getString(R.string.unknown_title) }
             binding.tvMiniArtist.text = state.artist
             val art = state.artworkData
-            if (art != null) binding.ivMiniArtwork.setImageBitmap(
-                android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size))
+            if (art != null) {
+                binding.ivMiniArtwork.setImageBitmap(
+                    android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size))
+            } else {
+                binding.ivMiniArtwork.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_music_note_large)
+            }
+            updateMiniPlayerTime()
             binding.btnMiniPlayPause.setImageResource(
                 if (state.isPlaying) fr.retrospare.blazeplayer.R.drawable.ic_pause
                 else fr.retrospare.blazeplayer.R.drawable.ic_play
             )
+            if (state.isPlaying) {
+                binding.miniEqView.start()
+            } else {
+                binding.miniEqView.stop()
+            }
+        } else {
+            binding.miniEqView.stop()
         }
     }
 
@@ -222,6 +262,11 @@ class MainActivity : AppCompatActivity() {
             ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
             ?.firstOrNull()
         homeFragment?.switchToAudioTab()
+    }
+
+    override fun onDestroy() {
+        handler.removeCallbacks(miniTimeTicker)
+        super.onDestroy()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

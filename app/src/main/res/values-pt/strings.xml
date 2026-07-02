@@ -365,4 +365,26 @@
     <string name="notif_channel_youtube">Reprodução do YouTube</string>
     <string name="action_pause">Pausa</string>
     <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
+
+    <string name="cast_dialog_status">Transmitindo agora</string>
+    <string name="cast_dialog_stop">Parar transmissão</string>
+    <string name="select_all">Selecionar tudo</string>
+    <string name="cast_subtitles_unavailable">Legendas indisponíveis durante o cast</string>
+    <string name="cast_audio_language_unavailable">Mudança de idioma indisponível durante o cast</string>
+    <string name="paywall_title">Desbloquear Blaze Player</string>
+    <string name="paywall_subtitle">Escolha a versão que combina com o seu uso. As compras serão conectadas depois.</string>
+    <string name="paywall_free_title">Blaze Player Gratuito</string>
+    <string name="paywall_free_desc">Reprodução de vídeo local e cast de vídeo local. Apenas a aba Local.</string>
+    <string name="paywall_pro_title">Blaze Player Pro</string>
+    <string name="paywall_pro_price">3,99 €</string>
+    <string name="paywall_pro_desc">Desbloqueia rede SMB, Blaze Audio e mini player.</string>
+    <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
+    <string name="paywall_pro_plus_price">5,99 €</string>
+    <string name="paywall_pro_plus_desc">Desbloqueia Blaze Tube para vídeos do YouTube e inclui todos os recursos Pro.</string>
+    <string name="paywall_buy_pro">Desbloquear Pro — 3,99 €</string>
+    <string name="paywall_buy_pro_plus">Desbloquear Pro+ — 5,99 €</string>
+    <string name="paywall_debug_unlocked">Modo debug: Pro e Pro+ estão temporariamente desbloqueados.</string>
+    <string name="paywall_restore">Restaurar compras</string>
+    <string name="action_back">Voltar</string>
+    <string name="toast_billing_soon">Compras disponíveis em breve</string>
 </resources>

@@ -10,9 +10,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
-import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class BrowserAdapter(
@@ -153,7 +151,7 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
 
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             tvName.text = item.name
-            tvFormat.text = item.extension.uppercase()
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFormat, item.extension)
             tvFormat.visibility = if (item.extension.isNotEmpty()) View.VISIBLE else View.GONE
             tvDuration.text = item.formattedDuration
 
@@ -171,6 +169,9 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
             tvResolution.visibility = if (badge.isNotEmpty()) View.VISIBLE else View.GONE
 
             // Codecs
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvResolution)
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvVideoCodec)
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvAudioCodec)
             tvVideoCodec.text = item.videoCodec ?: ""
             tvVideoCodec.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
             tvAudioCodec.text = item.audioCodec ?: ""
@@ -186,17 +187,12 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                 progressFill.visibility = View.GONE
             }
 
-            // Reset thumbnail
+            // Navigateurs allégés : aucune extraction de miniature en liste (local/réseau),
+            // mais on garde le bloc statique pour afficher le badge conteneur coloré.
             thumbnailJob?.cancel()
-            ivThumbnail.setImageBitmap(null)
-            ivPlayOverlay.visibility = View.VISIBLE
-
-            // Charge le thumbnail si fichier local
-            if (!item.isNetwork && item.path.isNotEmpty()) {
-                thumbnailJob = scope.launch {
-                    ThumbnailUtils.loadThumbnail(itemView.context, item.path, ivThumbnail)
-                }
-            }
+            (ivThumbnail.parent as? View)?.visibility = View.VISIBLE
+            ivThumbnail.setImageDrawable(null)
+            ivPlayOverlay.visibility = View.GONE
 
             // Case à cocher (sélection multiple) : toujours visible, comme dans le navigateur
             // audio, à gauche de la ligne. Cocher sélectionne le fichier ; taper la ligne l'ouvre

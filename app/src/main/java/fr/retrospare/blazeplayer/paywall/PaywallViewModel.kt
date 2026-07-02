@@ -2,15 +2,12 @@ package fr.retrospare.blazeplayer.paywall
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.revenuecat.purchases.CustomerInfo
-import com.revenuecat.purchases.Purchases
-import com.revenuecat.purchases.PurchasesError
-import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.retrospare.blazeplayer.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,7 +18,7 @@ class PaywallViewModel @Inject constructor(
 
     sealed class PaywallState {
         object Loading : PaywallState()
-        data class Ready(val isPro: Boolean, val trialDaysLeft: Int) : PaywallState()
+        data class Ready(val isPro: Boolean, val isProPlus: Boolean, val trialDaysLeft: Int) : PaywallState()
         data class Error(val message: String) : PaywallState()
     }
 
@@ -30,18 +27,26 @@ class PaywallViewModel @Inject constructor(
 
     val isPro = userRepository.isProFlow
 
+    /**
+     * Debug/freemium scaffold only.
+     *
+     * Do not call RevenueCat/Play Billing here yet: billing is not wired in this branch and the
+     * previous implementation could freeze the UI when the Settings button opened the paywall.
+     * In debug, UserRepository currently exposes Pro and Pro+ as unlocked by default.
+     */
     fun checkProStatus() {
-        Purchases.sharedInstance.getCustomerInfo(object : ReceiveCustomerInfoCallback {
-            override fun onReceived(customerInfo: CustomerInfo) {
-                val hasPro = customerInfo.entitlements["pro"]?.isActive == true
-                viewModelScope.launch {
-                    userRepository.setProStatus(hasPro)
-                    _state.value = PaywallState.Ready(isPro = hasPro, trialDaysLeft = 0)
-                }
+        viewModelScope.launch {
+            runCatching {
+                val pro = userRepository.isProFlow.first()
+                val proPlus = userRepository.isProPlusFlow.first()
+                _state.value = PaywallState.Ready(
+                    isPro = pro || proPlus,
+                    isProPlus = proPlus,
+                    trialDaysLeft = 0
+                )
+            }.onFailure { error ->
+                _state.value = PaywallState.Error(error.message ?: "Paywall unavailable")
             }
-            override fun onError(error: PurchasesError) {
-                _state.value = PaywallState.Error(error.message)
-            }
-        })
+        }
     }
 }

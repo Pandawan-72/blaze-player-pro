@@ -212,6 +212,7 @@ class VideoPlaybackService : MediaSessionService() {
                         val artworkData = args.getByteArray(EXTRA_ARTWORK_DATA)
                         val current = session.player.currentMediaItem
                         if (current != null && artworkData != null && current.mediaId == mediaId) {
+                            try { fr.retrospare.blazeplayer.ui.ThumbnailUtils.cacheArtworkData(applicationContext, mediaId, artworkData) } catch (_: Exception) {}
                             val updated = current.buildUpon()
                                 .setMediaMetadata(
                                     current.mediaMetadata.buildUpon()

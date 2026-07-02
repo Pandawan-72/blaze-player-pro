@@ -3,8 +3,6 @@ package fr.retrospare.blazeplayer.player
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
-import androidx.media3.cast.CastPlayer
-import androidx.media3.cast.RemoteCastPlayer
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -19,8 +17,6 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
-import fr.retrospare.blazeplayer.cast.BlazeCastMediaItemConverter
-import fr.retrospare.blazeplayer.cast.AudioStreamServerManager
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
@@ -60,7 +56,10 @@ class BlazePlayerService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private var player: ExoPlayer? = null
     private var sessionPlayer: Player? = null
-    private var castPlayer: CastPlayer? = null
+    private var eqManager: EqualizerManager? = null
+    private val eqApplyHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
 
     override fun onCreate() {
         super.onCreate()
@@ -114,6 +113,7 @@ class BlazePlayerService : MediaSessionService() {
             // Garde le Wi-Fi actif pendant la lecture réseau (SMB) en arrière-plan/écran éteint.
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        restoreEqualizerForPlayer(exoPlayer)
         exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 fr.retrospare.blazeplayer.debug.CrashReporter.log(
@@ -131,25 +131,10 @@ class BlazePlayerService : MediaSessionService() {
         })
         player = exoPlayer
 
-        val audioSessionPlayer: Player = try {
-            val remotePlayer = RemoteCastPlayer.Builder(this)
-                .setMediaItemConverter(BlazeCastMediaItemConverter())
-                .build()
-            val cp = CastPlayer.Builder(this)
-                .setLocalPlayer(exoPlayer)
-                .setRemotePlayer(remotePlayer)
-                .setTransferCallback { sourcePlayer, targetPlayer ->
-                    androidx.media3.common.PlayerTransferState.fromPlayer(sourcePlayer)
-                        .setToPlayer(targetPlayer)
-                    android.util.Log.i("BlazePlayerService", "Audio transfer remote=${targetPlayer.deviceInfo.playbackType == androidx.media3.common.DeviceInfo.PLAYBACK_TYPE_REMOTE}")
-                }
-                .build()
-            castPlayer = cp
-            cp
-        } catch (e: Exception) {
-            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Audio CastPlayer unavailable; fallback local audio", e)
-            exoPlayer
-        }
+        // Isolation stricte audio/vidéo : la MediaSession audio expose UNIQUEMENT ExoPlayer local.
+        // Aucun composant Chromecast côté audio : le lecteur audio et le
+        // mini-player ne peuvent plus récupérer ni piloter un média vidéo casté.
+        val audioSessionPlayer: Player = exoPlayer
         sessionPlayer = audioSessionPlayer
 
         val openIntent = PendingIntent.getActivity(
@@ -161,10 +146,85 @@ class BlazePlayerService : MediaSessionService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        audioSessionPlayer.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                persistAudioQueue()
+            }
+
+            override fun onEvents(player: androidx.media3.common.Player, events: androidx.media3.common.Player.Events) {
+                if (events.contains(androidx.media3.common.Player.EVENT_MEDIA_ITEM_TRANSITION) ||
+                    events.contains(androidx.media3.common.Player.EVENT_PLAYBACK_STATE_CHANGED) ||
+                    events.contains(androidx.media3.common.Player.EVENT_REPEAT_MODE_CHANGED) ||
+                    events.contains(androidx.media3.common.Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED)) {
+                    persistAudioQueue()
+                }
+            }
+        })
+
         mediaSession = MediaSession.Builder(this, audioSessionPlayer)
+            .setId("BlazeAudio")
             .setSessionActivity(openIntent)
             .setCallback(SessionCallback())
             .build()
+    }
+
+    private fun restoreEqualizerForPlayer(exoPlayer: ExoPlayer, attempt: Int = 0) {
+        val sessionId = exoPlayer.audioSessionId
+        if (sessionId <= 0 && attempt < 10) {
+            eqApplyHandler.postDelayed({ restoreEqualizerForPlayer(exoPlayer, attempt + 1) }, 250L)
+            return
+        }
+        if (sessionId <= 0) return
+        try { eqManager?.release() } catch (_: Exception) {}
+        eqManager = try {
+            EqualizerManager(sessionId, applicationContext).also { it.restoreLastSession() }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Restore equalizer in audio service failed", e)
+            null
+        }
+    }
+
+
+    private fun isObsoleteLocalRelayUrl(value: String): Boolean =
+        value.startsWith("http://") && value.contains(":8928/")
+
+    private fun originalPathFromItem(mi: androidx.media3.common.MediaItem): String {
+        val extras = mi.mediaMetadata.extras
+        val fromExtras = extras?.getString("blaze_original_path")
+            ?.takeIf { it.isNotBlank() && !isObsoleteLocalRelayUrl(it) && AudioRepository.isAudioExtension(it) }
+        if (fromExtras != null) return fromExtras
+        val fromMediaId = mi.mediaId.takeIf { it.isNotBlank() && !isObsoleteLocalRelayUrl(it) && AudioRepository.isAudioExtension(it) }
+        if (fromMediaId != null) return fromMediaId
+        return mi.localConfiguration?.uri?.toString()
+            ?.takeIf { it.isNotBlank() && !isObsoleteLocalRelayUrl(it) && AudioRepository.isAudioExtension(it) }
+            .orEmpty()
+    }
+
+    private fun persistAudioQueue() {
+        val p = sessionPlayer ?: player ?: return
+        try {
+            if (p.mediaItemCount <= 0) return
+            val items = (0 until p.mediaItemCount).map { i ->
+                val mi = p.getMediaItemAt(i)
+                val path = originalPathFromItem(mi)
+                val name = mi.mediaMetadata.title?.toString()?.ifBlank { null }
+                    ?: mi.localConfiguration?.uri?.lastPathSegment
+                    ?: path.substringAfterLast('/')
+                PlaylistItem(path, name)
+            }.filter { it.path.isNotBlank() && !isObsoleteLocalRelayUrl(it.path) && AudioRepository.isAudioExtension(it.path) }
+            if (items.isNotEmpty()) {
+                AudioRepository.save(
+                    applicationContext,
+                    items,
+                    p.currentMediaItemIndex.coerceAtLeast(0),
+                    p.currentPosition.coerceAtLeast(0L),
+                    p.repeatMode,
+                    p.shuffleModeEnabled
+                )
+            }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Persist audio queue failed", e)
+        }
     }
 
     private inner class SessionCallback : MediaSession.Callback {
@@ -224,6 +284,7 @@ class BlazePlayerService : MediaSessionService() {
      * lecture et suppression de la notification Media3.
      */
     override fun onTaskRemoved(rootIntent: Intent?) {
+        persistAudioQueue()
         try {
             sessionPlayer?.stop()
             sessionPlayer?.clearMediaItems()
@@ -235,12 +296,14 @@ class BlazePlayerService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        persistAudioQueue()
+        try { eqApplyHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
+        try { mainHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { mediaSession?.release() } catch (_: Exception) {}
-        try { castPlayer?.release() } catch (_: Exception) {}
+        try { eqManager?.release() } catch (_: Exception) {}
         try { player?.release() } catch (_: Exception) {}
-        AudioStreamServerManager.stopServer()
         mediaSession = null
-        castPlayer = null
+        eqManager = null
         sessionPlayer = null
         player = null
         super.onDestroy()

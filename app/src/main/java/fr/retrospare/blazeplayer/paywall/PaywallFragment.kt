@@ -6,6 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import android.widget.Toast
+import fr.retrospare.blazeplayer.R
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.databinding.FragmentPaywallBinding
 
@@ -26,13 +31,36 @@ class PaywallFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        applySystemBarPadding()
         viewModel.checkProStatus()
+        binding.btnBack.setOnClickListener { findNavController().popBackStack() }
         binding.btnBuyPro.setOnClickListener {
-            // TODO: Lancer le flux d'achat RevenueCat
+            Toast.makeText(requireContext(), getString(R.string.toast_billing_soon), Toast.LENGTH_SHORT).show()
+        }
+        binding.btnBuyProPlus.setOnClickListener {
+            Toast.makeText(requireContext(), getString(R.string.toast_billing_soon), Toast.LENGTH_SHORT).show()
         }
         binding.btnRestore.setOnClickListener {
-            // TODO: Restaurer les achats
+            Toast.makeText(requireContext(), getString(R.string.toast_restore_purchases_soon), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun applySystemBarPadding() {
+        val initialLeft = binding.paywallRoot.paddingLeft
+        val initialTop = binding.paywallRoot.paddingTop
+        val initialRight = binding.paywallRoot.paddingRight
+        val initialBottom = binding.paywallRoot.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(binding.paywallRoot) { root, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            root.setPadding(
+                initialLeft + bars.left,
+                initialTop + bars.top,
+                initialRight + bars.right,
+                initialBottom
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.paywallRoot)
     }
 
     override fun onDestroyView() {

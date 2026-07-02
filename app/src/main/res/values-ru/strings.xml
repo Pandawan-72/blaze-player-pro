@@ -385,4 +385,26 @@
     <string name="notif_channel_youtube">Воспроизведение YouTube</string>
     <string name="action_pause">Пауза</string>
     <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
+
+    <string name="cast_dialog_status">Идет трансляция</string>
+    <string name="cast_dialog_stop">Остановить трансляцию</string>
+    <string name="select_all">Выбрать все</string>
+    <string name="cast_subtitles_unavailable">Субтитры недоступны при трансляции</string>
+    <string name="cast_audio_language_unavailable">Смена языка недоступна при трансляции</string>
+    <string name="paywall_title">Разблокировать Blaze Player</string>
+    <string name="paywall_subtitle">Выберите версию под ваши задачи. Покупки будут подключены позже.</string>
+    <string name="paywall_free_title">Blaze Player Free</string>
+    <string name="paywall_free_desc">Локальное видео и трансляция локального видео. Только вкладка Local.</string>
+    <string name="paywall_pro_title">Blaze Player Pro</string>
+    <string name="paywall_pro_price">3,99 €</string>
+    <string name="paywall_pro_desc">Открывает SMB-сеть, Blaze Audio и мини-плеер.</string>
+    <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
+    <string name="paywall_pro_plus_price">5,99 €</string>
+    <string name="paywall_pro_plus_desc">Открывает Blaze Tube для YouTube-видео и включает все функции Pro.</string>
+    <string name="paywall_buy_pro">Открыть Pro — 3,99 €</string>
+    <string name="paywall_buy_pro_plus">Открыть Pro+ — 5,99 €</string>
+    <string name="paywall_debug_unlocked">Debug-режим: Pro и Pro+ временно разблокированы.</string>
+    <string name="paywall_restore">Восстановить покупки</string>
+    <string name="action_back">Назад</string>
+    <string name="toast_billing_soon">Покупки скоро будут доступны</string>
 </resources>

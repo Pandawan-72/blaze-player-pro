@@ -54,16 +54,18 @@ class EqualizerDialog(
         binding.tvBassValue.text = "${eqManager.getSavedBassBoost() / 10}%"
         binding.seekVirtualizer.progress = eqManager.getSavedVirtualizer()
         binding.tvVirtValue.text = "${eqManager.getSavedVirtualizer() / 10}%"
+        binding.seekPreamp.progress = eqManager.getSavedPreamp() + 1000
+        binding.tvPreampValue.text = formatDb(eqManager.getSavedPreamp())
+        binding.seekCompressor.progress = eqManager.getSavedCompressor()
+        binding.tvCompressorValue.text = "${eqManager.getSavedCompressor()}%"
     }
 
     private fun setupHeader() {
         binding.btnCloseEq.setOnClickListener { dismiss() }
-        binding.switchEq.isChecked = eqManager.equalizer?.enabled ?: false
-        binding.tvEqStatus.text = if (eqManager.equalizer?.enabled == true) "ON" else "OFF"
+        binding.switchEq.isChecked = eqManager.isEnabled()
+        binding.tvEqStatus.text = if (eqManager.isEnabled()) "ON" else "OFF"
         binding.switchEq.setOnCheckedChangeListener { _, checked ->
-            eqManager.equalizer?.enabled = checked
-            eqManager.bassBoost?.enabled = checked
-            eqManager.virtualizer?.enabled = checked
+            eqManager.setEnabled(checked)
             binding.tvEqStatus.text = if (checked) "ON" else "OFF"
             binding.tvEqStatus.setTextColor(
                 ContextCompat.getColor(requireContext(),
@@ -137,6 +139,7 @@ class EqualizerDialog(
         eqManager.presets.keys.forEach { presetName ->
             val chip = Chip(requireContext()).apply {
                 text = eqManager.getPresetDisplayName(requireContext(), presetName)
+                tag = presetName
                 isCheckable = true
                 isChecked = presetName == selectedPreset
                 chipBackgroundColor = android.content.res.ColorStateList(
@@ -168,7 +171,7 @@ class EqualizerDialog(
     private fun refreshChips() {
         for (i in 0 until binding.presetContainer.childCount) {
             val chip = binding.presetContainer.getChildAt(i) as? Chip ?: continue
-            chip.isChecked = chip.text == selectedPreset
+            chip.isChecked = chip.tag == selectedPreset
         }
     }
 
@@ -207,6 +210,34 @@ class EqualizerDialog(
             override fun onStartTrackingTouch(sb: SeekBar) {}
             override fun onStopTrackingTouch(sb: SeekBar) {}
         })
+
+        binding.seekPreamp.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    val level = progress - 1000
+                    eqManager.setPreamp(level)
+                    binding.tvPreampValue.text = formatDb(level)
+                }
+            }
+            override fun onStartTrackingTouch(sb: SeekBar) {}
+            override fun onStopTrackingTouch(sb: SeekBar) {}
+        })
+
+        binding.seekCompressor.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    eqManager.setCompressor(progress)
+                    binding.tvCompressorValue.text = "${progress}%"
+                }
+            }
+            override fun onStartTrackingTouch(sb: SeekBar) {}
+            override fun onStopTrackingTouch(sb: SeekBar) {}
+        })
+    }
+
+    private fun formatDb(level: Int): String {
+        val value = level / 100f
+        return String.format(java.util.Locale.US, "%+.1f dB", value)
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()

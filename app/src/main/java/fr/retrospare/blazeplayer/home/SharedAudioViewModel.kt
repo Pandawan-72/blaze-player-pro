@@ -37,7 +37,7 @@ class SharedAudioViewModel(app: Application) : AndroidViewModel(app) {
         val json = org.json.JSONArray().apply {
             _playlist.value.forEach { put(org.json.JSONObject().put("path", it.path).put("name", it.name)) }
         }
-        prefs.edit().putString("items", json.toString()).apply()
+        prefs.edit().putString("items", json.toString()).commit()
     }
 
     fun loadFromPrefs() {
@@ -50,6 +50,7 @@ class SharedAudioViewModel(app: Application) : AndroidViewModel(app) {
                 AudioTrack(obj.getString("path"), obj.getString("name"))
             }
             _playlist.value = tracks
+            _currentIndex.value = prefs.getInt("currentIndex", 0).coerceIn(0, (tracks.size - 1).coerceAtLeast(0))
         } catch (e: Exception) {}
     }
 
@@ -61,18 +62,26 @@ class SharedAudioViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setPlaylist(tracks: List<AudioTrack>) {
         _playlist.value = tracks
+        saveToPrefs()
     }
 
     fun setCurrentIndex(index: Int) {
-        _currentIndex.value = index
+        _currentIndex.value = index.coerceAtLeast(0)
+        getApplication<Application>().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
+            .edit().putInt("currentIndex", _currentIndex.value).commit()
     }
 
     fun removeTrack(path: String) {
         _playlist.value = _playlist.value.filter { it.path != path }
+        if (_currentIndex.value >= _playlist.value.size) _currentIndex.value = (_playlist.value.size - 1).coerceAtLeast(0)
+        saveToPrefs()
     }
 
     fun clearPlaylist() {
         _playlist.value = emptyList()
+        _pendingTracks.value = emptyList()
         _currentIndex.value = 0
+        getApplication<Application>().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
+            .edit().clear().commit()
     }
 }

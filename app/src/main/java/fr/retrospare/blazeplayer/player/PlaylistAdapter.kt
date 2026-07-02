@@ -169,7 +169,7 @@ class PlaylistAdapter(
             tvArtist?.text = meta.artist.ifEmpty { itemView.context.getString(R.string.unknown_artist) }
             tvArtist?.visibility = View.VISIBLE
 
-            tvCodec?.text = meta.extension
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, meta.extension)
             tvCodec?.visibility = if (meta.extension.isNotEmpty()) View.VISIBLE else View.GONE
 
             // Formaté à l'affichage (pas au moment de la mise en cache) pour rester correct

@@ -69,6 +69,25 @@ object AudioMetadataExtractor {
 
     fun clearCache() = cache.clear()
 
+    /** Met à jour le cache mémoire + disque avec des métadonnées déjà connues par Media3 ou le player.
+     *  Utilisé notamment à la restauration de la file audio : évite que l'artiste retombe sur
+     *  "Unknown" quand le fichier réseau n'a pas encore été ré-ouvert. */
+    fun putCached(context: Context, path: String, info: AudioTechnicalInfo) {
+        if (path.isBlank()) return
+        val previous = cache[path]
+        val merged = AudioTechnicalInfo(
+            artist = info.artist.ifBlank { previous?.artist.orEmpty() },
+            duration = if (info.duration > 0L) info.duration else previous?.duration ?: 0L,
+            bitrate = if (info.bitrate > 0L) info.bitrate else previous?.bitrate ?: 0L,
+            extension = info.extension.ifBlank { previous?.extension.orEmpty() },
+            isLossless = info.isLossless || previous?.isLossless == true,
+            title = info.title.ifBlank { previous?.title.orEmpty() },
+            album = info.album.ifBlank { previous?.album.orEmpty() }
+        )
+        cache[path] = merged
+        saveToDisk(context, path, merged)
+    }
+
     /** Vide aussi le cache disque persistant. */
     fun clearDiskCache(context: Context) {
         try {

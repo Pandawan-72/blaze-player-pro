@@ -51,7 +51,7 @@ class HomeViewModel @Inject constructor(
                 // depuis l'extension (ou déjà en cache) pour le réseau — plutôt que d'attendre
                 // l'extraction de tout l'historique réseau avant de rien afficher.
                 val fastItems = withContext(Dispatchers.IO) {
-                    videoOnly.map { if (it.isNetwork) fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorate(it) else enrichWithMediaStore(it) }
+                    videoOnly.map { if (it.isNetwork) fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorate(context, it) else fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorate(context, enrichWithMediaStore(it)) }
                 }
                 allItems = fastItems
                 _lastPlayedItem.value = fastItems.firstOrNull()
@@ -59,10 +59,10 @@ class HomeViewModel @Inject constructor(
 
                 // Enrichissement réel des items réseau en arrière-plan, un par un — chaque
                 // élément prêt met à jour allItems et redéclenche l'onglet actif.
-                val networkItems = fastItems.filter { it.isNetwork }
-                if (networkItems.isNotEmpty()) {
+                val videoItemsForBadges = fastItems.filter { it.mimeType.startsWith("video/") }
+                if (videoItemsForBadges.isNotEmpty()) {
                     fr.retrospare.blazeplayer.player.VideoMetadataExtractor.enrichVideoItemsIncremental(
-                        context, networkItems
+                        context, videoItemsForBadges, maxConcurrent = 2
                     ) { _, enriched ->
                         val idx = allItems.indexOfFirst { it.path == enriched.path }
                         if (idx >= 0) {

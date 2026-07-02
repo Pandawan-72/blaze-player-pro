@@ -365,4 +365,26 @@
     <string name="notif_channel_youtube">YouTube-weergave</string>
     <string name="action_pause">Pauzeren</string>
     <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
+
+    <string name="cast_dialog_status">Casten bezig</string>
+    <string name="cast_dialog_stop">Casten stoppen</string>
+    <string name="select_all">Alles selecteren</string>
+    <string name="cast_subtitles_unavailable">Ondertitels niet beschikbaar tijdens casten</string>
+    <string name="cast_audio_language_unavailable">Taal wijzigen niet beschikbaar tijdens casten</string>
+    <string name="paywall_title">Blaze Player ontgrendelen</string>
+    <string name="paywall_subtitle">Kies de versie die bij je gebruik past. Aankopen worden later gekoppeld.</string>
+    <string name="paywall_free_title">Blaze Player Gratis</string>
+    <string name="paywall_free_desc">Lokale video afspelen en lokale video casten. Alleen het lokale tabblad.</string>
+    <string name="paywall_pro_title">Blaze Player Pro</string>
+    <string name="paywall_pro_price">€ 3,99</string>
+    <string name="paywall_pro_desc">Ontgrendelt SMB-netwerk, Blaze Audio en de mini-player.</string>
+    <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
+    <string name="paywall_pro_plus_price">€ 5,99</string>
+    <string name="paywall_pro_plus_desc">Ontgrendelt Blaze Tube voor YouTube-video’s en bevat alle Pro-functies.</string>
+    <string name="paywall_buy_pro">Pro ontgrendelen — € 3,99</string>
+    <string name="paywall_buy_pro_plus">Pro+ ontgrendelen — € 5,99</string>
+    <string name="paywall_debug_unlocked">Debugmodus: Pro en Pro+ zijn tijdelijk ontgrendeld.</string>
+    <string name="paywall_restore">Aankopen herstellen</string>
+    <string name="action_back">Terug</string>
+    <string name="toast_billing_soon">Aankopen binnenkort beschikbaar</string>
 </resources>

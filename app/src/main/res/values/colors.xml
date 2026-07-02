@@ -17,6 +17,7 @@
     <color name="on_background">#E8EAF0</color>
     <color name="on_surface">#D8DAE4</color>
     <color name="on_surface_variant">#9B9DB3</color>
+    <color name="on_surface_secondary">#9B9DB3</color>
     <color name="text_hint">#4D4D5A</color>
 
     <!-- Bordures -->
@@ -54,4 +55,28 @@
     <color name="white">#FFFFFFFF</color>
     <color name="orange_accent">#F0A500</color>
     <color name="orange_badge_bg">#1AF0A500</color>
+
+    <!-- Texte des badges conteneur sur fond noir opaque -->
+    <color name="badge_mkv">#378ADD</color>
+    <color name="badge_mp4">#F0B429</color>
+    <color name="badge_mp3">#F0A500</color>
+    <color name="badge_flac">#3DD68C</color>
+    <color name="badge_avi">#FF5CA8</color>
+    <color name="badge_mov">#65D8FF</color>
+    <color name="badge_webm">#B589FF</color>
+    <color name="badge_ts">#E05252</color>
+    <color name="badge_wmv">#00C2A8</color>
+    <color name="badge_flv">#FF7A45</color>
+    <color name="badge_3gp">#A3E635</color>
+    <color name="badge_aac">#7DD3FC</color>
+    <color name="badge_ogg">#C084FC</color>
+    <color name="badge_opus">#F472B6</color>
+    <color name="badge_wav">#E8EAF0</color>
+    <color name="badge_wma">#93C5FD</color>
+    <color name="badge_ape">#FDBA74</color>
+    <color name="badge_ac3">#FCA5A5</color>
+    <color name="badge_dts">#A7F3D0</color>
+    <color name="badge_mka">#DDD6FE</color>
+    <color name="badge_other">#D8DAE4</color>
+
 </resources>

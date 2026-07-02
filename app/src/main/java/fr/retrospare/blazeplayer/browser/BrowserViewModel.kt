@@ -113,7 +113,18 @@ class BrowserViewModel @Inject constructor(
                     val audioItems = if (_showAudio.value || _audioOnlyMode.value) scanLocalAudio(path) else emptyList()
                     videoItems + audioItems
                 }
-                _state.value = BrowserState.Success(applySortMode(items))
+                // Même pipeline de badges que le réseau : affichage immédiat depuis MediaStore/cache,
+                // puis extraction complète en arrière-plan pour compléter les codecs et persister.
+                var currentItems = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(context, items)
+                _state.value = BrowserState.Success(applySortMode(currentItems))
+                fr.retrospare.blazeplayer.player.VideoMetadataExtractor.enrichVideoItemsIncremental(
+                    context, currentItems, maxConcurrent = 2
+                ) { index, enriched ->
+                    if (index < currentItems.size) {
+                        currentItems = currentItems.toMutableList().also { it[index] = enriched }
+                        _state.value = BrowserState.Success(applySortMode(currentItems))
+                    }
+                }
             } catch (e: Exception) {
                 _state.value = BrowserState.Error(e.message ?: "Erreur de lecture")
             }
@@ -232,7 +243,7 @@ class BrowserViewModel @Inject constructor(
                 )
             }
         }
-        items
+        fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(context, items)
     }
 
     private fun applySortMode(items: List<MediaItem>): List<MediaItem> {

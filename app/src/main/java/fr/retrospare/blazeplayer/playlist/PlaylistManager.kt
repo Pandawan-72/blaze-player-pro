@@ -7,7 +7,7 @@ import org.json.JSONObject
 /** Référence légère vers un fichier (chemin + nom), suffisante pour retrouver/relire le média. */
 data class PlaylistTrackRef(val path: String, val name: String)
 
-/** Les 3 contextes qui ont chacun leurs 3 playlists indépendantes (1/2/3). */
+/** Les contextes qui ont chacun leurs 5 playlists indépendantes (1/2/3/4/5). */
 enum class PlaylistCategory(val prefKey: String, val label: String) {
     LOCAL_VIDEO("local_video", "Local"),
     NETWORK_VIDEO("network_video", "Réseau"),
@@ -25,12 +25,12 @@ fun PlaylistCategory.displayLabel(context: Context): String = when (this) {
     PlaylistCategory.YOUTUBE -> label
 }
 
-/** Gère les 9 playlists sauvegardées (3 catégories x 3 emplacements), en local via
+/** Gère les playlists sauvegardées (5 emplacements par catégorie), en local via
  *  SharedPreferences (même approche que AudioRepository/SharedAudioViewModel dans ce projet). */
 object PlaylistManager {
 
     private const val PREFS = "blaze_saved_playlists"
-    const val SLOT_COUNT = 3
+    const val SLOT_COUNT = 5
 
     private fun key(category: PlaylistCategory, slot: Int) = "${category.prefKey}_$slot"
 
@@ -78,14 +78,14 @@ object PlaylistManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(key(category, slot), arr.toString())
-            .apply()
+            .commit()
     }
 
     fun clearPlaylist(context: Context, category: PlaylistCategory, slot: Int) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .remove(key(category, slot))
-            .apply()
+            .commit()
     }
 
     /** Mémorise la dernière playlist (par catégorie) mise en lecture via "Jouer la playlist",
@@ -95,10 +95,10 @@ object PlaylistManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putInt("last_played_${category.prefKey}", slot)
-            .apply()
+            .commit()
     }
 
-    /** Emplacement (1..3) de la dernière playlist jouée pour cette catégorie, ou 0 si aucune. */
+    /** Emplacement (1..5) de la dernière playlist jouée pour cette catégorie, ou 0 si aucune. */
     fun getLastPlayed(context: Context, category: PlaylistCategory): Int =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getInt("last_played_${category.prefKey}", 0)

@@ -24,9 +24,12 @@ import fr.retrospare.blazeplayer.player.PlayerRouter
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
+
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
 
     private val viewModel: HomeViewModel by viewModels()
     private var currentTabIndex = 0
@@ -136,14 +139,20 @@ class HomeFragment : Fragment() {
         listOf(binding.tabLocal, binding.tabNetwork, binding.tabYoutube, binding.tabAudio).forEachIndexed { i, tab ->
             val index = i + 1
             tab.setOnClickListener {
-                currentTabIndex = index
-                updateTabStyles(index)
-                if (index == 4) {
-                    showAudioTab()
-                } else {
-                    hideAudioTab()
-                    viewModel.onTabSelected(index)
-                    updateSectionTitles(index)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    if (!canOpenTab(index)) {
+                        findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                        return@launch
+                    }
+                    currentTabIndex = index
+                    updateTabStyles(index)
+                    if (index == 4) {
+                        showAudioTab()
+                    } else {
+                        hideAudioTab()
+                        viewModel.onTabSelected(index)
+                        updateSectionTitles(index)
+                    }
                 }
             }
         }
@@ -152,6 +161,15 @@ class HomeFragment : Fragment() {
         updateSectionTitles(activeTab)
         if (activeTab == 4) showAudioTab()
         else { hideAudioTab(); viewModel.onTabSelected(activeTab) }
+    }
+
+
+    private suspend fun canOpenTab(index: Int): Boolean {
+        return when (index) {
+            2, 4 -> fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
+            3 -> fr.retrospare.blazeplayer.paywall.FeatureAccess.isProPlus(userRepository)
+            else -> true
+        }
     }
 
     /** Configure la recherche et les listes de l'onglet Blaze Tube. Recherche déclenchée par la
@@ -305,7 +323,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupYoutubePlaylistButtons() {
-        val buttons = listOf(binding.btnPlaylistYoutube1, binding.btnPlaylistYoutube2, binding.btnPlaylistYoutube3)
+        val buttons = listOf(
+            binding.btnPlaylistYoutube1, binding.btnPlaylistYoutube2, binding.btnPlaylistYoutube3,
+            binding.btnPlaylistYoutube4, binding.btnPlaylistYoutube5
+        )
         val lastPlayed = fr.retrospare.blazeplayer.playlist.PlaylistManager
             .getLastPlayed(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.YOUTUBE)
         buttons.forEachIndexed { i, btn ->
@@ -437,14 +458,20 @@ class HomeFragment : Fragment() {
     }
 
     fun switchToTab(index: Int) {
-        currentTabIndex = index
-        viewModel.onTabSelected(index)
-        updateTabStyles(index)
-        if (index == 4) {
-            showAudioTab()
-        } else {
-            hideAudioTab()
-            updateSectionTitles(index)
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!canOpenTab(index)) {
+                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                return@launch
+            }
+            currentTabIndex = index
+            viewModel.onTabSelected(index)
+            updateTabStyles(index)
+            if (index == 4) {
+                showAudioTab()
+            } else {
+                hideAudioTab()
+                updateSectionTitles(index)
+            }
         }
     }
 
@@ -582,12 +609,16 @@ class HomeFragment : Fragment() {
         val localButtons = listOf(
             binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal1),
             binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal2),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal3)
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal3),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal4),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal5)
         )
         val networkButtons = listOf(
             binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork1),
             binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork2),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork3)
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork3),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork4),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork5)
         )
         val lastPlayedLocal = fr.retrospare.blazeplayer.playlist.PlaylistManager
             .getLastPlayed(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO)
@@ -664,20 +695,25 @@ class HomeFragment : Fragment() {
                 tvAud.text = item.audioCodec ?: ""
                 tvAud.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
 
-                // Badge conteneur immédiat depuis item.extension
+                // Badge conteneur immédiat depuis item.extension, couleur par format.
                 val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "") }.uppercase()
                 if (ext.isNotEmpty()) {
-                    tvFmt.text = ext
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFmt, ext)
                     tvFmt.visibility = View.VISIBLE
                 } else {
                     tvFmt.visibility = View.GONE
                 }
+                fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvRes)
+                fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvVid)
+                fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvAud)
 
-                // Thumbnail (local ou réseau SMB)
-                if (item.path.isNotEmpty()) {
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
-                    }
+                // Historique accueil : on garde les miniatures vidéo locales/réseau avec cache
+                // disque persistant. Seuls les navigateurs sont allégés sans miniatures.
+                (ivThumb.parent as? View)?.visibility = View.VISIBLE
+                ivThumb.setImageDrawable(null)
+                v.findViewById<ImageView>(R.id.ivPlayOverlay)?.visibility = View.VISIBLE
+                viewLifecycleOwner.lifecycleScope.launch {
+                    fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
                 }
 
                 // Click
