@@ -73,7 +73,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nom du chemin"
+            android:hint="@string/hint_path_name"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etName"
@@ -95,7 +95,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="3"
-                android:hint="Adresse IP / Hôte"
+                android:hint="@string/hint_ip_host"
                 android:layout_marginEnd="8dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etHost"
@@ -110,7 +110,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Port">
+                android:hint="@string/hint_port">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etPort"
                     android:layout_width="match_parent"
@@ -127,7 +127,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Dossier partagé (ex: videos)"
+            android:hint="@string/hint_shared_folder_example"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etShareName"
@@ -149,7 +149,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Identifiant (optionnel)"
+            android:hint="@string/hint_username_optional"
             android:layout_marginBottom="12dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etUsername"
@@ -164,7 +164,7 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Mot de passe (optionnel)"
+            android:hint="@string/hint_password_optional"
             android:layout_marginBottom="20dp"
             app:passwordToggleEnabled="true">
             <com.google.android.material.textfield.TextInputEditText

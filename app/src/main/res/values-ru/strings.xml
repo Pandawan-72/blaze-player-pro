@@ -325,4 +325,34 @@
     <string name="toast_path_saved">Путь сохранён</string>
     <string name="toast_path_deleted">Путь удалён</string>
     <string name="toast_scan_unavailable_emulator">Сканирование недоступно на эмуляторе</string>
+
+    <string name="search_hint_video">Найти видео</string>
+    <string name="hint_path_name">Название пути</string>
+    <string name="hint_shared_folder">Общая папка</string>
+    <string name="hint_email_address">Адрес электронной почты</string>
+
+    <string name="hint_ip_host">IP-адрес / Хост</string>
+    <string name="hint_port">Порт</string>
+    <string name="hint_shared_folder_example">Общая папка (напр. videos)</string>
+    <string name="hint_username_optional">Имя пользователя (необязательно)</string>
+    <string name="hint_password_optional">Пароль (необязательно)</string>
+    <string name="hint_username">Имя пользователя</string>
+    <string name="hint_password">Пароль</string>
+    <string name="hint_confirm_password">Подтвердите пароль</string>
+
+    <string name="history_network">История сети</string>
+    <string name="history_local">Локальная история</string>
+    <string name="history_label">История</string>
+    <string name="browse_files_network">Сетевые файлы</string>
+    <string name="browse_files_local">Локальные файлы</string>
+    <string name="action_close_favorites">Закрыть избранное</string>
+
+    <plurals name="file_count">
+        <item quantity="one">%1$d файл</item>
+        <item quantity="few">%1$d файла</item>
+        <item quantity="many">%1$d файлов</item>
+        <item quantity="other">%1$d файла</item>
+    </plurals>
+    <string name="browser_folder_file_count">%1$s · %2$s</string>
+    <string name="content_desc_back">Назад</string>
 </resources>

@@ -47,7 +47,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="36dp"
-            android:hint="Adresse email"
+            android:hint="@string/hint_email_address"
             app:boxStrokeColor="@color/outline"
             app:hintTextColor="@color/on_surface_variant">
 
@@ -67,7 +67,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:hint="Mot de passe"
+            android:hint="@string/hint_password"
             app:boxStrokeColor="@color/outline"
             app:endIconMode="password_toggle"
             app:hintTextColor="@color/on_surface_variant">
@@ -88,7 +88,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:hint="Confirmer le mot de passe"
+            android:hint="@string/hint_confirm_password"
             app:boxStrokeColor="@color/outline"
             app:endIconMode="password_toggle"
             app:hintTextColor="@color/on_surface_variant">

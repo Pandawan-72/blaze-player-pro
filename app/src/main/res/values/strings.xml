@@ -339,4 +339,34 @@
     <string name="toast_path_saved">Chemin sauvegardé</string>
     <string name="toast_path_deleted">Chemin supprimé</string>
     <string name="toast_scan_unavailable_emulator">Scan non disponible sur émulateur</string>
+
+    <!-- Placeholders des champs de recherche/formulaires -->
+    <string name="search_hint_video">Rechercher une vidéo</string>
+    <string name="hint_path_name">Nom du chemin</string>
+    <string name="hint_shared_folder">Dossier partagé</string>
+    <string name="hint_email_address">Adresse email</string>
+
+    <string name="hint_ip_host">Adresse IP / Hôte</string>
+    <string name="hint_port">Port</string>
+    <string name="hint_shared_folder_example">Dossier partagé (ex: videos)</string>
+    <string name="hint_username_optional">Identifiant (optionnel)</string>
+    <string name="hint_password_optional">Mot de passe (optionnel)</string>
+    <string name="hint_username">Identifiant</string>
+    <string name="hint_password">Mot de passe</string>
+    <string name="hint_confirm_password">Confirmer le mot de passe</string>
+
+    <!-- fragment_home.xml : onglets Local/Réseau/Blaze Tube/Blaze Audio et sous-navigation -->
+    <string name="history_network">Historique réseau</string>
+    <string name="history_local">Historique local</string>
+    <string name="history_label">Historique</string>
+    <string name="browse_files_network">Fichiers réseau</string>
+    <string name="browse_files_local">Fichiers locaux</string>
+    <string name="action_close_favorites">Fermer les favoris</string>
+
+    <plurals name="file_count">
+        <item quantity="one">%1$d fichier</item>
+        <item quantity="other">%1$d fichiers</item>
+    </plurals>
+    <string name="browser_folder_file_count">%1$s · %2$s</string>
+    <string name="content_desc_back">Retour</string>
 </resources>

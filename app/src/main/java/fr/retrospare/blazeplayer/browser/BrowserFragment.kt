@@ -226,7 +226,9 @@ class BrowserFragment : Fragment() {
                                 adapter.setFullList(state.items)
                                 val folders = state.items.count { it.mimeType == "folder" }
                                 val files = state.items.count { it.mimeType != "folder" }
-                                binding.tvFileCount.text = "$folders dossiers · $files fichiers"
+                                val folderText = resources.getQuantityString(R.plurals.folder_count, folders, folders)
+                                val fileText = resources.getQuantityString(R.plurals.file_count, files, files)
+                                binding.tvFileCount.text = getString(R.string.browser_folder_file_count, folderText, fileText)
                             }
                             is BrowserViewModel.BrowserState.Error -> binding.recyclerView.visibility = View.VISIBLE
                         }

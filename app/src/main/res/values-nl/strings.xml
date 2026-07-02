@@ -311,4 +311,32 @@
     <string name="toast_path_saved">Pad opgeslagen</string>
     <string name="toast_path_deleted">Pad verwijderd</string>
     <string name="toast_scan_unavailable_emulator">Scannen niet beschikbaar in emulator</string>
+
+    <string name="search_hint_video">Video zoeken</string>
+    <string name="hint_path_name">Padnaam</string>
+    <string name="hint_shared_folder">Gedeelde map</string>
+    <string name="hint_email_address">E-mailadres</string>
+
+    <string name="hint_ip_host">IP-adres / Host</string>
+    <string name="hint_port">Poort</string>
+    <string name="hint_shared_folder_example">Gedeelde map (bijv. videos)</string>
+    <string name="hint_username_optional">Gebruikersnaam (optioneel)</string>
+    <string name="hint_password_optional">Wachtwoord (optioneel)</string>
+    <string name="hint_username">Gebruikersnaam</string>
+    <string name="hint_password">Wachtwoord</string>
+    <string name="hint_confirm_password">Wachtwoord bevestigen</string>
+
+    <string name="history_network">Netwerkgeschiedenis</string>
+    <string name="history_local">Lokale geschiedenis</string>
+    <string name="history_label">Geschiedenis</string>
+    <string name="browse_files_network">Netwerkbestanden</string>
+    <string name="browse_files_local">Lokale bestanden</string>
+    <string name="action_close_favorites">Favorieten sluiten</string>
+
+    <plurals name="file_count">
+        <item quantity="one">%1$d bestand</item>
+        <item quantity="other">%1$d bestanden</item>
+    </plurals>
+    <string name="browser_folder_file_count">%1$s · %2$s</string>
+    <string name="content_desc_back">Terug</string>
 </resources>

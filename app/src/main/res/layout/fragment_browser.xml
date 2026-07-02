@@ -122,7 +122,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="0 dossiers · 0 fichiers"
+            android:text=""
             android:textColor="@color/on_surface_variant"
             android:textSize="11sp" />
 
@@ -241,7 +241,7 @@
         android:id="@+id/etSearch"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:hint="Rechercher..."
+        android:hint="@string/search_hint_video"
         android:paddingHorizontal="16dp"
         android:background="@color/surface_variant"
         android:textColor="@color/on_surface"

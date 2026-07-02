@@ -311,4 +311,32 @@
     <string name="toast_path_saved">Caminho salvo</string>
     <string name="toast_path_deleted">Caminho excluído</string>
     <string name="toast_scan_unavailable_emulator">Busca não disponível no emulador</string>
+
+    <string name="search_hint_video">Pesquisar um vídeo</string>
+    <string name="hint_path_name">Nome do caminho</string>
+    <string name="hint_shared_folder">Pasta compartilhada</string>
+    <string name="hint_email_address">Endereço de email</string>
+
+    <string name="hint_ip_host">Endereço IP / Host</string>
+    <string name="hint_port">Porta</string>
+    <string name="hint_shared_folder_example">Pasta compartilhada (ex: videos)</string>
+    <string name="hint_username_optional">Usuário (opcional)</string>
+    <string name="hint_password_optional">Senha (opcional)</string>
+    <string name="hint_username">Usuário</string>
+    <string name="hint_password">Senha</string>
+    <string name="hint_confirm_password">Confirmar senha</string>
+
+    <string name="history_network">Histórico de rede</string>
+    <string name="history_local">Histórico local</string>
+    <string name="history_label">Histórico</string>
+    <string name="browse_files_network">Arquivos de rede</string>
+    <string name="browse_files_local">Arquivos locais</string>
+    <string name="action_close_favorites">Fechar favoritos</string>
+
+    <plurals name="file_count">
+        <item quantity="one">%1$d arquivo</item>
+        <item quantity="other">%1$d arquivos</item>
+    </plurals>
+    <string name="browser_folder_file_count">%1$s · %2$s</string>
+    <string name="content_desc_back">Voltar</string>
 </resources>
