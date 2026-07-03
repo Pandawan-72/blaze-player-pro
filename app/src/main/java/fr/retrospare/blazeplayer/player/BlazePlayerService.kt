@@ -7,7 +7,6 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -78,7 +77,7 @@ class BlazePlayerService : MediaSessionService() {
         // scanner/verrouiller le cache disque sur le thread principal au démarrage du service.
         // Pour la fiabilité debug, on privilégie un DataSource direct ; le cache pourra revenir plus
         // tard avec une initialisation lazy hors thread principal.
-        val dataSourceFactory = DefaultDataSource.Factory(this, SmbDataSource.Factory())
+        val dataSourceFactory = BlazeDataSourceFactory(this)
         val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
         val renderersFactory = DefaultRenderersFactory(this)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)

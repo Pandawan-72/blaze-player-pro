@@ -16,10 +16,13 @@ import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.data.model.NetworkShare
+import fr.retrospare.blazeplayer.data.model.ShareType
 import fr.retrospare.blazeplayer.network.SmbBrowser
+import fr.retrospare.blazeplayer.network.UpnpBrowser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
@@ -27,6 +30,7 @@ import javax.inject.Inject
 class NetworkVideoBrowserActivity : AppCompatActivity() {
 
     @Inject lateinit var smbBrowser: SmbBrowser
+    @Inject lateinit var upnpBrowser: UpnpBrowser
     @Inject lateinit var networkRepository: fr.retrospare.blazeplayer.data.repository.NetworkRepository
 
     private lateinit var tvTitle: TextView
@@ -39,6 +43,80 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
 
     private lateinit var share: NetworkShare
     private var currentPath: String = ""
+    private var lastFolderClickAtMs: Long = 0L
+
+    private fun containerBadgeFrom(video: MediaItem): String {
+        fun clean(value: String): String {
+            if (value.isBlank()) return ""
+            val ext = value.substringBefore('?').substringBefore('#')
+                .substringAfterLast('.', "")
+                .takeIf { it.length in 2..5 && it.all { c -> c.isLetterOrDigit() } }
+                ?: ""
+            return ext.uppercase()
+        }
+        val stored = clean(video.extension)
+        if (stored.isNotEmpty()) return stored
+        val name = clean(video.name)
+        if (name.isNotEmpty()) return name
+        val path = clean(video.path)
+        if (path.isNotEmpty()) return path
+        return when {
+            video.mimeType.contains("matroska", true) || video.mimeType.contains("mkv", true) -> "MKV"
+            video.mimeType.contains("mp4", true) -> "MP4"
+            video.mimeType.contains("avi", true) -> "AVI"
+            video.mimeType.contains("webm", true) -> "WEBM"
+            else -> ""
+        }
+    }
+
+    /**
+     * Les favoris réseau ont existé sous plusieurs formats au fil des versions :
+     * - chemin relatif au partage : Films/Action
+     * - chemin préfixé par le nom du partage en mode multi-share : Videos/Films
+     * - URI SMB complète : smb://host/share/Films
+     * Le navigateur SMB, lui, attend toujours un chemin canonique en '/' adapté au
+     * NetworkShare courant. Une valeur non normalisée peut faire lister un mauvais partage
+     * ou un mauvais parent, donnant l'impression de revenir en arrière puis de bloquer.
+     */
+    private fun normalizeInitialPath(raw: String, share: NetworkShare): String {
+        if (share.type == ShareType.UPNP) return raw.trim().ifBlank { "0" }
+        var p = raw.trim().replace('\\', '/')
+        if (p.isEmpty()) return ""
+        if (p.startsWith("smb://", ignoreCase = true)) {
+            p = try {
+                val uri = android.net.Uri.parse(p)
+                val segments = uri.pathSegments.map { java.net.URLDecoder.decode(it, "UTF-8") }
+                if (segments.isEmpty()) "" else {
+                    val smbShare = segments.first()
+                    val insideShare = segments.drop(1).joinToString("/")
+                    if (share.shareName.isBlank()) {
+                        if (insideShare.isBlank()) smbShare else "$smbShare/$insideShare"
+                    } else {
+                        if (smbShare.equals(share.shareName, ignoreCase = true)) insideShare else segments.joinToString("/")
+                    }
+                }
+            } catch (_: Exception) { raw }
+        }
+        p = p.removePrefix("/").trim('/')
+        // Si le partage est déjà fixé, ne garde pas un préfixe redondant du nom de partage.
+        if (share.shareName.isNotBlank()) {
+            val prefix = share.shareName.trim('/') + "/"
+            if (p.equals(share.shareName, ignoreCase = true)) return ""
+            if (p.startsWith(prefix, ignoreCase = true)) p = p.substring(prefix.length)
+        }
+        return p
+    }
+
+    /**
+     * Une seule navigation réseau à la fois. Sans ça, un listing SMB ou une recherche qui
+     * termine après un clic dossier peut réécrire la RecyclerView avec un ancien chemin :
+     * l'utilisateur a alors l'impression de revenir en arrière, puis les jobs empilés finissent
+     * par saturer le threadpool SMB/IO et provoquer un ANR.
+     */
+    private var browseJob: Job? = null
+    private var metadataJob: Job? = null
+    private var loadGeneration: Long = 0L
+    private var isBrowsing = false
 
     // Sélection multiple (pour "Ajouter à la playlist")
     private val selectedVideos = mutableSetOf<String>() // path
@@ -67,17 +145,20 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.btnHome)?.setOnClickListener {
             val intent = Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-            intent.putExtra("requestedTab", 2) // Onglet Reseau
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            intent.putExtra("requestedTab", 2) // Onglet Réseau
             startActivity(intent)
             finish()
         }
 
         findViewById<View>(R.id.btnBack).setOnClickListener {
+            // Annule d'abord tout travail en cours : un job SMB plus ancien ne doit jamais
+            // pouvoir reposter une ancienne liste après un retour manuel.
+            cancelNetworkWork()
             if (folderStack.isNotEmpty()) {
                 val (path, _) = folderStack.removeLast()
                 currentPath = path
-                loadCurrentPath()
+                loadCurrentPath(pushToStack = false)
             } else {
                 finish()
             }
@@ -102,52 +183,123 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
 
         val shareId = intent.getStringExtra("shareId")
         if (shareId.isNullOrEmpty()) { finish(); return }
-        currentPath = intent.getStringExtra("initialPath") ?: ""
+        val initialPathRaw = intent.getStringExtra("initialPath") ?: ""
 
         lifecycleScope.launch {
             val loadedShare = withContext(Dispatchers.IO) { networkRepository.getShareById(shareId) }
             if (loadedShare == null) { finish(); return@launch }
             share = loadedShare
+            currentPath = normalizeInitialPath(initialPathRaw, share)
             tvTitle.text = share.name
-            loadCurrentPath()
+            loadCurrentPath(pushToStack = false)
         }
     }
 
     private var currentAdapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = null
 
-    private fun loadCurrentPath() {
-        tvPath.text = if (currentPath.isEmpty()) share.host else "${share.host}/$currentPath"
+    private fun cancelNetworkWork() {
+        browseJob?.cancel()
+        browseJob = null
+        metadataJob?.cancel()
+        metadataJob = null
+        loadGeneration++
+        isBrowsing = false
+    }
+
+    override fun onDestroy() {
+        cancelNetworkWork()
+        super.onDestroy()
+    }
+
+    private fun openFolder(folder: MediaItem) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastFolderClickAtMs < 450L) return
+        lastFolderClickAtMs = now
+        if (isBrowsing) return
+        val nextPath = normalizeInitialPath(folder.path, share)
+        if (nextPath == currentPath) return
+        cancelNetworkWork()
+        folderStack.addLast(currentPath to tvTitle.text.toString())
+        currentPath = nextPath
+        loadCurrentPath(pushToStack = false)
+    }
+
+    private fun loadCurrentPath(pushToStack: Boolean = false) {
+        val requestedPath = currentPath
+        val generation = ++loadGeneration
+        browseJob?.cancel()
+        metadataJob?.cancel()
+        metadataJob = null
+        isBrowsing = true
+
+        tvPath.text = if (share.type == ShareType.UPNP) (if (requestedPath == "0" || requestedPath.isEmpty()) share.name else requestedPath) else if (requestedPath.isEmpty()) share.host else "${share.host}/$requestedPath"
         tvCount.text = getString(R.string.loading)
         selectedVideos.clear()
         updateSelectionToolbar()
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { smbBrowser.listFiles(share, currentPath) }
-            result.onSuccess { items ->
-                val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }.sortedBy { it.name.lowercase() }
-                val rawVideos = items.filter {
-                    it.mimeType != "folder" && it.mimeType != "share" && it.extension.lowercase() in videoExtensions
-                }.sortedBy { it.name.lowercase() }
 
-                // Affichage immédiat avec des badges devinés depuis l'extension (déjà en cache
-                // le cas échéant) — plutôt que d'attendre l'extraction de toute la liste, ce qui
-                // faisait dépendre l'affichage entier du fichier le plus lent du dossier.
-                val videos = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(this@NetworkVideoBrowserActivity, rawVideos).toMutableList()
+        browseJob = lifecycleScope.launch {
+            val result = try {
+                withContext(Dispatchers.IO) {
+                    if (share.type == ShareType.UPNP) {
+                        withTimeoutOrNull(20_000L) { upnpBrowser.listFiles(share, requestedPath.ifBlank { "0" }) }
+                            ?: Result.failure(java.util.concurrent.TimeoutException("UPnP listing timeout"))
+                    } else {
+                        withTimeoutOrNull(20_000L) { smbBrowser.listFiles(share, requestedPath) }
+                            ?: Result.failure(java.util.concurrent.TimeoutException("SMB listing timeout"))
+                    }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+
+            // Résultat obsolète : l'utilisateur a déjà navigué ailleurs. On l'ignore, sinon la
+            // liste revient visuellement dans l'ancien dossier.
+            if (generation != loadGeneration || currentPath != requestedPath || isFinishing || isDestroyed) return@launch
+            isBrowsing = false
+
+            result.onSuccess { items ->
+                val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }.map { it.copy(isNetwork = true, networkShareId = share.id) }.sortedBy { it.name.lowercase() }
+                val rawVideos = items.filter {
+                    it.mimeType != "folder" && it.mimeType != "share" &&
+                        (it.extension.lowercase() in videoExtensions || it.mimeType.startsWith("video/"))
+                }.map { it.copy(isNetwork = true, networkShareId = share.id) }.sortedBy { it.name.lowercase() }
+
+                val videos = fr.retrospare.blazeplayer.player.VideoMetadataExtractor
+                    .fastDecorateList(this@NetworkVideoBrowserActivity, rawVideos)
+                    .toMutableList()
                 currentVideos = videos
                 tvCount.text = resources.getQuantityString(R.plurals.folder_count, folders.size, folders.size) + " - " + resources.getQuantityString(R.plurals.video_count, videos.size, videos.size)
-                showList(folders, videos)
+                showList(folders, videos, generation)
 
-                // Enrichissement réel (résolution/durée) en arrière-plan, ligne par ligne — la
-                // liste affichée est mise à jour au fur et à mesure plutôt que d'un seul coup.
-                fr.retrospare.blazeplayer.player.VideoMetadataExtractor.enrichVideoItemsIncremental(
-                    this@NetworkVideoBrowserActivity, videos
-                ) { index, enriched ->
-                    if (index < videos.size) {
-                        videos[index] = enriched
-                        currentAdapter?.notifyItemChanged(folders.size + index)
+                // UPnP expose déjà durée/taille via DIDL, puis on complète comme SMB avec le
+                // cache disque + extraction en arrière-plan pour obtenir résolution/codecs et les
+                // rendre aussi visibles dans le navigateur réseau que dans l'historique réseau.
+                metadataJob = lifecycleScope.launch {
+                    fr.retrospare.blazeplayer.player.VideoMetadataExtractor.enrichVideoItemsIncremental(
+                        this@NetworkVideoBrowserActivity, videos, maxConcurrent = if (share.type == ShareType.UPNP) 2 else 1
+                    ) { index, enriched ->
+                        if (generation == loadGeneration && currentPath == requestedPath) {
+                            withContext(Dispatchers.Main) {
+                                if (index in videos.indices) {
+                                    videos[index] = enriched.copy(isNetwork = true, networkShareId = share.id)
+                                    currentVideos = videos
+                                    recyclerNetwork.adapter?.notifyItemChanged(folders.size + index)
+                                }
+                            }
+                        }
                     }
                 }
             }.onFailure {
-                tvCount.text = getString(R.string.toast_error_generic, it.message)
+                if (generation == loadGeneration && currentPath == requestedPath) {
+                    tvCount.text = getString(R.string.toast_error_generic, it.message)
+                }
+            }
+        }
+        browseJob?.invokeOnCompletion {
+            if (generation == loadGeneration) {
+                isBrowsing = false
             }
         }
     }
@@ -156,7 +308,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
     private val TYPE_FOLDER = 0
     private val TYPE_VIDEO = 1
 
-    private fun showList(folders: List<MediaItem>, videos: List<MediaItem>) {
+    private fun showList(folders: List<MediaItem>, videos: List<MediaItem>, generation: Long) {
         val adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
             override fun getItemViewType(position: Int) = if (position < folders.size) TYPE_FOLDER else TYPE_VIDEO
@@ -173,9 +325,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     val folder = folders[position]
                     holder.itemView.findViewById<TextView>(R.id.tvFolderName)?.text = folder.name
                     holder.itemView.setOnClickListener {
-                        folderStack.addLast(currentPath to (tvTitle.text.toString()))
-                        currentPath = folder.path
-                        loadCurrentPath()
+                        if (generation == loadGeneration) openFolder(folder)
                     }
                     holder.itemView.findViewById<View>(R.id.btnFolderMore)?.setOnClickListener { anchor ->
                         val popup = android.widget.PopupMenu(this@NetworkVideoBrowserActivity, anchor)
@@ -205,15 +355,25 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     v.findViewById<TextView>(R.id.tvFileName)?.text = video.name
                     v.findViewById<TextView>(R.id.tvDuration)?.text = video.formattedDuration
 
-                    // Navigateur réseau allégé : aucune extraction de miniature SMB en liste,
-                    // mais on garde le bloc statique pour afficher le badge conteneur coloré.
+                    // Miniature réseau à gauche du titre : cache local d'abord, extraction SMB
+                    // asynchrone ensuite via ThumbnailUtils si rien n'est encore en cache.
                     v.findViewById<android.widget.ImageView>(R.id.ivThumbnail)?.let { thumb ->
                         (thumb.parent as? android.view.View)?.visibility = android.view.View.VISIBLE
                         thumb.setImageDrawable(null)
+                        thumb.setTag(R.id.ivThumbnail, video.path)
+                        val cached = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailBitmap(this@NetworkVideoBrowserActivity, video.path)
+                        if (cached != null) {
+                            thumb.setImageBitmap(cached)
+                        } else {
+                            lifecycleScope.launch {
+                                val bitmap = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(this@NetworkVideoBrowserActivity, video.path)
+                                if (thumb.getTag(R.id.ivThumbnail) == video.path && bitmap != null) thumb.setImageBitmap(bitmap)
+                            }
+                        }
                     }
-                    v.findViewById<android.widget.ImageView>(R.id.ivPlayOverlay)?.visibility = android.view.View.GONE
+                    v.findViewById<android.widget.ImageView>(R.id.ivPlayOverlay)?.visibility = android.view.View.VISIBLE
 
-                    val ext = video.extension.uppercase()
+                    val ext = containerBadgeFrom(video)
                     val tvFmt = v.findViewById<TextView>(R.id.tvFormat)
                     fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFmt, ext)
                     tvFmt?.visibility = if (ext.isNotEmpty()) View.VISIBLE else View.GONE
@@ -240,6 +400,8 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                         startActivity(Intent(this@NetworkVideoBrowserActivity, PlayerActivity::class.java).apply {
                             putExtra("mediaPath", video.path)
                             putExtra("mediaName", video.name)
+                            putExtra("isNetworkMedia", true)
+                            putExtra("networkShareId", share.id)
                         })
                     }
 
@@ -253,6 +415,8 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                                     startActivity(Intent(this@NetworkVideoBrowserActivity, PlayerActivity::class.java).apply {
                                         putExtra("mediaPath", video.path)
                                         putExtra("mediaName", video.name)
+                                        putExtra("isNetworkMedia", true)
+                                        putExtra("networkShareId", share.id)
                                     })
                                     true
                                 }

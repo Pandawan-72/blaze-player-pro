@@ -137,18 +137,22 @@ class NetworkSharesFragment : Fragment() {
     }
 
     private fun showDeviceConfig(device: NetworkScanner.DiscoveredDevice) {
+        if (device.type == ShareType.UPNP) {
+            showUpnpSaveDialog(device)
+            return
+        }
+
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_network_connect, null)
         val tvName = dialogView.findViewById<android.widget.TextView>(R.id.tvDeviceName)
         val tvIp = dialogView.findViewById<android.widget.TextView>(R.id.tvDeviceIp)
         val tvBadge = dialogView.findViewById<android.widget.TextView>(R.id.tvTypeBadge)
-        val layoutShare = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.layoutShare)
         val etShare = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etShare)
         val etUsername = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etUsername)
         val etPassword = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPassword)
 
         tvName.text = device.name
         tvIp.text = device.ip
-        tvBadge.text = device.type.name
+        tvBadge.text = "SMB"
         tvBadge.setBackgroundResource(R.drawable.bg_badge_blue)
 
         // Charge les partages SMB disponibles
@@ -173,19 +177,66 @@ class NetworkSharesFragment : Fragment() {
             .setView(dialogView)
             .setPositiveButton(getString(R.string.action_add_to_favorites)) { _, _ ->
                 val share = NetworkShare(
-                    id = "${device.type.name.lowercase()}_${device.ip}",
+                    id = "smb_${device.ip}_${System.currentTimeMillis()}",
                     name = device.name,
                     host = device.ip,
                     port = 445,
                     shareName = etShare.text?.toString() ?: "",
                     username = etUsername.text?.toString()?.takeIf { it.isNotEmpty() },
                     password = etPassword.text?.toString()?.takeIf { it.isNotEmpty() },
-                    type = device.type
+                    type = ShareType.SMB
                 )
                 viewModel.saveShare(share)
                 android.widget.Toast.makeText(requireContext(), getString(R.string.toast_added_to_favorites, device.name), android.widget.Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(getString(R.string.action_cancel), null)
+            .create().also { d ->
+                d.show()
+                d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
+            }
+    }
+
+    private fun showUpnpSaveDialog(device: NetworkScanner.DiscoveredDevice) {
+        val container = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 36, 48, 12)
+            setBackgroundResource(R.drawable.bg_dialog)
+        }
+        container.addView(android.widget.TextView(requireContext()).apply {
+            text = device.name
+            setTextColor(resources.getColor(android.R.color.white, null))
+            textSize = 18f
+            gravity = android.view.Gravity.CENTER
+            typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL)
+        })
+        container.addView(android.widget.TextView(requireContext()).apply {
+            text = device.ip
+            setTextColor(0x99FFFFFF.toInt())
+            textSize = 12f
+            gravity = android.view.Gravity.CENTER
+            typeface = android.graphics.Typeface.MONOSPACE
+            setPadding(0, 8, 0, 0)
+        })
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(null)
+            .setView(container)
+            .setPositiveButton(getString(R.string.action_save)) { _, _ ->
+                val parts = device.extra.split("|", limit = 2)
+                val share = NetworkShare(
+                    id = "upnp_${device.ip}_${System.currentTimeMillis()}",
+                    name = device.name,
+                    host = parts.getOrNull(0).orEmpty().ifBlank { device.ip },
+                    port = null,
+                    shareName = parts.getOrNull(1).orEmpty(),
+                    username = null,
+                    password = null,
+                    type = ShareType.UPNP
+                )
+                viewModel.saveShare(share)
+                android.widget.Toast.makeText(requireContext(), getString(R.string.toast_added_to_favorites, device.name), android.widget.Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(getString(R.string.action_close), null)
             .create().also { d ->
                 d.show()
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
@@ -207,19 +258,19 @@ class NetworkSharesFragment : Fragment() {
             dialogBinding.etUsername.setText(it.username ?: "")
             dialogBinding.etPassword.setText(it.password ?: "")
             dialogBinding.switchDefault.isChecked = it.isDefault
-            selectedType = it.type
+            selectedType = ShareType.SMB
         }
 
         fun updateTypeButtons(type: ShareType) {
-            selectedType = type
-            listOf(dialogBinding.btnTypeSmb to ShareType.SMB)
-                .forEach { (btn, t) ->
-                    val selected = t == type
-                    btn.setTextColor(if (selected) resources.getColor(R.color.blue_accent, null) else resources.getColor(R.color.on_surface_variant, null))
-                    btn.setBackgroundResource(if (selected) R.drawable.bg_tab_selected else android.R.color.transparent)
-                }
+            selectedType = ShareType.SMB
+            dialogBinding.btnTypeSmb.setTextColor(resources.getColor(R.color.blue_accent, null))
+            dialogBinding.btnTypeSmb.setBackgroundResource(R.drawable.bg_tab_selected)
+            dialogBinding.btnTypeDlna.visibility = View.GONE
+            dialogBinding.btnTypeFtp.visibility = View.GONE
+            dialogBinding.etPort.setText(dialogBinding.etPort.text?.toString()?.ifBlank { "445" } ?: "445")
+            dialogBinding.etShareName.hint = getString(R.string.hint_shared_folder_example)
         }
-        updateTypeButtons(selectedType)
+        updateTypeButtons(ShareType.SMB)
         dialogBinding.btnTypeSmb.setOnClickListener { updateTypeButtons(ShareType.SMB) }
 
         AlertDialog.Builder(requireContext())

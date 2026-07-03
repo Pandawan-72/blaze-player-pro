@@ -23,7 +23,8 @@ class YouTubeVideoAdapter(
     private val compact: Boolean,
     private val onClick: (YouTubeVideoItem) -> Unit,
     private val onFavoriteToggle: ((YouTubeVideoItem, RecyclerView.ViewHolder) -> Unit)? = null,
-    private val onMoreClick: ((YouTubeVideoItem, View) -> Unit)? = null
+    private val onMoreClick: ((YouTubeVideoItem, View) -> Unit)? = null,
+    private val highlightedVideoId: String? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val scope = CoroutineScope(Dispatchers.Main)
@@ -49,6 +50,11 @@ class YouTubeVideoAdapter(
         val item = items[position]
         val view = holder.itemView
         val vh = holder as VideoViewHolder
+
+        view.setBackgroundResource(
+            if (item.videoId == highlightedVideoId) R.drawable.bg_media_card_last_played
+            else R.drawable.bg_media_card
+        )
 
         val ivThumb = view.findViewById<ImageView>(R.id.ivYoutubeThumbnail)
         ivThumb.setImageDrawable(null)

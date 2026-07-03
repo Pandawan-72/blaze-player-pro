@@ -116,9 +116,8 @@ class AudioPlayerFragment : Fragment() {
             v.setPadding(0, bars.top, 0, 0)
             insets
         }
-        binding.btnBack.setOnClickListener {
-            (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
-        }
+        // Bouton retour supprimé visuellement : le lecteur audio reste accessible via la navigation principale.
+        binding.btnBack.visibility = android.view.View.GONE
         setupSquareArtwork()
 
         initPlaylistUi()
@@ -449,7 +448,8 @@ class AudioPlayerFragment : Fragment() {
             controller?.play()
         }
         binding.recyclerPlaylist.apply {
-            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+            // File d'attente plus dense : deux colonnes, lecture naturelle gauche → droite.
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2)
             adapter = playlistAdapter
         }
         binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
@@ -476,7 +476,7 @@ class AudioPlayerFragment : Fragment() {
                 .setDuration(220)
                 .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
-            _binding?.btnBack?.visibility = android.view.View.INVISIBLE
+            _binding?.btnBack?.visibility = android.view.View.GONE
         }
 
         fun closePlaylist() {
@@ -488,7 +488,7 @@ class AudioPlayerFragment : Fragment() {
                     _binding?.playlistSheet?.visibility = android.view.View.GONE
                 }
                 .start()
-            _binding?.btnBack?.visibility = android.view.View.VISIBLE
+            _binding?.btnBack?.visibility = android.view.View.GONE
         }
 
         binding.btnPlaylistSheet.setOnClickListener {
@@ -732,6 +732,7 @@ class AudioPlayerFragment : Fragment() {
                     _binding?.seekBar?.progress = ((ctrl.currentPosition * 100) / dur).toInt()
                     _binding?.tvCurrentTime?.text = formatTime(ctrl.currentPosition)
                     _binding?.tvTotalTime?.text = formatTime(dur)
+                    playlistAdapter.updateCurrentProgress(ctrl.currentMediaItemIndex, ctrl.currentPosition, dur)
                 }
                 handler.postDelayed(this, 500)
             }

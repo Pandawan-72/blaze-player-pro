@@ -545,6 +545,9 @@ object VideoMetadataExtractor {
                 sizeBytes = try {
                     context.contentResolver.openFileDescriptor(Uri.parse(path), "r")?.use { it.statSize } ?: 0L
                 } catch (e: Exception) { 0L }
+            } else if (path.startsWith("http://", true) || path.startsWith("https://", true)) {
+                retriever.setDataSource(path, emptyMap())
+                sizeBytes = 0L
             } else {
                 retriever.setDataSource(path)
                 sizeBytes = try { java.io.File(path).length() } catch (e: Exception) { 0L }

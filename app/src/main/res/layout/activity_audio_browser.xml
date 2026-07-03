@@ -58,7 +58,7 @@
 
     </LinearLayout>
 
-    <!-- BOUTONS 2x2 : Tout ajouter / Pistes / Local / Réseau -->
+    <!-- ACTIONS AUDIO : sources en premier, playlist en pleine largeur -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -66,102 +66,12 @@
         android:paddingHorizontal="16dp"
         android:paddingBottom="12dp">
 
-        <!-- Ligne 1 -->
+        <!-- Ligne 1 : choix source -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:orientation="horizontal"
             android:layout_marginBottom="8dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:includeFontPadding="false"
-                android:id="@+id/btnAddAll"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/add_all"
-                android:textSize="13sp"
-                android:textColor="#FF000000"
-                android:fontFamily="sans-serif-condensed"
-                android:layout_marginEnd="6dp"
-                app:icon="@drawable/ic_add_circle"
-                app:iconSize="16dp"
-                app:iconTint="#FF000000"
-                app:iconGravity="textStart"
-                app:backgroundTint="@color/orange_accent"
-                app:cornerRadius="24dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:includeFontPadding="false"
-                android:id="@+id/btnConfirm"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="@string/tracks"
-                android:textSize="13sp"
-                android:textColor="#FF000000"
-                android:fontFamily="sans-serif-condensed"
-                app:icon="@drawable/ic_add_circle"
-                app:iconSize="16dp"
-                app:iconTint="#FF000000"
-                app:iconGravity="textStart"
-                app:backgroundTint="#FFB3C6"
-                app:cornerRadius="24dp" />
-
-        </LinearLayout>
-
-        <!-- Ligne 1bis : sélection / playlist sauvegardée -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginBottom="8dp"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:includeFontPadding="false"
-                android:id="@+id/btnSelectAll"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="0.86"
-                android:layout_marginEnd="6dp"
-                android:text="@string/select_all"
-                android:textSize="13sp"
-                android:textColor="@color/on_surface"
-                android:fontFamily="sans-serif-condensed"
-                app:icon="@drawable/ic_check"
-                app:iconSize="16dp"
-                app:iconTint="@color/on_surface"
-                app:iconGravity="textStart"
-                app:backgroundTint="@color/surface_variant"
-                app:cornerRadius="24dp"
-                app:strokeColor="@color/outline_variant"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:includeFontPadding="false"
-                android:id="@+id/btnAddToSavedPlaylist"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1.14"
-                android:text="@string/add_selection_to_playlist"
-                android:textSize="13sp"
-                android:textColor="@color/on_surface"
-                android:fontFamily="sans-serif-condensed"
-                app:icon="@drawable/ic_layout_list"
-                app:iconSize="16dp"
-                app:iconTint="@color/on_surface"
-                app:iconGravity="textStart"
-                app:backgroundTint="@color/surface_variant"
-                app:cornerRadius="24dp"
-                app:strokeColor="@color/outline_variant"
-                app:strokeWidth="1dp" />
-        </LinearLayout>
-
-        <!-- Ligne 2 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
                 android:includeFontPadding="false"
@@ -197,6 +107,73 @@
                 app:iconGravity="textStart"
                 app:backgroundTint="@color/blue_accent"
                 app:cornerRadius="24dp" />
+
+        </LinearLayout>
+
+        <!-- Ligne 2 : ajout à une playlist sauvegardée en pleine largeur -->
+        <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
+            android:id="@+id/btnAddToSavedPlaylist"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/add_selection_to_playlist"
+            android:textSize="13sp"
+            android:textColor="@color/on_surface"
+            android:fontFamily="sans-serif-condensed"
+            app:icon="@drawable/ic_layout_list"
+            app:iconSize="16dp"
+            app:iconTint="@color/on_surface"
+            app:iconGravity="textStart"
+            app:backgroundTint="@color/surface_variant"
+            app:cornerRadius="24dp"
+            app:strokeColor="@color/on_surface_variant"
+            app:strokeWidth="1dp" />
+
+        <!-- Ligne 3 : actions d'ajout rapide -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnAddAll"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/add_all"
+                android:textSize="13sp"
+                android:textColor="@color/on_surface"
+                android:fontFamily="sans-serif-condensed"
+                android:layout_marginEnd="6dp"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="@color/on_surface"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/surface_variant"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/green_accent"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnConfirm"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/tracks"
+                android:textSize="13sp"
+                android:textColor="@color/on_surface"
+                android:fontFamily="sans-serif-condensed"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="@color/on_surface"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/surface_variant"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/blue_accent"
+                app:strokeWidth="1dp" />
 
         </LinearLayout>
 

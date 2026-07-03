@@ -25,6 +25,7 @@
                 android:id="@+id/btnBack"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
+                android:visibility="gone"
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_chevron_down"
@@ -44,13 +45,13 @@
 
             <ImageButton
                 android:id="@+id/btnPlaylistSheet"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_layout_list"
-                android:tint="@color/on_surface_variant"
+                android:tint="@android:color/white"
                 android:contentDescription="@string/content_desc_playlist" />
 
         </RelativeLayout>
@@ -403,7 +404,7 @@
                 android:layout_width="14dp"
                 android:layout_height="14dp"
                 android:src="@drawable/ic_layout_list"
-                android:tint="@color/on_surface_variant"
+                android:tint="@android:color/white"
                 android:layout_marginEnd="6dp"
                 android:contentDescription="@null" />
 
@@ -554,23 +555,47 @@
                 app:iconTint="@color/on_surface"
                 app:iconGravity="textStart" />
 
-            <ImageButton
+            <TextView
                 android:id="@+id/btnAddFolder"
-                android:layout_width="36dp"
+                android:layout_width="56dp"
                 android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_add_circle"
-                android:tint="@color/green_accent"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
+                android:includeFontPadding="false"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:text="+"
+                android:textSize="21sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif"
+                android:textColor="@color/green_accent"
+                android:background="@drawable/bg_queue_action_add_pill"
                 android:contentDescription="@string/add" />
 
-            <ImageButton
+            <TextView
                 android:id="@+id/btnCleanPlaylist"
-                android:layout_width="36dp"
+                android:layout_width="56dp"
                 android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_remove_circle"
-                android:tint="#FF4444"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="6dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
+                android:includeFontPadding="false"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:text="−"
+                android:textSize="21sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif"
+                android:textColor="@color/red_accent"
+                android:background="@drawable/bg_queue_action_remove_pill"
                 android:contentDescription="@string/content_desc_clean" />
 
         </LinearLayout>

@@ -22,6 +22,8 @@ import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.net.HttpURLConnection
+import java.net.URL
 
 @Singleton
 class NetworkScanner @Inject constructor(
@@ -49,11 +51,12 @@ class NetworkScanner @Inject constructor(
     )
 
     fun scan(): Flow<DiscoveredDevice> = flow {
-        val subnet = getLocalSubnet() ?: return@flow
-
-        // 1. DLNA/SSDP d'abord - rapide et fiable
+        // 1. UPnP/DLNA via SSDP d'abord : rapide, pas besoin de connaître l'IP du NAS/serveur.
         try {
+            discoverUpnpDevices().forEach { emit(it) }
         } catch (e: Exception) {}
+
+        val subnet = getLocalSubnet() ?: return@flow
 
         // 2. Scan SMB en parallèle sur tout le sous-réseau, avec une concurrence limitée pour
         // ne pas ouvrir jusqu'à 254 connexions simultanées.
@@ -73,6 +76,82 @@ class NetworkScanner @Inject constructor(
                 }
             }.awaitAll().filterNotNull().forEach { emit(it) }
         }
+    }
+
+
+    private suspend fun discoverUpnpDevices(): List<DiscoveredDevice> = withContext(Dispatchers.IO) {
+        val targets = listOf(
+            "urn:schemas-upnp-org:service:ContentDirectory:1",
+            "urn:schemas-upnp-org:device:MediaServer:1",
+            "ssdp:all"
+        )
+        val locations = linkedSetOf<String>()
+        var lock: android.net.wifi.WifiManager.MulticastLock? = null
+        try {
+            val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+            lock = wifi?.createMulticastLock("blaze_upnp_discovery")?.apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (_: Exception) {}
+
+        try {
+            DatagramSocket(null).use { socket ->
+                socket.reuseAddress = true
+                socket.soTimeout = 900
+                socket.bind(InetSocketAddress(0))
+                val group = InetAddress.getByName(SSDP_ADDR)
+                targets.forEach { st ->
+                    val msg = "M-SEARCH * HTTP/1.1\r\n" +
+                        "HOST: $SSDP_ADDR:$SSDP_PORT\r\n" +
+                        "MAN: \"ssdp:discover\"\r\n" +
+                        "MX: 2\r\n" +
+                        "ST: $st\r\n\r\n"
+                    val data = msg.toByteArray(Charsets.UTF_8)
+                    socket.send(DatagramPacket(data, data.size, group, SSDP_PORT))
+                }
+                val end = System.currentTimeMillis() + SSDP_TIMEOUT_MS
+                val buf = ByteArray(4096)
+                while (System.currentTimeMillis() < end) {
+                    try {
+                        val packet = DatagramPacket(buf, buf.size)
+                        socket.receive(packet)
+                        val response = String(packet.data, 0, packet.length, Charsets.UTF_8)
+                        val location = response.lineSequence()
+                            .firstOrNull { it.startsWith("location:", true) }
+                            ?.substringAfter(':')?.trim()
+                        if (!location.isNullOrBlank()) locations += location
+                    } catch (_: java.net.SocketTimeoutException) { break }
+                }
+            }
+        } finally {
+            try { lock?.release() } catch (_: Exception) {}
+        }
+
+        locations.mapNotNull { location ->
+            try {
+                val desc = UpnpBrowser.parseDeviceDescription(location, httpGet(location) ?: return@mapNotNull null)
+                    ?: return@mapNotNull null
+                val uri = android.net.Uri.parse(location)
+                DiscoveredDevice(
+                    ip = uri.host ?: location,
+                    name = desc.friendlyName,
+                    type = ShareType.UPNP,
+                    extra = desc.location + "|" + desc.contentDirectoryControlUrl
+                )
+            } catch (_: Exception) { null }
+        }.distinctBy { it.extra.ifBlank { it.ip + it.name } }
+    }
+
+    private fun httpGet(url: String): String? {
+        return try {
+            val c = (URL(url).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 2_500
+                readTimeout = 2_500
+            }
+            c.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+        } catch (_: Exception) { null }
     }
 
     private fun isSmbOpen(ip: String): Boolean = try {

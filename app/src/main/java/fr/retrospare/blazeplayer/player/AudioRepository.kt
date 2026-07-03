@@ -129,9 +129,15 @@ object AudioRepository {
             clean.startsWith("http://") || clean.startsWith("https://") || clean.startsWith("/")
     }
 
-    fun isAudioExtension(path: String): Boolean = when (path.substringBefore('?').substringAfterLast('.', "").lowercase()) {
-        "mp3", "flac", "m4a", "aac", "wav", "ogg", "oga", "opus", "wma", "ape", "dts", "ac3", "mka" -> true
-        else -> false
+    fun isAudioExtension(path: String): Boolean {
+        val clean = path.substringBefore('?')
+        val ext = clean.substringAfterLast('.', "").lowercase()
+        if (ext in setOf("mp3", "flac", "m4a", "aac", "wav", "ogg", "oga", "opus", "wma", "ape", "dts", "ac3", "mka")) return true
+        // Certains serveurs UPnP/DLNA exposent les pistes via des URLs temporaires sans extension
+        // (ex: /object/12345?token=...). Le navigateur audio les a déjà filtrées grâce au MIME
+        // UPnP audio/* ; il ne faut donc pas les supprimer de la file ni de la sauvegarde juste
+        // parce que l'URL HTTP ne contient pas .mp3/.flac.
+        return (path.startsWith("http://", true) || path.startsWith("https://", true)) && ext.isBlank()
     }
 
     fun buildSimpleMediaItem(context: Context, path: String, fileName: String): MediaItem {

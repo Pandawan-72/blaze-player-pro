@@ -96,6 +96,7 @@ class PlayerActivity : AppCompatActivity() {
     private var uiVisible = true
     private var mediaPath = ""
     private var mediaName = ""
+    private var isNetworkMedia = false
     private var resumeHandled = false
     private var lastKnownIsRemote = false
     private var lastKnownLocalPosition = 0L
@@ -148,6 +149,7 @@ class PlayerActivity : AppCompatActivity() {
         intent.getStringArrayListExtra("queueNames")?.let { videoQueueNames = it }
         videoQueueIndex = intent.getIntExtra("queueIndex", 0)
         mediaName = intent.getStringExtra("mediaName") ?: File(mediaPath).name
+        isNetworkMedia = intent.getBooleanExtra("isNetworkMedia", false) || mediaPath.startsWith("smb://", true) || mediaPath.startsWith("ftp://", true) || mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true)
 
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() { goBackToHistory() }
@@ -295,9 +297,10 @@ class PlayerActivity : AppCompatActivity() {
                             r.setDataSource(smbDataSourceThumb)
                         }
                         mediaPath.startsWith("content://") -> r.setDataSource(this@PlayerActivity, Uri.parse(mediaPath))
+                        mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true) -> r.setDataSource(mediaPath, emptyMap())
                         else -> r.setDataSource(mediaPath)
                     }
-                    val frame = r.getFrameAtTime(10_000_000)
+                    val frame = r.getFrameAtTime(10_000_000, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
                     frame?.let {
                         val scale = 256f / maxOf(it.width, it.height)
                         if (scale < 1f) android.graphics.Bitmap.createScaledBitmap(it, (it.width * scale).toInt(), (it.height * scale).toInt(), true).also { _ -> it.recycle() }
@@ -338,8 +341,17 @@ class PlayerActivity : AppCompatActivity() {
      *  ET le Cast (URL réseau dans les deux cas, cf. doc de VideoPlaybackService). Attache la
      *  piste sous-titres depuis le cache si elle est déjà disponible. */
     private fun buildMediaItem(path: String, name: String): MediaItem {
-        VideoStreamServerManager.startServer(applicationContext, path)
-        val url = VideoStreamServerManager.getStreamUrl() ?: path
+        // UPnP/DLNA fournit déjà une URL HTTP(S) directement lisible par Media3 et Chromecast.
+        // Ne pas la faire passer par le relais local : LocalStreamServer ne sait relayer que les
+        // fichiers locaux/content:// et SMB. L'ancien comportement transformait une URL UPnP en
+        // http://telephone:8927/stream/... puis le relais tentait d'ouvrir cette URL comme un
+        // fichier local, ce qui empêchait la vidéo de démarrer.
+        val url = if (path.startsWith("http://", true) || path.startsWith("https://", true)) {
+            path
+        } else {
+            VideoStreamServerManager.startServer(applicationContext, path)
+            VideoStreamServerManager.getStreamUrl() ?: path
+        }
         val builder = MediaItem.Builder()
             .setUri(Uri.parse(url))
             .setMediaId(path)
@@ -398,7 +410,7 @@ class PlayerActivity : AppCompatActivity() {
             // Android sans artwork pour les vidéos réseau.
             val bitmap = try {
                 withTimeoutOrNull(3_500) {
-                    fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(applicationContext, path, if (path.startsWith("smb://")) 10_000_000L else 5_000_000L)
+                    fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(applicationContext, path, if (path.startsWith("smb://", true) || path.startsWith("http://", true) || path.startsWith("https://", true)) 10_000_000L else 5_000_000L)
                 }
             } catch (e: Exception) {
                 fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail primary extraction failed", e)
@@ -900,7 +912,7 @@ class PlayerActivity : AppCompatActivity() {
 
 
     private fun goBackToHistory() {
-        if (mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) {
+        if (isNetworkMedia || mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) {
             val intent = android.content.Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
             intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
             intent.putExtra("requestedTab", 2)
@@ -1499,8 +1511,13 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun saveHistory() {
-        val ext = mediaName.substringAfterLast('.', "").lowercase()
-        val isNetwork = mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")
+        fun guessExt(value: String): String {
+            val cleaned = value.substringBefore('?').substringBefore('#')
+            val ext = cleaned.substringAfterLast('.', "").lowercase()
+            return ext.takeIf { it.length in 2..5 && it.all { c -> c.isLetterOrDigit() } } ?: ""
+        }
+        val ext = guessExt(mediaName).ifBlank { guessExt(mediaPath) }
+        val isNetwork = isNetworkMedia || mediaPath.startsWith("smb://", true) || mediaPath.startsWith("ftp://", true) || mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true)
         lifecycleScope.launch(Dispatchers.IO) {
             // Sauvegarde d'abord un historique minimal, sans extraction — l'extraction SMB au
             // lancement de la lecture (en parallèle de l'initialisation du service vidéo)
@@ -1511,6 +1528,7 @@ class PlayerActivity : AppCompatActivity() {
                 id = mediaPath, name = mediaName, path = mediaPath,
                 extension = ext, mimeType = "video/$ext",
                 isNetwork = isNetwork,
+                networkShareId = intent.getStringExtra("networkShareId"),
                 lastPlayedAt = System.currentTimeMillis()
             ))
 
@@ -1521,13 +1539,14 @@ class PlayerActivity : AppCompatActivity() {
             if (info.duration > 0L || info.videoCodec.isNotEmpty() || info.audioCodec.isNotEmpty()) {
                 mediaRepository.saveRecentItem(fr.retrospare.blazeplayer.data.model.MediaItem(
                     id = mediaPath, name = mediaName, path = mediaPath,
-                    extension = ext, mimeType = "video/$ext",
+                    extension = info.container.lowercase().ifBlank { ext }, mimeType = "video/${info.container.lowercase().ifBlank { ext }}",
                     duration = info.duration,
                     size = info.sizeBytes,
                     resolution = info.qualityBadge,
                     videoCodec = info.videoCodec,
                     audioCodec = info.audioCodec,
                     isNetwork = isNetwork,
+                    networkShareId = intent.getStringExtra("networkShareId"),
                     lastPlayedAt = System.currentTimeMillis()
                 ))
             }

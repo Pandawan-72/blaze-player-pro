@@ -21,6 +21,8 @@ import fr.retrospare.blazeplayer.data.model.NetworkShare
 import fr.retrospare.blazeplayer.data.repository.NetworkRepository
 import fr.retrospare.blazeplayer.databinding.ActivityAudioBrowserBinding
 import fr.retrospare.blazeplayer.network.SmbBrowser
+import fr.retrospare.blazeplayer.network.UpnpBrowser
+import fr.retrospare.blazeplayer.data.model.ShareType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -44,6 +46,7 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     @Inject lateinit var networkRepository: NetworkRepository
     @Inject lateinit var smbBrowser: SmbBrowser
+    @Inject lateinit var upnpBrowser: UpnpBrowser
 
     private lateinit var binding: ActivityAudioBrowserBinding
     private val selectedItems = mutableListOf<Pair<String, String>>() // path, name
@@ -62,9 +65,11 @@ class AudioBrowserActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.btnHome?.setOnClickListener {
+            // Dans le navigateur audio, la maison ne doit pas revenir à l'accueil général :
+            // elle ramène directement à la file/lecteur Blaze Audio déjà ouvert.
             val intent = android.content.Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
-            intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-            intent.putExtra("requestedTab", 1) // Onglet Local
+            intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+            intent.putExtra("openBlazeAudio", true)
             startActivity(intent)
             finish()
         }
@@ -108,10 +113,6 @@ class AudioBrowserActivity : AppCompatActivity() {
             setResult(android.app.Activity.RESULT_OK, intent)
             finish()
         }
-        binding.btnSelectAll.setOnClickListener {
-            selectAllCurrentFolderTracks()
-        }
-
         binding.btnAddToSavedPlaylist.setOnClickListener {
             if (selectedItems.isEmpty()) {
                 android.widget.Toast.makeText(this, getString(R.string.toast_select_tracks_first), android.widget.Toast.LENGTH_SHORT).show()
@@ -317,8 +318,10 @@ class AudioBrowserActivity : AppCompatActivity() {
             }
             AlertDialog.Builder(this@AudioBrowserActivity)
                 .setTitle(getString(R.string.dialog_choose_network_path))
-                .setItems(shares.map { it.name }.toTypedArray()) { _, i ->
-                    browseNetworkShare(shares[i], "")
+                .setItems(shares.map { share ->
+                    "${share.name} (${if (share.type == ShareType.UPNP) "UPNP" else "SMB"})"
+                }.toTypedArray()) { _, i ->
+                    browseNetworkShare(shares[i], if (shares[i].type == ShareType.UPNP) "0" else "")
                 }.show()
         }
     }
@@ -340,10 +343,14 @@ class AudioBrowserActivity : AppCompatActivity() {
         currentNetworkPath = path
         lifecycleScope.launch {
             binding.tvSelected.text = getString(R.string.loading)
-            val result = withContext(Dispatchers.IO) { smbBrowser.listFiles(share, path) }
+            val browsePath = if (share.type == ShareType.UPNP) path.ifBlank { "0" } else path
+            val result = withContext(Dispatchers.IO) {
+                if (share.type == ShareType.UPNP) upnpBrowser.listFiles(share, browsePath)
+                else smbBrowser.listFiles(share, browsePath)
+            }
             result.onSuccess { items ->
                 val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }
-                val audioFiles = items.filter { it.extension.lowercase() in audioExtensions }
+                val audioFiles = items.filter { it.extension.lowercase() in audioExtensions || it.mimeType.startsWith("audio/", ignoreCase = true) }
                 val displayItems = mutableListOf<AudioFile>()
                 
                 // Dossiers navigables
@@ -375,7 +382,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                     folders = folders.map { it.name to it.path },
                     files = fileItems,
                     onFolderClick = { folderPath ->
-                        val previousPath = path
+                        val previousPath = browsePath
                         folderStack.addLast { browseNetworkShare(share, previousPath) }
                         browseNetworkShare(share, folderPath)
                     },
@@ -404,7 +411,12 @@ class AudioBrowserActivity : AppCompatActivity() {
                 audioFiles.forEachIndexed { idx, item ->
                     if (idx >= fileItems.size) return@forEachIndexed
                     lifecycleScope.launch {
-                        val meta = AudioMetadataExtractor.extract(this@AudioBrowserActivity, item.path, item.name)
+                        val meta = if (share.type == ShareType.UPNP) {
+                            AudioMetadataExtractor.getCached(this@AudioBrowserActivity, item.path)
+                                ?: AudioTechnicalInfo(title = item.name, duration = item.duration, extension = item.extension.uppercase())
+                        } else {
+                            AudioMetadataExtractor.extract(this@AudioBrowserActivity, item.path, item.name)
+                        }
                         if (isFinishing || isDestroyed) return@launch
                         val updated = fileItems[idx].copy(
                             name = meta.title.takeIf { it.isNotBlank() } ?: fileItems[idx].name,
@@ -467,7 +479,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                 val title = cursor.getString(titleCol) ?: name
                 val bitrate = if (bitrateCol >= 0) cursor.getInt(bitrateCol) else 0
                 val uri = ContentUris.withAppendedId(collection, id).toString()
-                items.add(AudioFile(name, uri, duration, artist, bitrate))
+                items.add(AudioFile(title.takeIf { it.isNotBlank() } ?: name, uri, duration, artist, bitrate))
             }
         }
         return items
@@ -547,7 +559,16 @@ class AudioBrowserActivity : AppCompatActivity() {
         return dir.listFiles()
             ?.filter { it.isFile && it.extension.lowercase() in audioExtensions }
             ?.sortedBy { it.name }
-            ?.map { AudioFile(it.name, it.absolutePath, 0, "") }
+            ?.map { file ->
+                val cached = AudioMetadataExtractor.getCached(this@AudioBrowserActivity, file.absolutePath)
+                AudioFile(
+                    name = cached?.title?.takeIf { it.isNotBlank() } ?: file.name,
+                    path = file.absolutePath,
+                    duration = cached?.duration?.takeIf { it > 0L } ?: 0L,
+                    artist = cached?.artist.orEmpty(),
+                    bitrate = (cached?.bitrate ?: 0L).toInt()
+                )
+            }
             ?: emptyList()
     }
 
@@ -575,6 +596,28 @@ class AudioBrowserActivity : AppCompatActivity() {
             putStringArrayListExtra(EXTRA_NAMES, names)
         })
         finish()
+    }
+}
+
+
+private fun bindCachedAudioCover(row: android.view.View, path: String) {
+    val cover = row.findViewById<android.widget.ImageView>(fr.retrospare.blazeplayer.R.id.ivAudioCover) ?: return
+    (cover.parent as? android.view.View)?.visibility = android.view.View.VISIBLE
+    cover.setImageDrawable(null)
+    cover.setTag(fr.retrospare.blazeplayer.R.id.ivAudioCover, path)
+
+    val cached = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(row.context, path)
+    if (cached != null) {
+        android.graphics.BitmapFactory.decodeByteArray(cached, 0, cached.size)?.let { cover.setImageBitmap(it) }
+        return
+    }
+
+    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+        val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytes(row.context.applicationContext, path)
+        }
+        if (cover.getTag(fr.retrospare.blazeplayer.R.id.ivAudioCover) != path || bytes == null) return@launch
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { cover.setImageBitmap(it) }
     }
 }
 
@@ -632,7 +675,7 @@ class AudioBrowserAdapter(
             itemView.setOnClickListener { checkbox.isChecked = !checkbox.isChecked }
 
             // Codec depuis extension
-            val ext = item.name.substringAfterLast(".", "").uppercase()
+            val ext = item.path.substringAfterLast(".", "").uppercase()
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
             tvCodec.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
 
@@ -650,9 +693,8 @@ class AudioBrowserAdapter(
                 else -> tvBitrate.visibility = android.view.View.GONE
             }
 
-            // Navigateur audio allégé : pas de cover en liste. Les covers restent utilisées
-            // dans le lecteur/cast, mais on évite ici les décodages coûteux au scroll.
-            (ivCover.parent as? android.view.View)?.visibility = android.view.View.GONE
+            // Cover à gauche du titre : cache local d'abord, extraction asynchrone ensuite.
+            bindCachedAudioCover(itemView, item.path)
         }
     }
 }
@@ -708,7 +750,18 @@ class CombinedAudioAdapter(
             holder.itemView.findViewById<TextView>(R.id.tvAudioTitle)?.text = file.name
             holder.itemView.findViewById<TextView>(R.id.tvAudioArtist)?.text = file.artist
             holder.itemView.findViewById<TextView>(R.id.tvAudioDuration)?.text =
-                "%d:%02d".format(file.duration / 60, file.duration % 60)
+                if (file.duration > 0) "%d:%02d".format(file.duration / 60, file.duration % 60) else ""
+            val ext = file.path.substringAfterLast(".", "").uppercase()
+            val tvCodec = holder.itemView.findViewById<TextView>(R.id.tvAudioCodec)
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
+            tvCodec?.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+            val tvBitrate = holder.itemView.findViewById<TextView>(R.id.tvAudioBitrate)
+            when {
+                ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF") -> { tvBitrate?.text = holder.itemView.context.getString(R.string.lossless_label); tvBitrate?.visibility = android.view.View.VISIBLE }
+                file.bitrate > 0 -> { tvBitrate?.text = "${file.bitrate / 1000} kbps"; tvBitrate?.visibility = android.view.View.VISIBLE }
+                else -> tvBitrate?.visibility = android.view.View.GONE
+            }
+            bindCachedAudioCover(holder.itemView, file.path)
             val cb = holder.itemView.findViewById<CheckBox>(R.id.checkAudio)
             cb?.setOnCheckedChangeListener(null)
             cb?.isChecked = fileIdx in selected
@@ -855,7 +908,7 @@ class MixedAudioAdapter(
             v.findViewById<android.widget.TextView>(R.id.tvAudioArtist)?.text = item.artist.ifEmpty { v.context.getString(R.string.unknown_artist) }
             val dur = item.duration
             v.findViewById<android.widget.TextView>(R.id.tvAudioDuration)?.text = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else ""
-            val ext = item.name.substringAfterLast(".", "").uppercase()
+            val ext = item.path.substringAfterLast(".", "").uppercase()
             val tvCodec = v.findViewById<android.widget.TextView>(R.id.tvAudioCodec)
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
             tvCodec?.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
@@ -875,8 +928,7 @@ class MixedAudioAdapter(
                 onFileToggle(item.path, item.name, checked)
             }
             v.setOnClickListener { checkbox?.isChecked = !(checkbox?.isChecked ?: false) }
-            val ivCover = v.findViewById<android.widget.ImageView>(R.id.ivAudioCover)
-            ivCover?.let { (it.parent as? android.view.View)?.visibility = android.view.View.GONE }
+            bindCachedAudioCover(v, item.path)
         }
     }
 }

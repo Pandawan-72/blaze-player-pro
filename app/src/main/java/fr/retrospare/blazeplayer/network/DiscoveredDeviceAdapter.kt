@@ -27,6 +27,11 @@ class DiscoveredDeviceAdapter(
                     binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_blue)
                     binding.ivIcon.setImageResource(R.drawable.ic_folder)
                 }
+                ShareType.UPNP -> {
+                    binding.tvBadge.text = "UPnP"
+                    binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_green)
+                    binding.ivIcon.setImageResource(R.drawable.ic_cast)
+                }
                 else -> {
                     binding.tvBadge.text = "NET"
                     binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_gray)

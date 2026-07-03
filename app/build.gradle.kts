@@ -32,8 +32,8 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.10.0-alpha"
+        versionCode = 14
+        versionName = "0.8.2-Beta-RC"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Clé API YouTube Data v3 : lue depuis local.properties (jamais commité), à ajouter
         // toi-même sous la forme YOUTUBE_API_KEY=ta_cle dans ce fichier à la racine du projet.

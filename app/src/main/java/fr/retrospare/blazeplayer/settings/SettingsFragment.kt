@@ -17,6 +17,7 @@ import androidx.navigation.fragment.findNavController
 import com.google.android.material.switchmaterial.SwitchMaterial
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
+import fr.retrospare.blazeplayer.BuildConfig
 import fr.retrospare.blazeplayer.databinding.FragmentSettingsBinding
 
 @AndroidEntryPoint
@@ -186,7 +187,7 @@ class SettingsFragment : Fragment() {
         }
 
         // À PROPOS
-        val appVersion = "v.0.8.1-beta"
+        val appVersion = BuildConfig.VERSION_NAME
         setupAction(
             binding.settingAbout.root,
             R.drawable.ic_settings,

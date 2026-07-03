@@ -235,8 +235,12 @@ class MainActivity : AppCompatActivity() {
             handler.postDelayed({ openBlazeAudio() }, 300)
         }
         val requestedTab = intent.getIntExtra("requestedTab", -1)
-        if (requestedTab in 1..3) {
+        if (requestedTab in 1..4) {
+            // Navigation explicite depuis les navigateurs : revenir à l'accueil et activer
+            // l'onglet demandé (1=Local, 2=Réseau, 3=Blaze Tube, 4=Audio). Le délai laisse le
+            // NavHost recréer HomeFragment si l'Activity vient d'être remise au premier plan.
             handler.postDelayed({ switchToTab(requestedTab) }, 300)
+            intent.removeExtra("requestedTab")
         }
     }
 

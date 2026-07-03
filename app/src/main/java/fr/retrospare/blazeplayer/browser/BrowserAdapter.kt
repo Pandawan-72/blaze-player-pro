@@ -187,12 +187,37 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                 progressFill.visibility = View.GONE
             }
 
-            // Navigateurs allégés : aucune extraction de miniature en liste (local/réseau),
-            // mais on garde le bloc statique pour afficher le badge conteneur coloré.
+            // Miniature à gauche du titre : cache RAM/disque en priorité, puis extraction
+            // asynchrone bornée par ThumbnailUtils. Cela couvre local, réseau SMB et audio
+            // affiché dans le navigateur sans bloquer le scroll.
             thumbnailJob?.cancel()
             (ivThumbnail.parent as? View)?.visibility = View.VISIBLE
             ivThumbnail.setImageDrawable(null)
-            ivPlayOverlay.visibility = View.GONE
+            ivPlayOverlay.visibility = View.VISIBLE
+            ivThumbnail.setTag(R.id.ivThumbnail, item.path)
+            val cachedThumb = if (item.mimeType.startsWith("audio/") || item.extension.lowercase() in setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")) {
+                fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(itemView.context, item.path)
+                    ?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
+            } else {
+                fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailBitmap(itemView.context, item.path)
+            }
+            if (cachedThumb != null) {
+                ivThumbnail.setImageBitmap(cachedThumb)
+            } else {
+                thumbnailJob = scope.launch {
+                    val bitmap = if (item.mimeType.startsWith("audio/") || item.extension.lowercase() in setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytes(itemView.context, item.path)
+                                ?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
+                        }
+                    } else {
+                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(itemView.context, item.path)
+                    }
+                    if (ivThumbnail.getTag(R.id.ivThumbnail) == item.path && bitmap != null) {
+                        ivThumbnail.setImageBitmap(bitmap)
+                    }
+                }
+            }
 
             // Case à cocher (sélection multiple) : toujours visible, comme dans le navigateur
             // audio, à gauche de la ligne. Cocher sélectionne le fichier ; taper la ligne l'ouvre

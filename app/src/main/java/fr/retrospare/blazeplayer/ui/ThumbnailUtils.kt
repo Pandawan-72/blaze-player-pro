@@ -28,6 +28,17 @@ object ThumbnailUtils {
         "mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka"
     )
 
+    private fun extensionOf(path: String): String =
+        path.substringBefore('?').substringBefore('#').substringAfterLast('.', "").lowercase()
+
+    private fun isAudioPath(path: String): Boolean = extensionOf(path) in audioExtensions
+
+    private fun isNetworkVideoPath(path: String): Boolean =
+        path.startsWith("smb://", true) || path.startsWith("http://", true) || path.startsWith("https://", true)
+
+    private fun defaultVideoFrameTimeUs(path: String): Long =
+        if (isNetworkVideoPath(path)) 10_000_000L else 5_000_000L
+
     // Cache mémoire (RAM) LRU limité à 15MB — sert les miniatures déjà vues pendant cette session,
     // évite même le passage par le disque tant que l'app tourne.
     private val cache = object : LruCache<String, Bitmap>(15 * 1024 * 1024) {
@@ -114,6 +125,10 @@ object ThumbnailUtils {
     // ancien cache Vxx ou artworkUri Cast) soit réutilisée comme pochette audio.
     private fun audioKey(path: String): String = "audio:$path"
     private fun videoKey(path: String): String = "video:$path"
+    // Versionne le cache des frames vidéo réseau pour forcer une vraie extraction à 10s
+    // après mise à jour, au lieu de réutiliser d'anciennes miniatures HTTP/UPnP à 5s
+    // ou des artworks DLNA mis en cache sous la même URL.
+    private fun thumbnailKey(path: String): String = if (isAudioPath(path)) path else "video-frame-10s:$path"
 
     fun getCachedAudioArtworkJpegBytes(context: Context, path: String): ByteArray? {
         val key = audioKey(path)
@@ -198,8 +213,9 @@ object ThumbnailUtils {
 
     /** Retourne immédiatement une image déjà en cache mémoire/disque, sans extraction réseau. */
     fun getCachedThumbnailBitmap(context: Context, path: String): Bitmap? {
-        cache.get(path)?.let { return it }
-        return readFromDisk(context.applicationContext, path)?.also { cache.put(path, it) }
+        val key = thumbnailKey(path)
+        cache.get(key)?.let { return it }
+        return readFromDisk(context.applicationContext, key)?.also { cache.put(key, it) }
     }
 
     /** Retourne une pochette déjà cachée en JPEG, prête à être remise dans MediaMetadata. */
@@ -219,8 +235,9 @@ object ThumbnailUtils {
         try {
             val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size) ?: return
             val scaled = scaleBitmap(bitmap, 256)
-            cache.put(path, scaled)
-            writeToDisk(context.applicationContext, path, scaled)
+            val key = thumbnailKey(path)
+            cache.put(key, scaled)
+            writeToDisk(context.applicationContext, key, scaled)
         } catch (e: Exception) {
             android.util.Log.w("ThumbnailUtils", "Failed to cache artwork for $path", e)
         }
@@ -230,7 +247,7 @@ object ThumbnailUtils {
     suspend fun getThumbnailJpegBytes(
         context: Context,
         path: String,
-        timeUs: Long = if (path.startsWith("smb://")) 10_000_000L else 5_000_000L
+        timeUs: Long = defaultVideoFrameTimeUs(path)
     ): ByteArray? {
         val bitmap = getThumbnailBitmap(context, path, timeUs) ?: return null
         return withContext(Dispatchers.IO) {
@@ -250,17 +267,18 @@ object ThumbnailUtils {
     suspend fun getThumbnailBitmap(
         context: Context,
         path: String,
-        timeUs: Long = if (path.startsWith("smb://")) 10_000_000L else 5_000_000L
+        timeUs: Long = defaultVideoFrameTimeUs(path)
     ): Bitmap? = coroutineScope {
+        val key = thumbnailKey(path)
         // Cache mémoire immédiat avant de passer sur IO.
-        cache.get(path)?.let { return@coroutineScope it }
+        cache.get(key)?.let { return@coroutineScope it }
 
         // Déduplique les demandes simultanées causées par RecyclerView + notification.
-        inFlight[path]?.let { return@coroutineScope it.await() }
+        inFlight[key]?.let { return@coroutineScope it.await() }
 
         val deferred = async(Dispatchers.IO) {
-            withTimeoutOrNull(if (path.startsWith("smb://")) 3_500L else 6_000L) {
-                if (path.startsWith("smb://")) {
+            withTimeoutOrNull(if (isNetworkVideoPath(path)) 6_000L else 6_000L) {
+                if (isNetworkVideoPath(path)) {
                     networkThumbnailSemaphore.withPermit {
                         extractThumbnailInternal(context.applicationContext, path, timeUs)
                     }
@@ -272,24 +290,25 @@ object ThumbnailUtils {
                 null
             }
         }
-        inFlight[path] = deferred
+        inFlight[key] = deferred
         try {
             deferred.await()
         } finally {
-            inFlight.remove(path, deferred)
+            inFlight.remove(key, deferred)
         }
     }
 
     private fun extractThumbnailInternal(context: Context, path: String, timeUs: Long): Bitmap? {
         return try {
-            cache.get(path)?.let { return it }
+            val key = thumbnailKey(path)
+            cache.get(key)?.let { return it }
 
-            readFromDisk(context, path)?.let { fromDisk ->
-                cache.put(path, fromDisk)
+            readFromDisk(context, key)?.let { fromDisk ->
+                cache.put(key, fromDisk)
                 return fromDisk
             }
 
-            val ext = path.substringAfterLast('.', "").lowercase()
+            val ext = extensionOf(path)
             val isAudio = ext in audioExtensions
 
             if (isAudio) {
@@ -320,6 +339,13 @@ object ThumbnailUtils {
                                 try { smbDataSourceAudio?.close() } catch (_: Exception) {}
                             }
                         }
+                        path.startsWith("http://", true) || path.startsWith("https://", true) -> MediaMetadataRetriever().use { r ->
+                            r.setDataSource(path, emptyMap())
+                            r.embeddedPicture?.let {
+                                val opts = BitmapFactory.Options().apply { inSampleSize = 2 }
+                                BitmapFactory.decodeByteArray(it, 0, it.size, opts)
+                            }
+                        }
                         else -> MediaMetadataRetriever().use { r ->
                             r.setDataSource(path)
                             r.embeddedPicture?.let {
@@ -332,8 +358,8 @@ object ThumbnailUtils {
 
                 bitmap?.let {
                     val scaled = scaleBitmap(it, 128)
-                    cache.put(path, scaled)
-                    writeToDisk(context, path, scaled)
+                    cache.put(key, scaled)
+                    writeToDisk(context, key, scaled)
                     scaled
                 }
             } else {
@@ -345,16 +371,18 @@ object ThumbnailUtils {
                     if (path.startsWith("smb://")) {
                         smbDataSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
                         retriever.setDataSource(smbDataSource)
+                    } else if (path.startsWith("http://", true) || path.startsWith("https://", true)) {
+                        retriever.setDataSource(path, emptyMap())
                     } else {
                         retriever.setDataSource(context, Uri.parse(path))
                     }
-                    val option = if (path.startsWith("smb://")) MediaMetadataRetriever.OPTION_CLOSEST_SYNC else MediaMetadataRetriever.OPTION_CLOSEST
+                    val option = if (isNetworkVideoPath(path)) MediaMetadataRetriever.OPTION_CLOSEST_SYNC else MediaMetadataRetriever.OPTION_CLOSEST
                     var bitmap = retriever.getFrameAtTime(timeUs, option)
-                    if (bitmap == null && !path.startsWith("smb://")) bitmap = retriever.frameAtTime
+                    if (bitmap == null && !isNetworkVideoPath(path)) bitmap = retriever.frameAtTime
                     bitmap?.let {
-                        val scaled = scaleBitmap(it, if (path.startsWith("smb://")) 144 else 160)
-                        cache.put(path, scaled)
-                        writeToDisk(context, path, scaled)
+                        val scaled = scaleBitmap(it, if (isNetworkVideoPath(path)) 144 else 160)
+                        cache.put(key, scaled)
+                        writeToDisk(context, key, scaled)
                         scaled
                     }
                 } finally {
@@ -372,7 +400,7 @@ object ThumbnailUtils {
         context: Context,
         path: String,
         imageView: ImageView,
-        timeUs: Long = if (path.startsWith("smb://")) 10_000_000L else 5_000_000L
+        timeUs: Long = defaultVideoFrameTimeUs(path)
     ) {
         imageView.setTag(R.id.ivThumbnail, path)
         val bitmap = getThumbnailBitmap(context, path, timeUs)

@@ -10,12 +10,20 @@ import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.data.model.NetworkShare
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SmbBrowser @Inject constructor() {
+
+    // Les NAS SMB supportent mal les listings concurrents venant du même client. Une recherche
+    // ou un enrichissement metadata qui se chevauche avec une navigation peut laisser des handles
+    // ouverts et figer l'arborescence. On sérialise les listings de dossiers, qui sont courts et
+    // critiques pour l'UX.
+    private val listSemaphore = Semaphore(1)
 
     private val VIDEO_EXTENSIONS = setOf(
         "mp4", "mkv", "avi", "mov", "wmv", "flv", "ts",
@@ -35,40 +43,42 @@ class SmbBrowser @Inject constructor() {
     }
 
     suspend fun listShares(share: NetworkShare): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
-        runCatching {
-            val client = createClient()
-            val authContext = buildAuthContext(share)
-            val items = mutableListOf<MediaItem>()
+        listSemaphore.withPermit {
+            runCatching {
+                val client = createClient()
+                val authContext = buildAuthContext(share)
+                val items = mutableListOf<MediaItem>()
 
-            client.connect(share.host, share.port ?: 445).use { connection ->
-                val session = connection.authenticate(authContext)
-                try {
-                    val transport = com.rapid7.client.dcerpc.transport.SMBTransportFactories.SRVSVC.getTransport(session)
-                    val serverService = com.rapid7.client.dcerpc.mssrvs.ServerService(transport)
-                    val shares = serverService.shares0
-                    shares.forEach { shareInfo ->
-                        val name = shareInfo.netName
-                        // Filtre les shares administratifs (ADMIN$, C$, IPC$...) et types non disque
-                        if (!name.endsWith("$") && name.isNotBlank()) {
-                            items.add(
-                                MediaItem(
-                                    id = "smb://${share.host}/$name",
-                                    name = name,
-                                    path = name,
-                                    mimeType = "share",
-                                    extension = "",
-                                    isNetwork = true,
-                                    networkShareId = share.id
+                client.connect(share.host, share.port ?: 445).use { connection ->
+                    val session = connection.authenticate(authContext)
+                    try {
+                        val transport = com.rapid7.client.dcerpc.transport.SMBTransportFactories.SRVSVC.getTransport(session)
+                        val serverService = com.rapid7.client.dcerpc.mssrvs.ServerService(transport)
+                        val shares = serverService.shares0
+                        shares.forEach { shareInfo ->
+                            val name = shareInfo.netName
+                            // Filtre les shares administratifs (ADMIN$, C$, IPC$...) et types non disque
+                            if (!name.endsWith("$") && name.isNotBlank()) {
+                                items.add(
+                                    MediaItem(
+                                        id = "smb://${share.host}/$name",
+                                        name = name,
+                                        path = name,
+                                        mimeType = "share",
+                                        extension = "",
+                                        isNetwork = true,
+                                        networkShareId = share.id
+                                    )
                                 )
-                            )
+                            }
                         }
+                    } finally {
+                        session.close()
                     }
-                } finally {
-                    session.close()
                 }
+                items.sortBy { it.name.lowercase() }
+                items
             }
-            items.sortBy { it.name.lowercase() }
-            items
         }
     }
 
@@ -95,8 +105,9 @@ class SmbBrowser @Inject constructor() {
         path: String,
         sharePrefix: String?
     ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
-        runCatching {
-            val client = createClient()
+        listSemaphore.withPermit {
+            runCatching {
+                val client = createClient()
             val authContext = buildAuthContext(share)
             val host = share.host
             val port = share.port ?: 445
@@ -158,8 +169,9 @@ class SmbBrowser @Inject constructor() {
                     }
                 }
             }
-            items.sortWith(compareBy({ it.mimeType != "folder" }, { it.name.lowercase() }))
-            items
+                items.sortWith(compareBy({ it.mimeType != "folder" }, { it.name.lowercase() }))
+                items
+            }
         }
     }
 

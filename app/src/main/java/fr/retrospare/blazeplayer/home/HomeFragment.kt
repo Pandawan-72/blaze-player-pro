@@ -284,7 +284,8 @@ class HomeFragment : Fragment() {
             requireContext(), history, compact = false,
             onClick = { openYoutubeVideo(it) },
             onFavoriteToggle = { item, holder -> toggleYoutubeFavorite(item) },
-            onMoreClick = { item, anchor -> showYoutubeItemMenu(item, anchor) }
+            onMoreClick = { item, anchor -> showYoutubeItemMenu(item, anchor) },
+            highlightedVideoId = history.firstOrNull()?.videoId
         )
     }
 
@@ -651,6 +652,30 @@ class HomeFragment : Fragment() {
     }
 
 
+    private fun containerBadgeFrom(item: MediaItem): String {
+        fun clean(value: String): String {
+            if (value.isBlank()) return ""
+            val noQuery = value.substringBefore('?').substringBefore('#')
+            val ext = noQuery.substringAfterLast('.', "")
+                .takeIf { it.length in 2..5 && it.all { c -> c.isLetterOrDigit() } }
+                ?: ""
+            return ext.uppercase()
+        }
+        val fromStored = clean(item.extension)
+        if (fromStored.isNotEmpty()) return fromStored
+        val fromName = clean(item.name)
+        if (fromName.isNotEmpty()) return fromName
+        val fromPath = clean(item.path)
+        if (fromPath.isNotEmpty()) return fromPath
+        return when {
+            item.mimeType.contains("mp4", true) -> "MP4"
+            item.mimeType.contains("matroska", true) || item.mimeType.contains("mkv", true) -> "MKV"
+            item.mimeType.contains("avi", true) -> "AVI"
+            item.mimeType.contains("webm", true) -> "WEBM"
+            else -> ""
+        }
+    }
+
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -671,6 +696,11 @@ class HomeFragment : Fragment() {
             override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
                 val item = items[position]
                 val v = holder.itemView
+                val lastPlayedPath = items.maxByOrNull { it.lastPlayedAt }?.path
+                v.setBackgroundResource(
+                    if (item.path == lastPlayedPath) R.drawable.bg_media_card_last_played
+                    else R.drawable.bg_media_card
+                )
 
                 // Nom du fichier
                 v.findViewById<TextView>(R.id.tvFileName).text = item.name
@@ -695,8 +725,10 @@ class HomeFragment : Fragment() {
                 tvAud.text = item.audioCodec ?: ""
                 tvAud.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
 
-                // Badge conteneur immédiat depuis item.extension, couleur par format.
-                val ext = item.extension.ifEmpty { item.name.substringAfterLast(".", "") }.uppercase()
+                // Badge conteneur immédiat depuis l'extension persistée, puis le titre, puis
+                // l'URL réseau. Les URLs UPnP peuvent avoir un titre sans extension ou une query
+                // string; ce fallback garde le même badge MP4/MKV/AVI que les vidéos SMB.
+                val ext = containerBadgeFrom(item)
                 if (ext.isNotEmpty()) {
                     fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFmt, ext)
                     tvFmt.visibility = View.VISIBLE
