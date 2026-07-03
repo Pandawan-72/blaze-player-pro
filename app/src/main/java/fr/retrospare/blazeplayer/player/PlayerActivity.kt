@@ -4,6 +4,9 @@ import android.content.pm.ActivityInfo
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.graphics.ColorMatrix
+import android.graphics.RenderEffect
 import android.content.res.Configuration
 import android.os.Handler
 import android.os.Looper
@@ -31,6 +34,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.media3.session.SessionCommand
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
@@ -108,15 +112,19 @@ class PlayerActivity : AppCompatActivity() {
     private var videoQueuePaths: ArrayList<String> = arrayListOf()
     private var videoQueueNames: ArrayList<String> = arrayListOf()
     private var videoQueueIndex: Int = 0
-    private var zoneTouching = false
-    private var gestureStartY = 0f
-    private var initialBrightness = 0.5f
-    private var initialVolume = 0
+    private var videoBrightness = -1f      // -1 = luminosité système, 0..100 = luminosité native Android de la fenêtre
+    private var videoContrast = 0f         // -100..100
+    private var videoHue = 0f              // -100..100
+    private var videoSaturation = 0f       // -100..100
+    private var videoVolumeBoost = 0f      // 0..20
+    private var videoDialogueMode = 0f      // 0..100, clarifie les voix et calme les effets forts
     private var maxVolume = 0
     private var networkErrorDialogShown = false
     private var compatWarningShown = false
     private var hasEnteredPip = false
     private var videoStoppedByUser = false
+    private var closingPlayerExplicitly = false
+    private var lastProgressPersistAt = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -209,7 +217,6 @@ class PlayerActivity : AppCompatActivity() {
         setupControls()
         setupCastButton()
         setupProgressBar()
-        setupGestures()
         saveHistory()
         scheduleHide()
 
@@ -224,6 +231,13 @@ class PlayerActivity : AppCompatActivity() {
             prefPip = prefs[booleanPreferencesKey("pip")] ?: false
             prefAudioLangIndex = prefs[intPreferencesKey("audio_lang")] ?: 0
             prefRememberVolume = prefs[booleanPreferencesKey("remember_volume")] ?: false
+            videoBrightness = (prefs[intPreferencesKey("video_brightness")] ?: -1).toFloat()
+            videoContrast = (prefs[intPreferencesKey("video_contrast")] ?: 0).toFloat()
+            videoHue = (prefs[intPreferencesKey("video_hue")] ?: 0).toFloat()
+            videoSaturation = (prefs[intPreferencesKey("video_saturation")] ?: 0).toFloat()
+            videoVolumeBoost = (prefs[intPreferencesKey("video_volume_boost")] ?: 0).toFloat()
+            videoDialogueMode = (prefs[intPreferencesKey("video_dialogue_mode")] ?: 0).toFloat()
+            applyVideoAdjustments()
 
             if (prefRememberVolume) {
                 val savedVol = prefs[intPreferencesKey("saved_volume")] ?: -1
@@ -622,10 +636,10 @@ class PlayerActivity : AppCompatActivity() {
             val vol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
             lifecycleScope.launch { dataStore.edit { it[intPreferencesKey("saved_volume")] = vol } }
         }
-        val pos = player.currentPosition
-        if (mediaPath.isNotEmpty() && pos > 0) {
-            getSharedPreferences("blaze_positions", MODE_PRIVATE).edit().putLong(mediaPath, pos).apply()
-            lifecycleScope.launch { mediaRepository.updateProgress(mediaPath, pos / 1000) }
+        saveCurrentVideoPosition()
+        if (closingPlayerExplicitly) {
+            binding.playerView.player = null
+            return
         }
         // Home / app switch : on détache uniquement la surface pour éviter les leaks UI.
         // La lecture continue dans VideoPlaybackService ; si le PiP est activé, Android garde
@@ -717,6 +731,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun onPlayerReady() {
         binding.playerView.player = player
+        applyVideoAdjustments()
 
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
@@ -911,8 +926,55 @@ class PlayerActivity : AppCompatActivity() {
     }
 
 
+    private fun saveCurrentVideoPosition() {
+        if (!::player.isInitialized || mediaPath.isEmpty()) return
+        val current = try { player.currentPosition } catch (_: Exception) { 0L }
+        val tracked = try {
+            if (player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) lastKnownRemotePosition else lastKnownLocalPosition
+        } catch (_: Exception) { 0L }
+        // MediaController peut parfois renvoyer l'ancienne position juste avant/pendant stop().
+        // On garde donc la position la plus récente observée par la boucle de progression si elle
+        // est plus avancée, ce qui corrige le cas: reprise à 30 min puis fermeture à 55 min.
+        val pos = when {
+            tracked > current + 1500L -> tracked
+            current > 0L -> current
+            tracked > 0L -> tracked
+            else -> 0L
+        }
+        persistVideoPosition(pos, immediate = true)
+    }
+
+    private fun persistVideoPosition(positionMs: Long, immediate: Boolean = false) {
+        if (mediaPath.isEmpty() || positionMs <= 0L) return
+        val editor = getSharedPreferences("blaze_positions", MODE_PRIVATE).edit().putLong(mediaPath, positionMs)
+        if (immediate) editor.commit() else editor.apply()
+        lifecycleScope.launch { mediaRepository.updateProgress(mediaPath, positionMs) }
+    }
+
+    private fun stopVideoPlaybackAndNotification() {
+        closingPlayerExplicitly = true
+        saveCurrentVideoPosition()
+        try {
+            if (::player.isInitialized) {
+                player.pause()
+                player.stop()
+                player.clearMediaItems()
+            }
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to stop video playback on back", e)
+        }
+        try { binding.playerView.player = null } catch (_: Exception) {}
+        try { stopService(android.content.Intent(this, VideoPlaybackService::class.java)) } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to stop VideoPlaybackService on back", e)
+        }
+        try { VideoStreamServerManager.stopServer() } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to stop local video stream server on back", e)
+        }
+    }
+
     private fun goBackToHistory() {
-        if (isNetworkMedia || mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://")) {
+        stopVideoPlaybackAndNotification()
+        if (isNetworkMedia || mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://") || mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true)) {
             val intent = android.content.Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
             intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
             intent.putExtra("requestedTab", 2)
@@ -1072,6 +1134,7 @@ class PlayerActivity : AppCompatActivity() {
         binding.btnSeekInfo.setOnClickListener { scheduleHide(); showQuickVideoInfo() }
         binding.btnAudio.setOnClickListener { scheduleHide(); showAudioTracks() }
         binding.btnSubtitles.setOnClickListener { scheduleHide(); showSubtitles() }
+        binding.btnVideoSettings.setOnClickListener { cancelHide(); showVideoSettingsDialog() }
         binding.btnSpeed.setOnClickListener { scheduleHide(); cyclePlaybackSpeed() }
         binding.uiOverlay.setOnClickListener { if (uiVisible) hideUI() else showUI() }
         binding.playerView.setOnClickListener { if (uiVisible) hideUI() else showUI() }
@@ -1270,47 +1333,240 @@ class PlayerActivity : AppCompatActivity() {
         scheduleHide()
     }
 
-    private fun setupGestures() {
-        binding.touchZoneLeft.setOnTouchListener { _, ev ->
-            val h = (binding.touchZoneLeftFill.parent as View).height.toFloat().coerceAtLeast(1f)
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    zoneTouching = true; cancelHide()
-                    gestureStartY = ev.y; initialBrightness = getBrightness()
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val b = (initialBrightness - (ev.y - gestureStartY) / h * 1.5f).coerceIn(0.01f, 1f)
-                    setBrightness(b)
-                    binding.touchZoneLeftFill.layoutParams.height = (h * b).toInt()
-                    binding.touchZoneLeftFill.requestLayout()
-                    binding.touchZoneLeftThumb.translationY = -h * b
-                    binding.tvBrightnessZone.text = "${(b * 100).toInt()}%"
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { zoneTouching = false; scheduleHide() }
-            }
-            true
+    private fun showVideoSettingsDialog() {
+        showUI()
+
+        val dialog = android.app.Dialog(this)
+        val root = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(22), dp(22), dp(22), dp(22))
+            setBackgroundResource(R.drawable.bg_cast_status_card)
         }
-        binding.touchZoneRight.setOnTouchListener { _, ev ->
-            val h = (binding.touchZoneRightFill.parent as View).height.toFloat().coerceAtLeast(1f)
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    zoneTouching = true; cancelHide()
-                    gestureStartY = ev.y
-                    initialVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val v = (initialVolume - ((ev.y - gestureStartY) / h * maxVolume * 1.5f).toInt()).coerceIn(0, maxVolume)
-                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, v, 0)
-                    val pct = v.toFloat() / maxVolume
-                    binding.touchZoneRightFill.layoutParams.height = (h * pct).toInt()
-                    binding.touchZoneRightFill.requestLayout()
-                    binding.touchZoneRightThumb.translationY = -h * pct
-                    binding.tvVolumeZone.text = "${(pct * 100).toInt()}%"
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { zoneTouching = false; scheduleHide() }
-            }
-            true
+
+        val header = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
         }
+        val iconWrap = android.widget.FrameLayout(this).apply {
+            setBackgroundResource(R.drawable.bg_cast_icon_circle)
+            layoutParams = android.widget.LinearLayout.LayoutParams(dp(48), dp(48))
+        }
+        iconWrap.addView(android.widget.ImageView(this).apply {
+            setImageResource(R.drawable.ic_settings)
+            setColorFilter(android.graphics.Color.WHITE)
+            layoutParams = android.widget.FrameLayout.LayoutParams(dp(25), dp(25), android.view.Gravity.CENTER)
+        })
+        val titleBlock = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(14)
+            }
+        }
+        titleBlock.addView(android.widget.TextView(this).apply {
+            text = getString(R.string.video_settings_title)
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 20f
+            typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        })
+        titleBlock.addView(android.widget.TextView(this).apply {
+            text = mediaName
+            setTextColor(android.graphics.Color.parseColor("#99FFFFFF"))
+            textSize = 12f
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setPadding(0, dp(2), 0, 0)
+        })
+        val close = android.widget.ImageButton(this).apply {
+            setBackgroundResource(R.drawable.bg_top_icon_btn)
+            setImageResource(R.drawable.ic_close)
+            setColorFilter(android.graphics.Color.WHITE)
+            contentDescription = getString(R.string.action_close)
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            layoutParams = android.widget.LinearLayout.LayoutParams(dp(44), dp(44))
+            setOnClickListener { dialog.dismiss() }
+        }
+        header.addView(iconWrap)
+        header.addView(titleBlock)
+        header.addView(close)
+        root.addView(header)
+
+        val dividerTop = android.view.View(this).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#1FFFFFFF"))
+            layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                topMargin = dp(20)
+                bottomMargin = dp(8)
+            }
+        }
+        root.addView(dividerTop)
+
+        fun addSeek(label: String, min: Int, max: Int, value: Float, boost: Boolean = false, audioEffect: Boolean = false, valueFormatter: ((Int) -> String)? = null, onChange: (Int) -> Unit) {
+            val row = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, dp(10), 0, dp(2))
+            }
+            val title = android.widget.TextView(this).apply {
+                text = label
+                setTextColor(android.graphics.Color.parseColor("#E6FFFFFF"))
+                textSize = 14f
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+                layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val valueText = android.widget.TextView(this).apply {
+                text = valueFormatter?.invoke(value.toInt()) ?: if (boost) "+${value.toInt()}%" else value.toInt().toString()
+                setTextColor(android.graphics.Color.parseColor("#99FFFFFF"))
+                textSize = 13f
+            }
+            row.addView(title)
+            row.addView(valueText)
+            val seek = android.widget.SeekBar(this).apply {
+                this.max = max - min
+                progress = value.toInt().coerceIn(min, max) - min
+                setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                        val v = min + progress
+                        valueText.text = valueFormatter?.invoke(v) ?: if (boost) "+$v%" else v.toString()
+                        onChange(v)
+                        if (boost || audioEffect) applyVideoVolumeBoost() else applyVideoAdjustments(applyVolumeBoost = false)
+                    }
+                    override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+                    override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                        if (boost || audioEffect) applyVideoVolumeBoost() else applyVideoAdjustments(applyVolumeBoost = false)
+                        persistVideoAdjustments()
+                    }
+                })
+            }
+            root.addView(row)
+            root.addView(seek)
+        }
+
+        addSeek(getString(R.string.video_setting_brightness), -1, 100, videoBrightness, valueFormatter = { v -> if (v < 0) "Auto" else "$v%" }) { videoBrightness = it.toFloat() }
+        addSeek(getString(R.string.video_setting_contrast), -100, 100, videoContrast) { videoContrast = it.toFloat() }
+        addSeek(getString(R.string.video_setting_color), -100, 100, videoHue) { videoHue = it.toFloat() }
+        addSeek(getString(R.string.video_setting_saturation), -100, 100, videoSaturation) { videoSaturation = it.toFloat() }
+
+        root.addView(android.view.View(this).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#1FFFFFFF"))
+            layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                topMargin = dp(16)
+                bottomMargin = dp(8)
+            }
+        })
+        addSeek(getString(R.string.video_setting_volume_boost), 0, 20, videoVolumeBoost, boost = true) { videoVolumeBoost = it.toFloat() }
+        addSeek(getString(R.string.video_setting_dialogue_mode), 0, 100, videoDialogueMode, audioEffect = true, valueFormatter = { v -> if (v == 0) getString(R.string.action_off) else "$v%" }) { videoDialogueMode = it.toFloat() }
+
+        val reset = android.widget.TextView(this).apply {
+            text = getString(R.string.action_reset)
+            gravity = android.view.Gravity.CENTER
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 15f
+            typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+            setBackgroundResource(R.drawable.bg_cast_stop_button)
+            isClickable = true
+            isFocusable = true
+            layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(50)).apply {
+                topMargin = dp(18)
+            }
+            setOnClickListener {
+                videoBrightness = -1f
+                videoContrast = 0f
+                videoHue = 0f
+                videoSaturation = 0f
+                videoVolumeBoost = 0f
+                videoDialogueMode = 0f
+                applyVideoAdjustments(applyVolumeBoost = true)
+                persistVideoAdjustments()
+                dialog.dismiss()
+            }
+        }
+        root.addView(reset)
+
+        dialog.setContentView(root)
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        dialog.setOnDismissListener { persistVideoAdjustments(); scheduleHide() }
+        dialog.show()
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.92f).toInt(), android.view.WindowManager.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun persistVideoAdjustments() {
+        lifecycleScope.launch {
+            dataStore.edit {
+                it[intPreferencesKey("video_brightness")] = videoBrightness.toInt()
+                it[intPreferencesKey("video_contrast")] = videoContrast.toInt()
+                it[intPreferencesKey("video_hue")] = videoHue.toInt()
+                it[intPreferencesKey("video_saturation")] = videoSaturation.toInt()
+                it[intPreferencesKey("video_volume_boost")] = videoVolumeBoost.toInt()
+                it[intPreferencesKey("video_dialogue_mode")] = videoDialogueMode.toInt()
+            }
+        }
+    }
+
+    private fun applyVideoAdjustments(applyVolumeBoost: Boolean = true) {
+        // La luminosité ne doit pas modifier l'image vidéo : elle pilote uniquement la luminosité
+        // native Android de la fenêtre, comme le réglage système de l'écran.
+        applyNativeScreenBrightness()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val saturation = (1f + videoSaturation / 100f).coerceIn(0f, 2f)
+            val contrast = (1f + videoContrast / 100f).coerceIn(0f, 2f)
+            val hueDegrees = (videoHue / 100f * 180f).coerceIn(-180f, 180f)
+
+            val matrix = ColorMatrix()
+            matrix.setSaturation(saturation)
+            val contrastMatrix = ColorMatrix(floatArrayOf(
+                contrast, 0f, 0f, 0f, 0f,
+                0f, contrast, 0f, 0f, 0f,
+                0f, 0f, contrast, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            ))
+            matrix.postConcat(contrastMatrix)
+            matrix.postConcat(hueColorMatrix(hueDegrees))
+            binding.playerView.setRenderEffect(RenderEffect.createColorFilterEffect(android.graphics.ColorMatrixColorFilter(matrix)))
+        }
+        if (applyVolumeBoost) applyVideoVolumeBoost()
+    }
+
+    private fun applyNativeScreenBrightness() {
+        val lp = window.attributes
+        lp.screenBrightness = if (videoBrightness < 0f) {
+            WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+        } else {
+            (videoBrightness / 100f).coerceIn(0.01f, 1f)
+        }
+        window.attributes = lp
+    }
+
+    private fun applyVideoVolumeBoost() {
+        if (!::player.isInitialized) return
+        val args = Bundle().apply {
+            putInt(VideoPlaybackService.EXTRA_VOLUME_BOOST_PERCENT, videoVolumeBoost.toInt().coerceIn(0, 20))
+            putInt(VideoPlaybackService.EXTRA_DIALOGUE_MODE_PERCENT, videoDialogueMode.toInt().coerceIn(0, 100))
+        }
+        try {
+            (player as? MediaController)?.sendCustomCommand(
+                SessionCommand(VideoPlaybackService.CUSTOM_COMMAND_SET_VOLUME_BOOST, Bundle.EMPTY),
+                args
+            )
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Video volume boost command failed", e)
+        }
+    }
+
+    private fun hueColorMatrix(degrees: Float): ColorMatrix {
+        val angle = Math.toRadians(degrees.toDouble()).toFloat()
+        val cosVal = kotlin.math.cos(angle)
+        val sinVal = kotlin.math.sin(angle)
+        val lumR = 0.213f
+        val lumG = 0.715f
+        val lumB = 0.072f
+        return ColorMatrix(floatArrayOf(
+            lumR + cosVal * (1 - lumR) + sinVal * (-lumR), lumG + cosVal * (-lumG) + sinVal * (-lumG), lumB + cosVal * (-lumB) + sinVal * (1 - lumB), 0f, 0f,
+            lumR + cosVal * (-lumR) + sinVal * 0.143f, lumG + cosVal * (1 - lumG) + sinVal * 0.140f, lumB + cosVal * (-lumB) + sinVal * -0.283f, 0f, 0f,
+            lumR + cosVal * (-lumR) + sinVal * (-(1 - lumR)), lumG + cosVal * (-lumG) + sinVal * lumG, lumB + cosVal * (1 - lumB) + sinVal * lumB, 0f, 0f,
+            0f, 0f, 0f, 1f, 0f
+        ))
     }
 
     private fun startProgressLoop() {
@@ -1325,6 +1581,11 @@ class PlayerActivity : AppCompatActivity() {
                         lastKnownLocalPosition = pos
                     } else {
                         lastKnownRemotePosition = pos
+                    }
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    if (pos > 0L && now - lastProgressPersistAt >= 5_000L) {
+                        lastProgressPersistAt = now
+                        persistVideoPosition(pos)
                     }
                     if (!seekBarDragging) withContext(Dispatchers.Main) { updateProgressUI(pos, dur) }
                 } catch (e: Exception) {
@@ -1359,22 +1620,13 @@ class PlayerActivity : AppCompatActivity() {
         binding.castStatusCard.visibility = View.GONE
         binding.centerTransportControls.visibility = View.VISIBLE
         binding.bottomControlsContainer.visibility = View.VISIBLE
-        if (isCasting) {
-            // Les zones luminosité/volume concernent l'appareil local, pas la TV Cast. On les
-            // garde donc masquées, tout en laissant les vrais contrôles de lecture visibles.
-            binding.touchZoneLeft.visibility = View.GONE
-            binding.touchZoneRight.visibility = View.GONE
-        } else {
-            binding.touchZoneLeft.visibility = View.VISIBLE
-            binding.touchZoneLeft.animate().alpha(1f).setDuration(200).start()
-            binding.touchZoneRight.visibility = View.VISIBLE
-            binding.touchZoneRight.animate().alpha(1f).setDuration(200).start()
-        }
+        binding.touchZoneLeft.visibility = View.GONE
+        binding.touchZoneRight.visibility = View.GONE
         scheduleHide()
     }
 
     private fun hideUI() {
-        if (zoneTouching || seekBarDragging) return
+        if (seekBarDragging) return
         uiVisible = false
         binding.uiOverlay.animate().alpha(0f).setDuration(200).withEndAction { binding.uiOverlay.visibility = View.GONE }.start()
         binding.touchZoneLeft.animate().alpha(0f).setDuration(200).withEndAction { binding.touchZoneLeft.visibility = View.GONE }.start()
@@ -1398,7 +1650,6 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun getBrightness(): Float { val b = window.attributes.screenBrightness; return if (b < 0) 0.5f else b }
-    private fun setBrightness(v: Float) { val lp = window.attributes; lp.screenBrightness = v; window.attributes = lp }
 
     /** Change de média en gardant le même player (donc la même session Cast active si on caste) :
      *  démarre le relais pour le nouveau fichier et construit un nouveau MediaItem unique. */

@@ -387,4 +387,13 @@
     <string name="paywall_restore">Aankopen herstellen</string>
     <string name="action_back">Terug</string>
     <string name="toast_billing_soon">Aankopen binnenkort beschikbaar</string>
+    <string name="video_settings_title">Video-instellingen</string>
+    <string name="video_setting_brightness">Helderheid</string>
+    <string name="video_setting_contrast">Contrast</string>
+    <string name="video_setting_color">Tint</string>
+    <string name="video_setting_saturation">Verzadiging</string>
+    <string name="video_setting_dialogue_mode">Dialoogmodus</string>
+    <string name="action_off">Uit</string>
+    <string name="video_setting_volume_boost">Volumeboost</string>
+    <string name="action_reset">Resetten</string>
 </resources>

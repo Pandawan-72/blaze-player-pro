@@ -387,4 +387,13 @@
     <string name="paywall_restore">Restaurar compras</string>
     <string name="action_back">Atrás</string>
     <string name="toast_billing_soon">Compras disponibles pronto</string>
+    <string name="video_settings_title">Ajustes de vídeo</string>
+    <string name="video_setting_brightness">Brillo</string>
+    <string name="video_setting_contrast">Contraste</string>
+    <string name="video_setting_color">Tono</string>
+    <string name="video_setting_saturation">Saturación</string>
+    <string name="video_setting_dialogue_mode">Modo diálogo</string>
+    <string name="action_off">Desactivado</string>
+    <string name="video_setting_volume_boost">Refuerzo de volumen</string>
+    <string name="action_reset">Restablecer</string>
 </resources>

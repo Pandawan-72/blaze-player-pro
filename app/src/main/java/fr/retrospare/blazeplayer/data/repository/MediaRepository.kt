@@ -43,8 +43,21 @@ class MediaRepository @Inject constructor(
             } catch (e: Exception) {
                 mutableListOf()
             }
+            val previous = current.firstOrNull { it.path == item.path }
             current.removeAll { it.path == item.path }
-            current.add(0, item.copy(lastPlayedAt = System.currentTimeMillis()))
+            // Quand on ré-enregistre l'élément au lancement de la lecture, ne pas effacer la
+            // position de reprise déjà connue. Sinon l'historique/UI peut revenir à une ancienne
+            // valeur ou à 0 alors que la vidéo a été quittée plus loin.
+            val merged = item.copy(
+                lastPlayedAt = System.currentTimeMillis(),
+                lastPosition = if (item.lastPosition > 0L) item.lastPosition else (previous?.lastPosition ?: 0L),
+                duration = if (item.duration > 0L) item.duration else (previous?.duration ?: 0L),
+                size = if (item.size > 0L) item.size else (previous?.size ?: 0L),
+                resolution = item.resolution?.takeIf { it.isNotBlank() } ?: previous?.resolution,
+                videoCodec = item.videoCodec?.takeIf { it.isNotBlank() } ?: previous?.videoCodec,
+                audioCodec = item.audioCodec?.takeIf { it.isNotBlank() } ?: previous?.audioCodec
+            )
+            current.add(0, merged)
             val trimmed = current.take(50)
             prefs[RECENT_ITEMS_KEY] = gson.toJson(trimmed)
         }

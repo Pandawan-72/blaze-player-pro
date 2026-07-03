@@ -14,7 +14,7 @@
         android:background="#000000"
         app:use_controller="false"
         app:resize_mode="fit"
-        app:surface_type="surface_view" />
+        app:surface_type="texture_view" />
 
     <View
         android:id="@+id/castBlackout"
@@ -100,6 +100,17 @@
                 android:contentDescription="Chromecast"
                 android:padding="9dp"
                 app:mediaRouteButtonTint="#FFFFFF" />
+
+            <ImageButton
+                android:id="@+id/btnVideoSettings"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_top_icon_btn"
+                android:contentDescription="Paramètres vidéo"
+                android:padding="10dp"
+                android:src="@drawable/ic_settings"
+                android:tint="#FFFFFF" />
         </LinearLayout>
 
         <!-- CONTRÔLES CENTRAUX : rewind / play / forward -->

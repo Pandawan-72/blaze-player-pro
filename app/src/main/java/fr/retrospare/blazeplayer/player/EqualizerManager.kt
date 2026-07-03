@@ -35,7 +35,12 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
         const val COMPRESSOR_MIN = 0
         const val COMPRESSOR_MAX = 100
         private val SOFTWARE_FREQS_HZ = intArrayOf(31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
-        private const val PREF_VERSION = 3
+        private const val PREF_VERSION = 4
+        private const val KEY_LAST_PRESET = "last_preset"
+        private const val KEY_CACHE_VERSION = "eq_cache_version"
+        private const val KEY_ACTIVE_PREFIX = "active_band_"
+        private const val KEY_CUSTOM_PREFIX = "custom_band_"
+        private const val KEY_PRESET_PREFIX = "preset_band_"
     }
 
     private val appContext = context.applicationContext
@@ -62,27 +67,55 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
     val maxLevel: Int get() = UI_MAX_LEVEL
 
     private fun migrateIfNeeded() {
-        val version = prefs.getInt("eq_cache_version", 1)
-        if (version >= PREF_VERSION) return
-        val edit = prefs.edit()
+        val version = prefs.getInt(KEY_CACHE_VERSION, 1)
+        if (version >= PREF_VERSION && hasAllBands(KEY_ACTIVE_PREFIX)) return
 
-        // If an older build stored only custom_band_X, keep it as the real custom curve.
-        for (i in 0 until SOFTWARE_BAND_COUNT) {
-            val oldCustom = prefs.getInt("custom_band_$i", 0).coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL)
-            edit.putInt("custom_band_$i", oldCustom)
-        }
-
-        // Normalize preset names that may have been translated or missing.
-        val last = prefs.getString("last_preset", "Flat") ?: "Flat"
+        val last = prefs.getString(KEY_LAST_PRESET, "Flat") ?: "Flat"
         val stablePreset = when {
             presets.containsKey(last) -> last
             last.equals("Personnalisé", true) || last.equals("Custom", true) -> "Custom"
             else -> "Flat"
         }
-        edit.putString("last_preset", stablePreset)
+
+        val edit = prefs.edit()
+
+        // Migration 5 -> 10 bandes : conserve les anciennes valeurs quand elles existent
+        // et complète toutes les bandes manquantes avec la courbe complète du préréglage.
+        val fallback = presetDefaults(stablePreset)
+        for (i in 0 until SOFTWARE_BAND_COUNT) {
+            val customKey = "$KEY_CUSTOM_PREFIX$i"
+            if (!prefs.contains(customKey)) {
+                edit.putInt(customKey, fallback.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
+            }
+        }
+
+        presets.forEach { (presetName, levels) ->
+            if (presetName != "Custom" && levels.size == SOFTWARE_BAND_COUNT) {
+                for (i in 0 until SOFTWARE_BAND_COUNT) {
+                    val key = presetBandKey(presetName, i)
+                    if (!prefs.contains(key)) {
+                        edit.putInt(key, levels[i].coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
+                    }
+                }
+            }
+        }
+
+        val active = if (stablePreset == "Custom") {
+            (0 until SOFTWARE_BAND_COUNT).map { i ->
+                prefs.getInt("$KEY_CUSTOM_PREFIX$i", fallback.getOrElse(i) { 0 }).coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL)
+            }
+        } else {
+            fallback
+        }
+        for (i in 0 until SOFTWARE_BAND_COUNT) {
+            edit.putInt("$KEY_ACTIVE_PREFIX$i", active.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
+        }
+
+        edit.putString(KEY_LAST_PRESET, stablePreset)
         edit.putInt("preamp_level", prefs.getInt("preamp_level", 0).coerceIn(PREAMP_MIN, PREAMP_MAX))
         edit.putInt("compressor_strength", prefs.getInt("compressor_strength", 0).coerceIn(COMPRESSOR_MIN, COMPRESSOR_MAX))
-        edit.putInt("eq_cache_version", PREF_VERSION).commit()
+        edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
+        edit.commit()
     }
 
     fun getBandFreq(band: Int): Int = SOFTWARE_FREQS_HZ.getOrElse(band) { 0 }
@@ -150,32 +183,78 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
     fun getSavedVirtualizer(): Int = prefs.getInt("virtualizer", 0).coerceIn(0, 1000)
     fun getSavedPreset(): String {
         migrateIfNeeded()
-        return prefs.getString("last_preset", "Flat") ?: "Flat"
+        return prefs.getString(KEY_LAST_PRESET, "Flat") ?: "Flat"
     }
-    fun savePreset(name: String) { prefs.edit().putString("last_preset", name).commit() }
+    fun savePreset(name: String) {
+        migrateIfNeeded()
+        val stable = if (presets.containsKey(name)) name else "Flat"
+        val levels = if (stable == "Custom") getCustomBands() else getSavedPresetLevels(stable)
+        saveActiveBands(levels, stable)
+    }
 
     private fun saveCustomBands(levels: List<Int>) {
         val edit = prefs.edit()
         for (i in 0 until SOFTWARE_BAND_COUNT) {
-            edit.putInt("custom_band_$i", levels.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
+            edit.putInt("$KEY_CUSTOM_PREFIX$i", levels.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
         }
-        edit.putString("last_preset", "Custom")
-        edit.putInt("eq_cache_version", PREF_VERSION)
+        edit.putString(KEY_LAST_PRESET, "Custom")
+        edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
         edit.commit()
+        saveActiveBands(levels, "Custom")
     }
 
     fun getCustomBands(): List<Int> {
         migrateIfNeeded()
-        return (0 until SOFTWARE_BAND_COUNT).map { band -> prefs.getInt("custom_band_$band", 0).coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL) }
+        return (0 until SOFTWARE_BAND_COUNT).map { band -> prefs.getInt("$KEY_CUSTOM_PREFIX$band", 0).coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL) }
+    }
+
+    private fun hasAllBands(prefix: String): Boolean =
+        (0 until SOFTWARE_BAND_COUNT).all { prefs.contains("$prefix$it") }
+
+    private fun presetBandKey(presetName: String, band: Int): String =
+        "$KEY_PRESET_PREFIX${presetName.replace(" ", "_")}_$band"
+
+    private fun presetDefaults(name: String): List<Int> {
+        val defaults = if (name == "Custom") presets["Flat"] else presets[name]
+        return (defaults ?: presets["Flat"]!!).let { levels ->
+            (0 until SOFTWARE_BAND_COUNT).map { i -> levels.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL) }
+        }
+    }
+
+    private fun getSavedPresetLevels(name: String): List<Int> {
+        val fallback = presetDefaults(name)
+        if (name == "Custom") return getCustomBands()
+        return (0 until SOFTWARE_BAND_COUNT).map { i ->
+            prefs.getInt(presetBandKey(name, i), fallback.getOrElse(i) { 0 }).coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL)
+        }
+    }
+
+    private fun savePresetLevels(name: String, levels: List<Int>) {
+        if (name == "Custom") return
+        val edit = prefs.edit()
+        for (i in 0 until SOFTWARE_BAND_COUNT) {
+            edit.putInt(presetBandKey(name, i), levels.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
+        }
+        edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
+        edit.commit()
+    }
+
+    private fun saveActiveBands(levels: List<Int>, presetName: String) {
+        val edit = prefs.edit()
+        for (i in 0 until SOFTWARE_BAND_COUNT) {
+            edit.putInt("$KEY_ACTIVE_PREFIX$i", levels.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
+        }
+        edit.putString(KEY_LAST_PRESET, presetName)
+        edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
+        edit.commit()
     }
 
     private fun getCurrentLevels(): List<Int> {
         migrateIfNeeded()
-        val preset = prefs.getString("last_preset", "Flat") ?: "Flat"
-        return if (preset == "Custom") {
-            getCustomBands()
-        } else {
-            presets[preset]?.map { it.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL) } ?: presets["Flat"]!!
+        val preset = prefs.getString(KEY_LAST_PRESET, "Flat") ?: "Flat"
+        val fallback = if (preset == "Custom") getCustomBands() else getSavedPresetLevels(preset)
+        return (0 until SOFTWARE_BAND_COUNT).map { i ->
+            prefs.getInt("$KEY_ACTIVE_PREFIX$i", fallback.getOrElse(i) { 0 }).coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL)
         }
     }
 
@@ -237,14 +316,20 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
     }
 
     fun applyPreset(name: String) {
+        migrateIfNeeded()
         if (name == "Custom") {
-            savePreset("Custom")
+            val levels = getCustomBands()
+            saveActiveBands(levels, "Custom")
             applyCustomToNative()
             return
         }
         if (!presets.containsKey(name)) return
-        // Built-in presets must not overwrite the user custom curve.
-        prefs.edit().putString("last_preset", name).putInt("eq_cache_version", PREF_VERSION).commit()
+        val levels = presetDefaults(name)
+        // Enregistre explicitement les 10 bandes du préréglage, même si l'Equalizer Android natif
+        // du téléphone ne possède que 5 bandes matérielles. L'UI et la restauration restent donc
+        // toujours en 10 bandes.
+        savePresetLevels(name, levels)
+        saveActiveBands(levels, name)
         applyCustomToNative()
     }
 

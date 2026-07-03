@@ -407,4 +407,13 @@
     <string name="paywall_restore">Восстановить покупки</string>
     <string name="action_back">Назад</string>
     <string name="toast_billing_soon">Покупки скоро будут доступны</string>
+    <string name="video_settings_title">Настройки видео</string>
+    <string name="video_setting_brightness">Яркость</string>
+    <string name="video_setting_contrast">Контраст</string>
+    <string name="video_setting_color">Оттенок</string>
+    <string name="video_setting_saturation">Насыщенность</string>
+    <string name="video_setting_dialogue_mode">Режим диалогов</string>
+    <string name="action_off">Выкл.</string>
+    <string name="video_setting_volume_boost">Усиление громкости</string>
+    <string name="action_reset">Сбросить</string>
 </resources>

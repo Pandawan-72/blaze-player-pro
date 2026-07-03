@@ -3,6 +3,8 @@ package fr.retrospare.blazeplayer.player
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
+import android.media.audiofx.LoudnessEnhancer
+import android.media.audiofx.Equalizer
 import androidx.media3.cast.CastPlayer
 import androidx.media3.cast.RemoteCastPlayer
 import androidx.media3.common.AudioAttributes
@@ -60,6 +62,9 @@ class VideoPlaybackService : MediaSessionService() {
         const val CUSTOM_COMMAND_SET_ARTWORK = "fr.retrospare.blazeplayer.SET_ARTWORK"
         const val EXTRA_ARTWORK_MEDIA_ID = "media_id"
         const val EXTRA_ARTWORK_DATA = "artwork_data"
+        const val CUSTOM_COMMAND_SET_VOLUME_BOOST = "fr.retrospare.blazeplayer.SET_VOLUME_BOOST"
+        const val EXTRA_VOLUME_BOOST_PERCENT = "volume_boost_percent"
+        const val EXTRA_DIALOGUE_MODE_PERCENT = "dialogue_mode_percent"
     }
 
     private var mediaSession: MediaSession? = null
@@ -67,6 +72,15 @@ class VideoPlaybackService : MediaSessionService() {
     private var castPlayer: CastPlayer? = null
     private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
     private var wakeLock: android.os.PowerManager.WakeLock? = null
+    private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var videoPreampEqualizer: Equalizer? = null
+    private var lastVolumeBoostPercent: Int = 0
+    private var lastDialogueModePercent: Int = 0
+
+    // Même modèle 10 bandes que l'equalizer audio. Le mode Dialogue vidéo projette cette
+    // courbe de type preset "Vocal" sur les bandes natives disponibles du téléphone.
+    private val videoDialogueFreqsHz = intArrayOf(31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
+    private val videoDialogueVocalCurveMb = intArrayOf(-800, -600, -400, -200, 100, 350, 550, 450, 200, 100)
 
     override fun onCreate() {
         super.onCreate()
@@ -130,6 +144,12 @@ class VideoPlaybackService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         exoPlayer = localPlayer
+        localPlayer.addListener(object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                recreateVideoAudioEffects(audioSessionId)
+                applyVideoAudioEffects(lastVolumeBoostPercent, lastDialogueModePercent)
+            }
+        })
 
         // Pattern officiel Media3 1.9.0 : CastPlayer.Builder(local+remote). Le RemoteCastPlayer
         // reçoit un MediaItemConverter dédié qui transforme les SubtitleConfiguration en vrais
@@ -197,6 +217,7 @@ class VideoPlaybackService : MediaSessionService() {
                     val defaultResult = super.onConnect(session, controller)
                     val sessionCommands = defaultResult.availableSessionCommands.buildUpon()
                         .add(SessionCommand(CUSTOM_COMMAND_SET_ARTWORK, Bundle.EMPTY))
+                        .add(SessionCommand(CUSTOM_COMMAND_SET_VOLUME_BOOST, Bundle.EMPTY))
                         .build()
                     return MediaSession.ConnectionResult.accept(sessionCommands, defaultResult.availablePlayerCommands)
                 }
@@ -207,6 +228,10 @@ class VideoPlaybackService : MediaSessionService() {
                     customCommand: SessionCommand,
                     args: Bundle
                 ): ListenableFuture<SessionResult> {
+                    if (customCommand.customAction == CUSTOM_COMMAND_SET_VOLUME_BOOST) {
+                        applyVideoAudioEffects(args.getInt(EXTRA_VOLUME_BOOST_PERCENT, 0), args.getInt(EXTRA_DIALOGUE_MODE_PERCENT, lastDialogueModePercent))
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
                     if (customCommand.customAction == CUSTOM_COMMAND_SET_ARTWORK) {
                         val mediaId = args.getString(EXTRA_ARTWORK_MEDIA_ID)
                         val artworkData = args.getByteArray(EXTRA_ARTWORK_DATA)
@@ -261,12 +286,110 @@ class VideoPlaybackService : MediaSessionService() {
                 val name = mediaItem?.mediaMetadata?.title?.toString()
                 mediaSession?.setSessionActivity(buildOpenIntent(path, name))
             }
+
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                recreateVideoAudioEffects(audioSessionId)
+                applyVideoAudioEffects(lastVolumeBoostPercent, lastDialogueModePercent)
+            }
         })
     }
 
     fun getExoPlayer(): ExoPlayer? = exoPlayer
     fun getCastPlayer(): CastPlayer? = castPlayer
     fun getMediaSession(): MediaSession? = mediaSession
+
+    private fun recreateVideoAudioEffects(audioSessionId: Int) {
+        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET || audioSessionId == 0) return
+        try { loudnessEnhancer?.release() } catch (_: Exception) {}
+        try { videoPreampEqualizer?.release() } catch (_: Exception) {}
+        loudnessEnhancer = try {
+            LoudnessEnhancer(audioSessionId).apply { enabled = false }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video loudness enhancer unavailable", e)
+            null
+        }
+        videoPreampEqualizer = try {
+            Equalizer(0, audioSessionId).apply { enabled = false }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video preamp equalizer unavailable", e)
+            null
+        }
+    }
+
+    private fun applyVideoAudioEffects(volumeBoostPercent: Int, dialogueModePercent: Int) {
+        lastVolumeBoostPercent = volumeBoostPercent.coerceIn(0, 20)
+        lastDialogueModePercent = dialogueModePercent.coerceIn(0, 100)
+        val player = exoPlayer ?: return
+        if ((loudnessEnhancer == null || videoPreampEqualizer == null) && player.audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+            recreateVideoAudioEffects(player.audioSessionId)
+        }
+
+        // Même base que le préampli audio : un gain logiciel uniforme sur l'Equalizer de la
+        // session vidéo. Le mode Dialogue ajoute maintenant une vraie courbe 10 bandes inspirée
+        // du préréglage Vocal : graves fortement atténués, zone 1-4 kHz mise en avant, aigus
+        // gardés mais sans agressivité. La courbe est interpolée sur les bandes natives Android
+        // disponibles, exactement comme l'equalizer audio 10 bandes le fait déjà.
+        val preampMillibels = (lastVolumeBoostPercent * 50).coerceIn(0, 1000)
+        val dialogue = lastDialogueModePercent / 100f
+        try {
+            videoPreampEqualizer?.let { eq ->
+                val range = eq.bandLevelRange
+                val min = range.getOrNull(0)?.toInt() ?: -1500
+                val max = range.getOrNull(1)?.toInt() ?: 1500
+                val nativeBands = eq.numberOfBands.toInt()
+                for (band in 0 until nativeBands) {
+                    val centerHz = try { eq.getCenterFreq(band.toShort()) / 1000 } catch (_: Exception) { 1000 }
+                    val dialogueGain = (dialogueCurveForNativeBand(centerHz, band, nativeBands) * dialogue).toInt()
+
+                    // Petite compression statique façon "vocal preset" : quand le mode dialogue
+                    // est actif, les boosts positifs sont moins amplifiés par le préampli afin de
+                    // ne pas remettre les explosions/bruits forts devant les voix.
+                    val protectedPreamp = if (dialogue > 0f && dialogueGain > 0) {
+                        (preampMillibels * (1f - 0.35f * dialogue)).toInt()
+                    } else {
+                        preampMillibels
+                    }
+                    val level = (protectedPreamp + dialogueGain).coerceIn(min, max).toShort()
+                    try { eq.setBandLevel(band.toShort(), level) } catch (_: Exception) {}
+                }
+                eq.enabled = preampMillibels != 0 || lastDialogueModePercent != 0
+            }
+
+            // Le boost volume reste indépendant, comme le préampli audio. Le mode Dialogue ne
+            // pousse pas LoudnessEnhancer : il travaille surtout par égalisation pour clarifier les
+            // voix sans augmenter les pics sonores.
+            loudnessEnhancer?.setTargetGain(preampMillibels)
+            loudnessEnhancer?.enabled = preampMillibels > 0
+            player.volume = 1f
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video audio effects failed", e)
+        }
+    }
+
+
+    private fun dialogueCurveForNativeBand(centerHz: Int, nativeIndex: Int, nativeBandCount: Int): Int {
+        if (centerHz <= 0) {
+            val mapped = ((nativeIndex * videoDialogueVocalCurveMb.size) / nativeBandCount).coerceIn(0, videoDialogueVocalCurveMb.lastIndex)
+            return videoDialogueVocalCurveMb[mapped]
+        }
+        var first = 0
+        var second = 0
+        var firstDistance = Int.MAX_VALUE
+        var secondDistance = Int.MAX_VALUE
+        for (i in videoDialogueFreqsHz.indices) {
+            val distance = kotlin.math.abs(videoDialogueFreqsHz[i] - centerHz)
+            if (distance < firstDistance) {
+                second = first
+                secondDistance = firstDistance
+                first = i
+                firstDistance = distance
+            } else if (distance < secondDistance) {
+                second = i
+                secondDistance = distance
+            }
+        }
+        return (videoDialogueVocalCurveMb[first] * 0.7f + videoDialogueVocalCurveMb[second] * 0.3f).toInt()
+    }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
@@ -303,6 +426,10 @@ class VideoPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        try { loudnessEnhancer?.release() } catch (_: Exception) {}
+        try { videoPreampEqualizer?.release() } catch (_: Exception) {}
+        loudnessEnhancer = null
+        videoPreampEqualizer = null
         try { wifiLock?.release() } catch (e: Exception) {}
         try { wakeLock?.release() } catch (e: Exception) {}
         wifiLock = null
