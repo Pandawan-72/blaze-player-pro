@@ -17,7 +17,8 @@ data class FavoriteFolder(
 enum class FavoriteCategory(val prefKey: String) {
     LOCAL("local"),
     NETWORK("network"),
-    AUDIO("audio")
+    AUDIO("audio"),
+    CLOUD("cloud")
 }
 
 object FavoritesManager {

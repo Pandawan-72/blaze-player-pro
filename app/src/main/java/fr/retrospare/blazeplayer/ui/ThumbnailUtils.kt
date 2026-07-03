@@ -36,8 +36,7 @@ object ThumbnailUtils {
     private fun isNetworkVideoPath(path: String): Boolean =
         path.startsWith("smb://", true) || path.startsWith("http://", true) || path.startsWith("https://", true)
 
-    private fun defaultVideoFrameTimeUs(path: String): Long =
-        if (isNetworkVideoPath(path)) 10_000_000L else 5_000_000L
+    private fun defaultVideoFrameTimeUs(path: String): Long = 10_000_000L
 
     // Cache mémoire (RAM) LRU limité à 15MB — sert les miniatures déjà vues pendant cette session,
     // évite même le passage par le disque tant que l'app tourne.
@@ -111,6 +110,47 @@ object ThumbnailUtils {
         }
     }
 
+
+    private fun setRetrieverDataSource(context: Context, retriever: MediaMetadataRetriever, path: String): AutoCloseable? {
+        return when {
+            path.startsWith("smb://", true) -> {
+                val smbDataSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
+                retriever.setDataSource(smbDataSource)
+                smbDataSource
+            }
+            path.startsWith("http://", true) || path.startsWith("https://", true) -> {
+                retriever.setDataSource(path, emptyMap())
+                null
+            }
+            path.startsWith("content://", true) -> {
+                val uri = Uri.parse(path)
+                try {
+                    // Le chemin SAF le plus compatible. Pour Google Drive/OneDrive/Dropbox,
+                    // le provider peut streamer derrière ce file descriptor sans exposer de chemin local.
+                    val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                    if (pfd != null) {
+                        retriever.setDataSource(pfd.fileDescriptor)
+                        pfd
+                    } else {
+                        retriever.setDataSource(context, uri)
+                        null
+                    }
+                } catch (_: Exception) {
+                    retriever.setDataSource(context, uri)
+                    null
+                }
+            }
+            path.startsWith("file://", true) -> {
+                retriever.setDataSource(context, Uri.parse(path))
+                null
+            }
+            else -> {
+                retriever.setDataSource(path)
+                null
+            }
+        }
+    }
+
     private fun scaleBitmap(bitmap: Bitmap, maxSize: Int = 256): Bitmap {
         val w = bitmap.width
         val h = bitmap.height
@@ -125,10 +165,10 @@ object ThumbnailUtils {
     // ancien cache Vxx ou artworkUri Cast) soit réutilisée comme pochette audio.
     private fun audioKey(path: String): String = "audio:$path"
     private fun videoKey(path: String): String = "video:$path"
-    // Versionne le cache des frames vidéo réseau pour forcer une vraie extraction à 10s
-    // après mise à jour, au lieu de réutiliser d'anciennes miniatures HTTP/UPnP à 5s
+    // Versionne le cache des frames vidéo pour forcer une vraie extraction à 10s
+    // après mise à jour, au lieu de réutiliser d'anciennes miniatures à 1s/5s
     // ou des artworks DLNA mis en cache sous la même URL.
-    private fun thumbnailKey(path: String): String = if (isAudioPath(path)) path else "video-frame-10s:$path"
+    private fun thumbnailKey(path: String): String = if (isAudioPath(path)) path else "video-frame-10s-v2:$path"
 
     fun getCachedAudioArtworkJpegBytes(context: Context, path: String): ByteArray? {
         val key = audioKey(path)
@@ -363,21 +403,26 @@ object ThumbnailUtils {
                     scaled
                 }
             } else {
-                // Réseau SMB : frame à 10s + sync frame. Une miniature à 30s force
-                // souvent des seeks profonds et lents dans les longs MKV/MP4 réseau.
+                // Frame vidéo à 10s, y compris pour les Uri SAF content:// Google Drive / OneDrive / Dropbox.
+                // On passe par openFileDescriptor en priorité : c'est plus fiable que setDataSource(context, uri)
+                // pour certains conteneurs comme AVI exposés par des providers cloud.
                 val retriever = MediaMetadataRetriever()
-                var smbDataSource: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
+                var closeable: AutoCloseable? = null
                 try {
-                    if (path.startsWith("smb://")) {
-                        smbDataSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
-                        retriever.setDataSource(smbDataSource)
-                    } else if (path.startsWith("http://", true) || path.startsWith("https://", true)) {
-                        retriever.setDataSource(path, emptyMap())
+                    closeable = setRetrieverDataSource(context, retriever, path)
+                    val option = MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+                    val durationUs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                        ?.toLongOrNull()
+                        ?.let { it * 1000L }
+                    val targetUs = if (durationUs != null && durationUs in 1 until timeUs) {
+                        (durationUs * 0.10f).toLong().coerceAtLeast(500_000L)
                     } else {
-                        retriever.setDataSource(context, Uri.parse(path))
+                        timeUs
                     }
-                    val option = if (isNetworkVideoPath(path)) MediaMetadataRetriever.OPTION_CLOSEST_SYNC else MediaMetadataRetriever.OPTION_CLOSEST
-                    var bitmap = retriever.getFrameAtTime(timeUs, option)
+                    var bitmap = retriever.getFrameAtTime(targetUs, option)
+                    if (bitmap == null) bitmap = retriever.getFrameAtTime(10_000_000L, MediaMetadataRetriever.OPTION_CLOSEST)
+                    if (bitmap == null) bitmap = retriever.getFrameAtTime(5_000_000L, option)
+                    if (bitmap == null) bitmap = retriever.getFrameAtTime(1_000_000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
                     if (bitmap == null && !isNetworkVideoPath(path)) bitmap = retriever.frameAtTime
                     bitmap?.let {
                         val scaled = scaleBitmap(it, if (isNetworkVideoPath(path)) 144 else 160)
@@ -387,7 +432,7 @@ object ThumbnailUtils {
                     }
                 } finally {
                     retriever.release()
-                    try { smbDataSource?.close() } catch (_: Exception) {}
+                    try { closeable?.close() } catch (_: Exception) {}
                 }
             }
         } catch (e: Exception) {

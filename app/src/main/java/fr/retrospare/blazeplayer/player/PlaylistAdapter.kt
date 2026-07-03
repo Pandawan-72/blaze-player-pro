@@ -75,6 +75,13 @@ class PlaylistAdapter(
         return item.localConfiguration?.uri?.lastPathSegment ?: ""
     }
 
+    private fun containerExtFor(item: MediaItem?, name: String, path: String): String =
+        item?.mediaMetadata?.extras
+            ?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)
+            ?.takeIf { it.isNotBlank() }
+            ?: name.substringAfterLast(".", "").takeIf { it.isNotBlank() }
+            ?: path.substringBefore('?').substringAfterLast(".", "")
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_playlist, parent, false)
@@ -135,11 +142,17 @@ class PlaylistAdapter(
 
             val cached = AudioMetadataExtractor.getCached(itemView.context, path)
             if (cached != null) {
-                applyMeta(cached, trackTitle, tvArtist, tvCodec, tvBitrate, tvName, isCurrent)
+                applyMeta(cached, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvBitrate, tvName, isCurrent)
             } else {
                 tvArtist?.text = metaArtist ?: itemView.context.getString(R.string.unknown_artist)
                 tvArtist?.visibility = View.VISIBLE
-                tvCodec?.visibility = View.GONE
+                val extFromItem = containerExtFor(mediaItem, name, path)
+                if (extFromItem.isNotBlank()) {
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, extFromItem)
+                    tvCodec?.visibility = View.VISIBLE
+                } else {
+                    tvCodec?.visibility = View.GONE
+                }
                 tvBitrate?.visibility = View.GONE
 
                 if (path.isNotEmpty()) {
@@ -157,7 +170,7 @@ class PlaylistAdapter(
                         if (meta != null) {
                             android.os.Handler(android.os.Looper.getMainLooper()).post {
                                 if (loadToken == token) {
-                                    applyMeta(meta, trackTitle, tvArtist, tvCodec, tvBitrate, tvName, isCurrent)
+                                    applyMeta(meta, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvBitrate, tvName, isCurrent)
                                 }
                             }
                         }
@@ -182,6 +195,7 @@ class PlaylistAdapter(
         private fun applyMeta(
             meta: AudioTechnicalInfo,
             trackTitle: String,
+            fallbackExtension: String,
             tvArtist: TextView?,
             tvCodec: TextView?,
             tvBitrate: TextView?,
@@ -192,8 +206,13 @@ class PlaylistAdapter(
             tvArtist?.text = meta.artist.ifEmpty { itemView.context.getString(R.string.unknown_artist) }
             tvArtist?.visibility = View.VISIBLE
 
-            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, meta.extension)
-            tvCodec?.visibility = if (meta.extension.isNotEmpty()) View.VISIBLE else View.GONE
+            val ext = meta.extension.ifBlank { fallbackExtension }.uppercase()
+            if (ext.isNotEmpty()) {
+                fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
+                tvCodec?.visibility = View.VISIBLE
+            } else {
+                tvCodec?.visibility = View.GONE
+            }
 
             applyTimeBadge(tvBitrate, meta.duration * 1000L, isCurrent)
 

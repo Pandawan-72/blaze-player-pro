@@ -6,7 +6,7 @@
 
     <string name="tab_local">Lokaal</string>
     <string name="tab_network">Netwerk</string>
-    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <string name="section_local_history">Lokale geschiedenis</string>
@@ -380,7 +380,7 @@
     <string name="paywall_pro_desc">Ontgrendelt SMB-netwerk, Blaze Audio en de mini-player.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">€ 5,99</string>
-    <string name="paywall_pro_plus_desc">Ontgrendelt Blaze Tube voor YouTube-video’s en bevat alle Pro-functies.</string>
+    <string name="paywall_pro_plus_desc">Ontgrendelt Blaze Gallery voor galerij en bevat alle Pro-functies.</string>
     <string name="paywall_buy_pro">Pro ontgrendelen — € 3,99</string>
     <string name="paywall_buy_pro_plus">Pro+ ontgrendelen — € 5,99</string>
     <string name="paywall_debug_unlocked">Debugmodus: Pro en Pro+ zijn tijdelijk ontgrendeld.</string>
@@ -396,4 +396,59 @@
     <string name="action_off">Uit</string>
     <string name="video_setting_volume_boost">Volumeboost</string>
     <string name="action_reset">Resetten</string>
+
+    <!-- TMDb -->
+    <string name="tmdb_section_title">Filminfo</string>
+    <string name="tmdb_no_summary">Geen samenvatting beschikbaar.</string>
+    <string name="tmdb_no_result">Geen poster of samenvatting online gevonden.</string>
+    <string name="tmdb_refresh">Info vernieuwen</string>
+    <string name="tmdb_api_key_missing"></string>
+    <string name="movie_runtime_label">Duur:</string>
+    <string name="movie_genres_label">Genres:</string>
+    <string name="movie_actors_label">Acteurs:</string>
+    <string name="movie_studio_label">Studio:</string>
+    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="cloud_history">Cloudgeschiedenis</string>
+    <string name="cloud_files">Cloudbestanden</string>
+    <string name="cloud_providers_hint">Kies een audio- of videobestand uit Google Drive, OneDrive, Dropbox of een andere geïnstalleerde cloudprovider.</string>
+    <string name="cloud_provider_subtitle">Bestanden openen en bekijken</string>
+    <string name="cloud_provider_all_files">Alle cloudbestanden</string>
+    <string name="cloud_provider_all_files_subtitle">Open de Android-kiezer met alle beschikbare providers</string>
+    <string name="cloud_no_known_provider">Geen Drive-, OneDrive- of Dropbox-provider gevonden. Je kunt nog steeds de Android-kiezer gebruiken.</string>
+    <string name="cloud_no_picker">Geen compatibele bestandskiezer gevonden</string>
+    <string name="cloud_media_fallback_name">Cloudmedia</string>
+    <string name="cloud_unsupported_media">Dit cloudbestand is geen compatibel audio- of videobestand.</string>
+
+    <!-- Blaze Gallery -->
+    <string name="gallery_title">Blaze Gallery</string>
+    <string name="gallery_folders">Blaze Gallery — mappen</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Sorteren</string>
+    <string name="gallery_sort_folder">Mapnaam</string>
+    <string name="gallery_sort_date_desc">Nieuwste eerst</string>
+    <string name="gallery_sort_date_asc">Oudste eerst</string>
+    <string name="gallery_sort_name">Alfabetische volgorde</string>
+    <string name="gallery_sort_size">Bestandsgrootte</string>
+    <string name="gallery_unknown_folder">Onbekende map</string>
+    <string name="gallery_trash">Prullenbak</string>
+    <string name="gallery_empty_trash">Permanent legen</string>
+    <string name="gallery_restore">Herstellen</string>
+    <string name="gallery_delete">Verwijderen</string>
+    <string name="gallery_delete_folder">Map verwijderen</string>
+    <string name="gallery_delete_permanently_from_trash">Permanent uit prullenbak verwijderen</string>
+    <string name="gallery_moved_to_trash">Foto naar prullenbak verplaatst</string>
+    <string name="gallery_delete_all">Alles verwijderen</string>
+    <string name="gallery_share_all">Alles delen</string>
+    <string name="gallery_selected_count">%1$d geselecteerd</string>
+    <string name="confirm_delete_title">Verwijderen bevestigen</string>
+    <string name="confirm_delete_photo_message">Deze foto naar de prullenbak verplaatsen?</string>
+    <string name="confirm_delete_folder_message">Alle foto’s in deze map naar de prullenbak verplaatsen?</string>
+    <string name="confirm_delete_selected_message">Geselecteerde foto’s naar de prullenbak verplaatsen?</string>
+    <string name="confirm_empty_trash_message">Prullenbak permanent legen? Deze actie kan niet ongedaan worden gemaakt.</string>
+    <string name="confirm_permanent_delete_message">Deze foto permanent uit de prullenbak verwijderen?</string>
+    <string name="action_confirm_delete">Verwijderen</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d foto</item>
+        <item quantity="other">%d foto’s</item>
+    </plurals>
 </resources>

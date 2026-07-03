@@ -6,7 +6,7 @@
 
     <string name="tab_local">Local</string>
     <string name="tab_network">Red</string>
-    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <string name="section_local_history">Historial local</string>
@@ -380,7 +380,7 @@
     <string name="paywall_pro_desc">Desbloquea red SMB, Blaze Audio y el mini reproductor.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Desbloquea Blaze Tube para vídeos de YouTube e incluye todas las funciones Pro.</string>
+    <string name="paywall_pro_plus_desc">Desbloquea Blaze Gallery para galería e incluye todas las funciones Pro.</string>
     <string name="paywall_buy_pro">Desbloquear Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Desbloquear Pro+ — 5,99 €</string>
     <string name="paywall_debug_unlocked">Modo debug: Pro y Pro+ están desbloqueados temporalmente.</string>
@@ -396,4 +396,59 @@
     <string name="action_off">Desactivado</string>
     <string name="video_setting_volume_boost">Refuerzo de volumen</string>
     <string name="action_reset">Restablecer</string>
+
+    <!-- TMDb -->
+    <string name="tmdb_section_title">Información de la película</string>
+    <string name="tmdb_no_summary">No hay resumen disponible.</string>
+    <string name="tmdb_no_result">No se encontró póster ni resumen en Internet.</string>
+    <string name="tmdb_refresh">Actualizar información</string>
+    <string name="tmdb_api_key_missing"></string>
+    <string name="movie_runtime_label">Duración:</string>
+    <string name="movie_genres_label">Géneros:</string>
+    <string name="movie_actors_label">Actores:</string>
+    <string name="movie_studio_label">Estudio:</string>
+    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="cloud_history">Historial en la nube</string>
+    <string name="cloud_files">Archivos en la nube</string>
+    <string name="cloud_providers_hint">Elige un archivo de audio o vídeo desde Google Drive, OneDrive, Dropbox u otro proveedor en la nube instalado.</string>
+    <string name="cloud_provider_subtitle">Abrir y explorar archivos</string>
+    <string name="cloud_provider_all_files">Todos los archivos en la nube</string>
+    <string name="cloud_provider_all_files_subtitle">Abrir el selector de Android con todos los proveedores disponibles</string>
+    <string name="cloud_no_known_provider">No se ha detectado ningún proveedor de Drive, OneDrive o Dropbox. Aun así puedes usar el selector de Android.</string>
+    <string name="cloud_no_picker">No se ha encontrado un selector de archivos compatible</string>
+    <string name="cloud_media_fallback_name">Medio en la nube</string>
+    <string name="cloud_unsupported_media">Este archivo en la nube no es un medio de audio o vídeo compatible.</string>
+
+    <!-- Blaze Gallery -->
+    <string name="gallery_title">Blaze Gallery</string>
+    <string name="gallery_folders">Blaze Gallery — carpetas</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Ordenar</string>
+    <string name="gallery_sort_folder">Nombre de carpeta</string>
+    <string name="gallery_sort_date_desc">Más recientes primero</string>
+    <string name="gallery_sort_date_asc">Más antiguas primero</string>
+    <string name="gallery_sort_name">Orden alfabético</string>
+    <string name="gallery_sort_size">Tamaño del archivo</string>
+    <string name="gallery_unknown_folder">Carpeta desconocida</string>
+    <string name="gallery_trash">Papelera</string>
+    <string name="gallery_empty_trash">Vaciar definitivamente</string>
+    <string name="gallery_restore">Restaurar</string>
+    <string name="gallery_delete">Eliminar</string>
+    <string name="gallery_delete_folder">Eliminar carpeta</string>
+    <string name="gallery_delete_permanently_from_trash">Eliminar definitivamente de la papelera</string>
+    <string name="gallery_moved_to_trash">Foto enviada a la papelera</string>
+    <string name="gallery_delete_all">Eliminar todo</string>
+    <string name="gallery_share_all">Compartir todo</string>
+    <string name="gallery_selected_count">%1$d seleccionada(s)</string>
+    <string name="confirm_delete_title">Confirmar eliminación</string>
+    <string name="confirm_delete_photo_message">¿Enviar esta foto a la papelera?</string>
+    <string name="confirm_delete_folder_message">¿Enviar todas las fotos de esta carpeta a la papelera?</string>
+    <string name="confirm_delete_selected_message">¿Enviar las fotos seleccionadas a la papelera?</string>
+    <string name="confirm_empty_trash_message">¿Vaciar la papelera definitivamente? Esta acción no se puede deshacer.</string>
+    <string name="confirm_permanent_delete_message">¿Eliminar definitivamente esta foto de la papelera?</string>
+    <string name="action_confirm_delete">Eliminar</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d foto</item>
+        <item quantity="other">%d fotos</item>
+    </plurals>
 </resources>

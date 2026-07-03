@@ -19,6 +19,11 @@ class SharedAudioViewModel(app: Application) : AndroidViewModel(app) {
     private val _pendingTracks = MutableStateFlow<List<AudioTrack>>(emptyList())
     val pendingTracks = _pendingTracks.asStateFlow()
 
+    // Demande spéciale pour les intents externes Android ("Ouvrir avec").
+    // Contrairement aux ajouts internes à la playlist, le fichier cliqué doit remplacer
+    // immédiatement la file active et démarrer, même si le MediaController n'est pas encore prêt.
+    private val _pendingPriorityExternalTrack = MutableStateFlow<AudioTrack?>(null)
+
     private val _currentIndex = MutableStateFlow(0)
     val currentIndex = _currentIndex.asStateFlow()
 
@@ -32,12 +37,16 @@ class SharedAudioViewModel(app: Application) : AndroidViewModel(app) {
         saveToPrefs()
     }
 
+    fun requestPriorityExternalPlayback(path: String, name: String) {
+        _pendingPriorityExternalTrack.value = AudioTrack(path, name)
+    }
+
     private fun saveToPrefs() {
         val prefs = getApplication<Application>().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
         val json = org.json.JSONArray().apply {
             _playlist.value.forEach { put(org.json.JSONObject().put("path", it.path).put("name", it.name)) }
         }
-        prefs.edit().putString("items", json.toString()).commit()
+        prefs.edit().putString("items", json.toString()).apply()
     }
 
     fun loadFromPrefs() {
@@ -60,6 +69,12 @@ class SharedAudioViewModel(app: Application) : AndroidViewModel(app) {
         return tracks
     }
 
+    fun consumePriorityExternalTrack(): AudioTrack? {
+        val track = _pendingPriorityExternalTrack.value
+        _pendingPriorityExternalTrack.value = null
+        return track
+    }
+
     fun setPlaylist(tracks: List<AudioTrack>) {
         _playlist.value = tracks
         saveToPrefs()
@@ -68,7 +83,7 @@ class SharedAudioViewModel(app: Application) : AndroidViewModel(app) {
     fun setCurrentIndex(index: Int) {
         _currentIndex.value = index.coerceAtLeast(0)
         getApplication<Application>().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
-            .edit().putInt("currentIndex", _currentIndex.value).commit()
+            .edit().putInt("currentIndex", _currentIndex.value).apply()
     }
 
     fun removeTrack(path: String) {
@@ -80,8 +95,9 @@ class SharedAudioViewModel(app: Application) : AndroidViewModel(app) {
     fun clearPlaylist() {
         _playlist.value = emptyList()
         _pendingTracks.value = emptyList()
+        _pendingPriorityExternalTrack.value = null
         _currentIndex.value = 0
         getApplication<Application>().getSharedPreferences("blaze_playlist", android.content.Context.MODE_PRIVATE)
-            .edit().clear().commit()
+            .edit().clear().apply()
     }
 }

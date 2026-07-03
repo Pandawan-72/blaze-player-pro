@@ -18,7 +18,10 @@ object BadgeStyle {
     fun applyContainerBadge(view: TextView?, rawExtension: String?) {
         view ?: return
         val ext = rawExtension.orEmpty().trim().removePrefix(".").uppercase()
-        if (ext.isEmpty()) return
+        if (ext.isEmpty() || ext.length !in 2..5 || !ext.all { it.isLetterOrDigit() }) {
+            view.text = ""
+            return
+        }
         view.text = ext
         view.setBackgroundResource(R.drawable.bg_badge_black)
         view.setTextColor(ContextCompat.getColor(view.context, colorForContainer(ext)))

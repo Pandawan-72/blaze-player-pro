@@ -6,7 +6,7 @@
 
     <string name="tab_local">Local</string>
     <string name="tab_network">Rede</string>
-    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <string name="section_local_history">Histórico local</string>
@@ -380,7 +380,7 @@
     <string name="paywall_pro_desc">Desbloqueia rede SMB, Blaze Audio e mini player.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Desbloqueia Blaze Tube para vídeos do YouTube e inclui todos os recursos Pro.</string>
+    <string name="paywall_pro_plus_desc">Desbloqueia Blaze Gallery para galeria e inclui todos os recursos Pro.</string>
     <string name="paywall_buy_pro">Desbloquear Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Desbloquear Pro+ — 5,99 €</string>
     <string name="paywall_debug_unlocked">Modo debug: Pro e Pro+ estão temporariamente desbloqueados.</string>
@@ -396,4 +396,59 @@
     <string name="action_off">Desativado</string>
     <string name="video_setting_volume_boost">Aumento de volume</string>
     <string name="action_reset">Repor</string>
+
+    <!-- TMDb -->
+    <string name="tmdb_section_title">Informações do filme</string>
+    <string name="tmdb_no_summary">Nenhum resumo disponível.</string>
+    <string name="tmdb_no_result">Nenhum cartaz ou resumo encontrado na Internet.</string>
+    <string name="tmdb_refresh">Atualizar informações</string>
+    <string name="tmdb_api_key_missing"></string>
+    <string name="movie_runtime_label">Duração:</string>
+    <string name="movie_genres_label">Gêneros:</string>
+    <string name="movie_actors_label">Atores:</string>
+    <string name="movie_studio_label">Estúdio:</string>
+    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="cloud_history">Histórico da nuvem</string>
+    <string name="cloud_files">Ficheiros na nuvem</string>
+    <string name="cloud_providers_hint">Escolhe um ficheiro de áudio ou vídeo do Google Drive, OneDrive, Dropbox ou outro fornecedor cloud instalado.</string>
+    <string name="cloud_provider_subtitle">Abrir e explorar ficheiros</string>
+    <string name="cloud_provider_all_files">Todos os ficheiros na nuvem</string>
+    <string name="cloud_provider_all_files_subtitle">Abrir o seletor Android com todos os fornecedores disponíveis</string>
+    <string name="cloud_no_known_provider">Nenhum fornecedor Drive, OneDrive ou Dropbox detetado. Ainda podes usar o seletor Android.</string>
+    <string name="cloud_no_picker">Nenhum seletor de ficheiros compatível encontrado</string>
+    <string name="cloud_media_fallback_name">Média na nuvem</string>
+    <string name="cloud_unsupported_media">Este ficheiro na nuvem não é um ficheiro de áudio ou vídeo compatível.</string>
+
+    <!-- Blaze Gallery -->
+    <string name="gallery_title">Blaze Gallery</string>
+    <string name="gallery_folders">Blaze Gallery — pastas</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Ordenar</string>
+    <string name="gallery_sort_folder">Nome da pasta</string>
+    <string name="gallery_sort_date_desc">Mais recentes primeiro</string>
+    <string name="gallery_sort_date_asc">Mais antigas primeiro</string>
+    <string name="gallery_sort_name">Ordem alfabética</string>
+    <string name="gallery_sort_size">Tamanho do arquivo</string>
+    <string name="gallery_unknown_folder">Pasta desconhecida</string>
+    <string name="gallery_trash">Lixeira</string>
+    <string name="gallery_empty_trash">Esvaziar definitivamente</string>
+    <string name="gallery_restore">Restaurar</string>
+    <string name="gallery_delete">Excluir</string>
+    <string name="gallery_delete_folder">Excluir pasta</string>
+    <string name="gallery_delete_permanently_from_trash">Excluir definitivamente da lixeira</string>
+    <string name="gallery_moved_to_trash">Foto enviada para a lixeira</string>
+    <string name="gallery_delete_all">Excluir tudo</string>
+    <string name="gallery_share_all">Compartilhar tudo</string>
+    <string name="gallery_selected_count">%1$d selecionada(s)</string>
+    <string name="confirm_delete_title">Confirmar exclusão</string>
+    <string name="confirm_delete_photo_message">Enviar esta foto para a lixeira?</string>
+    <string name="confirm_delete_folder_message">Enviar todas as fotos desta pasta para a lixeira?</string>
+    <string name="confirm_delete_selected_message">Enviar as fotos selecionadas para a lixeira?</string>
+    <string name="confirm_empty_trash_message">Esvaziar a lixeira definitivamente? Esta ação não pode ser desfeita.</string>
+    <string name="confirm_permanent_delete_message">Excluir definitivamente esta foto da lixeira?</string>
+    <string name="action_confirm_delete">Excluir</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d foto</item>
+        <item quantity="other">%d fotos</item>
+    </plurals>
 </resources>

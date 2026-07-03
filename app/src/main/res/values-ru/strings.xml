@@ -6,7 +6,7 @@
 
     <string name="tab_local">Локально</string>
     <string name="tab_network">Сеть</string>
-    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <string name="section_local_history">Локальная история</string>
@@ -400,7 +400,7 @@
     <string name="paywall_pro_desc">Открывает SMB-сеть, Blaze Audio и мини-плеер.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Открывает Blaze Tube для YouTube-видео и включает все функции Pro.</string>
+    <string name="paywall_pro_plus_desc">Открывает Blaze Gallery для галереи и включает все функции Pro.</string>
     <string name="paywall_buy_pro">Открыть Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Открыть Pro+ — 5,99 €</string>
     <string name="paywall_debug_unlocked">Debug-режим: Pro и Pro+ временно разблокированы.</string>
@@ -416,4 +416,59 @@
     <string name="action_off">Выкл.</string>
     <string name="video_setting_volume_boost">Усиление громкости</string>
     <string name="action_reset">Сбросить</string>
+
+    <!-- TMDb -->
+    <string name="tmdb_section_title">Информация о фильме</string>
+    <string name="tmdb_no_summary">Описание недоступно.</string>
+    <string name="tmdb_no_result">Постер или описание в интернете не найдены.</string>
+    <string name="tmdb_refresh">Обновить информацию</string>
+    <string name="tmdb_api_key_missing"></string>
+    <string name="movie_runtime_label">Длительность:</string>
+    <string name="movie_genres_label">Жанры:</string>
+    <string name="movie_actors_label">Актёры:</string>
+    <string name="movie_studio_label">Студия:</string>
+    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="cloud_history">История облака</string>
+    <string name="cloud_files">Облачные файлы</string>
+    <string name="cloud_providers_hint">Выберите аудио- или видеофайл из Google Drive, OneDrive, Dropbox или другого установленного облачного провайдера.</string>
+    <string name="cloud_provider_subtitle">Открыть и просмотреть файлы</string>
+    <string name="cloud_provider_all_files">Все облачные файлы</string>
+    <string name="cloud_provider_all_files_subtitle">Открыть выбор Android со всеми доступными провайдерами</string>
+    <string name="cloud_no_known_provider">Провайдер Drive, OneDrive или Dropbox не обнаружен. Вы всё равно можете использовать системный выбор Android.</string>
+    <string name="cloud_no_picker">Совместимый выбор файлов не найден</string>
+    <string name="cloud_media_fallback_name">Облачное медиа</string>
+    <string name="cloud_unsupported_media">Этот облачный файл не является совместимым аудио- или видеофайлом.</string>
+
+    <!-- Blaze Gallery -->
+    <string name="gallery_title">Blaze Gallery</string>
+    <string name="gallery_folders">Blaze Gallery — папки</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Сортировка</string>
+    <string name="gallery_sort_folder">Название папки</string>
+    <string name="gallery_sort_date_desc">Сначала новые</string>
+    <string name="gallery_sort_date_asc">Сначала старые</string>
+    <string name="gallery_sort_name">По алфавиту</string>
+    <string name="gallery_sort_size">Размер файла</string>
+    <string name="gallery_unknown_folder">Неизвестная папка</string>
+    <string name="gallery_trash">Корзина</string>
+    <string name="gallery_empty_trash">Очистить окончательно</string>
+    <string name="gallery_restore">Восстановить</string>
+    <string name="gallery_delete">Удалить</string>
+    <string name="gallery_delete_folder">Удалить папку</string>
+    <string name="gallery_delete_permanently_from_trash">Удалить из корзины окончательно</string>
+    <string name="gallery_moved_to_trash">Фото перемещено в корзину</string>
+    <string name="gallery_delete_all">Удалить всё</string>
+    <string name="gallery_share_all">Поделиться всем</string>
+    <string name="gallery_selected_count">Выбрано: %1$d</string>
+    <string name="confirm_delete_title">Подтвердите удаление</string>
+    <string name="confirm_delete_photo_message">Переместить это фото в корзину?</string>
+    <string name="confirm_delete_folder_message">Переместить все фото из этой папки в корзину?</string>
+    <string name="confirm_delete_selected_message">Переместить выбранные фото в корзину?</string>
+    <string name="confirm_empty_trash_message">Очистить корзину окончательно? Это действие нельзя отменить.</string>
+    <string name="confirm_permanent_delete_message">Окончательно удалить это фото из корзины?</string>
+    <string name="action_confirm_delete">Удалить</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d фото</item>
+        <item quantity="other">%d фото</item>
+    </plurals>
 </resources>

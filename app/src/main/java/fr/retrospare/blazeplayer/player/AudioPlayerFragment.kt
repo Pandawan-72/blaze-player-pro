@@ -1,8 +1,14 @@
 package fr.retrospare.blazeplayer.player
 
+import android.animation.ArgbEvaluator
+import android.animation.ValueAnimator
 import android.app.Activity
 import android.content.ComponentName
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -19,6 +25,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -50,6 +57,9 @@ class AudioPlayerFragment : Fragment() {
     private var sleepTimerJob: Job? = null
     private var eqManager: EqualizerManager? = null
     private var dancerFrame = 0
+    private var currentDynamicBgColor: Int = Color.rgb(10, 12, 14)
+    private var currentAccentColor: Int = Color.rgb(63, 215, 143)
+    private var bgAnimator: ValueAnimator? = null
 
     private val dancerFrames = listOf(
         fr.retrospare.blazeplayer.R.drawable.pixel_dancer_1,
@@ -119,6 +129,7 @@ class AudioPlayerFragment : Fragment() {
         // Bouton retour supprimé visuellement : le lecteur audio reste accessible via la navigation principale.
         binding.btnBack.visibility = android.view.View.GONE
         setupSquareArtwork()
+        restorePersistedDynamicAudioColors()
 
         initPlaylistUi()
         setupControls()
@@ -157,6 +168,7 @@ class AudioPlayerFragment : Fragment() {
         eqManager?.release()
         savePlaylistFromController()
         controllerFuture?.let { MediaController.releaseFuture(it) }
+        try { bgAnimator?.cancel() } catch (_: Exception) {}
         controller = null
         squareArtworkListener?.let { squareArtworkContainer?.viewTreeObserver?.removeOnGlobalLayoutListener(it) }
         squareArtworkListener = null
@@ -189,9 +201,18 @@ class AudioPlayerFragment : Fragment() {
         // session audio, on l'élimine immédiatement avant que l'UI ou Play/Pause ne puisse le piloter.
         purgeNonAudioItems(ctrl)
 
-        // Charge la playlist sauvegardée dans ExoPlayer si vide. Le Player reste la seule source de verite ;
+        // Les fichiers ouverts depuis Android (DocumentsUI / navigateur externe) sont prioritaires :
+        // ils doivent remplacer le morceau/la playlist en cours et démarrer immédiatement, comme la vidéo.
+        // Ce cas couvre aussi le démarrage à froid, quand l'intent arrive avant que le MediaController soit prêt.
+        val priorityExternalTrack = sharedVm.consumePriorityExternalTrack()
+        if (priorityExternalTrack != null) {
+            startExternalAudioServiceFallback(priorityExternalTrack.path, priorityExternalTrack.name)
+        }
+
+        // Charge la playlist sauvegardée dans ExoPlayer si vide, sauf si un fichier externe vient
+        // déjà d'être chargé en priorité. Le Player reste la seule source de verite ;
         // AudioRepository ne sert qu'a la persistance disque entre lancements de l'app.
-        if (ctrl.mediaItemCount == 0) {
+        if (priorityExternalTrack == null && ctrl.mediaItemCount == 0) {
             viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                 val savedState = AudioRepository.loadState(requireContext())
                 val savedItems = savedState.items
@@ -246,19 +267,36 @@ class AudioPlayerFragment : Fragment() {
             syncButtons()
         }
 
-        // Pending tracks depuis SharedViewModel
+        // Pending tracks depuis SharedViewModel. Quand un fichier audio arrive depuis Android
+        // (DocumentsUI / navigateur de fichiers), le dernier fichier cliqué doit prendre la main
+        // immédiatement, même si une ancienne playlist est déjà chargée. On l'ajoute si besoin,
+        // puis on seek explicitement dessus avant prepare/play.
         val pending = sharedVm.consumePendingTracks()
         if (pending.isNotEmpty()) {
-            val existingPaths = (0 until ctrl.mediaItemCount).map { originalPathOf(ctrl.getMediaItemAt(it)) }.toSet()
-            val newTracks = pending.filter { it.path !in existingPaths }
-            if (newTracks.isNotEmpty()) {
-                val simpleItems = newTracks.map { AudioRepository.buildSimpleMediaItem(requireContext(), it.path, it.name) }
-                ctrl.addMediaItems(simpleItems)
-                playlistAdapter.refresh()
+            val newTracks = mutableListOf<fr.retrospare.blazeplayer.home.AudioTrack>()
+            pending.forEach { track ->
+                val exists = (0 until ctrl.mediaItemCount).any { originalPathOf(ctrl.getMediaItemAt(it)) == track.path }
+                if (!exists) {
+                    ctrl.addMediaItem(AudioRepository.buildSimpleMediaItem(requireContext(), track.path, track.name))
+                    newTracks += track
+                }
+            }
+
+            val priorityTrack = pending.last()
+            val priorityIndex = (0 until ctrl.mediaItemCount)
+                .firstOrNull { originalPathOf(ctrl.getMediaItemAt(it)) == priorityTrack.path }
+            if (priorityIndex != null) {
+                ctrl.seekTo(priorityIndex, 0L)
                 ctrl.prepare()
                 ctrl.play()
-                savePlaylistFromController()
+            }
+            playlistAdapter.refresh()
+            syncSelection()
+            syncMetadata()
+            syncButtons()
+            savePlaylistFromController()
 
+            if (newTracks.isNotEmpty()) {
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                     newTracks.forEach { track ->
                         try {
@@ -336,13 +374,49 @@ class AudioPlayerFragment : Fragment() {
         _binding?.tvArtist?.text = cachedMeta?.artist?.ifEmpty { null }
             ?: metaArtist
             ?: unknownArtist
-        _binding?.tvAlbum?.text = cachedMeta?.album?.ifEmpty { null }
-            ?: meta.albumTitle?.toString() ?: ""
+        val safeAlbum = sanitizeAudioSecondaryText(
+            cachedMeta?.album?.ifEmpty { null } ?: meta.albumTitle?.toString()
+        )
+        _binding?.tvAlbum?.text = safeAlbum
+        // Évite l'ancien badge/chemin SAF résiduel issu des essais Cloud : le lecteur ne doit
+        // jamais afficher un content:// ou STORAGE/DOCUMENT sous le titre.
+        _binding?.tvAlbum?.visibility = if (safeAlbum.isBlank()) View.GONE else View.GONE
 
-        val ext = (mediaItem.localConfiguration?.uri?.lastPathSegment ?: pathForMeta).substringAfterLast(".", "").uppercase()
-        if (ext.isNotEmpty()) {
-            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(_binding?.tvCodec, ext)
+        val ext = mediaItem.mediaMetadata.extras
+            ?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)
+            ?.takeIf { it.isNotBlank() }
+            ?: cachedMeta?.extension?.takeIf { it.isNotBlank() }
+            ?: run {
+                val sourceName = meta.title?.toString()?.takeIf { it.contains('.') }
+                    ?: mediaItem.mediaMetadata.displayTitle?.toString()?.takeIf { it.contains('.') }
+                    ?: mediaItem.mediaMetadata.extras?.getString("blaze_original_name")?.takeIf { it.contains('.') }
+                    ?: mediaItem.localConfiguration?.uri?.lastPathSegment?.takeIf { it.contains('.') }
+                    ?: pathForMeta.takeIf { it.contains('.') }
+                sourceName?.substringAfterLast('.', "")?.uppercase().orEmpty()
+            }
+        val safeExt = sanitizeAudioExtension(ext)
+        if (safeExt.isNotEmpty()) {
+            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(_binding?.tvCodec, safeExt)
             _binding?.tvCodec?.visibility = View.VISIBLE
+        } else {
+            _binding?.tvCodec?.text = ""
+            _binding?.tvCodec?.visibility = View.GONE
+        }
+
+        // Affichage immédiat du badge qualité existant : ne pas le remplacer par le badge
+        // conteneur. Si le cache possède déjà le débit/lossless, on le garde visible pendant
+        // que l'extraction complète se fait en tâche IO.
+        val losslessExt = safeExt.uppercase() in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+        when {
+            cachedMeta?.isLossless == true || losslessExt -> {
+                _binding?.tvBitrate?.text = getString(fr.retrospare.blazeplayer.R.string.lossless_label)
+                _binding?.tvBitrate?.visibility = View.VISIBLE
+            }
+            (cachedMeta?.bitrate ?: 0L) > 0L -> {
+                _binding?.tvBitrate?.text = "${cachedMeta!!.bitrate / 1000} kbps"
+                _binding?.tvBitrate?.visibility = View.VISIBLE
+            }
+            else -> _binding?.tvBitrate?.visibility = View.GONE
         }
 
         // Bitrate via AudioMetadataExtractor (gère aussi smb://, avec cache disque — évite de
@@ -356,10 +430,10 @@ class AudioPlayerFragment : Fragment() {
                 if (originalPathOf(controller?.currentMediaItem ?: return@launch) == path) {
                     if (info.title.isNotEmpty()) _binding?.tvTitle?.text = info.title
                     if (info.artist.isNotEmpty()) _binding?.tvArtist?.text = info.artist
-                    if (info.album.isNotEmpty()) _binding?.tvAlbum?.text = info.album
+                    sanitizeAudioSecondaryText(info.album).takeIf { it.isNotBlank() }?.let { _binding?.tvAlbum?.text = it }
                 }
                 when {
-                    info.isLossless -> {
+                    info.isLossless || losslessExt -> {
                         _binding?.tvBitrate?.text = getString(fr.retrospare.blazeplayer.R.string.lossless_label)
                         _binding?.tvBitrate?.visibility = View.VISIBLE
                     }
@@ -378,14 +452,17 @@ class AudioPlayerFragment : Fragment() {
             fr.retrospare.blazeplayer.ui.ThumbnailUtils.cacheAudioArtworkData(requireContext(), originalPathOf(mediaItem), artworkData)
             val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size)
             _binding?.ivArtwork?.setImageBitmap(bitmap)
+            applyDynamicBackgroundFromBitmap(bitmap)
         } else {
             val path = originalPathOf(mediaItem)
             val cached = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(requireContext(), path)
             if (cached != null) {
                 val bitmap = BitmapFactory.decodeByteArray(cached, 0, cached.size)
                 _binding?.ivArtwork?.setImageBitmap(bitmap)
+                applyDynamicBackgroundFromBitmap(bitmap)
             } else {
                 _binding?.ivArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_thumbnail)
+                resetDynamicBackground()
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                     val bytes = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytes(requireContext(), path)
                     if (bytes != null) {
@@ -395,6 +472,7 @@ class AudioPlayerFragment : Fragment() {
                             if (originalPathOf(current) != path) return@launch
                             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                             _binding?.ivArtwork?.setImageBitmap(bitmap)
+                            applyDynamicBackgroundFromBitmap(bitmap)
                             val enrichedMeta = current.mediaMetadata.buildUpon()
                                 .setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
                                 .build()
@@ -405,6 +483,157 @@ class AudioPlayerFragment : Fragment() {
                 }
             }
         }
+    }
+
+
+    /**
+     * Fond dynamique plus visible, inspiré des lecteurs audio modernes : on extrait une couleur
+     * dominante robuste depuis la pochette, puis on renforce légèrement saturation/luminosité.
+     * Le fond reste sombre via un dégradé noir -> accent afin de garder les contrôles lisibles.
+     */
+    private fun applyDynamicBackgroundFromBitmap(bitmap: Bitmap?) {
+        bitmap ?: return resetDynamicBackground()
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
+            val accent = try {
+                val scaled = Bitmap.createScaledBitmap(bitmap, 32, 32, true)
+                var r = 0L; var g = 0L; var b = 0L; var count = 0L
+                val pixels = IntArray(scaled.width * scaled.height)
+                scaled.getPixels(pixels, 0, scaled.width, 0, 0, scaled.width, scaled.height)
+                for (px in pixels) {
+                    val alpha = Color.alpha(px)
+                    if (alpha < 48) continue
+                    val hsv = FloatArray(3)
+                    Color.colorToHSV(px, hsv)
+                    if (hsv[2] < 0.10f) continue
+                    r += Color.red(px); g += Color.green(px); b += Color.blue(px); count++
+                }
+                if (scaled !== bitmap && !scaled.isRecycled) scaled.recycle()
+                val base = if (count <= 0L) Color.rgb(63, 215, 143) else Color.rgb((r / count).toInt(), (g / count).toInt(), (b / count).toInt())
+                boostAudioAccent(base)
+            } catch (_: Exception) {
+                Color.rgb(63, 215, 143)
+            }
+            val bg = mixColors(Color.rgb(8, 10, 12), accent, 0.30f)
+            launch(Dispatchers.Main) { animateDynamicBackground(bg, accent) }
+        }
+    }
+
+    private fun boostAudioAccent(color: Int): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        hsv[1] = (hsv[1] * 1.35f + 0.12f).coerceIn(0f, 1f)
+        hsv[2] = (hsv[2] * 1.22f + 0.08f).coerceIn(0.35f, 1f)
+        return Color.HSVToColor(hsv)
+    }
+
+    private fun mixColors(a: Int, b: Int, amount: Float): Int {
+        val t = amount.coerceIn(0f, 1f)
+        return Color.rgb(
+            (Color.red(a) + (Color.red(b) - Color.red(a)) * t).toInt().coerceIn(0, 255),
+            (Color.green(a) + (Color.green(b) - Color.green(a)) * t).toInt().coerceIn(0, 255),
+            (Color.blue(a) + (Color.blue(b) - Color.blue(a)) * t).toInt().coerceIn(0, 255)
+        )
+    }
+
+    private fun resetDynamicBackground() {
+        animateDynamicBackground(Color.rgb(10, 12, 14), Color.rgb(63, 215, 143))
+    }
+
+    private fun animateDynamicBackground(targetColor: Int, accentColor: Int = currentAccentColor) {
+        val root = _binding?.root ?: return
+        if (currentDynamicBgColor == targetColor && currentAccentColor == accentColor) return
+        bgAnimator?.cancel()
+        bgAnimator = ValueAnimator.ofObject(ArgbEvaluator(), currentDynamicBgColor, targetColor).apply {
+            duration = 380L
+            addUpdateListener { animator ->
+                val color = animator.animatedValue as Int
+                val gradient = GradientDrawable(
+                    GradientDrawable.Orientation.TOP_BOTTOM,
+                    intArrayOf(mixColors(Color.rgb(5, 7, 9), color, 0.58f), color, Color.rgb(5, 7, 9))
+                )
+                root.background = gradient
+                currentDynamicBgColor = color
+            }
+            start()
+        }
+        currentAccentColor = accentColor
+        val tint = ColorStateList.valueOf(accentColor)
+        _binding?.seekBar?.progressTintList = tint
+        _binding?.seekBar?.thumbTintList = tint
+        _binding?.btnPlayPause?.backgroundTintList = null
+        _binding?.btnPlayPause?.background = buildPlayButtonBackground(accentColor)
+        _binding?.btnPlayPause?.elevation = dp(10f)
+        _binding?.btnPlayPause?.translationZ = dp(6f)
+        _binding?.tvArtist?.setTextColor(appGreenColor())
+        persistDynamicAudioColors(targetColor, accentColor)
+    }
+
+    private fun restorePersistedDynamicAudioColors() {
+        val prefs = requireContext().getSharedPreferences(DYNAMIC_AUDIO_PREFS, android.content.Context.MODE_PRIVATE)
+        val bg = prefs.getInt(KEY_DYNAMIC_BG, Color.rgb(10, 12, 14))
+        val accent = prefs.getInt(KEY_DYNAMIC_ACCENT, Color.rgb(63, 215, 143))
+        currentDynamicBgColor = bg
+        currentAccentColor = accent
+        val gradient = GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(mixColors(Color.rgb(5, 7, 9), bg, 0.58f), bg, Color.rgb(5, 7, 9))
+        )
+        _binding?.root?.background = gradient
+        val tint = ColorStateList.valueOf(accent)
+        _binding?.seekBar?.progressTintList = tint
+        _binding?.seekBar?.thumbTintList = tint
+        _binding?.btnPlayPause?.backgroundTintList = null
+        _binding?.btnPlayPause?.background = buildPlayButtonBackground(accent)
+        _binding?.btnPlayPause?.elevation = dp(10f)
+        _binding?.btnPlayPause?.translationZ = dp(6f)
+        _binding?.tvArtist?.setTextColor(appGreenColor())
+    }
+
+    private fun persistDynamicAudioColors(bg: Int, accent: Int) {
+        try {
+            requireContext().getSharedPreferences(DYNAMIC_AUDIO_PREFS, android.content.Context.MODE_PRIVATE)
+                .edit()
+                .putInt(KEY_DYNAMIC_BG, bg)
+                .putInt(KEY_DYNAMIC_ACCENT, accent)
+                .apply()
+        } catch (_: Exception) { }
+    }
+
+    private fun appGreenColor(): Int = try {
+        androidx.core.content.ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.green_accent)
+    } catch (_: Exception) {
+        Color.rgb(63, 215, 143)
+    }
+
+
+    private fun buildPlayButtonBackground(accentColor: Int): GradientDrawable {
+        val light = mixColors(accentColor, Color.WHITE, 0.28f)
+        val dark = mixColors(accentColor, Color.BLACK, 0.30f)
+        return GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            intArrayOf(light, accentColor, dark)
+        ).apply {
+            shape = GradientDrawable.OVAL
+            setStroke(dp(1.5f).toInt(), mixColors(accentColor, Color.WHITE, 0.42f))
+        }
+    }
+
+    private fun dp(value: Float): Float = value * resources.displayMetrics.density
+
+    private fun sanitizeAudioExtension(raw: String?): String {
+        val ext = raw.orEmpty().trim().removePrefix(".").uppercase()
+        if (ext.isBlank() || ext.length !in 2..5 || !ext.all { it.isLetterOrDigit() }) return ""
+        val allowed = setOf("MP3", "FLAC", "M4A", "AAC", "WAV", "OGG", "OGA", "OPUS", "WMA", "APE", "DTS", "AC3", "EAC3", "MKA", "WV", "AIFF", "ALAC")
+        return ext.takeIf { it in allowed }.orEmpty()
+    }
+
+    private fun sanitizeAudioSecondaryText(raw: CharSequence?): String {
+        val text = raw?.toString()?.trim().orEmpty()
+        if (text.isBlank()) return ""
+        val lower = text.lowercase()
+        if (lower.startsWith("content://") || lower.contains("storage/document") || lower.contains("documents/document")) return ""
+        if (text.length > 80 && (text.contains('%') || text.contains('/'))) return ""
+        return text
     }
 
     private fun syncButtons() {
@@ -561,18 +790,122 @@ class AudioPlayerFragment : Fragment() {
         )
     }
 
+    fun playExternalTrack(path: String, name: String) {
+        restartAudioServiceForExternalTrack(path, name)
+    }
+
+    fun restartAudioServiceForExternalTrack(path: String, name: String) {
+        // Ancien nom conservé pour compatibilité avec MainActivity, mais la logique change :
+        // on ne tue plus le service audio et on ne libère plus le MediaController depuis l'UI.
+        // Media3 est conçu pour recevoir des commandes via le MediaSessionService stable.
+        startExternalAudioServiceFallback(path, name)
+    }
+
+    fun onExternalAudioReplaced() {
+        handler.postDelayed({
+            if (_binding == null) return@postDelayed
+            playlistAdapter.refresh()
+            syncSelection()
+            syncMetadata()
+            syncButtons()
+        }, 200L)
+    }
+
+    private fun playExternalTrackOnController(ctrl: MediaController, path: String, name: String) {
+        // Cas critique "Ouvrir avec" depuis un navigateur de fichiers.
+        // Quand le lecteur audio est déjà ouvert, le second ACTION_VIEW arrive ici via onNewIntent().
+        // Ne pas utiliser startService() en priorité dans ce cas : sur certains appareils l'intent
+        // explicite du service est retardé/ignoré alors que la MediaSession existe déjà, ce qui
+        // laisse l'ancien morceau actif. On envoie donc une commande MediaSession directe au
+        // BlazePlayerService existant. Le service fait ensuite le remplacement strict de sa file.
+        val args = Bundle().apply {
+            putString(BlazePlayerService.EXTRA_EXTERNAL_AUDIO_PATH, path)
+            putString(BlazePlayerService.EXTRA_EXTERNAL_AUDIO_NAME, name)
+        }
+        try {
+            val future = ctrl.sendCustomCommand(
+                SessionCommand(BlazePlayerService.COMMAND_PLAY_EXTERNAL_AUDIO, Bundle.EMPTY),
+                args
+            )
+            future.addListener({
+                try {
+                    val result = future.get()
+                    if (result.resultCode != androidx.media3.session.SessionResult.RESULT_SUCCESS) {
+                        startExternalAudioServiceFallback(path, name)
+                    }
+                } catch (e: Exception) {
+                    CrashReporter.log(requireContext(), "External audio session command failed for $path", e)
+                    startExternalAudioServiceFallback(path, name)
+                }
+                handler.post {
+                    if (_binding == null) return@post
+                    playlistAdapter.refresh()
+                    syncSelection()
+                    syncMetadata()
+                    syncButtons()
+                }
+            }, MoreExecutors.directExecutor())
+        } catch (e: Exception) {
+            CrashReporter.log(requireContext(), "Send external audio session command failed for $path", e)
+            startExternalAudioServiceFallback(path, name)
+        }
+    }
+
+    private fun startExternalAudioServiceFallback(path: String, name: String) {
+        try {
+            requireContext().startService(android.content.Intent(requireContext(), BlazePlayerService::class.java).apply {
+                action = BlazePlayerService.ACTION_PLAY_EXTERNAL_AUDIO
+                putExtra(BlazePlayerService.EXTRA_EXTERNAL_AUDIO_PATH, path)
+                putExtra(BlazePlayerService.EXTRA_EXTERNAL_AUDIO_NAME, name)
+            })
+        } catch (e: Exception) {
+            CrashReporter.log(requireContext(), "Start external audio service fallback failed for $path", e)
+        }
+        handler.postDelayed({
+            if (_binding == null) return@postDelayed
+            playlistAdapter.refresh()
+            syncSelection()
+            syncMetadata()
+            syncButtons()
+        }, 250L)
+    }
+
     fun addTrack(path: String, name: String) {
-        val ctrl = controller ?: return
+        // Ne jamais manipuler ce fragment s'il n'est plus attaché. C'est la signature exacte
+        // observée dans les logs : addTrack() -> sharedVm/activityViewModels -> requireActivity()
+        // alors que FragmentManager a rendu une ancienne instance détachée.
+        if (!isAdded || context == null) return
+        val ctrl = controller
+        if (ctrl == null) {
+            // Quand Blaze Audio vient d'être affiché depuis un intent Android externe, la
+            // connexion MediaController n'est pas toujours prête au moment exact de l'appel.
+            // Avant, le morceau était simplement perdu : l'onglet audio s'ouvrait mais rien ne
+            // se lançait. On le place dans la file d'attente partagée pour qu'il soit consommé
+            // dès que le contrôleur est prêt.
+            sharedVm.addToPlaylist(path, name)
+            return
+        }
         val exists = (0 until ctrl.mediaItemCount).any { originalPathOf(ctrl.getMediaItemAt(it)) == path }
-        if (exists) return
+        if (exists) {
+            val index = (0 until ctrl.mediaItemCount).firstOrNull { originalPathOf(ctrl.getMediaItemAt(it)) == path } ?: return
+            ctrl.seekTo(index, 0L)
+            if (ctrl.playbackState == Player.STATE_IDLE) ctrl.prepare()
+            ctrl.play()
+            return
+        }
 
         val simpleItem = AudioRepository.buildSimpleMediaItem(requireContext(), path, name)
         ctrl.addMediaItem(simpleItem)
+        val newIndex = ctrl.mediaItemCount - 1
+        // Un fichier ouvert depuis un navigateur externe est une demande de lecture immédiate,
+        // pas seulement un ajout en fin de playlist.
+        ctrl.seekTo(newIndex, 0L)
+        ctrl.prepare()
+        ctrl.play()
         playlistAdapter.refresh()
-        if (ctrl.playbackState == Player.STATE_IDLE) {
-            ctrl.prepare()
-            ctrl.play()
-        }
+        syncSelection()
+        syncMetadata()
+        syncButtons()
         savePlaylistFromController()
 
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -813,4 +1146,11 @@ class AudioPlayerFragment : Fragment() {
             ?: ""
     }
 
+
+
+    companion object {
+        private const val DYNAMIC_AUDIO_PREFS = "blaze_audio_dynamic_colors"
+        private const val KEY_DYNAMIC_BG = "dynamic_bg"
+        private const val KEY_DYNAMIC_ACCENT = "dynamic_accent"
+    }
 }

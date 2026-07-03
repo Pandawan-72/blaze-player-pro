@@ -150,25 +150,51 @@
                     android:textSize="8sp" />
             </LinearLayout>
 
-            <FrameLayout
-                android:id="@+id/btnPlayPause"
-                android:layout_width="78dp"
-                android:layout_height="78dp"
+            <LinearLayout
+                android:id="@+id/playPauseStack"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="42dp"
                 android:layout_marginEnd="42dp"
-                android:background="@drawable/bg_play_btn_player"
-                android:clickable="true"
-                android:focusable="true">
+                android:gravity="center"
+                android:orientation="vertical">
 
-                <ImageView
-                    android:id="@+id/ivPlayPause"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="Play/Pause"
-                    android:src="@drawable/ic_play"
-                    android:tint="#FFFFFF" />
-            </FrameLayout>
+                <FrameLayout
+                    android:id="@+id/btnScreenshot"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_top_icon_btn"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="Capture d’écran vidéo"
+                        android:src="@drawable/ic_camera"
+                        android:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/btnPlayPause"
+                    android:layout_width="78dp"
+                    android:layout_height="78dp"
+                    android:background="@drawable/bg_play_btn_player"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:id="@+id/ivPlayPause"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="Play/Pause"
+                        android:src="@drawable/ic_play"
+                        android:tint="#FFFFFF" />
+                </FrameLayout>
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/btnForward"

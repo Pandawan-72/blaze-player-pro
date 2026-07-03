@@ -11,7 +11,9 @@ import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class BrowserAdapter(
     val onFolderClick: (MediaItem) -> Unit,
@@ -149,6 +151,18 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
         private val tvVideoCodec: TextView = view.findViewById(R.id.tvVideoCodec)
         private val tvAudioCodec: TextView = view.findViewById(R.id.tvAudioCodec)
 
+        private fun isEventInsideChild(parent: View, child: View?, event: android.view.MotionEvent): Boolean {
+            if (child == null || child.visibility != View.VISIBLE) return false
+            val parentLocation = IntArray(2)
+            val childLocation = IntArray(2)
+            parent.getLocationOnScreen(parentLocation)
+            child.getLocationOnScreen(childLocation)
+            val rawX = parentLocation[0] + event.x
+            val rawY = parentLocation[1] + event.y
+            return rawX >= childLocation[0] && rawX <= childLocation[0] + child.width &&
+                rawY >= childLocation[1] && rawY <= childLocation[1] + child.height
+        }
+
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             tvName.text = item.name
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFormat, item.extension)
@@ -231,6 +245,7 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                 onSelectionChanged?.invoke(selected.toSet())
             }
 
+            itemView.setOnTouchListener(null)
             itemView.setOnClickListener { onClick(item) }
             btnMore.setOnClickListener { v ->
                 val popup = android.widget.PopupMenu(v.context, v)
@@ -240,24 +255,17 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                     when (mi.itemId) {
                         1 -> { onClick(item); true }
                         2 -> {
-                            scope.launch {
-                                val info = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.extract(v.context, item.path)
-                                val sz = when {
-                                    info.sizeBytes > 0 -> android.text.format.Formatter.formatShortFileSize(v.context, info.sizeBytes)
-                                    item.size > 0 -> android.text.format.Formatter.formatShortFileSize(v.context, item.size)
-                                    else -> v.context.getString(R.string.unknown_size)
-                                }
-                                val ds = if (info.duration > 0) info.formattedDuration
-                                    else if (item.duration > 0) "%d:%02d".format(item.duration / 60, item.duration % 60)
-                                    else "N/A"
-                                val res = info.resolutionLabel.ifEmpty { "N/A" }
-                                val msg = v.context.getString(R.string.dialog_video_info_message, item.path, item.extension.uppercase(), res, ds, sz)
-                                android.app.AlertDialog.Builder(v.context)
-                                    .setTitle(item.name)
-                                    .setMessage(msg)
-                                    .setPositiveButton(v.context.getString(R.string.action_ok), null)
-                                    .show()
-                            }
+                            fr.retrospare.blazeplayer.ui.VideoInfoDialog.show(
+                                context = v.context,
+                                scope = scope,
+                                title = item.name,
+                                mediaPath = item.path,
+                                displayName = item.name,
+                                extension = item.extension.uppercase(),
+                                itemSizeBytes = item.size,
+                                itemDurationSeconds = item.duration,
+                                fullExtract = false
+                            )
                             true
                         }
                         else -> false
@@ -266,6 +274,11 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                 popup.show()
             }
         }
+    }
+
+    private fun isVideoItem(item: MediaItem): Boolean {
+        val ext = item.extension.lowercase()
+        return item.mimeType.startsWith("video/") || ext in setOf("mp4", "mkv", "avi", "mov", "webm", "m4v", "flv", "wmv", "3gp", "ts")
     }
 
     class DiffCallback : DiffUtil.ItemCallback<MediaItem>() {

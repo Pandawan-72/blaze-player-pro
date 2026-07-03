@@ -55,7 +55,8 @@ class MediaRepository @Inject constructor(
                 size = if (item.size > 0L) item.size else (previous?.size ?: 0L),
                 resolution = item.resolution?.takeIf { it.isNotBlank() } ?: previous?.resolution,
                 videoCodec = item.videoCodec?.takeIf { it.isNotBlank() } ?: previous?.videoCodec,
-                audioCodec = item.audioCodec?.takeIf { it.isNotBlank() } ?: previous?.audioCodec
+                audioCodec = item.audioCodec?.takeIf { it.isNotBlank() } ?: previous?.audioCodec,
+                isCloud = item.isCloud || (previous?.isCloud == true)
             )
             current.add(0, merged)
             val trimmed = current.take(50)

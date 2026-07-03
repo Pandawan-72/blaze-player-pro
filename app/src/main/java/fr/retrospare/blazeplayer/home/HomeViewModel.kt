@@ -31,6 +31,9 @@ class HomeViewModel @Inject constructor(
     private val _recentLocalItems = MutableStateFlow<List<MediaItem>>(emptyList())
     val recentLocalItems: StateFlow<List<MediaItem>> = _recentLocalItems.asStateFlow()
 
+    private val _recentCloudItems = MutableStateFlow<List<MediaItem>>(emptyList())
+    val recentCloudItems: StateFlow<List<MediaItem>> = _recentCloudItems.asStateFlow()
+
     private val _showNetwork = MutableStateFlow(true)
     val showNetwork: StateFlow<Boolean> = _showNetwork.asStateFlow()
 
@@ -158,17 +161,26 @@ class HomeViewModel @Inject constructor(
         when (tab) {
             1 -> {
                 // Onglet Local (index UI 1)
-                _recentLocalItems.value = allItems.filter { !it.isNetwork }
+                _recentLocalItems.value = allItems.filter { !it.isNetwork && !it.isCloud }
                 _recentNetworkItems.value = emptyList()
+                _recentCloudItems.value = emptyList()
             }
             2 -> {
                 // Onglet Réseau (index UI 2)
-                _recentNetworkItems.value = allItems.filter { it.isNetwork }
+                _recentNetworkItems.value = allItems.filter { it.isNetwork && !it.isCloud }
                 _recentLocalItems.value = emptyList()
+                _recentCloudItems.value = emptyList()
+            }
+            3 -> {
+                // Onglet Cloud (index UI 3)
+                _recentCloudItems.value = allItems.filter { it.isCloud }
+                _recentLocalItems.value = emptyList()
+                _recentNetworkItems.value = emptyList()
             }
             else -> {
-                _recentLocalItems.value = allItems.filter { !it.isNetwork }
+                _recentLocalItems.value = allItems.filter { !it.isNetwork && !it.isCloud }
                 _recentNetworkItems.value = emptyList()
+                _recentCloudItems.value = emptyList()
             }
         }
     }

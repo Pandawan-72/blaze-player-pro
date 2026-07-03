@@ -6,7 +6,7 @@
 
     <string name="tab_local">Lokal</string>
     <string name="tab_network">Netzwerk</string>
-    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <string name="section_local_history">Lokaler Verlauf</string>
@@ -380,7 +380,7 @@
     <string name="paywall_pro_desc">Schaltet SMB-Netzwerk, Blaze Audio und den Mini-Player frei.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Schaltet Blaze Tube für YouTube-Videos frei und enthält alle Pro-Funktionen.</string>
+    <string name="paywall_pro_plus_desc">Schaltet Blaze Gallery für Gallery frei und enthält alle Pro-Funktionen.</string>
     <string name="paywall_buy_pro">Pro freischalten — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Pro+ freischalten — 5,99 €</string>
     <string name="paywall_debug_unlocked">Debug-Modus: Pro und Pro+ sind vorübergehend freigeschaltet.</string>
@@ -396,4 +396,59 @@
     <string name="action_off">Aus</string>
     <string name="video_setting_volume_boost">Lautstärke-Boost</string>
     <string name="action_reset">Zurücksetzen</string>
+
+    <!-- TMDb -->
+    <string name="tmdb_section_title">Filminfos</string>
+    <string name="tmdb_no_summary">Keine Zusammenfassung verfügbar.</string>
+    <string name="tmdb_no_result">Kein Poster oder keine Zusammenfassung im Internet gefunden.</string>
+    <string name="tmdb_refresh">Infos aktualisieren</string>
+    <string name="tmdb_api_key_missing"></string>
+    <string name="movie_runtime_label">Laufzeit:</string>
+    <string name="movie_genres_label">Genres:</string>
+    <string name="movie_actors_label">Darsteller:</string>
+    <string name="movie_studio_label">Studio:</string>
+    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="cloud_history">Cloud-Verlauf</string>
+    <string name="cloud_files">Cloud-Dateien</string>
+    <string name="cloud_providers_hint">Wähle eine Audio- oder Videodatei aus Google Drive, OneDrive, Dropbox oder einem anderen installierten Cloud-Anbieter.</string>
+    <string name="cloud_provider_subtitle">Dateien öffnen und durchsuchen</string>
+    <string name="cloud_provider_all_files">Alle Cloud-Dateien</string>
+    <string name="cloud_provider_all_files_subtitle">Android-Auswahl mit allen verfügbaren Anbietern öffnen</string>
+    <string name="cloud_no_known_provider">Kein Drive-, OneDrive- oder Dropbox-Anbieter erkannt. Du kannst trotzdem die Android-Auswahl verwenden.</string>
+    <string name="cloud_no_picker">Keine kompatible Dateiauswahl gefunden</string>
+    <string name="cloud_media_fallback_name">Cloud-Medium</string>
+    <string name="cloud_unsupported_media">Diese Cloud-Datei ist keine kompatible Audio- oder Videodatei.</string>
+
+    <!-- Blaze Gallery -->
+    <string name="gallery_title">Blaze Gallery</string>
+    <string name="gallery_folders">Blaze Gallery — Ordner</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Sortieren</string>
+    <string name="gallery_sort_folder">Ordnername</string>
+    <string name="gallery_sort_date_desc">Neueste zuerst</string>
+    <string name="gallery_sort_date_asc">Älteste zuerst</string>
+    <string name="gallery_sort_name">Alphabetisch</string>
+    <string name="gallery_sort_size">Dateigröße</string>
+    <string name="gallery_unknown_folder">Unbekannter Ordner</string>
+    <string name="gallery_trash">Papierkorb</string>
+    <string name="gallery_empty_trash">Endgültig leeren</string>
+    <string name="gallery_restore">Wiederherstellen</string>
+    <string name="gallery_delete">Löschen</string>
+    <string name="gallery_delete_folder">Ordner löschen</string>
+    <string name="gallery_delete_permanently_from_trash">Endgültig aus dem Papierkorb löschen</string>
+    <string name="gallery_moved_to_trash">Foto in den Papierkorb verschoben</string>
+    <string name="gallery_delete_all">Alle löschen</string>
+    <string name="gallery_share_all">Alle teilen</string>
+    <string name="gallery_selected_count">%1$d ausgewählt</string>
+    <string name="confirm_delete_title">Löschen bestätigen</string>
+    <string name="confirm_delete_photo_message">Dieses Foto in den Papierkorb verschieben?</string>
+    <string name="confirm_delete_folder_message">Alle Fotos in diesem Ordner in den Papierkorb verschieben?</string>
+    <string name="confirm_delete_selected_message">Ausgewählte Fotos in den Papierkorb verschieben?</string>
+    <string name="confirm_empty_trash_message">Papierkorb endgültig leeren? Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <string name="confirm_permanent_delete_message">Dieses Foto endgültig aus dem Papierkorb löschen?</string>
+    <string name="action_confirm_delete">Löschen</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d Foto</item>
+        <item quantity="other">%d Fotos</item>
+    </plurals>
 </resources>

@@ -3,10 +3,22 @@ package fr.retrospare.blazeplayer.home
 import android.graphics.Typeface
 import androidx.core.content.res.ResourcesCompat
 import android.os.Bundle
+import android.os.Build
+import android.net.Uri
+import android.provider.OpenableColumns
+import android.provider.MediaStore
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.OnBackPressedCallback
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ImageButton
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.size.Scale
+import coil.size.Size
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
@@ -25,6 +37,11 @@ import fr.retrospare.blazeplayer.player.AudioPlayerFragment
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.core.content.FileProvider
+import java.util.zip.ZipOutputStream
+import java.util.zip.ZipEntry
+import java.io.FileOutputStream
+import java.io.File
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
@@ -36,6 +53,26 @@ class HomeFragment : Fragment() {
     private var audioPlayerFragment: AudioPlayerFragment? = null
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+
+    private enum class GallerySort { FOLDER_NAME, DATE_DESC, DATE_ASC, PHOTO_NAME, FILE_SIZE }
+
+    private var gallerySort: GallerySort = GallerySort.DATE_DESC
+    private var currentGalleryBucketId: String? = null
+    private var currentGalleryBucketName: String? = null
+    private var galleryTrashMode: Boolean = false
+    private var gallerySelectionMode: Boolean = false
+    private val selectedGalleryPhotos = linkedSetOf<String>()
+    private var currentGalleryPhotos: List<MediaItem> = emptyList()
+    private var pendingGallerySystemActionRefresh: (() -> Unit)? = null
+
+    private val galleryPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        showGalleryFolders()
+    }
+
+    private val gallerySystemActionLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        pendingGallerySystemActionRefresh?.invoke()
+        pendingGallerySystemActionRefresh = null
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
@@ -53,6 +90,14 @@ class HomeFragment : Fragment() {
             insets
         }
         currentTabIndex = viewModel.currentTabIndex.value
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (currentTabIndex == 3 && handleBlazeGalleryBack()) return
+                isEnabled = false
+                requireActivity().onBackPressedDispatcher.onBackPressed()
+                isEnabled = true
+            }
+        })
         // Différé : setUpMediaRouteButton() déclenche en interne CastContext.getSharedInstance(),
         // un appel synchrone connu pour provoquer des ANR sur le thread principal (même cause que
         // le correctif appliqué dans PlayerActivity). On évite qu'il bloque la mise en place
@@ -172,7 +217,7 @@ class HomeFragment : Fragment() {
         }
     }
 
-    /** Configure la recherche et les listes de l'onglet Blaze Tube. Recherche déclenchée par la
+    /** Configure la recherche et les listes de l'onglet Blaze Gallery. Recherche déclenchée par la
      *  touche "Rechercher" du clavier (pas de recherche à chaque frappe, pour ménager le quota
      *  gratuit de l'API — ~100 unités par recherche, 10 000/jour). */
     /** Mode d'affichage courant de la liste réutilisée (listYoutubeSearch) : recherche ou
@@ -181,40 +226,741 @@ class HomeFragment : Fragment() {
     private var youtubeListMode: String? = null
 
     private fun setupYoutubeTab() {
-        binding.editYoutubeSearch.setOnEditorActionListener { v, actionId, _ ->
-            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
-                val query = v.text.toString().trim()
-                if (query.isEmpty()) {
-                    showYoutubeDefaultContent()
-                } else {
-                    performYoutubeSearch(query)
-                }
-                val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                        as? android.view.inputmethod.InputMethodManager
-                imm?.hideSoftInputFromWindow(v.windowToken, 0)
+        // Onglet 3 : Blaze Gallery. Plus aucun accès cloud/SAF ici : la galerie lit
+        // directement les photos locales exposées par MediaStore, comme la galerie Android.
+        binding.youtubeSearchBarRow.visibility = View.GONE
+        binding.youtubeFavoritesHeaderRow.visibility = View.GONE
+        binding.listYoutubeSearch.visibility = View.GONE
+        binding.tvYoutubeError.visibility = View.GONE
+        binding.youtubeDefaultContent.visibility = View.GONE
+        binding.btnCloseYoutubeSearch.visibility = View.GONE
+        binding.btnCloudFiles.text = getString(R.string.gallery_trash)
+        binding.btnCloudFiles.setIconResource(R.drawable.ic_trash)
+        binding.btnCloudFiles.setOnClickListener { showGalleryTrash() }
+        binding.btnFavoritesCloud.text = getString(R.string.action_back)
+        binding.btnFavoritesCloud.setOnClickListener { showGalleryFolders() }
+        binding.btnFavoritesCloud.visibility = View.GONE
+    }
+
+    private fun handleBlazeGalleryBack(): Boolean {
+        return when {
+            gallerySelectionMode -> {
+                clearGallerySelection()
+                currentGalleryBucketId?.let { showGalleryPhotos(it, currentGalleryBucketName.orEmpty()) } ?: showGalleryFolders()
                 true
-            } else {
-                false
+            }
+            galleryTrashMode -> {
+                showGalleryFolders()
+                true
+            }
+            currentGalleryBucketId != null -> {
+                showGalleryFolders()
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun hasGalleryPermission(): Boolean {
+        return if (android.os.Build.VERSION.SDK_INT >= 33) {
+            ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    private fun requestGalleryPermissionIfNeeded(): Boolean {
+        if (hasGalleryPermission()) return true
+        val permissions = if (android.os.Build.VERSION.SDK_INT >= 33) {
+            arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        galleryPermissionLauncher.launch(permissions)
+        return false
+    }
+
+
+    private fun styleGalleryBackButton() {
+        binding.btnFavoritesCloud.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface))
+        binding.btnFavoritesCloud.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.on_surface))
+        binding.btnFavoritesCloud.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
+        binding.btnFavoritesCloud.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#B8C0CC"))
+        binding.btnFavoritesCloud.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+    }
+
+    private fun styleGalleryTrashButton(emptyAction: Boolean = false) {
+        if (emptyAction) {
+            binding.btnCloudFiles.setTextColor(android.graphics.Color.WHITE)
+            binding.btnCloudFiles.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+            binding.btnCloudFiles.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#2A2F3A"))
+            binding.btnCloudFiles.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#E05151"))
+            binding.btnCloudFiles.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+        } else {
+            binding.btnCloudFiles.setTextColor(android.graphics.Color.WHITE)
+            binding.btnCloudFiles.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+            binding.btnCloudFiles.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
+            binding.btnCloudFiles.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#B8C0CC"))
+            binding.btnCloudFiles.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+        }
+    }
+
+    private fun confirmGalleryDeletion(message: String, onConfirm: () -> Unit) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.confirm_delete_title))
+            .setMessage(message)
+            .setNegativeButton(getString(R.string.action_cancel), null)
+            .setPositiveButton(getString(R.string.action_confirm_delete)) { _, _ -> onConfirm() }
+            .show()
+    }
+
+    private fun showGallerySortMenu() {
+        val popup = android.widget.PopupMenu(requireContext(), binding.btnCloudFiles)
+        popup.menu.add(0, 1, 0, getString(R.string.gallery_sort_date_desc))
+        popup.menu.add(0, 2, 1, getString(R.string.gallery_sort_date_asc))
+        popup.menu.add(0, 3, 2, getString(R.string.gallery_sort_name))
+        popup.menu.add(0, 4, 3, getString(R.string.gallery_sort_size))
+        popup.setOnMenuItemClickListener { item ->
+            gallerySort = when (item.itemId) {
+                2 -> GallerySort.DATE_ASC
+                3 -> GallerySort.PHOTO_NAME
+                4 -> GallerySort.FILE_SIZE
+                else -> GallerySort.DATE_DESC
+            }
+            currentGalleryBucketId?.let { showGalleryPhotos(it, currentGalleryBucketName.orEmpty()) }
+            true
+        }
+        popup.show()
+    }
+
+    private fun showGalleryFolders() {
+        if (!isAdded || !requestGalleryPermissionIfNeeded()) return
+        currentGalleryBucketId = null
+        currentGalleryBucketName = null
+        galleryTrashMode = false
+        clearGallerySelection()
+        binding.btnFavoritesCloud.visibility = View.GONE
+        binding.btnCloudFiles.visibility = View.VISIBLE
+        binding.btnCloudFiles.text = getString(R.string.gallery_trash)
+        binding.btnCloudFiles.setIconResource(R.drawable.ic_trash)
+        binding.btnCloudFiles.setOnClickListener { showGalleryTrash() }
+        styleGalleryTrashButton(false)
+        binding.tvSectionCloud.text = getString(R.string.gallery_folders)
+        binding.listCloud.visibility = View.VISIBLE
+        binding.listCloud.apply {
+            setHasFixedSize(true)
+            setItemViewCacheSize(12)
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2)
+            itemAnimator = null
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val folders = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadGalleryFoldersFromMediaStore() }
+            binding.listCloud.adapter = GalleryAdapter(
+                items = folders,
+                grid = false,
+                trashMode = false,
+                onClick = { folder -> showGalleryPhotos(folder.path, folder.name) },
+                onLongClick = {},
+                onMore = { folder, anchor -> showGalleryFolderMenu(folder, anchor) }
+            )
+        }
+    }
+
+    private fun showGalleryPhotos(bucketId: String, bucketName: String) {
+        if (!isAdded || !requestGalleryPermissionIfNeeded()) return
+        currentGalleryBucketId = bucketId
+        currentGalleryBucketName = bucketName
+        galleryTrashMode = false
+        clearGallerySelection()
+        binding.btnFavoritesCloud.visibility = View.VISIBLE
+        binding.btnFavoritesCloud.text = getString(R.string.action_back)
+        binding.btnFavoritesCloud.setIconResource(R.drawable.ic_arrow_back)
+        binding.btnFavoritesCloud.setOnClickListener { showGalleryFolders() }
+        styleGalleryBackButton()
+        binding.btnCloudFiles.visibility = View.VISIBLE
+        binding.btnCloudFiles.text = getString(R.string.gallery_sort)
+        binding.btnCloudFiles.setIconResource(R.drawable.ic_sort)
+        binding.btnCloudFiles.setOnClickListener { showGallerySortMenu() }
+        styleGalleryTrashButton(false)
+        binding.tvSectionCloud.text = getString(R.string.gallery_folder_title, bucketName)
+        binding.listCloud.visibility = View.VISIBLE
+        binding.listCloud.apply {
+            setHasFixedSize(true)
+            setItemViewCacheSize(24)
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
+            itemAnimator = null
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val photos = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadGalleryPhotosFromMediaStore(bucketId) }
+            currentGalleryPhotos = photos
+            binding.listCloud.adapter = GalleryAdapter(
+                items = photos,
+                grid = true,
+                trashMode = false,
+                onClick = { photo -> if (gallerySelectionMode) toggleGallerySelection(photo) else openGalleryPhoto(photo) },
+                onLongClick = { photo -> enterGallerySelection(photo) },
+                onMore = { photo, anchor -> showGalleryPhotoMenu(photo, anchor) }
+            )
+        }
+    }
+
+    private fun loadGalleryFoldersFromMediaStore(): List<MediaItem> {
+        val resolver = requireContext().contentResolver
+        val projection = arrayOf(
+            MediaStore.Images.Media.BUCKET_ID,
+            MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
+            MediaStore.Images.Media.DATE_MODIFIED,
+            MediaStore.Images.Media._ID
+        )
+        val folders = linkedMapOf<String, MutableGalleryFolder>()
+        val queryArgs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            android.os.Bundle().apply {
+                putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_EXCLUDE)
+                putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.Images.Media.DATE_MODIFIED))
+                putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
+            }
+        } else null
+        val cursorResult = if (queryArgs != null) {
+            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, queryArgs, null)
+        } else {
+            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null, null, "${MediaStore.Images.Media.DATE_MODIFIED} DESC")
+        }
+        cursorResult?.use { cursor ->
+            val bucketIdCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_ID)
+            val bucketNameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
+            val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+            while (cursor.moveToNext()) {
+                val bucketId = cursor.getString(bucketIdCol) ?: continue
+                val bucketName = cursor.getString(bucketNameCol)?.takeIf { it.isNotBlank() } ?: getString(R.string.gallery_unknown_folder)
+                val date = cursor.getLong(dateCol)
+                val imageId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
+                val imageUri = android.content.ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, imageId).toString()
+                val folder = folders.getOrPut(bucketId) { MutableGalleryFolder(bucketId, bucketName) }
+                folder.count += 1
+                if (folder.previewUris.size < 4) folder.previewUris += imageUri
+                if (date > folder.lastModified) folder.lastModified = date
             }
         }
-        binding.btnCloseYoutubeSearch.setOnClickListener {
-            binding.editYoutubeSearch.setText("")
-            showYoutubeDefaultContent()
+        val result = folders.values.map {
+            MediaItem(
+                id = "gallery_folder_${it.bucketId}",
+                name = it.name,
+                path = it.bucketId,
+                size = it.count.toLong(),
+                lastPlayedAt = it.lastModified,
+                mimeType = "folder",
+                previewUris = it.previewUris
+            )
         }
-        binding.btnYoutubeFavorites.setOnClickListener { showYoutubeFavorites() }
-        binding.btnCloseYoutubeFavorites.setOnClickListener { showYoutubeDefaultContent() }
-        setupYoutubePlaylistButtons()
+        // Accueil Blaze Gallery : les dossiers restent toujours classés par nom.
+        // Le tri date/nom/taille est uniquement appliqué à l'intérieur d'un dossier photo.
+        return result.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+    }
+
+    private fun loadGalleryPhotosFromMediaStore(bucketId: String): List<MediaItem> {
+        val resolver = requireContext().contentResolver
+        val projection = arrayOf(
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.Media.DISPLAY_NAME,
+            MediaStore.Images.Media.SIZE,
+            MediaStore.Images.Media.DATE_MODIFIED,
+            MediaStore.Images.Media.MIME_TYPE
+        )
+        val photos = mutableListOf<MediaItem>()
+        val cursorResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val args = android.os.Bundle().apply {
+                putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, "${MediaStore.Images.Media.BUCKET_ID} = ?")
+                putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, arrayOf(bucketId))
+                putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_EXCLUDE)
+                putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.Images.Media.DATE_MODIFIED))
+                putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
+            }
+            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, args, null)
+        } else {
+            resolver.query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                "${MediaStore.Images.Media.BUCKET_ID} = ?",
+                arrayOf(bucketId),
+                null
+            )
+        }
+        cursorResult?.use { cursor ->
+            val idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+            val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+            val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
+            val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+            val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idCol)
+                val uri = android.content.ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                val name = cursor.getString(nameCol) ?: "Photo $id"
+                val mime = cursor.getString(mimeCol) ?: "image/*"
+                photos += MediaItem(
+                    id = "gallery_photo_$id",
+                    name = name,
+                    path = uri.toString(),
+                    size = cursor.getLong(sizeCol),
+                    lastPlayedAt = cursor.getLong(dateCol),
+                    extension = name.substringAfterLast('.', "").uppercase(),
+                    mimeType = mime
+                )
+            }
+        }
+        return when (gallerySort) {
+            GallerySort.DATE_ASC -> photos.sortedBy { it.lastPlayedAt }
+            GallerySort.PHOTO_NAME, GallerySort.FOLDER_NAME -> photos.sortedBy { it.name.lowercase() }
+            GallerySort.FILE_SIZE -> photos.sortedByDescending { it.size }
+            else -> photos.sortedByDescending { it.lastPlayedAt }
+        }
+    }
+
+    private data class MutableGalleryFolder(
+        val bucketId: String,
+        val name: String,
+        var count: Int = 0,
+        var lastModified: Long = 0L,
+        var previewUris: List<String> = emptyList()
+    )
+
+    private fun openGalleryPhoto(photo: MediaItem) {
+        showInAppPhotoViewer(photo)
+    }
+
+    private fun showInAppPhotoViewer(photo: MediaItem) {
+        val dialog = android.app.Dialog(requireContext(), android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        val root = android.widget.FrameLayout(requireContext()).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            fitsSystemWindows = true
+        }
+        val previousOrientation = requireActivity().requestedOrientation
+        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        val image = fr.retrospare.blazeplayer.ui.ZoomableImageView(requireContext()).apply {
+            layoutParams = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            contentDescription = photo.name
+        }
+        val close = ImageButton(requireContext()).apply {
+            setImageResource(R.drawable.ic_close)
+            setColorFilter(ContextCompat.getColor(requireContext(), R.color.on_surface))
+            background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_icon_gray)
+            contentDescription = getString(R.string.action_close)
+            setOnClickListener { dialog.dismiss() }
+            val size = (48 * resources.displayMetrics.density).toInt()
+            val margin = (18 * resources.displayMetrics.density).toInt()
+            layoutParams = android.widget.FrameLayout.LayoutParams(size, size, android.view.Gravity.TOP or android.view.Gravity.END).apply {
+                setMargins(margin, margin, margin, margin)
+            }
+        }
+        root.addView(image)
+        root.addView(close)
+        dialog.setContentView(root)
+        dialog.setOnDismissListener {
+            if (isAdded) requireActivity().requestedOrientation = previousOrientation
+        }
+        dialog.setOnShowListener {
+            loadGalleryImage(image, photo.path, Size.ORIGINAL)
+        }
+        dialog.show()
+    }
+
+    private fun loadGalleryImage(imageView: ImageView, uriString: String, requestSize: Size = Size(360, 360)) {
+        imageView.setImageDrawable(null)
+        val request = ImageRequest.Builder(requireContext())
+            .data(android.net.Uri.parse(uriString))
+            .target(imageView)
+            .size(requestSize)
+            .scale(Scale.FILL)
+            .allowHardware(true)
+            .crossfade(false)
+            .build()
+        requireContext().imageLoader.enqueue(request)
+    }
+
+    private fun showGalleryFolderMenu(folder: MediaItem, anchor: View) {
+        val popup = android.widget.PopupMenu(requireContext(), anchor)
+        popup.menu.add(0, 1, 0, getString(R.string.gallery_delete_folder))
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    confirmGalleryDeletion(getString(R.string.confirm_delete_folder_message)) { moveGalleryFolderToTrash(folder) }
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun showGalleryPhotoMenu(photo: MediaItem, anchor: View) {
+        val popup = android.widget.PopupMenu(requireContext(), anchor)
+        if (galleryTrashMode) {
+            popup.menu.add(0, 1, 0, getString(R.string.gallery_restore))
+            popup.menu.add(0, 2, 1, getString(R.string.gallery_delete_permanently_from_trash))
+        } else {
+            popup.menu.add(0, 1, 0, getString(R.string.action_open))
+            popup.menu.add(0, 2, 1, getString(R.string.action_share))
+            popup.menu.add(0, 3, 2, getString(R.string.gallery_delete))
+        }
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    if (galleryTrashMode) restoreGalleryPhoto(photo) else openGalleryPhoto(photo)
+                    true
+                }
+                2 -> {
+                    if (galleryTrashMode) confirmGalleryDeletion(getString(R.string.confirm_permanent_delete_message)) { permanentlyDeleteGalleryPhoto(photo) } else shareGalleryPhoto(photo)
+                    true
+                }
+                3 -> { confirmGalleryDeletion(getString(R.string.confirm_delete_photo_message)) { moveGalleryPhotoToTrash(photo) }; true }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun shareGalleryPhoto(photo: MediaItem) {
+        val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = photo.mimeType.ifBlank { "image/*" }
+            putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(photo.path))
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(android.content.Intent.createChooser(share, getString(R.string.action_share)))
+    }
+
+    private fun getGalleryTrashSet(): MutableSet<String> {
+        return requireContext()
+            .getSharedPreferences("blaze_gallery", android.content.Context.MODE_PRIVATE)
+            .getStringSet("trash_uris", emptySet())
+            ?.toMutableSet() ?: mutableSetOf()
+    }
+
+    private fun saveGalleryTrashSet(values: Set<String>) {
+        requireContext()
+            .getSharedPreferences("blaze_gallery", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putStringSet("trash_uris", values)
+            .apply()
+    }
+
+    private fun moveGalleryFolderToTrash(folder: MediaItem) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val photos = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadGalleryPhotosFromMediaStore(folder.path) }
+            moveGalleryPhotosToSystemTrash(photos) { showGalleryFolders() }
+        }
+    }
+
+    private fun moveGalleryPhotoToTrash(photo: MediaItem) {
+        moveGalleryPhotosToSystemTrash(listOf(photo)) {
+            currentGalleryBucketId?.let { showGalleryPhotos(it, currentGalleryBucketName.orEmpty()) } ?: showGalleryFolders()
+        }
+    }
+
+    private fun restoreGalleryPhoto(photo: MediaItem) {
+        restoreGalleryPhotosFromSystemTrash(listOf(photo)) { showGalleryTrash() }
+    }
+
+    private fun permanentlyDeleteGalleryPhoto(photo: MediaItem) {
+        deleteGalleryPhotosPermanently(listOf(photo)) { showGalleryTrash() }
+    }
+
+    private fun emptyGalleryTrashPermanently() {
+        deleteGalleryPhotosPermanently(currentGalleryPhotos) { showGalleryTrash() }
+    }
+
+    private fun moveGalleryPhotosToSystemTrash(photos: List<MediaItem>, refresh: () -> Unit) {
+        val uris = photos.mapNotNull { it.path.toUriOrNull() }
+        if (uris.isEmpty()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            pendingGallerySystemActionRefresh = refresh
+            val request = MediaStore.createTrashRequest(requireContext().contentResolver, uris, true)
+            gallerySystemActionLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        } else {
+            // Fallback pré-Android 11 : pas de corbeille système MediaStore disponible.
+            val trash = getGalleryTrashSet()
+            trash.addAll(uris.map { it.toString() })
+            saveGalleryTrashSet(trash)
+            refresh()
+        }
+    }
+
+    private fun restoreGalleryPhotosFromSystemTrash(photos: List<MediaItem>, refresh: () -> Unit) {
+        val uris = photos.mapNotNull { it.path.toUriOrNull() }
+        if (uris.isEmpty()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            pendingGallerySystemActionRefresh = refresh
+            val request = MediaStore.createTrashRequest(requireContext().contentResolver, uris, false)
+            gallerySystemActionLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        } else {
+            val trash = getGalleryTrashSet()
+            uris.forEach { trash.remove(it.toString()) }
+            saveGalleryTrashSet(trash)
+            refresh()
+        }
+    }
+
+    private fun deleteGalleryPhotosPermanently(photos: List<MediaItem>, refresh: () -> Unit) {
+        val uris = photos.mapNotNull { it.path.toUriOrNull() }
+        if (uris.isEmpty()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            pendingGallerySystemActionRefresh = refresh
+            val request = MediaStore.createDeleteRequest(requireContext().contentResolver, uris)
+            gallerySystemActionLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        } else {
+            uris.forEach { uri -> try { requireContext().contentResolver.delete(uri, null, null) } catch (_: Exception) {} }
+            val trash = getGalleryTrashSet()
+            uris.forEach { trash.remove(it.toString()) }
+            saveGalleryTrashSet(trash)
+            refresh()
+        }
+    }
+
+    private fun String.toUriOrNull(): Uri? = try { Uri.parse(this) } catch (_: Exception) { null }
+
+    private fun showGalleryTrash() {
+        if (!isAdded || !requestGalleryPermissionIfNeeded()) return
+        galleryTrashMode = true
+        clearGallerySelection()
+        currentGalleryBucketId = null
+        currentGalleryBucketName = null
+        binding.tvSectionCloud.text = getString(R.string.gallery_trash)
+        binding.btnFavoritesCloud.visibility = View.VISIBLE
+        binding.btnFavoritesCloud.text = getString(R.string.action_back)
+        binding.btnFavoritesCloud.setIconResource(R.drawable.ic_arrow_back)
+        binding.btnFavoritesCloud.setOnClickListener { showGalleryFolders() }
+        binding.btnCloudFiles.visibility = View.VISIBLE
+        binding.btnCloudFiles.text = getString(R.string.gallery_empty_trash)
+        binding.btnCloudFiles.setIconResource(R.drawable.ic_trash)
+        binding.btnCloudFiles.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_empty_trash_message)) { emptyGalleryTrashPermanently() } }
+        styleGalleryBackButton()
+        styleGalleryTrashButton(true)
+        binding.listCloud.visibility = View.VISIBLE
+        binding.listCloud.apply {
+            setHasFixedSize(true)
+            setItemViewCacheSize(24)
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
+            itemAnimator = null
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val photos = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadTrashedGalleryPhotosFromMediaStore() }
+            currentGalleryPhotos = photos
+            binding.listCloud.adapter = GalleryAdapter(
+                items = photos,
+                grid = true,
+                trashMode = true,
+                onClick = { photo -> openGalleryPhoto(photo) },
+                onLongClick = {},
+                onMore = { photo, anchor -> showGalleryPhotoMenu(photo, anchor) }
+            )
+        }
+    }
+
+    private fun loadTrashedGalleryPhotosFromMediaStore(): List<MediaItem> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            loadAllGalleryPhotosFromMediaStore(includeOnlyTrashed = true)
+        } else {
+            val trash = getGalleryTrashSet()
+            if (trash.isEmpty()) emptyList() else loadAllGalleryPhotosFromMediaStore(includeOnlyTrashed = false).filter { trash.contains(it.path) }
+        }
+    }
+
+    private fun loadAllGalleryPhotosFromMediaStore(includeOnlyTrashed: Boolean = false): List<MediaItem> {
+        val all = mutableListOf<MediaItem>()
+        val resolver = requireContext().contentResolver
+        val projection = arrayOf(
+            MediaStore.Images.Media._ID,
+            MediaStore.Images.Media.DISPLAY_NAME,
+            MediaStore.Images.Media.SIZE,
+            MediaStore.Images.Media.DATE_MODIFIED,
+            MediaStore.Images.Media.MIME_TYPE
+        )
+        val cursorResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val args = android.os.Bundle().apply {
+                putInt(
+                    MediaStore.QUERY_ARG_MATCH_TRASHED,
+                    if (includeOnlyTrashed) MediaStore.MATCH_ONLY else MediaStore.MATCH_EXCLUDE
+                )
+                putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.Images.Media.DATE_MODIFIED))
+                putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
+            }
+            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, args, null)
+        } else {
+            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null, null, "${MediaStore.Images.Media.DATE_MODIFIED} DESC")
+        }
+        cursorResult?.use { cursor ->
+            val idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+            val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+            val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
+            val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+            val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idCol)
+                val uri = android.content.ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+                val name = cursor.getString(nameCol) ?: "Photo $id"
+                all += MediaItem(
+                    id = "gallery_photo_$id",
+                    name = name,
+                    path = uri.toString(),
+                    size = cursor.getLong(sizeCol),
+                    lastPlayedAt = cursor.getLong(dateCol),
+                    extension = name.substringAfterLast('.', "").uppercase(),
+                    mimeType = cursor.getString(mimeCol) ?: "image/*"
+                )
+            }
+        }
+        return all
+    }
+
+    private fun enterGallerySelection(photo: MediaItem) {
+        if (galleryTrashMode) return
+        gallerySelectionMode = true
+        selectedGalleryPhotos.clear()
+        selectedGalleryPhotos.add(photo.path)
+        updateGallerySelectionToolbar()
+        binding.listCloud.adapter?.notifyDataSetChanged()
+    }
+
+    private fun toggleGallerySelection(photo: MediaItem) {
+        if (!gallerySelectionMode) return
+        if (!selectedGalleryPhotos.add(photo.path)) selectedGalleryPhotos.remove(photo.path)
+        if (selectedGalleryPhotos.isEmpty()) clearGallerySelection() else updateGallerySelectionToolbar()
+        binding.listCloud.adapter?.notifyDataSetChanged()
+    }
+
+    private fun clearGallerySelection() {
+        gallerySelectionMode = false
+        selectedGalleryPhotos.clear()
+    }
+
+    private fun updateGallerySelectionToolbar() {
+        binding.btnFavoritesCloud.visibility = View.VISIBLE
+        binding.btnFavoritesCloud.text = getString(R.string.gallery_delete_all)
+        binding.btnFavoritesCloud.setIconResource(R.drawable.ic_trash)
+        binding.btnFavoritesCloud.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_delete_selected_message)) { deleteSelectedGalleryPhotos() } }
+        binding.btnCloudFiles.visibility = View.VISIBLE
+        binding.btnCloudFiles.text = getString(R.string.gallery_share_all)
+        binding.btnCloudFiles.setIconResource(R.drawable.ic_share)
+        binding.btnCloudFiles.setOnClickListener { shareSelectedGalleryPhotosAsZip() }
+        styleGalleryBackButton()
+        styleGalleryTrashButton(false)
+        binding.tvSectionCloud.text = getString(R.string.gallery_selected_count, selectedGalleryPhotos.size)
+    }
+
+    private fun deleteSelectedGalleryPhotos() {
+        val selected = currentGalleryPhotos.filter { selectedGalleryPhotos.contains(it.path) }
+        clearGallerySelection()
+        moveGalleryPhotosToSystemTrash(selected) {
+            currentGalleryBucketId?.let { showGalleryPhotos(it, currentGalleryBucketName.orEmpty()) } ?: showGalleryFolders()
+        }
+    }
+
+    private fun shareSelectedGalleryPhotosAsZip() {
+        val selected = currentGalleryPhotos.filter { selectedGalleryPhotos.contains(it.path) }
+            .ifEmpty { currentGalleryPhotos }
+        if (selected.isEmpty()) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val zipFile = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { createGalleryZip(selected) }
+            val uri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.fileprovider", zipFile)
+            val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "application/zip"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(android.content.Intent.createChooser(share, getString(R.string.action_share)))
+        }
+    }
+
+    private fun createGalleryZip(photos: List<MediaItem>): File {
+        val dir = File(requireContext().cacheDir, "gallery_share").apply { mkdirs() }
+        val zipFile = File(dir, "blaze_gallery_${System.currentTimeMillis()}.zip")
+        ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
+            photos.forEachIndexed { index, photo ->
+                val name = photo.name.ifBlank { "photo_${index + 1}.jpg" }
+                requireContext().contentResolver.openInputStream(android.net.Uri.parse(photo.path))?.use { input ->
+                    zip.putNextEntry(ZipEntry(name))
+                    input.copyTo(zip)
+                    zip.closeEntry()
+                }
+            }
+        }
+        return zipFile
+    }
+
+    private inner class GalleryAdapter(
+        private val items: List<MediaItem>,
+        private val grid: Boolean,
+        private val trashMode: Boolean,
+        private val onClick: (MediaItem) -> Unit,
+        private val onLongClick: (MediaItem) -> Unit,
+        private val onMore: (MediaItem, View) -> Unit
+    ) : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
+        override fun getItemCount() = items.size
+        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
+            val layout = if (grid) R.layout.item_gallery_photo else R.layout.item_gallery_folder_tile
+            return object : androidx.recyclerview.widget.RecyclerView.ViewHolder(layoutInflater.inflate(layout, parent, false)) {}
+        }
+        override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
+            val item = items[position]
+            val view = holder.itemView
+            if (grid) {
+                view.findViewById<TextView>(R.id.tvFileName)?.text = item.name
+                view.findViewById<TextView>(R.id.tvDuration)?.text = item.formattedSize
+                view.findViewById<ImageView>(R.id.ivThumbnail)?.let { loadGalleryImage(it, item.path) }
+                view.findViewById<android.widget.CheckBox>(R.id.cbSelected)?.let { cb ->
+                    cb.visibility = if (gallerySelectionMode && !trashMode) View.VISIBLE else View.GONE
+                    cb.isChecked = selectedGalleryPhotos.contains(item.path)
+                    cb.setOnClickListener { toggleGallerySelection(item) }
+                }
+                view.findViewById<View>(R.id.btnMore)?.visibility = if (gallerySelectionMode && !trashMode) View.GONE else View.VISIBLE
+                view.findViewById<View>(R.id.btnMore)?.setOnClickListener { onMore(item, it) }
+            } else {
+                view.post {
+                    val params = view.layoutParams
+                    if (params != null && view.width > 0 && params.height != view.width) {
+                        params.height = view.width
+                        view.layoutParams = params
+                    }
+                }
+                view.findViewById<TextView>(R.id.tvFolderName)?.text = item.name
+                view.findViewById<TextView>(R.id.tvFolderCount)?.text = resources.getQuantityString(R.plurals.gallery_photo_count, item.size.toInt(), item.size.toInt())
+                val previews = listOf(
+                    view.findViewById<ImageView>(R.id.ivPreview1),
+                    view.findViewById<ImageView>(R.id.ivPreview2),
+                    view.findViewById<ImageView>(R.id.ivPreview3),
+                    view.findViewById<ImageView>(R.id.ivPreview4)
+                )
+                previews.forEachIndexed { index, imageView ->
+                    val uri = item.previewUris.getOrNull(index)
+                    if (uri != null) {
+                        imageView.visibility = View.VISIBLE
+                        loadGalleryImage(imageView, uri, Size(220, 220))
+                    } else {
+                        imageView.visibility = View.INVISIBLE
+                        imageView.setImageDrawable(null)
+                    }
+                }
+                view.findViewById<View>(R.id.btnFolderMore)?.setOnClickListener { onMore(item, it) }
+            }
+            view.setOnClickListener { onClick(item) }
+            view.setOnLongClickListener {
+                onLongClick(item)
+                true
+            }
+        }
     }
 
     private fun showYoutubeDefaultContent() {
         youtubeListMode = null
         binding.listYoutubeSearch.visibility = View.GONE
-        binding.youtubeDefaultContent.visibility = View.VISIBLE
+        binding.youtubeDefaultContent.visibility = View.GONE
         binding.tvYoutubeError.visibility = View.GONE
         binding.btnCloseYoutubeSearch.visibility = View.GONE
-        binding.youtubeSearchBarRow.visibility = View.VISIBLE
+        binding.youtubeSearchBarRow.visibility = View.GONE
         binding.youtubeFavoritesHeaderRow.visibility = View.GONE
-        refreshYoutubeHistory()
+        binding.listYoutubeHistory.visibility = View.GONE
+        showGalleryFolders()
     }
 
     private fun performYoutubeSearch(query: String) {
@@ -396,7 +1142,9 @@ class HomeFragment : Fragment() {
     }
 
     /** Ancien nom conservé pour l'appel depuis updateSectionTitles/onResume. */
-    private fun refreshYoutubeDefaultContent() = refreshYoutubeHistory()
+    private fun refreshYoutubeDefaultContent() {
+        showYoutubeDefaultContent()
+    }
 
     private fun toggleYoutubeFavorite(item: fr.retrospare.blazeplayer.youtube.YouTubeVideoItem) {
         fr.retrospare.blazeplayer.youtube.YouTubeLibrary.toggleFavorite(requireContext(), item)
@@ -508,18 +1256,33 @@ class HomeFragment : Fragment() {
     fun openAudioPlayer(path: String, name: String) {
         updateTabStyles(4)
         showAudioTab()
-        audioPlayerFragment?.addTrack(path, name) ?: Unit
-            ?: run {
-                audioPlayerFragment = AudioPlayerFragment().apply {
-                    arguments = android.os.Bundle().apply {
-                        putString("mediaPath", path)
-                        putString("mediaName", name)
-                    }
-                }
-                childFragmentManager.beginTransaction()
-                    .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!)
-                    .commit()
-            }
+
+        val existing = audioPlayerFragment
+            ?: (childFragmentManager.findFragmentByTag("blaze_audio") as? AudioPlayerFragment)
+                ?.also { audioPlayerFragment = it }
+        if (existing != null && existing.isAdded && existing.context != null) {
+            existing.addTrack(path, name)
+            return
+        } else if (existing != null) {
+            // Protection anti-crash : après certains retours depuis un intent Android externe,
+            // FragmentManager peut encore retourner une ancienne instance taggée "blaze_audio"
+            // alors qu'elle n'est plus attachée. Appeler addTrack() dessus déclenche
+            // activityViewModels()/requireActivity(). On jette cette instance et on recrée un
+            // lecteur propre avec le morceau en attente.
+            audioPlayerFragment = null
+            childFragmentManager.beginTransaction().remove(existing).commitAllowingStateLoss()
+        }
+
+        // Le fragment audio n'existe pas encore : on place le morceau en attente dans le
+        // ViewModel partagé, puis AudioPlayerFragment le consommera dès que son MediaController
+        // sera prêt. Cela évite de bloquer l'UI pendant l'ouverture depuis un gestionnaire de
+        // fichiers et évite aussi de perdre le morceau.
+        androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
+            .addToPlaylist(path, name)
+        audioPlayerFragment = AudioPlayerFragment()
+        childFragmentManager.beginTransaction()
+            .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!, "blaze_audio")
+            .commitAllowingStateLoss()
     }
 
     private fun updateSectionTitles(tabIndex: Int) {
@@ -540,6 +1303,7 @@ class HomeFragment : Fragment() {
                 binding.sectionLocal.visibility = View.GONE
                 binding.sectionNetwork.visibility = View.GONE
                 binding.sectionYoutube.visibility = View.VISIBLE
+                viewModel.onTabSelected(3)
                 refreshYoutubeDefaultContent()
             }
             else -> {
@@ -552,7 +1316,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateTabStyles(selectedIndex: Int) {
-        // selectedIndex: 1=Local, 2=Réseau, 3=Blaze Tube, 4=Audio
+        // selectedIndex: 1=Local, 2=Réseau, 3=Blaze Gallery, 4=Audio
         val tabViews = listOf(binding.tabLocal, binding.tabNetwork, binding.tabYoutube, binding.tabAudio)
         val tabIcons = listOf(binding.tabLocalIcon, binding.tabNetworkIcon, binding.tabYoutubeIcon, binding.tabAudioIcon)
         val tabTexts = listOf(binding.tabLocalText, binding.tabNetworkText, binding.tabYoutubeText, binding.tabAudioText)
@@ -639,6 +1403,23 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun setupCloudPlaylistButtons() {
+        val cloudButtons = listOf(
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud1),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud2),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud3),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud4),
+            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud5)
+        )
+        val category = fr.retrospare.blazeplayer.playlist.PlaylistCategory.CLOUD_VIDEO
+        val lastPlayedCloud = fr.retrospare.blazeplayer.playlist.PlaylistManager.getLastPlayed(requireContext(), category)
+        cloudButtons.forEachIndexed { i, btn ->
+            val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager.getPlaylist(requireContext(), category, i + 1).isNotEmpty()
+            btn?.isSelected = (lastPlayedCloud == i + 1) && hasItems
+            btn?.setOnClickListener { openSavedPlaylist(category, i + 1) }
+        }
+    }
+
     private fun openSavedPlaylist(category: fr.retrospare.blazeplayer.playlist.PlaylistCategory, slot: Int) {
         fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showPlaylistViewer(
             requireContext(), category, slot,
@@ -682,6 +1463,25 @@ class HomeFragment : Fragment() {
                 launch { viewModel.recentNetworkItems.collect { updateRecycler(binding.listNetwork, it) } }
                 launch { viewModel.recentLocalItems.collect { updateRecycler(binding.listLocal, it) } }
             }
+        }
+    }
+
+    private fun openHistoryItem(item: MediaItem) {
+        if (item.isCloud) {
+            val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.PlayerActivity::class.java).apply {
+                putExtra("mediaPath", item.path)
+                putExtra("mediaName", item.name)
+                putExtra("isCloudMedia", true)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                try {
+                    val uri = android.net.Uri.parse(item.path)
+                    data = uri
+                    clipData = android.content.ClipData.newUri(requireContext().contentResolver, item.name, uri)
+                } catch (_: Exception) { }
+            }
+            startActivity(intent)
+        } else {
+            PlayerRouter.open(requireContext(), item.path, item.name)
         }
     }
 
@@ -749,7 +1549,7 @@ class HomeFragment : Fragment() {
                 }
 
                 // Click
-                v.setOnClickListener { PlayerRouter.open(requireContext(), item.path, item.name) }
+                v.setOnClickListener { openHistoryItem(item) }
 
                 // Bouton 3 points
                 val btnMore = v.findViewById<android.view.View>(R.id.btnMore)
@@ -761,29 +1561,27 @@ class HomeFragment : Fragment() {
                     popup.menu.add(0, 4, 3, getString(R.string.action_remove_from_history))
                     popup.setOnMenuItemClickListener { mi ->
                         when (mi.itemId) {
-                            1 -> { PlayerRouter.open(requireContext(), item.path, item.name); true }
+                            1 -> { openHistoryItem(item); true }
                             2 -> {
-                                viewLifecycleOwner.lifecycleScope.launch {
-                                    val info = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.extract(requireContext(), item.path)
-                                    val sz = if (info.sizeBytes > 0) android.text.format.Formatter.formatShortFileSize(requireContext(), info.sizeBytes)
-                                        else if (item.size > 0) android.text.format.Formatter.formatShortFileSize(requireContext(), item.size)
-                                        else getString(R.string.unknown_size)
-                                    val ds = if (info.duration > 0) info.formattedDuration
-                                        else if (item.duration > 0) "%d:%02d".format(item.duration / 60, item.duration % 60)
-                                        else "N/A"
-                                    val res = info.resolutionLabel.ifEmpty { "N/A" }
-                                    val msg = getString(R.string.dialog_video_info_message, item.path, item.extension.uppercase(), res, ds, sz)
-                                    android.app.AlertDialog.Builder(requireContext())
-                                        .setTitle(item.name)
-                                        .setMessage(msg)
-                                        .setPositiveButton(getString(R.string.action_ok), null)
-                                        .show()
-                                }
+                                fr.retrospare.blazeplayer.ui.VideoInfoDialog.show(
+                                    context = requireContext(),
+                                    scope = viewLifecycleOwner.lifecycleScope,
+                                    title = item.name,
+                                    mediaPath = item.path,
+                                    displayName = item.name,
+                                    extension = item.extension.uppercase(),
+                                    itemSizeBytes = item.size,
+                                    itemDurationSeconds = item.duration,
+                                    fullExtract = false
+                                )
                                 true
                             }
                             3 -> {
-                                val category = if (item.isNetwork) fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
-                                    else fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
+                                val category = when {
+                                    item.isCloud -> fr.retrospare.blazeplayer.playlist.PlaylistCategory.CLOUD_VIDEO
+                                    item.isNetwork -> fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
+                                    else -> fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
+                                }
                                 fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
                                     requireContext(), category,
                                     listOf(fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(item.path, item.name))

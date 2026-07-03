@@ -396,7 +396,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     tvAud?.text = video.audioCodec ?: ""
                     tvAud?.visibility = if (!video.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
 
-                    v.setOnClickListener {
+                    fun openVideo() {
                         startActivity(Intent(this@NetworkVideoBrowserActivity, PlayerActivity::class.java).apply {
                             putExtra("mediaPath", video.path)
                             putExtra("mediaName", video.name)
@@ -404,6 +404,9 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                             putExtra("networkShareId", share.id)
                         })
                     }
+
+                    v.setOnTouchListener(null)
+                    v.setOnClickListener { openVideo() }
 
                     v.findViewById<View>(R.id.btnMore)?.setOnClickListener { anchor ->
                         val popup = android.widget.PopupMenu(this@NetworkVideoBrowserActivity, anchor)
@@ -421,23 +424,17 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                                     true
                                 }
                                 2 -> {
-                                    lifecycleScope.launch {
-                                        val info = withContext(Dispatchers.IO) {
-                                            withTimeoutOrNull(8_000L) {
-                                                VideoMetadataExtractor.extractFull(this@NetworkVideoBrowserActivity, video.path)
-                                            } ?: VideoTechnicalInfo()
-                                        }
-                                        if (isFinishing || isDestroyed) return@launch
-                                        val sz = if (info.sizeBytes > 0) android.text.format.Formatter.formatShortFileSize(this@NetworkVideoBrowserActivity, info.sizeBytes) else getString(R.string.unknown_size)
-                                        val ds = if (info.duration > 0) info.formattedDuration else "N/A"
-                                        val res = info.resolutionLabel.ifEmpty { "N/A" }
-                                        val msg = getString(R.string.dialog_video_info_message, video.path, video.extension.uppercase(), res, ds, sz)
-                                        android.app.AlertDialog.Builder(this@NetworkVideoBrowserActivity)
-                                            .setTitle(video.name)
-                                            .setMessage(msg)
-                                            .setPositiveButton(getString(R.string.action_ok), null)
-                                            .show()
-                                    }
+                                    fr.retrospare.blazeplayer.ui.VideoInfoDialog.show(
+                                        context = this@NetworkVideoBrowserActivity,
+                                        scope = lifecycleScope,
+                                        title = video.name,
+                                        mediaPath = video.path,
+                                        displayName = video.name,
+                                        extension = video.extension.uppercase(),
+                                        itemSizeBytes = video.size,
+                                        itemDurationSeconds = video.duration,
+                                        fullExtract = true
+                                    )
                                     true
                                 }
                                 else -> false

@@ -7,7 +7,7 @@
     <!-- Onglets accueil -->
     <string name="tab_local">Local</string>
     <string name="tab_network">Réseau</string>
-    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <!-- Sections accueil -->
@@ -355,7 +355,7 @@
     <string name="hint_password">Mot de passe</string>
     <string name="hint_confirm_password">Confirmer le mot de passe</string>
 
-    <!-- fragment_home.xml : onglets Local/Réseau/Blaze Tube/Blaze Audio et sous-navigation -->
+    <!-- fragment_home.xml : onglets Local/Réseau/Blaze Gallery/Blaze Audio et sous-navigation -->
     <string name="history_network">Historique réseau</string>
     <string name="history_local">Historique local</string>
     <string name="history_label">Historique</string>
@@ -412,7 +412,7 @@
     <string name="paywall_pro_desc">Débloque le réseau SMB, Blaze Audio et le mini player.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Débloque Blaze Tube pour les vidéos YouTube et inclut toutes les fonctions Pro.</string>
+    <string name="paywall_pro_plus_desc">Débloque Blaze Gallery et inclut toutes les fonctions Pro.</string>
     <string name="paywall_buy_pro">Débloquer Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Débloquer Pro+ — 5,99 €</string>
     <string name="paywall_debug_unlocked">Mode debug : Pro et Pro+ sont temporairement débloqués.</string>
@@ -428,4 +428,64 @@
     <string name="action_off">Désactivé</string>
     <string name="video_setting_volume_boost">Boost volume</string>
     <string name="action_reset">Réinitialiser</string>
+
+    <!-- TMDb -->
+    <string name="tmdb_api_key" translatable="false"></string>
+    <string name="tmdb_section_title">Infos film</string>
+    <string name="tmdb_no_summary">Aucun résumé disponible.</string>
+    <string name="tmdb_no_result">Aucune affiche ou résumé trouvé sur Internet.</string>
+    <string name="tmdb_refresh">Actualiser les infos</string>
+    <string name="tmdb_api_key_missing"></string>
+    <string name="movie_runtime_label">Durée :</string>
+    <string name="movie_genres_label">Genres :</string>
+    <string name="movie_actors_label">Acteurs :</string>
+    <string name="movie_studio_label">Studio :</string>
+    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="cloud_providers_hint">Choisis un fichier audio ou vidéo depuis Google Drive, OneDrive, Dropbox ou un autre provider cloud installé.</string>
+    <string name="cloud_provider_subtitle">Ouvrir et parcourir les fichiers</string>
+    <string name="cloud_provider_all_files">Tous les fichiers cloud</string>
+    <string name="cloud_provider_all_files_subtitle">Ouvrir le sélecteur Android avec tous les providers disponibles</string>
+    <string name="cloud_no_known_provider">Aucun provider Drive, OneDrive ou Dropbox détecté. Tu peux quand même utiliser le sélecteur Android.</string>
+    <string name="cloud_no_picker">Aucun sélecteur de fichiers compatible trouvé</string>
+    <string name="cloud_media_fallback_name">Média cloud</string>
+
+    <string name="cloud_history">Blaze Gallery</string>
+    <string name="cloud_files">Tri</string>
+    <string name="cloud_unsupported_media">Ce fichier cloud n’est pas un média audio ou vidéo compatible.</string>
+
+    <string name="gallery_title">Blaze Gallery</string>
+    <string name="gallery_folders">Blaze Gallery — dossiers</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Tri</string>
+    <string name="gallery_sort_folder">Nom de dossier</string>
+    <string name="gallery_sort_date_desc">Date décroissante</string>
+    <string name="gallery_sort_date_asc">Date croissante</string>
+    <string name="gallery_sort_name">Ordre alphabétique</string>
+    <string name="gallery_sort_size">Taille de fichier</string>
+    <string name="gallery_unknown_folder">Dossier inconnu</string>
+    <string name="action_open">Ouvrir</string>
+    <string name="action_share">Partager</string>
+
+    <string name="gallery_trash">Corbeille</string>
+    <string name="gallery_empty_trash">Vider définitivement</string>
+    <string name="gallery_restore">Restaurer</string>
+    <string name="gallery_delete">Supprimer</string>
+    <string name="gallery_delete_folder">Supprimer dossier</string>
+    <string name="gallery_delete_permanently_from_trash">Supprimer définitivement de la corbeille</string>
+    <string name="gallery_moved_to_trash">Photo envoyée dans la corbeille</string>
+    <string name="gallery_delete_all">Supprimer tout</string>
+    <string name="gallery_share_all">Partager tout</string>
+    <string name="gallery_selected_count">%1$d sélectionnée(s)</string>
+    <string name="confirm_delete_title">Confirmer la suppression</string>
+    <string name="confirm_delete_photo_message">Envoyer cette photo dans la corbeille ?</string>
+    <string name="confirm_delete_folder_message">Envoyer toutes les photos de ce dossier dans la corbeille ?</string>
+    <string name="confirm_delete_selected_message">Envoyer les photos sélectionnées dans la corbeille ?</string>
+    <string name="confirm_empty_trash_message">Vider définitivement la corbeille ? Cette action est irréversible.</string>
+    <string name="confirm_permanent_delete_message">Supprimer définitivement cette photo de la corbeille ?</string>
+    <string name="action_confirm_delete">Supprimer</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
+
 </resources>

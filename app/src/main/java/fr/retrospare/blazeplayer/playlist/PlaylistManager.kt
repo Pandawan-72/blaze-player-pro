@@ -12,7 +12,8 @@ enum class PlaylistCategory(val prefKey: String, val label: String) {
     LOCAL_VIDEO("local_video", "Local"),
     NETWORK_VIDEO("network_video", "Réseau"),
     AUDIO("audio", "Audio"),
-    YOUTUBE("youtube", "Blaze Tube")
+    YOUTUBE("youtube", "Blaze Tube"),
+    CLOUD_VIDEO("cloud_video", "Cloud")
 }
 
 /** Nom traduit à afficher pour une catégorie de playlist. "Blaze Tube" est un nom de marque et
@@ -23,6 +24,7 @@ fun PlaylistCategory.displayLabel(context: Context): String = when (this) {
     PlaylistCategory.NETWORK_VIDEO -> context.getString(fr.retrospare.blazeplayer.R.string.category_network)
     PlaylistCategory.AUDIO -> context.getString(fr.retrospare.blazeplayer.R.string.category_audio)
     PlaylistCategory.YOUTUBE -> label
+    PlaylistCategory.CLOUD_VIDEO -> "Cloud"
 }
 
 /** Gère les playlists sauvegardées (5 emplacements par catégorie), en local via

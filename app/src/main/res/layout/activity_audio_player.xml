@@ -18,7 +18,7 @@
         <!-- HEADER -->
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="44dp"
             android:paddingHorizontal="16dp">
 
             <ImageButton
@@ -63,7 +63,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:paddingHorizontal="32dp"
-            android:paddingVertical="8dp">
+            android:paddingTop="0dp"
+            android:paddingBottom="4dp">
 
             <ImageView
                 android:id="@+id/ivArtwork"
@@ -246,12 +247,15 @@
 
             <ImageButton
                 android:id="@+id/btnPlayPause"
-                android:layout_width="72dp"
-                android:layout_height="72dp"
+                android:layout_width="78dp"
+                android:layout_height="78dp"
                 android:background="@drawable/bg_play_button"
+                android:elevation="10dp"
+                android:translationZ="6dp"
+                android:outlineProvider="background"
                 android:src="@drawable/ic_play"
                 android:tint="@color/background"
-                android:padding="18dp"
+                android:padding="19dp"
                 android:contentDescription="@string/content_desc_play_pause" />
 
             <ImageButton

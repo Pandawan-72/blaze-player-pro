@@ -18,6 +18,11 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * Service de lecture AUDIO basé sur [MediaSessionService] : c'est l'unique source de vérité pour
@@ -43,7 +48,11 @@ class BlazePlayerService : MediaSessionService() {
          *  récupérer l'audioSessionId courant du player, utilisé pour brancher l'égaliseur système
          *  (android.media.audiofx). Non exposé par l'API Player standard. */
         const val COMMAND_GET_AUDIO_SESSION_ID = "fr.retrospare.blazeplayer.GET_AUDIO_SESSION_ID"
+        const val COMMAND_PLAY_EXTERNAL_AUDIO = "fr.retrospare.blazeplayer.PLAY_EXTERNAL_AUDIO"
+        const val ACTION_PLAY_EXTERNAL_AUDIO = "fr.retrospare.blazeplayer.action.PLAY_EXTERNAL_AUDIO"
         const val EXTRA_AUDIO_SESSION_ID = "audioSessionId"
+        const val EXTRA_EXTERNAL_AUDIO_PATH = "path"
+        const val EXTRA_EXTERNAL_AUDIO_NAME = "name"
 
         // ID de notification et channel dédiés : Media3 utilise le même ID par défaut pour tous
         // les MediaSessionService de l'app si non personnalisé, ce qui faisait que la notification
@@ -57,11 +66,16 @@ class BlazePlayerService : MediaSessionService() {
     private var sessionPlayer: Player? = null
     private var eqManager: EqualizerManager? = null
     private val eqApplyHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 
     override fun onCreate() {
         super.onCreate()
+
+        // Media3 recommande de garder le Player et la MediaSession dans le MediaSessionService.
+        // On ne détruit/recrée plus le service pour chaque fichier externe : on remplace simplement
+        // la playlist du Player dans cette session stable. Cela évite les blocages de bind/release
+        // et les ANR au démarrage.
 
         // Notification/channel dédiés à l'audio, distincts de ceux de la vidéo (cf. constantes
         // ci-dessus) pour que les deux notifications coexistent sans se remplacer l'une l'autre.
@@ -167,6 +181,65 @@ class BlazePlayerService : MediaSessionService() {
             .build()
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_PLAY_EXTERNAL_AUDIO) {
+            val path = intent.getStringExtra(EXTRA_EXTERNAL_AUDIO_PATH).orEmpty()
+            val name = intent.getStringExtra(EXTRA_EXTERNAL_AUDIO_NAME).orEmpty().ifBlank {
+                android.net.Uri.parse(path).lastPathSegment?.substringAfterLast('/') ?: "Audio"
+            }
+            replaceWithExternalAudio(path, name)
+            return START_STICKY
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun replaceWithExternalAudio(path: String, name: String) {
+        if (path.isBlank()) return
+        try {
+            val p = sessionPlayer ?: player ?: return
+            val item = AudioRepository.buildSimpleMediaItem(applicationContext, path, name)
+
+            // ACTION_VIEW audio externe = lecture immédiate et prioritaire.
+            // Conforme Media3 : on conserve la même MediaSessionService et on remplace la queue
+            // du Player, au lieu de tuer/rebinder le service ou de passer par le Fragment.
+            p.setMediaItem(item, /* startPositionMs = */ 0L)
+            p.playWhenReady = true
+            p.prepare()
+            p.play()
+            persistAudioQueue()
+            enrichExternalAudioMetadataAsync(path, name)
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Replace external audio failed for $path", e)
+        }
+    }
+
+
+    private fun enrichExternalAudioMetadataAsync(path: String, fallbackName: String) {
+        if (path.isBlank()) return
+        serviceScope.launch {
+            val enriched = try {
+                // Lecture des tags/pochettes hors thread principal : la notification Media3 est
+                // ensuite mise à jour en remplaçant le MediaItem courant dans la session stable.
+                AudioRepository.buildMediaItemWithMetadata(applicationContext, path, fallbackName)
+            } catch (e: Exception) {
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Audio notification metadata enrichment failed for $path", e)
+                null
+            } ?: return@launch
+
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                try {
+                    val p = sessionPlayer ?: player ?: return@post
+                    val current = p.currentMediaItem ?: return@post
+                    if (current.mediaId != path) return@post
+                    p.replaceMediaItem(p.currentMediaItemIndex, enriched)
+                    persistAudioQueue()
+                } catch (e: Exception) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Apply audio notification metadata failed for $path", e)
+                }
+            }
+        }
+    }
+
     private fun restoreEqualizerForPlayer(exoPlayer: ExoPlayer, attempt: Int = 0) {
         val sessionId = exoPlayer.audioSessionId
         if (sessionId <= 0 && attempt < 10) {
@@ -252,6 +325,7 @@ class BlazePlayerService : MediaSessionService() {
             val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
                 .buildUpon()
                 .add(SessionCommand(COMMAND_GET_AUDIO_SESSION_ID, Bundle.EMPTY))
+                .add(SessionCommand(COMMAND_PLAY_EXTERNAL_AUDIO, Bundle.EMPTY))
                 .build()
             return MediaSession.ConnectionResult.accept(
                 sessionCommands,
@@ -270,6 +344,17 @@ class BlazePlayerService : MediaSessionService() {
                     putInt(EXTRA_AUDIO_SESSION_ID, player?.audioSessionId ?: 0)
                 }
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, resultExtras))
+            }
+            if (customCommand.customAction == COMMAND_PLAY_EXTERNAL_AUDIO) {
+                val path = args.getString(EXTRA_EXTERNAL_AUDIO_PATH).orEmpty()
+                val name = args.getString(EXTRA_EXTERNAL_AUDIO_NAME).orEmpty().ifBlank {
+                    android.net.Uri.parse(path).lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                }
+                if (path.isBlank()) return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
+
+                // Même chemin que l'intent direct du service : remplacement strict et lecture immédiate.
+                replaceWithExternalAudio(path, name)
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
         }
@@ -295,16 +380,19 @@ class BlazePlayerService : MediaSessionService() {
     }
 
     override fun onDestroy() {
-        persistAudioQueue()
         try { eqApplyHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
-        try { mainHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
-        try { mediaSession?.release() } catch (_: Exception) {}
-        try { eqManager?.release() } catch (_: Exception) {}
-        try { player?.release() } catch (_: Exception) {}
+        try { serviceScope.cancel() } catch (_: Exception) {}
+        val sessionToRelease = mediaSession
+        val eqToRelease = eqManager
+        val playerToRelease = player
         mediaSession = null
         eqManager = null
         sessionPlayer = null
         player = null
+        try { sessionToRelease?.release() } catch (_: Exception) {}
+        try { eqToRelease?.release() } catch (_: Exception) {}
+        try { playerToRelease?.release() } catch (_: Exception) {}
         super.onDestroy()
     }
+
 }

@@ -1,11 +1,17 @@
 package fr.retrospare.blazeplayer.player
 
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Build
 import android.graphics.ColorMatrix
+import android.content.ContentValues
+import android.graphics.Bitmap
+import android.provider.MediaStore
+import android.os.Environment
+import android.view.TextureView
 import android.graphics.RenderEffect
 import android.content.res.Configuration
 import android.os.Handler
@@ -126,6 +132,70 @@ class PlayerActivity : AppCompatActivity() {
     private var closingPlayerExplicitly = false
     private var lastProgressPersistAt = 0L
 
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleReplacementIntent(intent)
+    }
+
+    /**
+     * PlayerActivity est en singleTop : quand l'utilisateur clique un second fichier vidéo dans
+     * un explorateur Android, l'Activity existante reçoit onNewIntent() au lieu d'être recréée.
+     * On doit donc remplacer le média courant explicitement, comme si l'utilisateur avait choisi
+     * une autre vidéo depuis l'app.
+     */
+    private fun handleReplacementIntent(intent: Intent?) {
+        intent ?: return
+        val externalMedia = ExternalMediaIntentUtils.fromExternalIntent(this, intent)
+        if (externalMedia?.kind == ExternalMediaIntentUtils.ExternalMedia.Kind.AUDIO) {
+            startActivity(Intent(this, AudioPlayerActivity::class.java).apply {
+                putExtra("mediaPath", externalMedia.path)
+                putExtra("mediaName", externalMedia.name)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                data = externalMedia.uri
+                clipData = android.content.ClipData.newUri(contentResolver, externalMedia.name, externalMedia.uri)
+            })
+            finish()
+            return
+        }
+
+        val newPath = intent.getStringExtra("mediaPath") ?: externalMedia?.path ?: return
+        val newName = intent.getStringExtra("mediaName") ?: externalMedia?.name ?: File(newPath).name
+        if (newPath.isBlank() || newPath == mediaPath) {
+            if (::player.isInitialized) {
+                player.seekTo(0L)
+                player.play()
+            }
+            return
+        }
+
+        if (newPath.startsWith("content://", true)) {
+            try {
+                val grantUri = externalMedia?.uri ?: intent.data ?: Uri.parse(newPath)
+                grantUriPermission(packageName, grantUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (_: Exception) {}
+        }
+
+        videoQueuePaths.clear()
+        videoQueueNames.clear()
+        videoQueueIndex = 0
+        isNetworkMedia = intent.getBooleanExtra("isNetworkMedia", false) ||
+            newPath.startsWith("smb://", true) || newPath.startsWith("ftp://", true) ||
+            newPath.startsWith("http://", true) || newPath.startsWith("https://", true)
+
+        if (::player.isInitialized && playerReady.isCompleted) {
+            switchTo(newPath, newName)
+        } else {
+            mediaPath = newPath
+            mediaName = newName
+            lifecycleScope.launch {
+                playerReady.await()
+                if (!isFinishing && !isDestroyed) switchTo(newPath, newName)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -152,11 +222,18 @@ class PlayerActivity : AppCompatActivity() {
             insets
         }
 
-        mediaPath = intent.getStringExtra("mediaPath") ?: return finish()
+        val externalMedia = ExternalMediaIntentUtils.fromExternalIntent(this, intent)
+        mediaPath = intent.getStringExtra("mediaPath") ?: externalMedia?.path ?: return finish()
         intent.getStringArrayListExtra("queuePaths")?.let { videoQueuePaths = it }
         intent.getStringArrayListExtra("queueNames")?.let { videoQueueNames = it }
         videoQueueIndex = intent.getIntExtra("queueIndex", 0)
-        mediaName = intent.getStringExtra("mediaName") ?: File(mediaPath).name
+        mediaName = intent.getStringExtra("mediaName") ?: externalMedia?.name ?: File(mediaPath).name
+        if (mediaPath.startsWith("content://", true)) {
+            try {
+                val grantUri = externalMedia?.uri ?: intent.data ?: Uri.parse(mediaPath)
+                grantUriPermission(packageName, grantUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (_: Exception) {}
+        }
         isNetworkMedia = intent.getBooleanExtra("isNetworkMedia", false) || mediaPath.startsWith("smb://", true) || mediaPath.startsWith("ftp://", true) || mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true)
 
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
@@ -408,7 +485,23 @@ class PlayerActivity : AppCompatActivity() {
             // Cast, mais la lecture attend le choix de l'utilisateur.
             player.pause()
         }
+        loadNotificationMetadata(path, name)
         loadNotificationArtwork(path)
+    }
+
+    private fun loadNotificationMetadata(path: String, name: String) {
+        if (name.isBlank()) return
+        val args = android.os.Bundle().apply {
+            putString(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_MEDIA_ID, path)
+            putString(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_METADATA_TITLE, name.substringBeforeLast('.').ifBlank { name })
+        }
+        (player as? MediaController)?.sendCustomCommand(
+            androidx.media3.session.SessionCommand(
+                fr.retrospare.blazeplayer.player.VideoPlaybackService.CUSTOM_COMMAND_SET_VIDEO_METADATA,
+                android.os.Bundle.EMPTY
+            ),
+            args
+        )
     }
 
     /** Récupère la miniature (locale ou réseau, via le même cache que le reste de l'app) et
@@ -466,10 +559,11 @@ class PlayerActivity : AppCompatActivity() {
                 val args = android.os.Bundle().apply {
                     putString(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_MEDIA_ID, path)
                     putByteArray(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_DATA, artworkData)
+                    putString(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_METADATA_TITLE, mediaName.substringBeforeLast('.').ifBlank { mediaName })
                 }
                 val future = (player as? MediaController)?.sendCustomCommand(
                     androidx.media3.session.SessionCommand(
-                        fr.retrospare.blazeplayer.player.VideoPlaybackService.CUSTOM_COMMAND_SET_ARTWORK,
+                        fr.retrospare.blazeplayer.player.VideoPlaybackService.CUSTOM_COMMAND_SET_VIDEO_METADATA,
                         android.os.Bundle.EMPTY
                     ),
                     args
@@ -1044,11 +1138,11 @@ class PlayerActivity : AppCompatActivity() {
     private fun applyResponsivePlayerLayout() {
         val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-        (binding.btnPlayPause.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
+        (binding.playPauseStack.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
             val margin = if (landscape) dp(34) else dp(18)
             lp.marginStart = margin
             lp.marginEnd = margin
-            binding.btnPlayPause.layoutParams = lp
+            binding.playPauseStack.layoutParams = lp
         }
 
         binding.bottomControlsContainer.setPadding(
@@ -1114,6 +1208,11 @@ class PlayerActivity : AppCompatActivity() {
             scheduleHide()
         }
 
+        binding.btnScreenshot.setOnClickListener {
+            captureCurrentVideoFrame()
+            scheduleHide()
+        }
+
         binding.btnRewind.setOnClickListener {
             if (!::player.isInitialized) return@setOnClickListener
             player.seekTo((player.currentPosition - seekMs()).coerceAtLeast(0))
@@ -1150,6 +1249,104 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+
+
+    /** Capture uniquement la surface vidéo (TextureView) : l'overlay des contrôles n'est donc jamais
+     * inclus dans l'image. Le fichier est enregistré dans Images/Blaze Screenshots. */
+    private fun captureCurrentVideoFrame() {
+        if (!::player.isInitialized) return
+        if (player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) {
+            android.widget.Toast.makeText(this, "Capture indisponible pendant la diffusion Cast", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val textureView = binding.playerView.videoSurfaceView as? TextureView
+        if (textureView == null || !textureView.isAvailable) {
+            android.widget.Toast.makeText(this, "Capture vidéo indisponible", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val bitmap = try {
+            textureView.bitmap ?: textureView.getBitmap(textureView.width, textureView.height)
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Video screenshot capture failed for $mediaPath", e)
+            null
+        }
+        if (bitmap == null || bitmap.width <= 0 || bitmap.height <= 0) {
+            android.widget.Toast.makeText(this, "Capture vidéo impossible", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val currentName = mediaName.ifBlank { File(mediaPath).name }.substringBeforeLast('.', mediaName.ifBlank { "video" })
+        val filename = "${sanitizeScreenshotPart(currentName)}_${formatScreenshotTimecode(player.currentPosition)}_screenshot.jpg"
+        lifecycleScope.launch(Dispatchers.IO) {
+            val saved = saveScreenshotBitmap(bitmap, filename)
+            try { bitmap.recycle() } catch (_: Exception) {}
+            withContext(Dispatchers.Main) {
+                if (isFinishing || isDestroyed) return@withContext
+                android.widget.Toast.makeText(
+                    this@PlayerActivity,
+                    if (saved) "Screenshot enregistré dans Images/Blaze Screenshots" else "Erreur lors de l’enregistrement du screenshot",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun saveScreenshotBitmap(bitmap: Bitmap, filename: String): Boolean {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                    put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                    put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + File.separator + "Blaze Screenshots")
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                }
+                val resolver = contentResolver
+                val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return false
+                try {
+                    resolver.openOutputStream(uri)?.use { out ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                    } ?: return false
+                    values.clear()
+                    values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    resolver.update(uri, values, null, null)
+                    true
+                } catch (e: Exception) {
+                    try { resolver.delete(uri, null, null) } catch (_: Exception) {}
+                    CrashReporter.log(this, "Video screenshot save failed for $mediaPath", e)
+                    false
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Blaze Screenshots")
+                if (!dir.exists() && !dir.mkdirs()) return false
+                val file = File(dir, filename)
+                file.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out) }
+                @Suppress("DEPRECATION")
+                sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)))
+                true
+            }
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Video screenshot save failed for $mediaPath", e)
+            false
+        }
+    }
+
+    private fun sanitizeScreenshotPart(raw: String): String {
+        return raw.trim()
+            .replace(Regex("[\\\\/:*?\"<>|]+"), "_")
+            .replace(Regex("\\s+"), "_")
+            .trim('_')
+            .ifBlank { "video" }
+            .take(80)
+    }
+
+    private fun formatScreenshotTimecode(ms: Long): String {
+        val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
+        val hours = totalSeconds / 3600L
+        val minutes = (totalSeconds % 3600L) / 60L
+        val seconds = totalSeconds % 60L
+        return "%02d-%02d-%02d".format(Locale.US, hours, minutes, seconds)
+    }
 
     /**
      * Bouton STOP du lecteur vidéo.
@@ -1761,43 +1958,90 @@ class PlayerActivity : AppCompatActivity() {
         return list[targetIdx]
     }
 
-    private fun saveHistory() {
+
+    private data class ExternalVideoHistoryInfo(val name: String, val extension: String)
+
+    private fun resolveExternalVideoHistoryInfo(path: String, fallbackName: String): ExternalVideoHistoryInfo {
         fun guessExt(value: String): String {
             val cleaned = value.substringBefore('?').substringBefore('#')
             val ext = cleaned.substringAfterLast('.', "").lowercase()
             return ext.takeIf { it.length in 2..5 && it.all { c -> c.isLetterOrDigit() } } ?: ""
         }
-        val ext = guessExt(mediaName).ifBlank { guessExt(mediaPath) }
-        val isNetwork = isNetworkMedia || mediaPath.startsWith("smb://", true) || mediaPath.startsWith("ftp://", true) || mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true)
+        var resolvedName = fallbackName
+        var mimeExt = ""
+        if (path.startsWith("content://", true)) {
+            val uri = Uri.parse(path)
+            try {
+                contentResolver.query(
+                    uri,
+                    arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),
+                    null,
+                    null,
+                    null
+                )?.use { c ->
+                    val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0 && c.moveToFirst()) {
+                        resolvedName = c.getString(idx)?.takeIf { it.isNotBlank() } ?: resolvedName
+                    }
+                }
+            } catch (_: Exception) { }
+            try {
+                val mime = contentResolver.getType(uri).orEmpty()
+                mimeExt = android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(mime).orEmpty().lowercase()
+            } catch (_: Exception) { }
+        }
+        val extension = guessExt(resolvedName).ifBlank { guessExt(path) }.ifBlank { mimeExt }
+        return ExternalVideoHistoryInfo(resolvedName, extension)
+    }
+
+    private fun saveHistory() {
+        val pathSnapshot = mediaPath
+        val nameSnapshot = mediaName
+        val networkShareIdSnapshot = intent.getStringExtra("networkShareId")
+        val isCloud = intent.getBooleanExtra("isCloudMedia", false)
+        val isNetwork = !isCloud && (isNetworkMedia || pathSnapshot.startsWith("smb://", true) || pathSnapshot.startsWith("ftp://", true) || pathSnapshot.startsWith("http://", true) || pathSnapshot.startsWith("https://", true))
         lifecycleScope.launch(Dispatchers.IO) {
+            // Pour les vidéos ouvertes depuis un explorateur Android, l'intent content:// ne donne
+            // pas toujours le vrai nom dans lastPathSegment. Contrairement au décodage initial
+            // (chemin critique de lecture), on peut interroger OpenableColumns ici en tâche IO et
+            // bornée dans le temps afin que l'historique de l'accueil affiche le même titre/badge
+            // que les vidéos ouvertes depuis le navigateur in-app.
+            val historyInfo = withTimeoutOrNull(1200) {
+                resolveExternalVideoHistoryInfo(pathSnapshot, nameSnapshot)
+            } ?: resolveExternalVideoHistoryInfo("", nameSnapshot)
+            val historyName = historyInfo.name
+            val ext = historyInfo.extension
+
             // Sauvegarde d'abord un historique minimal, sans extraction — l'extraction SMB au
             // lancement de la lecture (en parallèle de l'initialisation du service vidéo)
             // pouvait contribuer à un ANR au clic sur une vidéo. L'entrée est enrichie ensuite,
-            // sans urgence, avec un délai maximal pour ne jamais bloquer indéfiniment (ex:
-            // partage réseau qui répond très lentement).
+            // sans urgence, avec un délai maximal pour ne jamais bloquer indéfiniment.
             mediaRepository.saveRecentItem(fr.retrospare.blazeplayer.data.model.MediaItem(
-                id = mediaPath, name = mediaName, path = mediaPath,
-                extension = ext, mimeType = "video/$ext",
+                id = pathSnapshot, name = historyName, path = pathSnapshot,
+                extension = ext, mimeType = if (ext.isNotBlank()) "video/$ext" else "video/*",
                 isNetwork = isNetwork,
-                networkShareId = intent.getStringExtra("networkShareId"),
+                isCloud = isCloud,
+                networkShareId = networkShareIdSnapshot,
                 lastPlayedAt = System.currentTimeMillis()
             ))
 
             val info = withTimeoutOrNull(1500) {
-                VideoMetadataExtractor.extractLight(applicationContext, mediaPath)
+                VideoMetadataExtractor.extractLight(applicationContext, pathSnapshot)
             } ?: VideoTechnicalInfo()
 
-            if (info.duration > 0L || info.videoCodec.isNotEmpty() || info.audioCodec.isNotEmpty()) {
+            val container = info.container.lowercase().ifBlank { ext }
+            if (info.duration > 0L || info.videoCodec.isNotEmpty() || info.audioCodec.isNotEmpty() || container.isNotBlank()) {
                 mediaRepository.saveRecentItem(fr.retrospare.blazeplayer.data.model.MediaItem(
-                    id = mediaPath, name = mediaName, path = mediaPath,
-                    extension = info.container.lowercase().ifBlank { ext }, mimeType = "video/${info.container.lowercase().ifBlank { ext }}",
+                    id = pathSnapshot, name = historyName, path = pathSnapshot,
+                    extension = container, mimeType = if (container.isNotBlank()) "video/$container" else "video/*",
                     duration = info.duration,
                     size = info.sizeBytes,
                     resolution = info.qualityBadge,
                     videoCodec = info.videoCodec,
                     audioCodec = info.audioCodec,
                     isNetwork = isNetwork,
-                    networkShareId = intent.getStringExtra("networkShareId"),
+                    isCloud = isCloud,
+                    networkShareId = networkShareIdSnapshot,
                     lastPlayedAt = System.currentTimeMillis()
                 ))
             }

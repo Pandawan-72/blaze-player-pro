@@ -9,12 +9,14 @@ data class MediaItem(
     val lastPosition: Long = 0L,
     val lastPlayedAt: Long = 0L,
     val isNetwork: Boolean = false,
+    val isCloud: Boolean = false,
     val networkShareId: String? = null,
     val resolution: String? = null,
     val extension: String = "",
     val mimeType: String = "",
     val videoCodec: String? = null,
-    val audioCodec: String? = null
+    val audioCodec: String? = null,
+    val previewUris: List<String> = emptyList()
 ) {
     val formattedDuration: String
         get() {

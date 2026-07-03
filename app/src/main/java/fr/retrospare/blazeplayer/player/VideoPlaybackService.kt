@@ -60,8 +60,10 @@ class VideoPlaybackService : MediaSessionService() {
         // de Media3 quand replaceMediaItem() n'est pas appelé directement sur l'instance qui sert
         // la session.
         const val CUSTOM_COMMAND_SET_ARTWORK = "fr.retrospare.blazeplayer.SET_ARTWORK"
+        const val CUSTOM_COMMAND_SET_VIDEO_METADATA = "fr.retrospare.blazeplayer.SET_VIDEO_METADATA"
         const val EXTRA_ARTWORK_MEDIA_ID = "media_id"
         const val EXTRA_ARTWORK_DATA = "artwork_data"
+        const val EXTRA_METADATA_TITLE = "title"
         const val CUSTOM_COMMAND_SET_VOLUME_BOOST = "fr.retrospare.blazeplayer.SET_VOLUME_BOOST"
         const val EXTRA_VOLUME_BOOST_PERCENT = "volume_boost_percent"
         const val EXTRA_DIALOGUE_MODE_PERCENT = "dialogue_mode_percent"
@@ -217,6 +219,7 @@ class VideoPlaybackService : MediaSessionService() {
                     val defaultResult = super.onConnect(session, controller)
                     val sessionCommands = defaultResult.availableSessionCommands.buildUpon()
                         .add(SessionCommand(CUSTOM_COMMAND_SET_ARTWORK, Bundle.EMPTY))
+                        .add(SessionCommand(CUSTOM_COMMAND_SET_VIDEO_METADATA, Bundle.EMPTY))
                         .add(SessionCommand(CUSTOM_COMMAND_SET_VOLUME_BOOST, Bundle.EMPTY))
                         .build()
                     return MediaSession.ConnectionResult.accept(sessionCommands, defaultResult.availablePlayerCommands)
@@ -230,6 +233,24 @@ class VideoPlaybackService : MediaSessionService() {
                 ): ListenableFuture<SessionResult> {
                     if (customCommand.customAction == CUSTOM_COMMAND_SET_VOLUME_BOOST) {
                         applyVideoAudioEffects(args.getInt(EXTRA_VOLUME_BOOST_PERCENT, 0), args.getInt(EXTRA_DIALOGUE_MODE_PERCENT, lastDialogueModePercent))
+                        return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                    }
+                    if (customCommand.customAction == CUSTOM_COMMAND_SET_VIDEO_METADATA) {
+                        val mediaId = args.getString(EXTRA_ARTWORK_MEDIA_ID)
+                        val title = args.getString(EXTRA_METADATA_TITLE).orEmpty()
+                        val artworkData = args.getByteArray(EXTRA_ARTWORK_DATA)
+                        val current = session.player.currentMediaItem
+                        if (current != null && current.mediaId == mediaId) {
+                            val metaBuilder = current.mediaMetadata.buildUpon()
+                            if (title.isNotBlank()) metaBuilder.setTitle(title)
+                            if (artworkData != null) {
+                                try { fr.retrospare.blazeplayer.ui.ThumbnailUtils.cacheArtworkData(applicationContext, mediaId, artworkData) } catch (_: Exception) {}
+                                metaBuilder.setArtworkData(artworkData, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                            }
+                            val updated = current.buildUpon().setMediaMetadata(metaBuilder.build()).build()
+                            session.player.replaceMediaItem(session.player.currentMediaItemIndex, updated)
+                            mediaSession?.setSessionActivity(buildOpenIntent(mediaId, title.ifBlank { current.mediaMetadata.title?.toString() }))
+                        }
                         return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                     }
                     if (customCommand.customAction == CUSTOM_COMMAND_SET_ARTWORK) {

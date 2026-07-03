@@ -6,7 +6,7 @@
 
     <string name="tab_local">Locale</string>
     <string name="tab_network">Rete</string>
-    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <string name="section_local_history">Cronologia locale</string>
@@ -380,7 +380,7 @@
     <string name="paywall_pro_desc">Sblocca rete SMB, Blaze Audio e mini player.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Sblocca Blaze Tube per i video YouTube e include tutte le funzioni Pro.</string>
+    <string name="paywall_pro_plus_desc">Sblocca Blaze Gallery per i galleria e include tutte le funzioni Pro.</string>
     <string name="paywall_buy_pro">Sblocca Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Sblocca Pro+ — 5,99 €</string>
     <string name="paywall_debug_unlocked">Modalità debug: Pro e Pro+ sono temporaneamente sbloccati.</string>
@@ -396,4 +396,59 @@
     <string name="action_off">Disattivato</string>
     <string name="video_setting_volume_boost">Boost volume</string>
     <string name="action_reset">Ripristina</string>
+
+    <!-- TMDb -->
+    <string name="tmdb_section_title">Info film</string>
+    <string name="tmdb_no_summary">Nessun riassunto disponibile.</string>
+    <string name="tmdb_no_result">Nessun poster o riassunto trovato su Internet.</string>
+    <string name="tmdb_refresh">Aggiorna info</string>
+    <string name="tmdb_api_key_missing"></string>
+    <string name="movie_runtime_label">Durata:</string>
+    <string name="movie_genres_label">Generi:</string>
+    <string name="movie_actors_label">Attori:</string>
+    <string name="movie_studio_label">Studio:</string>
+    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="cloud_history">Cronologia Cloud</string>
+    <string name="cloud_files">File cloud</string>
+    <string name="cloud_providers_hint">Scegli un file audio o video da Google Drive, OneDrive, Dropbox o da un altro provider cloud installato.</string>
+    <string name="cloud_provider_subtitle">Apri e sfoglia i file</string>
+    <string name="cloud_provider_all_files">Tutti i file cloud</string>
+    <string name="cloud_provider_all_files_subtitle">Apri il selettore Android con tutti i provider disponibili</string>
+    <string name="cloud_no_known_provider">Nessun provider Drive, OneDrive o Dropbox rilevato. Puoi comunque usare il selettore Android.</string>
+    <string name="cloud_no_picker">Nessun selettore file compatibile trovato</string>
+    <string name="cloud_media_fallback_name">Media cloud</string>
+    <string name="cloud_unsupported_media">Questo file cloud non è un media audio o video compatibile.</string>
+
+    <!-- Blaze Gallery -->
+    <string name="gallery_title">Blaze Gallery</string>
+    <string name="gallery_folders">Blaze Gallery — cartelle</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Ordina</string>
+    <string name="gallery_sort_folder">Nome cartella</string>
+    <string name="gallery_sort_date_desc">Più recenti prima</string>
+    <string name="gallery_sort_date_asc">Meno recenti prima</string>
+    <string name="gallery_sort_name">Ordine alfabetico</string>
+    <string name="gallery_sort_size">Dimensione file</string>
+    <string name="gallery_unknown_folder">Cartella sconosciuta</string>
+    <string name="gallery_trash">Cestino</string>
+    <string name="gallery_empty_trash">Svuota definitivamente</string>
+    <string name="gallery_restore">Ripristina</string>
+    <string name="gallery_delete">Elimina</string>
+    <string name="gallery_delete_folder">Elimina cartella</string>
+    <string name="gallery_delete_permanently_from_trash">Elimina definitivamente dal cestino</string>
+    <string name="gallery_moved_to_trash">Foto spostata nel cestino</string>
+    <string name="gallery_delete_all">Elimina tutto</string>
+    <string name="gallery_share_all">Condividi tutto</string>
+    <string name="gallery_selected_count">%1$d selezionata/e</string>
+    <string name="confirm_delete_title">Conferma eliminazione</string>
+    <string name="confirm_delete_photo_message">Spostare questa foto nel cestino?</string>
+    <string name="confirm_delete_folder_message">Spostare tutte le foto di questa cartella nel cestino?</string>
+    <string name="confirm_delete_selected_message">Spostare le foto selezionate nel cestino?</string>
+    <string name="confirm_empty_trash_message">Svuotare definitivamente il cestino? Questa azione non può essere annullata.</string>
+    <string name="confirm_permanent_delete_message">Eliminare definitivamente questa foto dal cestino?</string>
+    <string name="action_confirm_delete">Elimina</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d foto</item>
+        <item quantity="other">%d foto</item>
+    </plurals>
 </resources>

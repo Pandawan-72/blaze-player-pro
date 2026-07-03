@@ -38,6 +38,11 @@ object PlayerRouter {
         val intent = Intent(context, PlayerActivity::class.java).apply {
             putExtra("mediaPath", path)
             putExtra("mediaName", name)
+            if (path.startsWith("content://", ignoreCase = true)) {
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                data = android.net.Uri.parse(path)
+                clipData = android.content.ClipData.newUri(context.contentResolver, name, android.net.Uri.parse(path))
+            }
         }
         context.startActivity(intent)
     }
@@ -63,6 +68,11 @@ object PlayerRouter {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("openAudioPath", path)
             putExtra("openAudioName", name)
+            if (path.startsWith("content://", ignoreCase = true)) {
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                data = android.net.Uri.parse(path)
+                clipData = android.content.ClipData.newUri(context.contentResolver, name, android.net.Uri.parse(path))
+            }
         }
         context.startActivity(intent)
     }

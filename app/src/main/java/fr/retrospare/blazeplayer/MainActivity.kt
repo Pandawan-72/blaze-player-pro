@@ -222,6 +222,9 @@ class MainActivity : AppCompatActivity() {
     /** Traite les intents demandant l'ouverture d'un fichier audio (depuis PlayerRouter) ou le
      *  retour à l'écran audio (depuis la notification/sessionActivity de BlazePlayerService). */
     private fun handleAudioIntent(intent: Intent) {
+        if (handleExternalAudioLaunchIntent(intent)) return
+        handleExternalViewIntent(intent)?.let { return }
+
         val audioPath = intent.getStringExtra("openAudioPath")
         if (audioPath != null) {
             val audioName = intent.getStringExtra("openAudioName") ?: ""
@@ -244,12 +247,113 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun openAudioPlayer(path: String, name: String) {
+
+
+    private fun handleExternalAudioLaunchIntent(intent: Intent): Boolean {
+        val path = intent.getStringExtra("externalAudioPath") ?: return false
+        val name = intent.getStringExtra("externalAudioName")
+            ?: intent.data?.lastPathSegment?.substringAfterLast('/')
+            ?: "Audio"
+        startExternalAudioInMain(path, name, intent.data)
+        intent.removeExtra("externalAudioPath")
+        intent.removeExtra("externalAudioName")
+        consumeExternalIntent(intent)
+        return true
+    }
+
+    private fun startExternalAudioInMain(path: String, name: String, grantUri: android.net.Uri?) {
+        try {
+            if (grantUri?.scheme == android.content.ContentResolver.SCHEME_CONTENT) {
+                grantUriPermission(packageName, grantUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        } catch (_: Exception) {}
+
+        startService(Intent(this, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java).apply {
+            action = fr.retrospare.blazeplayer.player.BlazePlayerService.ACTION_PLAY_EXTERNAL_AUDIO
+            putExtra(fr.retrospare.blazeplayer.player.BlazePlayerService.EXTRA_EXTERNAL_AUDIO_PATH, path)
+            putExtra(fr.retrospare.blazeplayer.player.BlazePlayerService.EXTRA_EXTERNAL_AUDIO_NAME, name)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            if (grantUri != null) {
+                data = grantUri
+                clipData = android.content.ClipData.newUri(contentResolver, name, grantUri)
+            }
+        })
+
+        handler.postDelayed({
+            openBlazeAudio()
+            miniPlayerVm.refresh()
+        }, 120L)
+    }
+
+    /** Ouvre les fichiers envoyés par Android depuis Galerie / explorateur de fichiers
+     *  (ACTION_VIEW “Ouvrir avec”, ACTION_SEND/SEND_MULTIPLE “Partager”). */
+    private fun handleExternalViewIntent(intent: Intent): Boolean {
+        val external = fr.retrospare.blazeplayer.player.ExternalMediaIntentUtils.fromExternalIntent(this, intent)
+            ?: return false
+        try {
+            if (external.uri.scheme == android.content.ContentResolver.SCHEME_CONTENT) {
+                grantUriPermission(packageName, external.uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        } catch (_: Exception) {}
+
+        when (external.kind) {
+            fr.retrospare.blazeplayer.player.ExternalMediaIntentUtils.ExternalMedia.Kind.AUDIO -> {
+                // Les fichiers audio externes doivent s'ouvrir dans l'interface principale afin de
+                // conserver la barre d'onglets (Local / Réseau / Blaze Tube / Blaze Audio). On ne
+                // passe plus par AudioPlayerActivity plein écran : MainActivity démarre le
+                // MediaSessionService stable, qui remplace strictement la file par le fichier cliqué,
+                // puis affiche l'onglet Blaze Audio.
+                startExternalAudioInMain(external.path, external.name, external.uri)
+                consumeExternalIntent(intent)
+                return true
+            }
+            fr.retrospare.blazeplayer.player.ExternalMediaIntentUtils.ExternalMedia.Kind.VIDEO -> {
+                val videoIntent = Intent(this, fr.retrospare.blazeplayer.player.PlayerActivity::class.java).apply {
+                    putExtra("mediaPath", external.path)
+                    putExtra("mediaName", external.name)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    data = external.uri
+                    clipData = android.content.ClipData.newUri(contentResolver, external.name, external.uri)
+                }
+                startActivity(videoIntent)
+                consumeExternalIntent(intent)
+                return true
+            }
+            fr.retrospare.blazeplayer.player.ExternalMediaIntentUtils.ExternalMedia.Kind.UNKNOWN -> {
+                // Fallback : on garde le comportement le plus permissif possible.
+                fr.retrospare.blazeplayer.player.PlayerRouter.open(this, external.path, external.name)
+                consumeExternalIntent(intent)
+                return true
+            }
+        }
+    }
+
+    private fun consumeExternalIntent(intent: Intent) {
+        intent.data = null
+        intent.clipData = null
+        intent.removeExtra(Intent.EXTRA_STREAM)
+        intent.action = null
+        intent.type = null
+    }
+
+    private fun openAudioPlayerWithRetry(path: String, name: String, attempt: Int = 0) {
+        val opened = openAudioPlayer(path, name)
+        if (!opened && attempt < 10) {
+            handler.postDelayed({ openAudioPlayerWithRetry(path, name, attempt + 1) }, 200L)
+        }
+    }
+
+    private fun openAudioPlayer(path: String, name: String): Boolean {
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
         val homeFragment = navHost?.childFragmentManager?.fragments
             ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
             ?.firstOrNull()
-        homeFragment?.openAudioPlayer(path, name)
+        return if (homeFragment != null) {
+            homeFragment.openAudioPlayer(path, name)
+            true
+        } else {
+            false
+        }
     }
 
     private fun switchToTab(index: Int) {

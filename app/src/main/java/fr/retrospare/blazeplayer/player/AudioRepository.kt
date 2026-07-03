@@ -55,7 +55,7 @@ object AudioRepository {
             .putLong(KEY_POSITION_MS, positionMs.coerceAtLeast(0L))
             .putInt(KEY_REPEAT_MODE, repeatMode)
             .putBoolean(KEY_SHUFFLE, shuffle)
-            .commit()
+            .apply()
     }
 
     fun loadState(context: Context): AudioQueueState {
@@ -86,9 +86,13 @@ object AudioRepository {
     }
 
     /**
-     * Construit un MediaItem minimal sans ouvrir de connexion (pas de metadata, pas de cover).
-     * Utilise pour un ajout immediat et rapide a la playlist (notamment reseau SMB),
-     * les metadonnees etant ensuite chargees en arriere-plan.
+     * Construit un MediaItem minimal sans I/O. Important pour les intents Android externes
+     * (Ouvrir avec depuis un gestionnaire de fichiers) : cette methode peut etre appelee
+     * depuis le thread UI pendant le demarrage de l'app. Elle ne doit donc ni lire le disque
+     * (cache artwork/metadonnees), ni ouvrir de ContentResolver/MediaMetadataRetriever.
+     *
+     * Les metadonnees et pochettes sont enrichies ensuite depuis AudioPlayerFragment sur
+     * Dispatchers.IO via buildMediaItemWithMetadata().
      */
     /**
      * URI utilisee par le player LOCAL. Important : ne pas router la lecture locale via le
@@ -104,22 +108,44 @@ object AudioRepository {
     /** Extras purement locaux pour restaurer un chemin audio fiable. */
     private const val EXTRA_ORIGINAL_PATH = "blaze_original_path"
     private const val EXTRA_MEDIA_KIND = "blaze_media_kind"
+    const val EXTRA_CONTAINER_EXTENSION = "blaze_container_extension"
 
-    private fun localExtras(path: String): Bundle = Bundle().apply {
+    private fun localExtras(path: String, containerExtension: String = ""): Bundle = Bundle().apply {
         putString(EXTRA_ORIGINAL_PATH, path)
         putString(EXTRA_MEDIA_KIND, "audio")
+        if (containerExtension.isNotBlank()) putString(EXTRA_CONTAINER_EXTENSION, containerExtension.uppercase())
     }
 
 
-    private fun mimeTypeForPath(path: String): String = when (path.substringBefore('?').substringAfterLast('.', "").lowercase()) {
+    private fun extensionForAudio(path: String, fileName: String = ""): String {
+        fun cleanExt(value: String): String {
+            val ext = value.substringBefore('?').substringAfterLast('.', "").trim().uppercase()
+            return ext.takeIf { it.length in 2..5 && it.all { ch -> ch.isLetterOrDigit() } }.orEmpty()
+        }
+        cleanExt(fileName).takeIf { it.isNotBlank() }?.let { return it }
+        // Les URI SAF / cloud contiennent souvent des segments encodés avec des points dans
+        // l'adresse mail ou le provider. Ne jamais les transformer en badge conteneur.
+        if (path.startsWith("content://", ignoreCase = true)) return ""
+        return cleanExt(path)
+    }
+
+    private fun mimeTypeForExtension(ext: String): String = when (ext.lowercase()) {
         "mp3" -> androidx.media3.common.MimeTypes.AUDIO_MPEG
         "flac" -> androidx.media3.common.MimeTypes.AUDIO_FLAC
         "m4a" -> "audio/mp4"
         "aac" -> androidx.media3.common.MimeTypes.AUDIO_AAC
         "wav" -> "audio/wav"
         "ogg", "oga" -> "audio/ogg"
+        "opus" -> "audio/opus"
+        "wma" -> "audio/x-ms-wma"
+        "ac3" -> "audio/ac3"
+        "eac3" -> "audio/eac3"
+        "dts" -> "audio/vnd.dts"
+        "mka" -> "audio/x-matroska"
         else -> "audio/*"
     }
+
+    private fun mimeTypeForPath(path: String): String = mimeTypeForExtension(extensionForAudio(path))
 
 
 
@@ -131,8 +157,17 @@ object AudioRepository {
 
     fun isAudioExtension(path: String): Boolean {
         val clean = path.substringBefore('?')
+        val lower = clean.lowercase()
+
+        // Les fichiers ouverts depuis Android arrivent souvent en content:// sans extension
+        // visible dans l'URI (Galerie, DocumentsUI, Google Photos, etc.). À ce stade cette
+        // fonction est appelée uniquement par le pipeline audio : il ne faut donc pas rejeter
+        // ces URI, sinon le morceau est ajouté à l'écran mais ignoré par la playlist ExoPlayer
+        // et par la sauvegarde.
+        if (lower.startsWith("content://")) return true
+
         val ext = clean.substringAfterLast('.', "").lowercase()
-        if (ext in setOf("mp3", "flac", "m4a", "aac", "wav", "ogg", "oga", "opus", "wma", "ape", "dts", "ac3", "mka")) return true
+        if (ext in setOf("mp3", "flac", "m4a", "aac", "wav", "ogg", "oga", "opus", "wma", "ape", "dts", "ac3", "mka", "wv", "aiff", "alac")) return true
         // Certains serveurs UPnP/DLNA exposent les pistes via des URLs temporaires sans extension
         // (ex: /object/12345?token=...). Le navigateur audio les a déjà filtrées grâce au MIME
         // UPnP audio/* ; il ne faut donc pas les supprimer de la file ni de la sauvegarde juste
@@ -141,19 +176,21 @@ object AudioRepository {
     }
 
     fun buildSimpleMediaItem(context: Context, path: String, fileName: String): MediaItem {
-        val cached = AudioMetadataExtractor.getCached(context, path)
-        val artwork = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, path)
-        val metaBuilder = MediaMetadata.Builder()
-            .setTitle(cached?.title?.ifEmpty { null } ?: fileName.substringBeforeLast("."))
-            .setArtist(cached?.artist?.ifEmpty { null })
-            .setAlbumTitle(cached?.album?.ifEmpty { null } ?: "")
-            .setExtras(localExtras(path))
-        if (artwork != null) metaBuilder.setArtworkData(artwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+        val containerExtension = extensionForAudio(path, fileName)
+        val safeTitle = fileName.substringBeforeLast(".").ifBlank {
+            Uri.parse(path).lastPathSegment?.substringAfterLast('/')?.substringBeforeLast(".")
+        }.orEmpty().ifBlank { "Audio" }
         return MediaItem.Builder()
             .setMediaId(path)
             .setUri(localPlaybackUri(path))
-            .setMimeType(mimeTypeForPath(path))
-            .setMediaMetadata(metaBuilder.build())
+            .setMimeType(mimeTypeForExtension(containerExtension))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(safeTitle)
+                    .setAlbumTitle("")
+                    .setExtras(localExtras(path, containerExtension))
+                    .build()
+            )
             .build()
     }
 
@@ -196,7 +233,7 @@ object AudioRepository {
                         .setArtist(artist)
                         .setAlbumTitle(album)
                         .setArtworkData(artworkData, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                        .setExtras(localExtras(path))
+                        .setExtras(localExtras(path, fileName.substringAfterLast(".", "").uppercase()))
                         .build()
                 )
                 .build()
@@ -209,6 +246,6 @@ object AudioRepository {
     }
 
     fun clear(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
     }
 }

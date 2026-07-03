@@ -6,7 +6,7 @@
 
     <string name="tab_local">Local</string>
     <string name="tab_network">Network</string>
-    <string name="tab_youtube">Blaze Tube</string>
+    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <string name="section_local_history">Local history</string>
@@ -380,7 +380,7 @@
     <string name="paywall_pro_desc">Unlocks SMB network playback, Blaze Audio and the mini player.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">€5.99</string>
-    <string name="paywall_pro_plus_desc">Unlocks Blaze Tube for YouTube videos and includes all Pro features.</string>
+    <string name="paywall_pro_plus_desc">Unlocks Blaze Gallery for gallery and includes all Pro features.</string>
     <string name="paywall_buy_pro">Unlock Pro — €3.99</string>
     <string name="paywall_buy_pro_plus">Unlock Pro+ — €5.99</string>
     <string name="paywall_debug_unlocked">Debug mode: Pro and Pro+ are temporarily unlocked.</string>
@@ -396,4 +396,59 @@
     <string name="action_off">Off</string>
     <string name="video_setting_volume_boost">Volume boost</string>
     <string name="action_reset">Reset</string>
+
+    <!-- TMDb -->
+    <string name="tmdb_section_title">Movie info</string>
+    <string name="tmdb_no_summary">No summary available.</string>
+    <string name="tmdb_no_result">No poster or summary found online.</string>
+    <string name="tmdb_refresh">Refresh info</string>
+    <string name="tmdb_api_key_missing"></string>
+    <string name="movie_runtime_label">Runtime:</string>
+    <string name="movie_genres_label">Genres:</string>
+    <string name="movie_actors_label">Actors:</string>
+    <string name="movie_studio_label">Studio:</string>
+    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="cloud_history">Cloud history</string>
+    <string name="cloud_files">Cloud files</string>
+    <string name="cloud_providers_hint">Choose an audio or video file from Google Drive, OneDrive, Dropbox, or another installed cloud provider.</string>
+    <string name="cloud_provider_subtitle">Open and browse files</string>
+    <string name="cloud_provider_all_files">All cloud files</string>
+    <string name="cloud_provider_all_files_subtitle">Open the Android picker with all available providers</string>
+    <string name="cloud_no_known_provider">No Drive, OneDrive, or Dropbox provider detected. You can still use the Android picker.</string>
+    <string name="cloud_no_picker">No compatible file picker found</string>
+    <string name="cloud_media_fallback_name">Cloud media</string>
+    <string name="cloud_unsupported_media">This cloud file is not a compatible audio or video media file.</string>
+
+    <!-- Blaze Gallery -->
+    <string name="gallery_title">Blaze Gallery</string>
+    <string name="gallery_folders">Blaze Gallery — folders</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Sort</string>
+    <string name="gallery_sort_folder">Folder name</string>
+    <string name="gallery_sort_date_desc">Newest first</string>
+    <string name="gallery_sort_date_asc">Oldest first</string>
+    <string name="gallery_sort_name">Alphabetical order</string>
+    <string name="gallery_sort_size">File size</string>
+    <string name="gallery_unknown_folder">Unknown folder</string>
+    <string name="gallery_trash">Trash</string>
+    <string name="gallery_empty_trash">Empty permanently</string>
+    <string name="gallery_restore">Restore</string>
+    <string name="gallery_delete">Delete</string>
+    <string name="gallery_delete_folder">Delete folder</string>
+    <string name="gallery_delete_permanently_from_trash">Delete permanently from trash</string>
+    <string name="gallery_moved_to_trash">Photo moved to trash</string>
+    <string name="gallery_delete_all">Delete all</string>
+    <string name="gallery_share_all">Share all</string>
+    <string name="gallery_selected_count">%1$d selected</string>
+    <string name="confirm_delete_title">Confirm deletion</string>
+    <string name="confirm_delete_photo_message">Move this photo to trash?</string>
+    <string name="confirm_delete_folder_message">Move all photos in this folder to trash?</string>
+    <string name="confirm_delete_selected_message">Move selected photos to trash?</string>
+    <string name="confirm_empty_trash_message">Empty the trash permanently? This action cannot be undone.</string>
+    <string name="confirm_permanent_delete_message">Permanently delete this photo from trash?</string>
+    <string name="action_confirm_delete">Delete</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d photo</item>
+        <item quantity="other">%d photos</item>
+    </plurals>
 </resources>
