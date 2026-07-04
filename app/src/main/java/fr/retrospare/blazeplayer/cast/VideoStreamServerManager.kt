@@ -41,12 +41,19 @@ object VideoStreamServerManager {
     }
 
     fun stopServer() {
-        try { sharedServer?.stop() } catch (_: Exception) {}
+        val server = sharedServer
         sharedServer = null
         sharedSourcePath = ""
+        try { server?.clearSource() } catch (_: Exception) {}
+        if (server != null) {
+            Thread({
+                try { server.stop() } catch (_: Exception) {}
+            }, "BlazeVideoStreamServerStop").apply { isDaemon = true }.start()
+        }
     }
 
     fun getStreamUrl(): String? = sharedServer?.getStreamUrl()
+    fun getLanStreamUrl(): String? = sharedServer?.getLanStreamUrl()
 
     /** Adresse IP réseau du téléphone, utilisée uniquement par [fr.retrospare.blazeplayer.player.PlayerActivity]
      *  pour réécrire l'URL loopback en une adresse joignable par le Chromecast. */

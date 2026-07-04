@@ -56,12 +56,14 @@ import fr.retrospare.blazeplayer.network.NetworkSharesViewModel_HiltModules;
 import fr.retrospare.blazeplayer.paywall.PaywallFragment_GeneratedInjector;
 import fr.retrospare.blazeplayer.paywall.PaywallViewModel_HiltModules;
 import fr.retrospare.blazeplayer.player.AudioBrowserActivity_GeneratedInjector;
+import fr.retrospare.blazeplayer.player.AudioPlayerActivity_GeneratedInjector;
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment_GeneratedInjector;
 import fr.retrospare.blazeplayer.player.MiniPlayerViewModel_HiltModules;
 import fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity_GeneratedInjector;
 import fr.retrospare.blazeplayer.player.PlayerActivity_GeneratedInjector;
 import fr.retrospare.blazeplayer.settings.SettingsFragment_GeneratedInjector;
 import fr.retrospare.blazeplayer.settings.SettingsViewModel_HiltModules;
+import fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity_GeneratedInjector;
 import javax.annotation.processing.Generated;
 import javax.inject.Singleton;
 
@@ -211,8 +213,10 @@ public final class BlazePlayerApp_HiltComponents {
       GeneratedComponent,
       MainActivity_GeneratedInjector,
       AudioBrowserActivity_GeneratedInjector,
+      AudioPlayerActivity_GeneratedInjector,
       NetworkVideoBrowserActivity_GeneratedInjector,
-      PlayerActivity_GeneratedInjector {
+      PlayerActivity_GeneratedInjector,
+      YouTubePlayerActivity_GeneratedInjector {
     @Subcomponent.Builder
     abstract interface Builder extends ActivityComponentBuilder {
     }

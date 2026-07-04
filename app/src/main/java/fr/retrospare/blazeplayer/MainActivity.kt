@@ -39,6 +39,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var binding: ActivityMainBinding
+    private var miniBgAnimator: android.animation.ValueAnimator? = null
+    private var currentMiniBgColor: Int = fr.retrospare.blazeplayer.player.AudioDynamicColor.DEFAULT_BACKGROUND
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -67,6 +69,11 @@ class MainActivity : AppCompatActivity() {
         }
         binding.btnMiniPrev.setOnClickListener { miniPlayerVm.controller?.seekToPreviousMediaItem() }
         binding.btnMiniNext.setOnClickListener { miniPlayerVm.controller?.seekToNextMediaItem() }
+        binding.btnMiniClose.setOnClickListener {
+            miniPlayerVm.dismiss()
+            binding.miniPlayerBar.visibility = android.view.View.GONE
+            binding.miniEqView.stop()
+        }
         binding.miniPlayerBar.setOnClickListener { openBlazeAudio() }
         setupMiniPlayerDrag()
         handler.removeCallbacks(miniTimeTicker)
@@ -120,8 +127,35 @@ class MainActivity : AppCompatActivity() {
             } else {
                 binding.miniEqView.stop()
             }
+            applyMiniPlayerColor(state.backgroundColor, state.accentColor)
         } else {
             binding.miniEqView.stop()
+        }
+    }
+
+    /** Anime le fond du mini player vers la couleur dynamique du morceau en cours (même couleur
+     *  que l'écran Blaze Audio, cf. AudioDynamicColor). Le nom de l'artiste reste volontairement
+     *  toujours vert (@color/green_accent, déjà fixé dans le layout) : c'est aussi le
+     *  comportement de l'écran Blaze Audio (AudioPlayerFragment.appGreenColor()), qui ne teinte
+     *  jamais l'artiste avec la couleur dynamique de la pochette. */
+    private fun applyMiniPlayerColor(backgroundColor: Int, accentColor: Int) {
+        if (currentMiniBgColor == backgroundColor) return
+        miniBgAnimator?.cancel()
+        miniBgAnimator = android.animation.ValueAnimator.ofObject(
+            android.animation.ArgbEvaluator(), currentMiniBgColor, backgroundColor
+        ).apply {
+            duration = 320L
+            addUpdateListener { animator ->
+                val color = animator.animatedValue as Int
+                currentMiniBgColor = color
+                binding.miniPlayerBar.background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                    cornerRadius = 16f * resources.displayMetrics.density
+                    setColor(color)
+                    setStroke((1f * resources.displayMetrics.density).toInt(), 0x33FFFFFF)
+                }
+            }
+            start()
         }
     }
 

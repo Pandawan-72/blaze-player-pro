@@ -42,24 +42,12 @@
                     android:tint="@color/on_surface_variant"
                     android:contentDescription="Réglages" />
 
-                <ImageButton
-                    android:id="@+id/btnSearch"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_centerVertical="true"
-                    android:layout_toStartOf="@id/btnSettings"
-                    android:layout_marginEnd="8dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_search"
-                    android:tint="@color/on_surface_variant"
-                    android:contentDescription="Rechercher" />
-
                 <androidx.mediarouter.app.MediaRouteButton
                     android:id="@+id/btnCast"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:layout_centerVertical="true"
-                    android:layout_toStartOf="@id/btnSearch"
+                    android:layout_toStartOf="@id/btnSettings"
                     android:layout_marginEnd="8dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Chromecast" />
@@ -108,7 +96,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Historique réseau"
+                        android:text="@string/history_network"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="13sp"
                         android:fontFamily="sans-serif-condensed" />
@@ -119,7 +107,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="38dp"
                         android:layout_marginEnd="8dp"
-                        android:text="Favoris"
+                        android:text="@string/favorites"
                         android:textSize="12sp"
                         android:textColor="@color/on_surface"
                         android:paddingHorizontal="12dp"
@@ -137,7 +125,7 @@
                         android:id="@+id/btnBrowseNetwork"
                         android:layout_width="wrap_content"
                         android:layout_height="38dp"
-                        android:text="Fichiers réseau"
+                        android:text="@string/browse_files_network"
                         android:textSize="12sp"
                         android:textColor="#FF000000"
                         android:paddingHorizontal="14dp"
@@ -170,7 +158,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Playlists"
+                        android:text="@string/playlists_label"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="12sp"
                         android:fontFamily="sans-serif-condensed"
@@ -208,8 +196,36 @@
                         android:id="@+id/btnPlaylistNetwork3"
                         android:layout_width="34dp"
                         android:layout_height="34dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:text="3"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-condensed"
+                        android:background="@drawable/bg_playlist_chip"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/btnPlaylistNetwork4"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:layout_marginEnd="8dp"
+                        android:gravity="center"
+                        android:text="4"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-condensed"
+                        android:background="@drawable/bg_playlist_chip"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/btnPlaylistNetwork5"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:gravity="center"
+                        android:text="5"
                         android:textColor="@color/on_surface"
                         android:textSize="13sp"
                         android:fontFamily="sans-serif-condensed"
@@ -258,7 +274,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Historique local"
+                        android:text="@string/history_local"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="13sp"
                         android:fontFamily="sans-serif-condensed" />
@@ -269,7 +285,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="38dp"
                         android:layout_marginEnd="8dp"
-                        android:text="Favoris"
+                        android:text="@string/favorites"
                         android:textSize="12sp"
                         android:textColor="@color/on_surface"
                         android:paddingHorizontal="12dp"
@@ -287,7 +303,7 @@
                         android:id="@+id/btnBrowseLocal"
                         android:layout_width="wrap_content"
                         android:layout_height="38dp"
-                        android:text="Fichiers locaux"
+                        android:text="@string/browse_files_local"
                         android:textSize="12sp"
                         android:textColor="#FF000000"
                         android:paddingHorizontal="14dp"
@@ -320,7 +336,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Playlists"
+                        android:text="@string/playlists_label"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="12sp"
                         android:fontFamily="sans-serif-condensed"
@@ -358,8 +374,36 @@
                         android:id="@+id/btnPlaylistLocal3"
                         android:layout_width="34dp"
                         android:layout_height="34dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:text="3"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-condensed"
+                        android:background="@drawable/bg_playlist_chip"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/btnPlaylistLocal4"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:layout_marginEnd="8dp"
+                        android:gravity="center"
+                        android:text="4"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-condensed"
+                        android:background="@drawable/bg_playlist_chip"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/btnPlaylistLocal5"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:gravity="center"
+                        android:text="5"
                         android:textColor="@color/on_surface"
                         android:textSize="13sp"
                         android:fontFamily="sans-serif-condensed"
@@ -389,75 +433,38 @@
                 android:visibility="gone">
 
                 <LinearLayout
-                    android:id="@+id/youtubeSearchBarRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginHorizontal="16dp"
                     android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingVertical="10dp"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/bg_search_field">
+                    android:paddingBottom="12dp"
+                    android:gravity="center_vertical">
 
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
-                        android:src="@drawable/ic_search"
+                        android:src="@drawable/ic_history"
                         android:tint="@color/on_surface_variant"
                         android:layout_marginEnd="8dp"
                         android:contentDescription="@null" />
 
-                    <EditText
-                        android:id="@+id/editYoutubeSearch"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:background="@android:color/transparent"
-                        android:hint="Rechercher sur YouTube..."
-                        android:textColorHint="@color/on_surface_variant"
-                        android:textColor="@color/on_surface"
-                        android:singleLine="true"
-                        android:imeOptions="actionSearch"
-                        android:inputType="text" />
-
-                    <ImageView
-                        android:id="@+id/btnCloseYoutubeSearch"
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
-                        android:src="@drawable/ic_close"
-                        android:tint="@color/on_surface_variant"
-                        android:visibility="gone"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:contentDescription="Fermer la recherche" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/youtubeFavoritesHeaderRow"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
-                    android:gravity="center_vertical"
-                    android:visibility="gone">
-
                     <TextView
+                        android:id="@+id/tvSectionCloud"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Favoris"
-                        android:textColor="@color/on_surface"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:text="@string/cloud_history"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-condensed" />
 
                     <com.google.android.material.button.MaterialButton
                         android:includeFontPadding="false"
-                        android:id="@+id/btnCloseYoutubeFavorites"
+                        android:id="@+id/btnFavoritesCloud"
                         android:layout_width="wrap_content"
                         android:layout_height="38dp"
-                        android:text="Fermer les favoris"
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/favorites"
                         android:textSize="12sp"
                         android:textColor="@color/on_surface"
                         android:paddingHorizontal="12dp"
@@ -465,161 +472,88 @@
                         app:strokeColor="@color/outline_variant"
                         app:strokeWidth="1dp"
                         app:cornerRadius="20dp"
-                        app:icon="@drawable/ic_close"
+                        app:icon="@drawable/ic_star"
                         app:iconSize="14dp"
                         app:iconTint="@color/on_surface"
                         app:iconGravity="textStart" />
 
+                    <com.google.android.material.button.MaterialButton
+                        android:includeFontPadding="false"
+                        android:id="@+id/btnCloudFiles"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:text="@string/cloud_files"
+                        android:textSize="12sp"
+                        android:textColor="#FF000000"
+                        android:paddingHorizontal="14dp"
+                        app:backgroundTint="@color/green_accent"
+                        app:cornerRadius="20dp"
+                        app:icon="@drawable/ic_folder_open"
+                        app:iconSize="14dp"
+                        app:iconTint="#FF000000"
+                        app:iconGravity="textStart" />
+
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tvYoutubeError"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:paddingHorizontal="16dp"
-                    android:paddingTop="8dp"
-                    android:textColor="@color/on_surface_variant"
-                    android:textSize="13sp"
-                    android:visibility="gone" />
+                    android:paddingBottom="12dp"
+                    android:gravity="center_vertical"
+                    android:visibility="gone">
 
-                <!-- Résultats de recherche OU favoris (même liste réutilisée pour les deux, un
-                     seul est actif à la fois) : visible dès qu'on quitte le contenu par défaut -->
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_layout_list"
+                        android:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="6dp"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/playlists_label"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="12sp"
+                        android:fontFamily="sans-serif-condensed"
+                        android:layout_marginEnd="10dp" />
+
+                    <TextView android:id="@+id/btnPlaylistCloud1" android:layout_width="34dp" android:layout_height="34dp" android:layout_marginEnd="8dp" android:gravity="center" android:text="1" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
+                    <TextView android:id="@+id/btnPlaylistCloud2" android:layout_width="34dp" android:layout_height="34dp" android:layout_marginEnd="8dp" android:gravity="center" android:text="2" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
+                    <TextView android:id="@+id/btnPlaylistCloud3" android:layout_width="34dp" android:layout_height="34dp" android:layout_marginEnd="8dp" android:gravity="center" android:text="3" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
+                    <TextView android:id="@+id/btnPlaylistCloud4" android:layout_width="34dp" android:layout_height="34dp" android:layout_marginEnd="8dp" android:gravity="center" android:text="4" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
+                    <TextView android:id="@+id/btnPlaylistCloud5" android:layout_width="34dp" android:layout_height="34dp" android:gravity="center" android:text="5" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
+
+                </LinearLayout>
+
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/listYoutubeSearch"
+                    android:id="@+id/listCloud"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
                     android:paddingHorizontal="8dp"
-                    android:paddingTop="8dp"
                     android:paddingBottom="24dp"
-                    android:clipToPadding="false"
-                    android:visibility="gone" />
+                    android:clipToPadding="false" />
 
-                <!-- Historique, visible par défaut (aucune recherche/favoris affichés) -->
-                <LinearLayout
-                    android:id="@+id/youtubeDefaultContent"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="16dp"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="8dp"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Historique"
-                            android:textColor="@color/on_surface_variant"
-                            android:textSize="13sp"
-                            android:fontFamily="sans-serif-condensed" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:includeFontPadding="false"
-                            android:id="@+id/btnYoutubeFavorites"
-                            android:layout_width="wrap_content"
-                            android:layout_height="38dp"
-                            android:text="Favoris"
-                            android:textSize="12sp"
-                            android:textColor="@color/on_surface"
-                            android:paddingHorizontal="12dp"
-                            app:backgroundTint="@color/surface_variant"
-                            app:strokeColor="@color/outline_variant"
-                            app:strokeWidth="1dp"
-                            app:cornerRadius="20dp"
-                            app:icon="@drawable/ic_star"
-                            app:iconSize="14dp"
-                            app:iconTint="@color/on_surface"
-                            app:iconGravity="textStart" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="16dp"
-                        android:paddingBottom="10dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="14dp"
-                            android:layout_height="14dp"
-                            android:src="@drawable/ic_layout_list"
-                            android:tint="@color/on_surface_variant"
-                            android:layout_marginEnd="6dp"
-                            android:contentDescription="@null" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Playlists"
-                            android:textColor="@color/on_surface_variant"
-                            android:textSize="12sp"
-                            android:fontFamily="sans-serif-condensed"
-                            android:layout_marginEnd="10dp" />
-
-                        <TextView
-                            android:id="@+id/btnPlaylistYoutube1"
-                            android:layout_width="34dp"
-                            android:layout_height="34dp"
-                            android:layout_marginEnd="8dp"
-                            android:gravity="center"
-                            android:text="1"
-                            android:textColor="@color/on_surface"
-                            android:textSize="13sp"
-                            android:fontFamily="sans-serif-condensed"
-                            android:background="@drawable/bg_playlist_chip"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/btnPlaylistYoutube2"
-                            android:layout_width="34dp"
-                            android:layout_height="34dp"
-                            android:layout_marginEnd="8dp"
-                            android:gravity="center"
-                            android:text="2"
-                            android:textColor="@color/on_surface"
-                            android:textSize="13sp"
-                            android:fontFamily="sans-serif-condensed"
-                            android:background="@drawable/bg_playlist_chip"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                        <TextView
-                            android:id="@+id/btnPlaylistYoutube3"
-                            android:layout_width="34dp"
-                            android:layout_height="34dp"
-                            android:gravity="center"
-                            android:text="3"
-                            android:textColor="@color/on_surface"
-                            android:textSize="13sp"
-                            android:fontFamily="sans-serif-condensed"
-                            android:background="@drawable/bg_playlist_chip"
-                            android:clickable="true"
-                            android:focusable="true" />
-
-                    </LinearLayout>
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/listYoutubeHistory"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:paddingHorizontal="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="24dp"
-                        android:clipToPadding="false" />
-
-                </LinearLayout>
+                <!-- Vues conservées invisibles pour compatibilité avec les anciens appels YouTube. -->
+                <LinearLayout android:id="@+id/youtubeSearchBarRow" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <LinearLayout android:id="@+id/youtubeFavoritesHeaderRow" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/listYoutubeSearch" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <TextView android:id="@+id/tvYoutubeError" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <LinearLayout android:id="@+id/youtubeDefaultContent" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <ImageView android:id="@+id/btnCloseYoutubeSearch" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <EditText android:id="@+id/editYoutubeSearch" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnCloseYoutubeFavorites" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnYoutubeFavorites" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <TextView android:id="@+id/btnPlaylistYoutube1" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <TextView android:id="@+id/btnPlaylistYoutube2" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <TextView android:id="@+id/btnPlaylistYoutube3" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <TextView android:id="@+id/btnPlaylistYoutube4" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <TextView android:id="@+id/btnPlaylistYoutube5" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/listYoutubeHistory" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
 
             </LinearLayout>
 
@@ -676,7 +610,7 @@
                 android:id="@+id/tabLocalText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Local"
+                android:text="@string/tab_local"
                 android:textColor="@color/green_accent"
                 android:textSize="12sp"
                 android:fontFamily="sans-serif-condensed"
@@ -711,7 +645,7 @@
                 android:id="@+id/tabNetworkText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Réseau"
+                android:text="@string/tab_network"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="12sp"
                 android:fontFamily="sans-serif-condensed"
@@ -719,7 +653,7 @@
 
         </LinearLayout>
 
-        <!-- Tab Blaze Tube -->
+        <!-- Tab Blaze Gallery -->
         <LinearLayout
             android:id="@+id/tabYoutube"
             android:layout_width="0dp"
@@ -737,7 +671,7 @@
                 android:id="@+id/tabYoutubeIcon"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:src="@drawable/ic_youtube_tab"
+                android:src="@drawable/ic_gallery"
                 android:tint="@color/on_surface_variant"
                 android:layout_marginBottom="4dp"
                 android:contentDescription="@null" />
@@ -746,7 +680,7 @@
                 android:id="@+id/tabYoutubeText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Blaze Tube"
+                android:text="@string/tab_youtube"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="12sp"
                 android:fontFamily="sans-serif-condensed"

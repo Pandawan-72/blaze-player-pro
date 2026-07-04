@@ -35,10 +35,16 @@ public final class FragmentSettingsBinding implements ViewBinding {
   public final ItemSettingBinding settingAudioLang;
 
   @NonNull
+  public final ItemSettingBinding settingAudioSpectrum;
+
+  @NonNull
   public final ItemSettingBinding settingAutoPlay;
 
   @NonNull
   public final ItemSettingBinding settingClearHistory;
+
+  @NonNull
+  public final ItemSettingBinding settingLanguage;
 
   @NonNull
   public final ItemSettingBinding settingMiniPlayer;
@@ -53,6 +59,9 @@ public final class FragmentSettingsBinding implements ViewBinding {
   public final ItemSettingBinding settingRememberVolume;
 
   @NonNull
+  public final ItemSettingBinding settingReportBug;
+
+  @NonNull
   public final ItemSettingBinding settingResume;
 
   @NonNull
@@ -64,30 +73,39 @@ public final class FragmentSettingsBinding implements ViewBinding {
   @NonNull
   public final ItemSettingBinding settingSpeed;
 
+  @NonNull
+  public final ItemSettingBinding settingSuggestions;
+
   private FragmentSettingsBinding(@NonNull LinearLayout rootView, @NonNull ImageButton btnBack,
       @NonNull LinearLayout btnBecomePro, @NonNull LinearLayout btnRestorePurchases,
       @NonNull ItemSettingBinding settingAbout, @NonNull ItemSettingBinding settingAudioLang,
-      @NonNull ItemSettingBinding settingAutoPlay, @NonNull ItemSettingBinding settingClearHistory,
+      @NonNull ItemSettingBinding settingAudioSpectrum, @NonNull ItemSettingBinding settingAutoPlay,
+      @NonNull ItemSettingBinding settingClearHistory, @NonNull ItemSettingBinding settingLanguage,
       @NonNull ItemSettingBinding settingMiniPlayer, @NonNull ItemSettingBinding settingOrientation,
       @NonNull ItemSettingBinding settingPip, @NonNull ItemSettingBinding settingRememberVolume,
-      @NonNull ItemSettingBinding settingResume, @NonNull ItemSettingBinding settingSeekTime,
-      @NonNull ItemSettingBinding settingShowHidden, @NonNull ItemSettingBinding settingSpeed) {
+      @NonNull ItemSettingBinding settingReportBug, @NonNull ItemSettingBinding settingResume,
+      @NonNull ItemSettingBinding settingSeekTime, @NonNull ItemSettingBinding settingShowHidden,
+      @NonNull ItemSettingBinding settingSpeed, @NonNull ItemSettingBinding settingSuggestions) {
     this.rootView = rootView;
     this.btnBack = btnBack;
     this.btnBecomePro = btnBecomePro;
     this.btnRestorePurchases = btnRestorePurchases;
     this.settingAbout = settingAbout;
     this.settingAudioLang = settingAudioLang;
+    this.settingAudioSpectrum = settingAudioSpectrum;
     this.settingAutoPlay = settingAutoPlay;
     this.settingClearHistory = settingClearHistory;
+    this.settingLanguage = settingLanguage;
     this.settingMiniPlayer = settingMiniPlayer;
     this.settingOrientation = settingOrientation;
     this.settingPip = settingPip;
     this.settingRememberVolume = settingRememberVolume;
+    this.settingReportBug = settingReportBug;
     this.settingResume = settingResume;
     this.settingSeekTime = settingSeekTime;
     this.settingShowHidden = settingShowHidden;
     this.settingSpeed = settingSpeed;
+    this.settingSuggestions = settingSuggestions;
   }
 
   @Override
@@ -149,6 +167,13 @@ public final class FragmentSettingsBinding implements ViewBinding {
       }
       ItemSettingBinding binding_settingAudioLang = ItemSettingBinding.bind(settingAudioLang);
 
+      id = R.id.settingAudioSpectrum;
+      View settingAudioSpectrum = ViewBindings.findChildViewById(rootView, id);
+      if (settingAudioSpectrum == null) {
+        break missingId;
+      }
+      ItemSettingBinding binding_settingAudioSpectrum = ItemSettingBinding.bind(settingAudioSpectrum);
+
       id = R.id.settingAutoPlay;
       View settingAutoPlay = ViewBindings.findChildViewById(rootView, id);
       if (settingAutoPlay == null) {
@@ -162,6 +187,13 @@ public final class FragmentSettingsBinding implements ViewBinding {
         break missingId;
       }
       ItemSettingBinding binding_settingClearHistory = ItemSettingBinding.bind(settingClearHistory);
+
+      id = R.id.settingLanguage;
+      View settingLanguage = ViewBindings.findChildViewById(rootView, id);
+      if (settingLanguage == null) {
+        break missingId;
+      }
+      ItemSettingBinding binding_settingLanguage = ItemSettingBinding.bind(settingLanguage);
 
       id = R.id.settingMiniPlayer;
       View settingMiniPlayer = ViewBindings.findChildViewById(rootView, id);
@@ -191,6 +223,13 @@ public final class FragmentSettingsBinding implements ViewBinding {
       }
       ItemSettingBinding binding_settingRememberVolume = ItemSettingBinding.bind(settingRememberVolume);
 
+      id = R.id.settingReportBug;
+      View settingReportBug = ViewBindings.findChildViewById(rootView, id);
+      if (settingReportBug == null) {
+        break missingId;
+      }
+      ItemSettingBinding binding_settingReportBug = ItemSettingBinding.bind(settingReportBug);
+
       id = R.id.settingResume;
       View settingResume = ViewBindings.findChildViewById(rootView, id);
       if (settingResume == null) {
@@ -219,12 +258,20 @@ public final class FragmentSettingsBinding implements ViewBinding {
       }
       ItemSettingBinding binding_settingSpeed = ItemSettingBinding.bind(settingSpeed);
 
+      id = R.id.settingSuggestions;
+      View settingSuggestions = ViewBindings.findChildViewById(rootView, id);
+      if (settingSuggestions == null) {
+        break missingId;
+      }
+      ItemSettingBinding binding_settingSuggestions = ItemSettingBinding.bind(settingSuggestions);
+
       return new FragmentSettingsBinding((LinearLayout) rootView, btnBack, btnBecomePro,
           btnRestorePurchases, binding_settingAbout, binding_settingAudioLang,
-          binding_settingAutoPlay, binding_settingClearHistory, binding_settingMiniPlayer,
-          binding_settingOrientation, binding_settingPip, binding_settingRememberVolume,
+          binding_settingAudioSpectrum, binding_settingAutoPlay, binding_settingClearHistory,
+          binding_settingLanguage, binding_settingMiniPlayer, binding_settingOrientation,
+          binding_settingPip, binding_settingRememberVolume, binding_settingReportBug,
           binding_settingResume, binding_settingSeekTime, binding_settingShowHidden,
-          binding_settingSpeed);
+          binding_settingSpeed, binding_settingSuggestions);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

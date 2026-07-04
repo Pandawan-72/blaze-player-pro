@@ -64,6 +64,9 @@ class HomeFragment : Fragment() {
     private val selectedGalleryPhotos = linkedSetOf<String>()
     private var currentGalleryPhotos: List<MediaItem> = emptyList()
     private var pendingGallerySystemActionRefresh: (() -> Unit)? = null
+    private var galleryCustomThumbnailMode: Boolean = false
+    private var pendingCustomThumbnailVideo: MediaItem? = null
+    private var returnTabAfterCustomThumbnail: Int = 1
 
     private val galleryPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         showGalleryFolders()
@@ -141,7 +144,7 @@ class HomeFragment : Fragment() {
                 }
             }
             if (!opened) {
-                android.widget.Toast.makeText(activity, getString(R.string.toast_cannot_open_screen_cast_settings), android.widget.Toast.LENGTH_SHORT).show()
+                fr.retrospare.blazeplayer.ui.InfoDialog.show(activity, getString(R.string.info_dialog_title_error), getString(R.string.toast_cannot_open_screen_cast_settings))
             }
         }
 
@@ -253,6 +256,10 @@ class HomeFragment : Fragment() {
                 showGalleryFolders()
                 true
             }
+            galleryCustomThumbnailMode -> {
+                cancelCustomThumbnailSelection()
+                true
+            }
             currentGalleryBucketId != null -> {
                 showGalleryFolders()
                 true
@@ -345,7 +352,11 @@ class HomeFragment : Fragment() {
         binding.btnCloudFiles.setIconResource(R.drawable.ic_trash)
         binding.btnCloudFiles.setOnClickListener { showGalleryTrash() }
         styleGalleryTrashButton(false)
-        binding.tvSectionCloud.text = getString(R.string.gallery_folders)
+        binding.tvSectionCloud.text = if (galleryCustomThumbnailMode) {
+            getString(R.string.custom_thumbnail_pick_folder)
+        } else {
+            getString(R.string.gallery_folders)
+        }
         binding.listCloud.visibility = View.VISIBLE
         binding.listCloud.apply {
             setHasFixedSize(true)
@@ -382,7 +393,11 @@ class HomeFragment : Fragment() {
         binding.btnCloudFiles.setIconResource(R.drawable.ic_sort)
         binding.btnCloudFiles.setOnClickListener { showGallerySortMenu() }
         styleGalleryTrashButton(false)
-        binding.tvSectionCloud.text = getString(R.string.gallery_folder_title, bucketName)
+        binding.tvSectionCloud.text = if (galleryCustomThumbnailMode) {
+            getString(R.string.custom_thumbnail_pick_image)
+        } else {
+            getString(R.string.gallery_folder_title, bucketName)
+        }
         binding.listCloud.visibility = View.VISIBLE
         binding.listCloud.apply {
             setHasFixedSize(true)
@@ -397,8 +412,14 @@ class HomeFragment : Fragment() {
                 items = photos,
                 grid = true,
                 trashMode = false,
-                onClick = { photo -> if (gallerySelectionMode) toggleGallerySelection(photo) else openGalleryPhoto(photo) },
-                onLongClick = { photo -> enterGallerySelection(photo) },
+                onClick = { photo ->
+                    when {
+                        galleryCustomThumbnailMode -> applyCustomThumbnailFromGallery(photo)
+                        gallerySelectionMode -> toggleGallerySelection(photo)
+                        else -> openGalleryPhoto(photo)
+                    }
+                },
+                onLongClick = { photo -> if (!galleryCustomThumbnailMode) enterGallerySelection(photo) },
                 onMore = { photo, anchor -> showGalleryPhotoMenu(photo, anchor) }
             )
         }
@@ -592,6 +613,68 @@ class HomeFragment : Fragment() {
             }
         }
         popup.show()
+    }
+
+    private fun startCustomThumbnailSelection(item: MediaItem, sourceTab: Int = currentTabIndex) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!canOpenTab(3)) {
+                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                return@launch
+            }
+            pendingCustomThumbnailVideo = item
+            returnTabAfterCustomThumbnail = sourceTab.takeIf { it == 1 || it == 2 } ?: 1
+            galleryCustomThumbnailMode = true
+            clearGallerySelection()
+            currentTabIndex = 3
+            updateTabStyles(3)
+            hideAudioTab()
+            // Affiche réellement l'onglet Blaze Gallery avant de charger les dossiers : sans
+            // ce passage par updateSectionTitles(3), la liste de galerie pouvait être préparée
+            // alors que la section Local/Réseau restait visible, ce qui donnait l'impression que
+            // l'action ne menait pas directement à Blaze Gallery.
+            updateSectionTitles(3)
+            android.widget.Toast.makeText(requireContext(), getString(R.string.custom_thumbnail_pick_toast), android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun applyCustomThumbnailFromGallery(photo: MediaItem) {
+        val target = pendingCustomThumbnailVideo ?: return
+        val ok = fr.retrospare.blazeplayer.ui.ThumbnailUtils.setCustomVideoThumbnail(requireContext(), target.path, Uri.parse(photo.path))
+        android.widget.Toast.makeText(
+            requireContext(),
+            getString(if (ok) R.string.custom_thumbnail_saved else R.string.custom_thumbnail_error),
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
+        finishCustomThumbnailSelection(refreshTarget = true)
+    }
+
+    private fun cancelCustomThumbnailSelection() {
+        finishCustomThumbnailSelection(refreshTarget = false)
+    }
+
+    private fun finishCustomThumbnailSelection(refreshTarget: Boolean) {
+        val targetTab = returnTabAfterCustomThumbnail
+        galleryCustomThumbnailMode = false
+        pendingCustomThumbnailVideo = null
+        currentGalleryBucketId = null
+        currentGalleryBucketName = null
+        currentTabIndex = targetTab
+        updateTabStyles(targetTab)
+        hideAudioTab()
+        viewModel.onTabSelected(targetTab)
+        updateSectionTitles(targetTab)
+        if (refreshTarget) {
+            binding.listLocal.adapter?.notifyDataSetChanged()
+            binding.listNetwork.adapter?.notifyDataSetChanged()
+        }
+    }
+
+    private fun deleteCustomThumbnail(item: MediaItem) {
+        fr.retrospare.blazeplayer.ui.ThumbnailUtils.deleteCustomVideoThumbnail(requireContext(), item.path)
+        android.widget.Toast.makeText(requireContext(), getString(R.string.custom_thumbnail_deleted), android.widget.Toast.LENGTH_SHORT).show()
+        binding.listLocal.adapter?.notifyDataSetChanged()
+        binding.listNetwork.adapter?.notifyDataSetChanged()
+        viewModel.onTabSelected(currentTabIndex)
     }
 
     private fun showGalleryPhotoMenu(photo: MediaItem, anchor: View) {
@@ -888,6 +971,35 @@ class HomeFragment : Fragment() {
         return zipFile
     }
 
+    private inner class PhotoViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
+        val tvFileName: TextView = view.findViewById(R.id.tvFileName)
+        val tvDuration: TextView = view.findViewById(R.id.tvDuration)
+        val ivThumbnail: ImageView = view.findViewById(R.id.ivThumbnail)
+        val cbSelected: android.widget.CheckBox = view.findViewById(R.id.cbSelected)
+        val btnMore: View = view.findViewById(R.id.btnMore)
+    }
+
+    private inner class FolderViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
+        val tvFolderName: TextView = view.findViewById(R.id.tvFolderName)
+        val tvFolderCount: TextView = view.findViewById(R.id.tvFolderCount)
+        val previews: List<ImageView> = listOf(
+            view.findViewById(R.id.ivPreview1),
+            view.findViewById(R.id.ivPreview2),
+            view.findViewById(R.id.ivPreview3),
+            view.findViewById(R.id.ivPreview4)
+        )
+        val btnFolderMore: View = view.findViewById(R.id.btnFolderMore)
+    }
+
+    /** Adapter des grilles Blaze Gallery (dossiers et photos).
+     *
+     *  Les vues enfants sont mises en cache dans un vrai ViewHolder (PhotoViewHolder /
+     *  FolderViewHolder) au lieu d'être recherchées via findViewById() à chaque bind : avant ce
+     *  correctif, chaque recyclage de case pendant le scroll refaisait 5 à 7 parcours de l'arbre
+     *  de vues, ce qui est la cause la plus commune de saccades dans une grille RecyclerView.
+     *  Le redimensionnement carré des tuiles de dossier ne passe plus non plus par un
+     *  `view.post { ... }` exécuté à chaque bind (cf. SquareRoundedFrameLayout), qui provoquait un
+     *  saut visible de la tuile juste après son apparition à l'écran pendant le scroll. */
     private inner class GalleryAdapter(
         private val items: List<MediaItem>,
         private val grid: Boolean,
@@ -896,42 +1008,39 @@ class HomeFragment : Fragment() {
         private val onLongClick: (MediaItem) -> Unit,
         private val onMore: (MediaItem, View) -> Unit
     ) : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
-        override fun getItemCount() = items.size
-        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
-            val layout = if (grid) R.layout.item_gallery_photo else R.layout.item_gallery_folder_tile
-            return object : androidx.recyclerview.widget.RecyclerView.ViewHolder(layoutInflater.inflate(layout, parent, false)) {}
+
+        init {
+            setHasStableIds(true)
         }
+
+        override fun getItemCount() = items.size
+
+        override fun getItemId(position: Int): Long = items[position].path.hashCode().toLong()
+
+        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
+            return if (grid) {
+                PhotoViewHolder(layoutInflater.inflate(R.layout.item_gallery_photo, parent, false))
+            } else {
+                FolderViewHolder(layoutInflater.inflate(R.layout.item_gallery_folder_tile, parent, false))
+            }
+        }
+
         override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
             val item = items[position]
             val view = holder.itemView
-            if (grid) {
-                view.findViewById<TextView>(R.id.tvFileName)?.text = item.name
-                view.findViewById<TextView>(R.id.tvDuration)?.text = item.formattedSize
-                view.findViewById<ImageView>(R.id.ivThumbnail)?.let { loadGalleryImage(it, item.path) }
-                view.findViewById<android.widget.CheckBox>(R.id.cbSelected)?.let { cb ->
-                    cb.visibility = if (gallerySelectionMode && !trashMode) View.VISIBLE else View.GONE
-                    cb.isChecked = selectedGalleryPhotos.contains(item.path)
-                    cb.setOnClickListener { toggleGallerySelection(item) }
-                }
-                view.findViewById<View>(R.id.btnMore)?.visibility = if (gallerySelectionMode && !trashMode) View.GONE else View.VISIBLE
-                view.findViewById<View>(R.id.btnMore)?.setOnClickListener { onMore(item, it) }
-            } else {
-                view.post {
-                    val params = view.layoutParams
-                    if (params != null && view.width > 0 && params.height != view.width) {
-                        params.height = view.width
-                        view.layoutParams = params
-                    }
-                }
-                view.findViewById<TextView>(R.id.tvFolderName)?.text = item.name
-                view.findViewById<TextView>(R.id.tvFolderCount)?.text = resources.getQuantityString(R.plurals.gallery_photo_count, item.size.toInt(), item.size.toInt())
-                val previews = listOf(
-                    view.findViewById<ImageView>(R.id.ivPreview1),
-                    view.findViewById<ImageView>(R.id.ivPreview2),
-                    view.findViewById<ImageView>(R.id.ivPreview3),
-                    view.findViewById<ImageView>(R.id.ivPreview4)
-                )
-                previews.forEachIndexed { index, imageView ->
+            if (holder is PhotoViewHolder) {
+                holder.tvFileName.text = item.name
+                holder.tvDuration.text = android.text.format.Formatter.formatShortFileSize(requireContext(), item.size)
+                loadGalleryImage(holder.ivThumbnail, item.path)
+                holder.cbSelected.visibility = if (gallerySelectionMode && !trashMode) View.VISIBLE else View.GONE
+                holder.cbSelected.isChecked = selectedGalleryPhotos.contains(item.path)
+                holder.cbSelected.setOnClickListener { toggleGallerySelection(item) }
+                holder.btnMore.visibility = if (gallerySelectionMode && !trashMode) View.GONE else View.VISIBLE
+                holder.btnMore.setOnClickListener { onMore(item, it) }
+            } else if (holder is FolderViewHolder) {
+                holder.tvFolderName.text = item.name
+                holder.tvFolderCount.text = resources.getQuantityString(R.plurals.gallery_photo_count, item.size.toInt(), item.size.toInt())
+                holder.previews.forEachIndexed { index, imageView ->
                     val uri = item.previewUris.getOrNull(index)
                     if (uri != null) {
                         imageView.visibility = View.VISIBLE
@@ -941,7 +1050,7 @@ class HomeFragment : Fragment() {
                         imageView.setImageDrawable(null)
                     }
                 }
-                view.findViewById<View>(R.id.btnFolderMore)?.setOnClickListener { onMore(item, it) }
+                holder.btnFolderMore.setOnClickListener { onMore(item, it) }
             }
             view.setOnClickListener { onClick(item) }
             view.setOnLongClickListener {
@@ -1358,7 +1467,7 @@ class HomeFragment : Fragment() {
             ) { favorite ->
                 val shareId = favorite.shareId
                 if (shareId.isNullOrEmpty()) {
-                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_share_not_found), android.widget.Toast.LENGTH_SHORT).show()
+                    fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_error), getString(R.string.toast_share_not_found))
                     return@showFavoritesList
                 }
                 val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity::class.java)
@@ -1486,6 +1595,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateRecycler(recycler: androidx.recyclerview.widget.RecyclerView, items: List<MediaItem>) {
+        val historyTabForRecycler = if (recycler.id == R.id.listNetwork) 2 else 1
         recycler.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
         recycler.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
             override fun getItemCount() = items.size
@@ -1558,7 +1668,9 @@ class HomeFragment : Fragment() {
                     popup.menu.add(0, 1, 0, getString(R.string.action_play))
                     popup.menu.add(0, 2, 1, getString(R.string.action_information))
                     popup.menu.add(0, 3, 2, getString(R.string.youtube_add_to_playlist))
-                    popup.menu.add(0, 4, 3, getString(R.string.action_remove_from_history))
+                    popup.menu.add(0, 5, 3, getString(R.string.action_custom_thumbnail))
+                    popup.menu.add(0, 6, 4, getString(R.string.action_delete_thumbnail))
+                    popup.menu.add(0, 4, 5, getString(R.string.action_remove_from_history))
                     popup.setOnMenuItemClickListener { mi ->
                         when (mi.itemId) {
                             1 -> { openHistoryItem(item); true }
@@ -1588,6 +1700,8 @@ class HomeFragment : Fragment() {
                                 )
                                 true
                             }
+                            5 -> { startCustomThumbnailSelection(item, historyTabForRecycler); true }
+                            6 -> { deleteCustomThumbnail(item); true }
                             4 -> { viewModel.removeFromHistory(item); true }
                             else -> false
                         }

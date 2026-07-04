@@ -20,11 +20,20 @@ public final class ItemAudioSimpleBinding implements ViewBinding {
   private final LinearLayout rootView;
 
   @NonNull
+  public final TextView tvAudioSimpleCodec;
+
+  @NonNull
+  public final TextView tvAudioSimpleFormatBadge;
+
+  @NonNull
   public final TextView tvAudioSimpleName;
 
   private ItemAudioSimpleBinding(@NonNull LinearLayout rootView,
+      @NonNull TextView tvAudioSimpleCodec, @NonNull TextView tvAudioSimpleFormatBadge,
       @NonNull TextView tvAudioSimpleName) {
     this.rootView = rootView;
+    this.tvAudioSimpleCodec = tvAudioSimpleCodec;
+    this.tvAudioSimpleFormatBadge = tvAudioSimpleFormatBadge;
     this.tvAudioSimpleName = tvAudioSimpleName;
   }
 
@@ -55,13 +64,26 @@ public final class ItemAudioSimpleBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
+      id = R.id.tvAudioSimpleCodec;
+      TextView tvAudioSimpleCodec = ViewBindings.findChildViewById(rootView, id);
+      if (tvAudioSimpleCodec == null) {
+        break missingId;
+      }
+
+      id = R.id.tvAudioSimpleFormatBadge;
+      TextView tvAudioSimpleFormatBadge = ViewBindings.findChildViewById(rootView, id);
+      if (tvAudioSimpleFormatBadge == null) {
+        break missingId;
+      }
+
       id = R.id.tvAudioSimpleName;
       TextView tvAudioSimpleName = ViewBindings.findChildViewById(rootView, id);
       if (tvAudioSimpleName == null) {
         break missingId;
       }
 
-      return new ItemAudioSimpleBinding((LinearLayout) rootView, tvAudioSimpleName);
+      return new ItemAudioSimpleBinding((LinearLayout) rootView, tvAudioSimpleCodec,
+          tvAudioSimpleFormatBadge, tvAudioSimpleName);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

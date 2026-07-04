@@ -14,6 +14,5 @@ class AuthRepository @Inject constructor() {
     suspend fun register(email: String, password: String): Result<Any> = Result.failure(Exception("Auth disabled"))
     suspend fun logout() {}
     suspend fun resetPassword(email: String): Result<Unit> = Result.failure(Exception("Auth disabled"))
-    suspend fun loginWithGoogle(idToken: String): Result<Any> = Result.failure(Exception("Auth disabled"))
     suspend fun saveUserProfile(uid: String, email: String, name: String) {}
 }

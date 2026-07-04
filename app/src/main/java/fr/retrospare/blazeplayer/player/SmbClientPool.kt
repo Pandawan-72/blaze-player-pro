@@ -15,10 +15,17 @@ object SmbClientPool {
         .withTimeout(30, TimeUnit.SECONDS)
         .withReadTimeout(120, TimeUnit.SECONDS) // stable sur Wi-Fi faible, sans bloquer indéfiniment
         .withSoTimeout(120, TimeUnit.SECONDS)
-        // Buffer SMB2 négocié à 8 Mo (défaut smbj : 1 Mo) : aligné sur le buffer de lecture côté
-        // app (SmbDataSource) pour profiter pleinement de la capacité en un seul aller-retour
-        // réseau, recommandé pour un débit confortable en 4K.
-        .withBufferSize(8 * 1024 * 1024)
+        // Buffer SMB2 négocié à 2 Mo (défaut smbj : 1 Mo), aligné sur DEFAULT_READ_BUFFER_BYTES
+        // de SmbDataSource. Il était auparavant à 8 Mo : le serveur pouvait alors répondre à une
+        // seule lecture (notamment via SmbMediaDataSource.readAt, utilisé par
+        // MediaMetadataRetriever/MediaExtractor pour sonder un conteneur MKV/MP4) avec un paquet
+        // de plusieurs Mo, que smbj doit allouer d'un bloc côté client. Cumulé au tampon de
+        // lecture de la vidéo en cours (2 Mo) et aux miniatures/métadonnées lues en parallèle,
+        // ça a provoqué un OutOfMemoryError (tas cible 256 Mo, appli sans largeHeap) dans
+        // Buffer.readRawBytes lors de la lecture d'une réponse SMB2READ de ~4 Mo pendant une
+        // lecture vidéo. 2 Mo suffit largement pour saturer un lien Wi-Fi en 4K tout en gardant
+        // une marge de sécurité mémoire.
+        .withBufferSize(2 * 1024 * 1024)
         .build()
 
     @Volatile

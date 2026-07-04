@@ -76,7 +76,6 @@
     <string name="settings">Paramètres</string>
     <string name="login_optional">Connexion (optionnel)</string>
     <string name="login_to_continue">Connectez-vous pour continuer</string>
-    <string name="continue_with_google">Continuer avec Google</string>
     <string name="create_my_account">Créer mon compte</string>
     <string name="create_account">Créer un compte</string>
     <string name="sign_in">Se connecter</string>
@@ -103,6 +102,12 @@
     <string name="about_section">À PROPOS</string>
     <string name="interface_section">INTERFACE</string>
     <string name="data_section">DONNÉES</string>
+    <string name="contact_section">CONTACT</string>
+    <string name="settings_suggestions">Suggestions</string>
+    <string name="settings_suggestions_desc">contact@retro-spare.fr</string>
+    <string name="settings_report_bug">Signaler un bug</string>
+    <string name="settings_report_bug_desc">dev@retro-spare.fr</string>
+    <string name="toast_no_email_app">Aucune application email trouvée</string>
     <string name="presets_section">PRÉRÉGLAGES</string>
     <string name="local_network_label">Réseau local</string>
 
@@ -255,6 +260,15 @@
     <string name="dialog_favorite_folders">Dossiers favoris</string>
     <string name="action_manage">Gérer</string>
     <string name="action_close">Fermer</string>
+    <string name="info_dialog_title_chromecast">Chromecast</string>
+    <string name="info_dialog_title_error">Erreur</string>
+    <string name="info_dialog_title_unavailable">Indisponible</string>
+    <string name="info_dialog_title_info">Information</string>
+    <string name="toast_capture_unavailable_cast">Capture indisponible pendant la diffusion Cast</string>
+    <string name="toast_capture_unavailable">Capture vidéo indisponible</string>
+    <string name="toast_capture_failed">Capture vidéo impossible</string>
+    <string name="toast_screenshot_saved">Screenshot enregistré dans Images/Blaze Screenshots</string>
+    <string name="toast_screenshot_save_error">Erreur lors de l\'enregistrement du screenshot</string>
     <string name="dialog_remove_favorites">Retirer des favoris</string>
     <string name="action_remove">Retirer</string>
 
@@ -381,6 +395,23 @@
         <item quantity="other">%1$d pistes sélectionnées</item>
     </plurals>
 
+    <plurals name="items_selected_count">
+        <item quantity="one">%1$d sélectionné</item>
+        <item quantity="other">%1$d sélectionnés</item>
+    </plurals>
+
+    <string name="settings_section_playback">LECTURE</string>
+    <string name="settings_section_audio">AUDIO</string>
+    <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
+    <string name="label_default">Par défaut</string>
+    <string name="eq_preamp_compressor_section">PRÉAMPLI &amp; COMPRESSEUR</string>
+    <string name="eq_preamp_label">Préampli</string>
+    <string name="eq_compressor_label">Compresseur</string>
+    <string name="player_casting_in_progress">Diffusion en cours</string>
+    <string name="player_stop_casting">Arrêter la diffusion</string>
+    <string name="player_speed_label_short">Vitesse</string>
+    <string name="player_ratio_label">Ratio</string>
+
     <!-- Lecteur audio : descriptions d'accessibilité jamais couvertes jusqu'ici -->
     <string name="content_desc_close_playlist">Fermer la playlist</string>
     <string name="content_desc_clean">Nettoyer</string>
@@ -487,5 +518,17 @@
         <item quantity="one">%d photo</item>
         <item quantity="other">%d photos</item>
     </plurals>
+
+    <string name="action_custom_thumbnail">Miniature personnalisée</string>
+    <string name="action_delete_thumbnail">Supprimer miniature</string>
+    <string name="custom_thumbnail_pick_folder">Choisir une capture dans Blaze Gallery</string>
+    <string name="custom_thumbnail_pick_image">Touchez l’image à utiliser comme miniature</string>
+    <string name="custom_thumbnail_pick_toast">Choisissez une capture dans Blaze Gallery pour l’utiliser comme miniature.</string>
+    <string name="custom_thumbnail_saved">Miniature personnalisée enregistrée</string>
+    <string name="custom_thumbnail_deleted">Miniature supprimée, frame à 10 s restaurée</string>
+    <string name="custom_thumbnail_error">Impossible d’enregistrer cette miniature</string>
+
+    <string name="settings_audio_spectrum">Activer le spectre visuel</string>
+    <string name="settings_audio_spectrum_desc">Afficher le visualiseur audio animé dans Blaze Audio.</string>
 
 </resources>

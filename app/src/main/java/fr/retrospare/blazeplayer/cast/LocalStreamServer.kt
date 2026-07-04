@@ -20,7 +20,7 @@ class LocalStreamServer(
         /** Logs HTTP désactivés par défaut : un Chromecast peut générer beaucoup de requêtes
          *  Range/HEAD. Logger tous les en-têtes dégrade inutilement le débit et pollue logcat. */
         private const val LOG_VERBOSE = false
-        const val SMB_STREAM_BUFFER_SIZE = 1024 * 1024 // 1 Mo : bon compromis latence/débit
+        const val SMB_STREAM_BUFFER_SIZE = 4 * 1024 * 1024 // 4 Mo : plus stable pour les flux 4K SMB/UPnP relayés
     }
 
     /** Snapshot immuable de la source active, remplacé atomiquement à chaque changement de vidéo
@@ -50,8 +50,19 @@ class LocalStreamServer(
      *  transition vers le Chromecast (cf. onDeviceInfoChanged) — CastPlayer.Builder n'exposant
      *  aucun point d'injection pour faire cette réécriture automatiquement (Media3 1.9). */
     fun getStreamUrl(): String {
+        // Lecture locale dans l'app : toujours passer par loopback. Utiliser l'IP Wi‑Fi du téléphone
+        // forçait certains appareils/box à sortir puis revenir par le réseau local, ce qui créait
+        // des gels sur les gros fichiers 4K et pouvait laisser le player bloqué au redémarrage.
+        return "http://127.0.0.1:${this.listeningPort}/stream/${activeSource?.version ?: 0L}"
+    }
+
+    fun getLanStreamUrl(): String {
         val ip = getLocalIpAddress() ?: "127.0.0.1"
         return "http://$ip:${this.listeningPort}/stream/${activeSource?.version ?: 0L}"
+    }
+
+    fun clearSource() {
+        activeSource = null
     }
 
     /** Adresse IP réseau (Wi-Fi/Ethernet) du téléphone, publique pour que
@@ -316,7 +327,7 @@ private class SmbMediaDataSourceInputStream(
     private val buffer = ByteArray(LocalStreamServer.SMB_STREAM_BUFFER_SIZE)
     private var bufferPos = 0
     private var bufferLen = 0
-    private var reopenBudget = 3
+    private var reopenBudget = 12
 
     override fun read(): Int {
         val b = ByteArray(1)
@@ -328,11 +339,15 @@ private class SmbMediaDataSourceInputStream(
         if (bufferPos >= bufferLen) {
             bufferLen = source.readAt(position, buffer, 0, buffer.size)
             bufferPos = 0
-            if (bufferLen <= 0 && position < source.size && reopenBudget > 0) {
+            while (bufferLen <= 0 && position < source.size && reopenBudget > 0) {
                 reopenBudget--
+                try { Thread.sleep(250L) } catch (_: InterruptedException) {}
                 try { source.close() } catch (_: Exception) {}
                 source = fr.retrospare.blazeplayer.player.SmbMediaDataSource(originalPath)
                 bufferLen = source.readAt(position, buffer, 0, buffer.size)
+            }
+            if (bufferLen <= 0 && position < source.size) {
+                throw java.io.IOException("SMB stream interrupted before EOF at $position/${source.size}")
             }
             if (bufferLen <= 0) return -1
         }

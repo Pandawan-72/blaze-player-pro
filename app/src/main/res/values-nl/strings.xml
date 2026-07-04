@@ -69,7 +69,6 @@
     <string name="settings">Instellingen</string>
     <string name="login_optional">Inloggen (optioneel)</string>
     <string name="login_to_continue">Log in om door te gaan</string>
-    <string name="continue_with_google">Doorgaan met Google</string>
     <string name="create_my_account">Mijn account aanmaken</string>
     <string name="create_account">Account aanmaken</string>
     <string name="sign_in">Inloggen</string>
@@ -96,6 +95,12 @@
     <string name="about_section">OVER</string>
     <string name="interface_section">INTERFACE</string>
     <string name="data_section">GEGEVENS</string>
+    <string name="contact_section">CONTACT</string>
+    <string name="settings_suggestions">Suggesties</string>
+    <string name="settings_suggestions_desc">contact@retro-spare.fr</string>
+    <string name="settings_report_bug">Bug melden</string>
+    <string name="settings_report_bug_desc">dev@retro-spare.fr</string>
+    <string name="toast_no_email_app">Geen e-mailapp gevonden</string>
     <string name="presets_section">VOORINSTELLINGEN</string>
     <string name="local_network_label">Lokaal netwerk</string>
 
@@ -237,6 +242,15 @@
     <string name="dialog_favorite_folders">Favoriete mappen</string>
     <string name="action_manage">Beheren</string>
     <string name="action_close">Sluiten</string>
+    <string name="info_dialog_title_chromecast">Chromecast</string>
+    <string name="info_dialog_title_error">Fout</string>
+    <string name="info_dialog_title_unavailable">Niet beschikbaar</string>
+    <string name="info_dialog_title_info">Informatie</string>
+    <string name="toast_capture_unavailable_cast">Opname niet beschikbaar tijdens Cast-streaming</string>
+    <string name="toast_capture_unavailable">Video-opname niet beschikbaar</string>
+    <string name="toast_capture_failed">Video-opname mislukt</string>
+    <string name="toast_screenshot_saved">Screenshot opgeslagen in Afbeeldingen/Blaze Screenshots</string>
+    <string name="toast_screenshot_save_error">Fout bij het opslaan van de screenshot</string>
     <string name="dialog_remove_favorites">Verwijderen uit favorieten</string>
     <string name="action_remove">Verwijderen</string>
 
@@ -351,6 +365,23 @@
         <item quantity="other">%1$d nummers geselecteerd</item>
     </plurals>
 
+    <plurals name="items_selected_count">
+        <item quantity="one">%1$d geselecteerd</item>
+        <item quantity="other">%1$d geselecteerd</item>
+    </plurals>
+
+    <string name="settings_section_playback">AFSPELEN</string>
+    <string name="settings_section_audio">AUDIO</string>
+    <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
+    <string name="label_default">Standaard</string>
+    <string name="eq_preamp_compressor_section">VOORVERSTERKER EN COMPRESSOR</string>
+    <string name="eq_preamp_label">Voorversterker</string>
+    <string name="eq_compressor_label">Compressor</string>
+    <string name="player_casting_in_progress">Streaming bezig</string>
+    <string name="player_stop_casting">Streaming stoppen</string>
+    <string name="player_speed_label_short">Snelheid</string>
+    <string name="player_ratio_label">Beeldverhouding</string>
+
     <string name="content_desc_close_playlist">Afspeellijst sluiten</string>
     <string name="content_desc_clean">Opschonen</string>
     <string name="content_desc_playlist">Afspeellijst</string>
@@ -430,6 +461,9 @@
     <string name="gallery_sort_name">Alfabetische volgorde</string>
     <string name="gallery_sort_size">Bestandsgrootte</string>
     <string name="gallery_unknown_folder">Onbekende map</string>
+
+    <string name="action_open">Openen</string>
+    <string name="action_share">Delen</string>
     <string name="gallery_trash">Prullenbak</string>
     <string name="gallery_empty_trash">Permanent legen</string>
     <string name="gallery_restore">Herstellen</string>
@@ -451,4 +485,7 @@
         <item quantity="one">%d foto</item>
         <item quantity="other">%d foto’s</item>
     </plurals>
+    <string name="settings_audio_spectrum">Visueel spectrum inschakelen</string>
+    <string name="settings_audio_spectrum_desc">Toon de geanimeerde audiovisualizer in Blaze Audio.</string>
+
 </resources>

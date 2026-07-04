@@ -69,7 +69,6 @@
     <string name="settings">Settings</string>
     <string name="login_optional">Login (optional)</string>
     <string name="login_to_continue">Sign in to continue</string>
-    <string name="continue_with_google">Continue with Google</string>
     <string name="create_my_account">Create my account</string>
     <string name="create_account">Create an account</string>
     <string name="sign_in">Sign in</string>
@@ -96,6 +95,12 @@
     <string name="about_section">ABOUT</string>
     <string name="interface_section">INTERFACE</string>
     <string name="data_section">DATA</string>
+    <string name="contact_section">CONTACT</string>
+    <string name="settings_suggestions">Suggestions</string>
+    <string name="settings_suggestions_desc">contact@retro-spare.fr</string>
+    <string name="settings_report_bug">Report a bug</string>
+    <string name="settings_report_bug_desc">dev@retro-spare.fr</string>
+    <string name="toast_no_email_app">No email app found</string>
     <string name="presets_section">PRESETS</string>
     <string name="local_network_label">Local network</string>
 
@@ -237,6 +242,15 @@
     <string name="dialog_favorite_folders">Favorite folders</string>
     <string name="action_manage">Manage</string>
     <string name="action_close">Close</string>
+    <string name="info_dialog_title_chromecast">Chromecast</string>
+    <string name="info_dialog_title_error">Error</string>
+    <string name="info_dialog_title_unavailable">Unavailable</string>
+    <string name="info_dialog_title_info">Information</string>
+    <string name="toast_capture_unavailable_cast">Capture unavailable while casting</string>
+    <string name="toast_capture_unavailable">Video capture unavailable</string>
+    <string name="toast_capture_failed">Video capture failed</string>
+    <string name="toast_screenshot_saved">Screenshot saved to Pictures/Blaze Screenshots</string>
+    <string name="toast_screenshot_save_error">Error saving screenshot</string>
     <string name="dialog_remove_favorites">Remove from favorites</string>
     <string name="action_remove">Remove</string>
 
@@ -351,6 +365,23 @@
         <item quantity="other">%1$d tracks selected</item>
     </plurals>
 
+    <plurals name="items_selected_count">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+
+    <string name="settings_section_playback">PLAYBACK</string>
+    <string name="settings_section_audio">AUDIO</string>
+    <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
+    <string name="label_default">Default</string>
+    <string name="eq_preamp_compressor_section">PREAMP &amp; COMPRESSOR</string>
+    <string name="eq_preamp_label">Preamp</string>
+    <string name="eq_compressor_label">Compressor</string>
+    <string name="player_casting_in_progress">Casting in progress</string>
+    <string name="player_stop_casting">Stop casting</string>
+    <string name="player_speed_label_short">Speed</string>
+    <string name="player_ratio_label">Ratio</string>
+
     <string name="content_desc_close_playlist">Close playlist</string>
     <string name="content_desc_clean">Clean up</string>
     <string name="content_desc_playlist">Playlist</string>
@@ -430,6 +461,9 @@
     <string name="gallery_sort_name">Alphabetical order</string>
     <string name="gallery_sort_size">File size</string>
     <string name="gallery_unknown_folder">Unknown folder</string>
+
+    <string name="action_open">Open</string>
+    <string name="action_share">Share</string>
     <string name="gallery_trash">Trash</string>
     <string name="gallery_empty_trash">Empty permanently</string>
     <string name="gallery_restore">Restore</string>
@@ -451,4 +485,7 @@
         <item quantity="one">%d photo</item>
         <item quantity="other">%d photos</item>
     </plurals>
+    <string name="settings_audio_spectrum">Enable visual spectrum</string>
+    <string name="settings_audio_spectrum_desc">Show the animated audio visualizer in Blaze Audio.</string>
+
 </resources>

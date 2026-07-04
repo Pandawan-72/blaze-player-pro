@@ -70,7 +70,7 @@ class BrowserFragment : Fragment() {
             ?.setOnClickListener {
                 adapter.selectAll()
                 val count = adapter.itemCount
-                binding.tvSelectionCount.text = "$count sélectionné(s)"
+                binding.tvSelectionCount.text = resources.getQuantityString(R.plurals.items_selected_count, count, count)
                 adapter.onSelectionChanged?.invoke(adapter.getSelectedItems().map { it.id }.toSet())
             }
         binding.root.findViewById<android.widget.Button>(R.id.btnAddSelected)
@@ -105,7 +105,7 @@ class BrowserFragment : Fragment() {
                 binding.toolbarSelection.visibility = android.view.View.GONE
             } else {
                 binding.toolbarSelection.visibility = android.view.View.VISIBLE
-                binding.tvSelectionCount.text = "${selected.size} sélectionné(s)"
+                binding.tvSelectionCount.text = resources.getQuantityString(R.plurals.items_selected_count, selected.size, selected.size)
             }
         }
     }
@@ -128,8 +128,6 @@ class BrowserFragment : Fragment() {
                 }
             },
             onFileClick = { item ->
-                // DEBUG
-                android.widget.Toast.makeText(requireContext(), "clic fichier audioPickMode=$audioPickMode args=${arguments?.keySet()}", android.widget.Toast.LENGTH_LONG).show()
                 PlayerRouter.open(requireContext(), item.path, item.name)
             }
         )
@@ -250,7 +248,7 @@ class BrowserFragment : Fragment() {
                             }
                             is BrowserViewModel.BrowserState.Error -> {
                                 binding.recyclerView.visibility = View.VISIBLE
-                                android.widget.Toast.makeText(requireContext(), getString(R.string.toast_error_generic, state.message), android.widget.Toast.LENGTH_LONG).show()
+                                fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_error), getString(R.string.toast_error_generic, state.message))
                             }
                         }
                     }

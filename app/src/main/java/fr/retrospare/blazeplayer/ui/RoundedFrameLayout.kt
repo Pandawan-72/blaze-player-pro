@@ -7,7 +7,7 @@ import android.view.View
 import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 
-class RoundedFrameLayout @JvmOverloads constructor(
+open class RoundedFrameLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0

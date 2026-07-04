@@ -95,7 +95,7 @@
             android:background="@drawable/bg_badge_yellow"
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
-            android:text="Par défaut"
+            android:text="@string/label_default"
             android:textColor="@color/yellow_accent"
             android:textSize="10sp"
             android:fontFamily="sans-serif-condensed"

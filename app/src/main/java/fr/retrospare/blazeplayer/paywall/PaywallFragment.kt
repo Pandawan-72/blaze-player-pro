@@ -9,7 +9,6 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import android.widget.Toast
 import fr.retrospare.blazeplayer.R
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.databinding.FragmentPaywallBinding
@@ -35,13 +34,13 @@ class PaywallFragment : Fragment() {
         viewModel.checkProStatus()
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
         binding.btnBuyPro.setOnClickListener {
-            Toast.makeText(requireContext(), getString(R.string.toast_billing_soon), Toast.LENGTH_SHORT).show()
+            fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_info), getString(R.string.toast_billing_soon))
         }
         binding.btnBuyProPlus.setOnClickListener {
-            Toast.makeText(requireContext(), getString(R.string.toast_billing_soon), Toast.LENGTH_SHORT).show()
+            fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_info), getString(R.string.toast_billing_soon))
         }
         binding.btnRestore.setOnClickListener {
-            Toast.makeText(requireContext(), getString(R.string.toast_restore_purchases_soon), Toast.LENGTH_SHORT).show()
+            fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_info), getString(R.string.toast_restore_purchases_soon))
         }
     }
 

@@ -5,7 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
+import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.widget.NestedScrollView;
@@ -28,23 +28,28 @@ public final class FragmentPaywallBinding implements ViewBinding {
   public final MaterialButton btnBuyPro;
 
   @NonNull
+  public final MaterialButton btnBuyProPlus;
+
+  @NonNull
   public final MaterialButton btnRestore;
 
   @NonNull
-  public final LinearLayout compareContainer;
+  public final ImageView imgAppIcon;
 
   @NonNull
-  public final LinearLayout featuresContainer;
+  public final NestedScrollView paywallRoot;
 
   private FragmentPaywallBinding(@NonNull NestedScrollView rootView, @NonNull ImageButton btnBack,
-      @NonNull MaterialButton btnBuyPro, @NonNull MaterialButton btnRestore,
-      @NonNull LinearLayout compareContainer, @NonNull LinearLayout featuresContainer) {
+      @NonNull MaterialButton btnBuyPro, @NonNull MaterialButton btnBuyProPlus,
+      @NonNull MaterialButton btnRestore, @NonNull ImageView imgAppIcon,
+      @NonNull NestedScrollView paywallRoot) {
     this.rootView = rootView;
     this.btnBack = btnBack;
     this.btnBuyPro = btnBuyPro;
+    this.btnBuyProPlus = btnBuyProPlus;
     this.btnRestore = btnRestore;
-    this.compareContainer = compareContainer;
-    this.featuresContainer = featuresContainer;
+    this.imgAppIcon = imgAppIcon;
+    this.paywallRoot = paywallRoot;
   }
 
   @Override
@@ -86,26 +91,28 @@ public final class FragmentPaywallBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnBuyProPlus;
+      MaterialButton btnBuyProPlus = ViewBindings.findChildViewById(rootView, id);
+      if (btnBuyProPlus == null) {
+        break missingId;
+      }
+
       id = R.id.btnRestore;
       MaterialButton btnRestore = ViewBindings.findChildViewById(rootView, id);
       if (btnRestore == null) {
         break missingId;
       }
 
-      id = R.id.compareContainer;
-      LinearLayout compareContainer = ViewBindings.findChildViewById(rootView, id);
-      if (compareContainer == null) {
+      id = R.id.imgAppIcon;
+      ImageView imgAppIcon = ViewBindings.findChildViewById(rootView, id);
+      if (imgAppIcon == null) {
         break missingId;
       }
 
-      id = R.id.featuresContainer;
-      LinearLayout featuresContainer = ViewBindings.findChildViewById(rootView, id);
-      if (featuresContainer == null) {
-        break missingId;
-      }
+      NestedScrollView paywallRoot = (NestedScrollView) rootView;
 
-      return new FragmentPaywallBinding((NestedScrollView) rootView, btnBack, btnBuyPro, btnRestore,
-          compareContainer, featuresContainer);
+      return new FragmentPaywallBinding((NestedScrollView) rootView, btnBack, btnBuyPro,
+          btnBuyProPlus, btnRestore, imgAppIcon, paywallRoot);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

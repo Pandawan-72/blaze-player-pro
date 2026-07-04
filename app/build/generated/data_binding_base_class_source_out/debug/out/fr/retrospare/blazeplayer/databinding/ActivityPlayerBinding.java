@@ -12,6 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media3.ui.PlayerView;
+import androidx.mediarouter.app.MediaRouteButton;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import fr.retrospare.blazeplayer.R;
@@ -24,6 +25,9 @@ public final class ActivityPlayerBinding implements ViewBinding {
   private final FrameLayout rootView;
 
   @NonNull
+  public final LinearLayout bottomControlsContainer;
+
+  @NonNull
   public final LinearLayout btnAudio;
 
   @NonNull
@@ -31,6 +35,9 @@ public final class ActivityPlayerBinding implements ViewBinding {
 
   @NonNull
   public final LinearLayout btnForward;
+
+  @NonNull
+  public final MediaRouteButton btnHeaderCast;
 
   @NonNull
   public final LinearLayout btnNext;
@@ -48,16 +55,43 @@ public final class ActivityPlayerBinding implements ViewBinding {
   public final LinearLayout btnRewind;
 
   @NonNull
+  public final FrameLayout btnScreenshot;
+
+  @NonNull
+  public final ImageButton btnSeekInfo;
+
+  @NonNull
+  public final LinearLayout btnSpeed;
+
+  @NonNull
   public final FrameLayout btnStop;
+
+  @NonNull
+  public final TextView btnStopCasting;
 
   @NonNull
   public final LinearLayout btnSubtitles;
 
   @NonNull
+  public final ImageButton btnVideoSettings;
+
+  @NonNull
   public final View castBlackout;
 
   @NonNull
+  public final LinearLayout castStatusCard;
+
+  @NonNull
+  public final LinearLayout centerTransportControls;
+
+  @NonNull
+  public final View controlsDimOverlay;
+
+  @NonNull
   public final ImageView ivPlayPause;
+
+  @NonNull
+  public final LinearLayout playPauseStack;
 
   @NonNull
   public final PlayerView playerView;
@@ -78,10 +112,16 @@ public final class ActivityPlayerBinding implements ViewBinding {
   public final TextView seekIndicator;
 
   @NonNull
+  public final LinearLayout timelineRow;
+
+  @NonNull
   public final FrameLayout touchZoneLeft;
 
   @NonNull
   public final View touchZoneLeftFill;
+
+  @NonNull
+  public final View touchZoneLeftThumb;
 
   @NonNull
   public final FrameLayout touchZoneRight;
@@ -90,7 +130,19 @@ public final class ActivityPlayerBinding implements ViewBinding {
   public final View touchZoneRightFill;
 
   @NonNull
+  public final View touchZoneRightThumb;
+
+  @NonNull
   public final TextView tvBrightnessZone;
+
+  @NonNull
+  public final TextView tvCastDeviceName;
+
+  @NonNull
+  public final TextView tvCastMediaTitle;
+
+  @NonNull
+  public final TextView tvCastStatusTitle;
 
   @NonNull
   public final TextView tvCurrentTime;
@@ -100,6 +152,9 @@ public final class ActivityPlayerBinding implements ViewBinding {
 
   @NonNull
   public final TextView tvRewindLabel;
+
+  @NonNull
+  public final TextView tvSpeedValue;
 
   @NonNull
   public final TextView tvSubtitle;
@@ -114,49 +169,78 @@ public final class ActivityPlayerBinding implements ViewBinding {
   public final TextView tvVolumeZone;
 
   @NonNull
-  public final LinearLayout uiOverlay;
+  public final FrameLayout uiOverlay;
 
-  private ActivityPlayerBinding(@NonNull FrameLayout rootView, @NonNull LinearLayout btnAudio,
-      @NonNull ImageButton btnBack, @NonNull LinearLayout btnForward, @NonNull LinearLayout btnNext,
+  private ActivityPlayerBinding(@NonNull FrameLayout rootView,
+      @NonNull LinearLayout bottomControlsContainer, @NonNull LinearLayout btnAudio,
+      @NonNull ImageButton btnBack, @NonNull LinearLayout btnForward,
+      @NonNull MediaRouteButton btnHeaderCast, @NonNull LinearLayout btnNext,
       @NonNull FrameLayout btnPlayPause, @NonNull LinearLayout btnPrevious,
-      @NonNull LinearLayout btnRatio, @NonNull LinearLayout btnRewind, @NonNull FrameLayout btnStop,
-      @NonNull LinearLayout btnSubtitles, @NonNull View castBlackout,
-      @NonNull ImageView ivPlayPause, @NonNull PlayerView playerView, @NonNull View progressBuffer,
-      @NonNull FrameLayout progressContainer, @NonNull View progressFill,
-      @NonNull View progressThumb, @NonNull TextView seekIndicator,
-      @NonNull FrameLayout touchZoneLeft, @NonNull View touchZoneLeftFill,
+      @NonNull LinearLayout btnRatio, @NonNull LinearLayout btnRewind,
+      @NonNull FrameLayout btnScreenshot, @NonNull ImageButton btnSeekInfo,
+      @NonNull LinearLayout btnSpeed, @NonNull FrameLayout btnStop,
+      @NonNull TextView btnStopCasting, @NonNull LinearLayout btnSubtitles,
+      @NonNull ImageButton btnVideoSettings, @NonNull View castBlackout,
+      @NonNull LinearLayout castStatusCard, @NonNull LinearLayout centerTransportControls,
+      @NonNull View controlsDimOverlay, @NonNull ImageView ivPlayPause,
+      @NonNull LinearLayout playPauseStack, @NonNull PlayerView playerView,
+      @NonNull View progressBuffer, @NonNull FrameLayout progressContainer,
+      @NonNull View progressFill, @NonNull View progressThumb, @NonNull TextView seekIndicator,
+      @NonNull LinearLayout timelineRow, @NonNull FrameLayout touchZoneLeft,
+      @NonNull View touchZoneLeftFill, @NonNull View touchZoneLeftThumb,
       @NonNull FrameLayout touchZoneRight, @NonNull View touchZoneRightFill,
-      @NonNull TextView tvBrightnessZone, @NonNull TextView tvCurrentTime,
+      @NonNull View touchZoneRightThumb, @NonNull TextView tvBrightnessZone,
+      @NonNull TextView tvCastDeviceName, @NonNull TextView tvCastMediaTitle,
+      @NonNull TextView tvCastStatusTitle, @NonNull TextView tvCurrentTime,
       @NonNull TextView tvForwardLabel, @NonNull TextView tvRewindLabel,
-      @NonNull TextView tvSubtitle, @NonNull TextView tvTitle, @NonNull TextView tvTotalTime,
-      @NonNull TextView tvVolumeZone, @NonNull LinearLayout uiOverlay) {
+      @NonNull TextView tvSpeedValue, @NonNull TextView tvSubtitle, @NonNull TextView tvTitle,
+      @NonNull TextView tvTotalTime, @NonNull TextView tvVolumeZone,
+      @NonNull FrameLayout uiOverlay) {
     this.rootView = rootView;
+    this.bottomControlsContainer = bottomControlsContainer;
     this.btnAudio = btnAudio;
     this.btnBack = btnBack;
     this.btnForward = btnForward;
+    this.btnHeaderCast = btnHeaderCast;
     this.btnNext = btnNext;
     this.btnPlayPause = btnPlayPause;
     this.btnPrevious = btnPrevious;
     this.btnRatio = btnRatio;
     this.btnRewind = btnRewind;
+    this.btnScreenshot = btnScreenshot;
+    this.btnSeekInfo = btnSeekInfo;
+    this.btnSpeed = btnSpeed;
     this.btnStop = btnStop;
+    this.btnStopCasting = btnStopCasting;
     this.btnSubtitles = btnSubtitles;
+    this.btnVideoSettings = btnVideoSettings;
     this.castBlackout = castBlackout;
+    this.castStatusCard = castStatusCard;
+    this.centerTransportControls = centerTransportControls;
+    this.controlsDimOverlay = controlsDimOverlay;
     this.ivPlayPause = ivPlayPause;
+    this.playPauseStack = playPauseStack;
     this.playerView = playerView;
     this.progressBuffer = progressBuffer;
     this.progressContainer = progressContainer;
     this.progressFill = progressFill;
     this.progressThumb = progressThumb;
     this.seekIndicator = seekIndicator;
+    this.timelineRow = timelineRow;
     this.touchZoneLeft = touchZoneLeft;
     this.touchZoneLeftFill = touchZoneLeftFill;
+    this.touchZoneLeftThumb = touchZoneLeftThumb;
     this.touchZoneRight = touchZoneRight;
     this.touchZoneRightFill = touchZoneRightFill;
+    this.touchZoneRightThumb = touchZoneRightThumb;
     this.tvBrightnessZone = tvBrightnessZone;
+    this.tvCastDeviceName = tvCastDeviceName;
+    this.tvCastMediaTitle = tvCastMediaTitle;
+    this.tvCastStatusTitle = tvCastStatusTitle;
     this.tvCurrentTime = tvCurrentTime;
     this.tvForwardLabel = tvForwardLabel;
     this.tvRewindLabel = tvRewindLabel;
+    this.tvSpeedValue = tvSpeedValue;
     this.tvSubtitle = tvSubtitle;
     this.tvTitle = tvTitle;
     this.tvTotalTime = tvTotalTime;
@@ -191,6 +275,12 @@ public final class ActivityPlayerBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
+      id = R.id.bottomControlsContainer;
+      LinearLayout bottomControlsContainer = ViewBindings.findChildViewById(rootView, id);
+      if (bottomControlsContainer == null) {
+        break missingId;
+      }
+
       id = R.id.btnAudio;
       LinearLayout btnAudio = ViewBindings.findChildViewById(rootView, id);
       if (btnAudio == null) {
@@ -206,6 +296,12 @@ public final class ActivityPlayerBinding implements ViewBinding {
       id = R.id.btnForward;
       LinearLayout btnForward = ViewBindings.findChildViewById(rootView, id);
       if (btnForward == null) {
+        break missingId;
+      }
+
+      id = R.id.btnHeaderCast;
+      MediaRouteButton btnHeaderCast = ViewBindings.findChildViewById(rootView, id);
+      if (btnHeaderCast == null) {
         break missingId;
       }
 
@@ -239,9 +335,33 @@ public final class ActivityPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnScreenshot;
+      FrameLayout btnScreenshot = ViewBindings.findChildViewById(rootView, id);
+      if (btnScreenshot == null) {
+        break missingId;
+      }
+
+      id = R.id.btnSeekInfo;
+      ImageButton btnSeekInfo = ViewBindings.findChildViewById(rootView, id);
+      if (btnSeekInfo == null) {
+        break missingId;
+      }
+
+      id = R.id.btnSpeed;
+      LinearLayout btnSpeed = ViewBindings.findChildViewById(rootView, id);
+      if (btnSpeed == null) {
+        break missingId;
+      }
+
       id = R.id.btnStop;
       FrameLayout btnStop = ViewBindings.findChildViewById(rootView, id);
       if (btnStop == null) {
+        break missingId;
+      }
+
+      id = R.id.btnStopCasting;
+      TextView btnStopCasting = ViewBindings.findChildViewById(rootView, id);
+      if (btnStopCasting == null) {
         break missingId;
       }
 
@@ -251,15 +371,45 @@ public final class ActivityPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnVideoSettings;
+      ImageButton btnVideoSettings = ViewBindings.findChildViewById(rootView, id);
+      if (btnVideoSettings == null) {
+        break missingId;
+      }
+
       id = R.id.castBlackout;
       View castBlackout = ViewBindings.findChildViewById(rootView, id);
       if (castBlackout == null) {
         break missingId;
       }
 
+      id = R.id.castStatusCard;
+      LinearLayout castStatusCard = ViewBindings.findChildViewById(rootView, id);
+      if (castStatusCard == null) {
+        break missingId;
+      }
+
+      id = R.id.centerTransportControls;
+      LinearLayout centerTransportControls = ViewBindings.findChildViewById(rootView, id);
+      if (centerTransportControls == null) {
+        break missingId;
+      }
+
+      id = R.id.controlsDimOverlay;
+      View controlsDimOverlay = ViewBindings.findChildViewById(rootView, id);
+      if (controlsDimOverlay == null) {
+        break missingId;
+      }
+
       id = R.id.ivPlayPause;
       ImageView ivPlayPause = ViewBindings.findChildViewById(rootView, id);
       if (ivPlayPause == null) {
+        break missingId;
+      }
+
+      id = R.id.playPauseStack;
+      LinearLayout playPauseStack = ViewBindings.findChildViewById(rootView, id);
+      if (playPauseStack == null) {
         break missingId;
       }
 
@@ -299,6 +449,12 @@ public final class ActivityPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.timelineRow;
+      LinearLayout timelineRow = ViewBindings.findChildViewById(rootView, id);
+      if (timelineRow == null) {
+        break missingId;
+      }
+
       id = R.id.touchZoneLeft;
       FrameLayout touchZoneLeft = ViewBindings.findChildViewById(rootView, id);
       if (touchZoneLeft == null) {
@@ -308,6 +464,12 @@ public final class ActivityPlayerBinding implements ViewBinding {
       id = R.id.touchZoneLeftFill;
       View touchZoneLeftFill = ViewBindings.findChildViewById(rootView, id);
       if (touchZoneLeftFill == null) {
+        break missingId;
+      }
+
+      id = R.id.touchZoneLeftThumb;
+      View touchZoneLeftThumb = ViewBindings.findChildViewById(rootView, id);
+      if (touchZoneLeftThumb == null) {
         break missingId;
       }
 
@@ -323,9 +485,33 @@ public final class ActivityPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.touchZoneRightThumb;
+      View touchZoneRightThumb = ViewBindings.findChildViewById(rootView, id);
+      if (touchZoneRightThumb == null) {
+        break missingId;
+      }
+
       id = R.id.tvBrightnessZone;
       TextView tvBrightnessZone = ViewBindings.findChildViewById(rootView, id);
       if (tvBrightnessZone == null) {
+        break missingId;
+      }
+
+      id = R.id.tvCastDeviceName;
+      TextView tvCastDeviceName = ViewBindings.findChildViewById(rootView, id);
+      if (tvCastDeviceName == null) {
+        break missingId;
+      }
+
+      id = R.id.tvCastMediaTitle;
+      TextView tvCastMediaTitle = ViewBindings.findChildViewById(rootView, id);
+      if (tvCastMediaTitle == null) {
+        break missingId;
+      }
+
+      id = R.id.tvCastStatusTitle;
+      TextView tvCastStatusTitle = ViewBindings.findChildViewById(rootView, id);
+      if (tvCastStatusTitle == null) {
         break missingId;
       }
 
@@ -344,6 +530,12 @@ public final class ActivityPlayerBinding implements ViewBinding {
       id = R.id.tvRewindLabel;
       TextView tvRewindLabel = ViewBindings.findChildViewById(rootView, id);
       if (tvRewindLabel == null) {
+        break missingId;
+      }
+
+      id = R.id.tvSpeedValue;
+      TextView tvSpeedValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvSpeedValue == null) {
         break missingId;
       }
 
@@ -372,17 +564,21 @@ public final class ActivityPlayerBinding implements ViewBinding {
       }
 
       id = R.id.uiOverlay;
-      LinearLayout uiOverlay = ViewBindings.findChildViewById(rootView, id);
+      FrameLayout uiOverlay = ViewBindings.findChildViewById(rootView, id);
       if (uiOverlay == null) {
         break missingId;
       }
 
-      return new ActivityPlayerBinding((FrameLayout) rootView, btnAudio, btnBack, btnForward,
-          btnNext, btnPlayPause, btnPrevious, btnRatio, btnRewind, btnStop, btnSubtitles,
-          castBlackout, ivPlayPause, playerView, progressBuffer, progressContainer, progressFill,
-          progressThumb, seekIndicator, touchZoneLeft, touchZoneLeftFill, touchZoneRight,
-          touchZoneRightFill, tvBrightnessZone, tvCurrentTime, tvForwardLabel, tvRewindLabel,
-          tvSubtitle, tvTitle, tvTotalTime, tvVolumeZone, uiOverlay);
+      return new ActivityPlayerBinding((FrameLayout) rootView, bottomControlsContainer, btnAudio,
+          btnBack, btnForward, btnHeaderCast, btnNext, btnPlayPause, btnPrevious, btnRatio,
+          btnRewind, btnScreenshot, btnSeekInfo, btnSpeed, btnStop, btnStopCasting, btnSubtitles,
+          btnVideoSettings, castBlackout, castStatusCard, centerTransportControls,
+          controlsDimOverlay, ivPlayPause, playPauseStack, playerView, progressBuffer,
+          progressContainer, progressFill, progressThumb, seekIndicator, timelineRow, touchZoneLeft,
+          touchZoneLeftFill, touchZoneLeftThumb, touchZoneRight, touchZoneRightFill,
+          touchZoneRightThumb, tvBrightnessZone, tvCastDeviceName, tvCastMediaTitle,
+          tvCastStatusTitle, tvCurrentTime, tvForwardLabel, tvRewindLabel, tvSpeedValue, tvSubtitle,
+          tvTitle, tvTotalTime, tvVolumeZone, uiOverlay);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

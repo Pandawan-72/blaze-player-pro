@@ -133,22 +133,6 @@
                 android:background="@color/outline" />
         </LinearLayout>
 
-        <!-- Bouton Google -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnGoogle"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="16dp"
-            android:text="@string/continue_with_google"
-            android:textColor="@color/on_background"
-            android:textSize="15sp"
-            app:cornerRadius="12dp"
-            app:icon="@drawable/ic_google"
-            app:iconGravity="textStart"
-            app:iconPadding="12dp"
-            app:strokeColor="@color/outline" />
-
         <!-- Lien inscription -->
         <LinearLayout
             android:layout_width="match_parent"

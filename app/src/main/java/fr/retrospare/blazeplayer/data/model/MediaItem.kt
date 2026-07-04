@@ -30,14 +30,4 @@ data class MediaItem(
                 "%d:%02d".format(minutes, seconds)
             }
         }
-
-    val formattedSize: String
-        get() {
-            return when {
-                size >= 1_000_000_000 -> "%.1f Go".format(size / 1_000_000_000.0)
-                size >= 1_000_000 -> "%.1f Mo".format(size / 1_000_000.0)
-                size >= 1_000 -> "%.1f Ko".format(size / 1_000.0)
-                else -> "$size o"
-            }
-        }
 }

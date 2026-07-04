@@ -35,18 +35,44 @@ object AudioMetadataExtractor {
     private val LOSSLESS_EXTENSIONS = setOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
     private val inFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<AudioTechnicalInfo>>()
 
+    /**
+     * Un cache peut être volontairement partiel : AudioRepository y dépose parfois seulement
+     * titre/artiste/album/extension pendant la construction du MediaItem, avant que le débit ne
+     * soit extrait. Avant ce correctif, extract() retournait ce cache partiel comme s'il était
+     * complet : les MP3/AAC/OGG/etc. restaient donc sans badge bitrate, alors que les FLAC
+     * affichaient quand même "Lossless" grâce à l'extension. On ne court-circuite maintenant
+     * l'extraction que si le cache contient déjà de quoi afficher le badge qualité.
+     */
+    private fun hasQualityBadge(info: AudioTechnicalInfo): Boolean {
+        val ext = info.extension.uppercase()
+        return info.bitrate > 0L || info.isLossless || ext in LOSSLESS_EXTENSIONS
+    }
+
+    private fun mergeKnownMetadata(fresh: AudioTechnicalInfo, previous: AudioTechnicalInfo?): AudioTechnicalInfo {
+        if (previous == null) return fresh
+        return AudioTechnicalInfo(
+            artist = fresh.artist.ifBlank { previous.artist },
+            duration = if (fresh.duration > 0L) fresh.duration else previous.duration,
+            bitrate = if (fresh.bitrate > 0L) fresh.bitrate else previous.bitrate,
+            extension = fresh.extension.ifBlank { previous.extension },
+            isLossless = fresh.isLossless || previous.isLossless,
+            title = fresh.title.ifBlank { previous.title },
+            album = fresh.album.ifBlank { previous.album }
+        )
+    }
+
     suspend fun extract(context: Context, path: String, name: String): AudioTechnicalInfo {
-        cache[path]?.let { return it }
+        cache[path]?.takeIf { hasQualityBadge(it) }?.let { return it }
         return withContext(Dispatchers.IO) {
-            loadFromDisk(context, path)?.let {
-                cache[path] = it
-                return@withContext it
-            }
+            val cached = cache[path] ?: loadFromDisk(context, path)?.also { cache[path] = it }
+            if (cached != null && hasQualityBadge(cached)) return@withContext cached
             inFlight[path]?.let { return@withContext it.await() }
             val deferred = async {
-                val info = kotlinx.coroutines.withTimeoutOrNull(if (path.startsWith("smb://")) 3_000L else 5_000L) {
+                val fallbackExt = name.substringAfterLast(".", "").uppercase().ifBlank { cached?.extension.orEmpty() }
+                val extracted = kotlinx.coroutines.withTimeoutOrNull(if (path.startsWith("smb://")) 3_000L else 5_000L) {
                     extractInternal(context, path, name)
-                } ?: AudioTechnicalInfo(extension = name.substringAfterLast(".", "").uppercase())
+                } ?: AudioTechnicalInfo(extension = fallbackExt)
+                val info = mergeKnownMetadata(extracted, cached)
                 cache[path] = info
                 saveToDisk(context, path, info)
                 info
@@ -166,8 +192,22 @@ object AudioMetadataExtractor {
                 val title = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)?.trim() ?: ""
                 val artist = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)?.trim() ?: ""
                 val album = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM)?.trim() ?: ""
-                val bitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
                 val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+
+                // METADATA_KEY_BITRATE n'est fiable que pour la vidéo : pour l'audio (MP3 notamment),
+                // MediaMetadataRetriever renvoie très souvent null/0 selon l'appareil/la version
+                // d'Android, alors même que le fichier a bien un débit. On calcule donc un débit
+                // moyen de repli à partir de la taille du fichier et de la durée (taille en bits /
+                // durée en secondes) — une approximation standard pour l'affichage d'un débit
+                // "moyen", y compris pour le VBR, plutôt que de ne jamais afficher de badge.
+                val rawBitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toLongOrNull() ?: 0L
+                val bitrate = if (rawBitrate > 0L) {
+                    rawBitrate
+                } else if (durationMs > 0L) {
+                    val sizeBytes = fileSizeBytes(context, path, smbDataSource)
+                    if (sizeBytes > 0L) (sizeBytes * 8_000L) / durationMs else 0L
+                } else 0L
+
                 val ext = name.substringAfterLast(".", "").uppercase()
                 val lossless = ext in LOSSLESS_EXTENSIONS
                 AudioTechnicalInfo(
@@ -186,6 +226,22 @@ object AudioMetadataExtractor {
             AudioTechnicalInfo(extension = name.substringAfterLast(".", "").uppercase())
         } finally {
             try { smbDataSource?.close() } catch (_: Exception) {}
+        }
+    }
+
+    /** Taille du fichier, tous types de chemins confondus (local, content://, smb://), pour le
+     *  calcul de débit de repli. Retourne -1 si indisponible. */
+    private fun fileSizeBytes(context: Context, path: String, smbDataSource: SmbMediaDataSource?): Long {
+        return try {
+            when {
+                path.startsWith("smb://") -> smbDataSource?.size ?: -1L
+                path.startsWith("content://") -> context.contentResolver
+                    .openFileDescriptor(android.net.Uri.parse(path), "r")
+                    ?.use { it.statSize } ?: -1L
+                else -> java.io.File(path).length().takeIf { it > 0L } ?: -1L
+            }
+        } catch (_: Exception) {
+            -1L
         }
     }
 }

@@ -24,9 +24,6 @@ public final class FragmentLoginBinding implements ViewBinding {
   private final ScrollView rootView;
 
   @NonNull
-  public final MaterialButton btnGoogle;
-
-  @NonNull
   public final MaterialButton btnLogin;
 
   @NonNull
@@ -50,13 +47,12 @@ public final class FragmentLoginBinding implements ViewBinding {
   @NonNull
   public final TextView tvRegister;
 
-  private FragmentLoginBinding(@NonNull ScrollView rootView, @NonNull MaterialButton btnGoogle,
-      @NonNull MaterialButton btnLogin, @NonNull TextInputEditText etEmail,
-      @NonNull TextInputEditText etPassword, @NonNull LinearProgressIndicator progressBar,
-      @NonNull TextInputLayout tilEmail, @NonNull TextInputLayout tilPassword,
-      @NonNull TextView tvForgotPassword, @NonNull TextView tvRegister) {
+  private FragmentLoginBinding(@NonNull ScrollView rootView, @NonNull MaterialButton btnLogin,
+      @NonNull TextInputEditText etEmail, @NonNull TextInputEditText etPassword,
+      @NonNull LinearProgressIndicator progressBar, @NonNull TextInputLayout tilEmail,
+      @NonNull TextInputLayout tilPassword, @NonNull TextView tvForgotPassword,
+      @NonNull TextView tvRegister) {
     this.rootView = rootView;
-    this.btnGoogle = btnGoogle;
     this.btnLogin = btnLogin;
     this.etEmail = etEmail;
     this.etPassword = etPassword;
@@ -94,12 +90,6 @@ public final class FragmentLoginBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
-      id = R.id.btnGoogle;
-      MaterialButton btnGoogle = ViewBindings.findChildViewById(rootView, id);
-      if (btnGoogle == null) {
-        break missingId;
-      }
-
       id = R.id.btnLogin;
       MaterialButton btnLogin = ViewBindings.findChildViewById(rootView, id);
       if (btnLogin == null) {
@@ -148,8 +138,8 @@ public final class FragmentLoginBinding implements ViewBinding {
         break missingId;
       }
 
-      return new FragmentLoginBinding((ScrollView) rootView, btnGoogle, btnLogin, etEmail,
-          etPassword, progressBar, tilEmail, tilPassword, tvForgotPassword, tvRegister);
+      return new FragmentLoginBinding((ScrollView) rootView, btnLogin, etEmail, etPassword,
+          progressBar, tilEmail, tilPassword, tvForgotPassword, tvRegister);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

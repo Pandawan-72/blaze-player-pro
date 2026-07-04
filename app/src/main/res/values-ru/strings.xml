@@ -69,7 +69,6 @@
     <string name="settings">Настройки</string>
     <string name="login_optional">Вход (необязательно)</string>
     <string name="login_to_continue">Войдите, чтобы продолжить</string>
-    <string name="continue_with_google">Продолжить с Google</string>
     <string name="create_my_account">Создать аккаунт</string>
     <string name="create_account">Создать аккаунт</string>
     <string name="sign_in">Войти</string>
@@ -96,6 +95,12 @@
     <string name="about_section">О ПРИЛОЖЕНИИ</string>
     <string name="interface_section">ИНТЕРФЕЙС</string>
     <string name="data_section">ДАННЫЕ</string>
+    <string name="contact_section">КОНТАКТЫ</string>
+    <string name="settings_suggestions">Предложения</string>
+    <string name="settings_suggestions_desc">contact@retro-spare.fr</string>
+    <string name="settings_report_bug">Сообщить об ошибке</string>
+    <string name="settings_report_bug_desc">dev@retro-spare.fr</string>
+    <string name="toast_no_email_app">Почтовое приложение не найдено</string>
     <string name="presets_section">ПРЕСЕТЫ</string>
     <string name="local_network_label">Локальная сеть</string>
 
@@ -243,6 +248,15 @@
     <string name="dialog_favorite_folders">Избранные папки</string>
     <string name="action_manage">Управлять</string>
     <string name="action_close">Закрыть</string>
+    <string name="info_dialog_title_chromecast">Chromecast</string>
+    <string name="info_dialog_title_error">Ошибка</string>
+    <string name="info_dialog_title_unavailable">Недоступно</string>
+    <string name="info_dialog_title_info">Информация</string>
+    <string name="toast_capture_unavailable_cast">Захват недоступен во время трансляции Cast</string>
+    <string name="toast_capture_unavailable">Захват видео недоступен</string>
+    <string name="toast_capture_failed">Не удалось выполнить захват видео</string>
+    <string name="toast_screenshot_saved">Скриншот сохранён в Изображения/Blaze Screenshots</string>
+    <string name="toast_screenshot_save_error">Ошибка при сохранении скриншота</string>
     <string name="dialog_remove_favorites">Удалить из избранного</string>
     <string name="action_remove">Удалить</string>
 
@@ -371,6 +385,25 @@
         <item quantity="other">%1$d трека выбрано</item>
     </plurals>
 
+    <plurals name="items_selected_count">
+        <item quantity="one">%1$d выбрано</item>
+        <item quantity="few">%1$d выбрано</item>
+        <item quantity="many">%1$d выбрано</item>
+        <item quantity="other">%1$d выбрано</item>
+    </plurals>
+
+    <string name="settings_section_playback">ВОСПРОИЗВЕДЕНИЕ</string>
+    <string name="settings_section_audio">АУДИО</string>
+    <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
+    <string name="label_default">По умолчанию</string>
+    <string name="eq_preamp_compressor_section">ПРЕДУСИЛИТЕЛЬ И КОМПРЕССОР</string>
+    <string name="eq_preamp_label">Предусилитель</string>
+    <string name="eq_compressor_label">Компрессор</string>
+    <string name="player_casting_in_progress">Идёт трансляция</string>
+    <string name="player_stop_casting">Остановить трансляцию</string>
+    <string name="player_speed_label_short">Скорость</string>
+    <string name="player_ratio_label">Соотношение сторон</string>
+
     <string name="content_desc_close_playlist">Закрыть плейлист</string>
     <string name="content_desc_clean">Очистить</string>
     <string name="content_desc_playlist">Плейлист</string>
@@ -450,6 +483,9 @@
     <string name="gallery_sort_name">По алфавиту</string>
     <string name="gallery_sort_size">Размер файла</string>
     <string name="gallery_unknown_folder">Неизвестная папка</string>
+
+    <string name="action_open">Открыть</string>
+    <string name="action_share">Поделиться</string>
     <string name="gallery_trash">Корзина</string>
     <string name="gallery_empty_trash">Очистить окончательно</string>
     <string name="gallery_restore">Восстановить</string>
@@ -471,4 +507,7 @@
         <item quantity="one">%d фото</item>
         <item quantity="other">%d фото</item>
     </plurals>
+    <string name="settings_audio_spectrum">Включить визуальный спектр</string>
+    <string name="settings_audio_spectrum_desc">Показывать анимированный аудиовизуализатор в Blaze Audio.</string>
+
 </resources>

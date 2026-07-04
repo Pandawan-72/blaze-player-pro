@@ -122,12 +122,14 @@ class NetworkSharesFragment : Fragment() {
                 launch {
                     viewModel.message.collect { msg ->
                         msg?.let {
-                            val text = when (it) {
-                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.PATH_SAVED -> getString(R.string.toast_path_saved)
-                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.PATH_DELETED -> getString(R.string.toast_path_deleted)
-                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.SCAN_UNAVAILABLE_EMULATOR -> getString(R.string.toast_scan_unavailable_emulator)
+                            when (it) {
+                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.PATH_SAVED ->
+                                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_path_saved), android.widget.Toast.LENGTH_SHORT).show()
+                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.PATH_DELETED ->
+                                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_path_deleted), android.widget.Toast.LENGTH_SHORT).show()
+                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.SCAN_UNAVAILABLE_EMULATOR ->
+                                    fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_info), getString(R.string.toast_scan_unavailable_emulator))
                             }
-                            android.widget.Toast.makeText(requireContext(), text, android.widget.Toast.LENGTH_SHORT).show()
                             viewModel.clearMessage()
                         }
                     }

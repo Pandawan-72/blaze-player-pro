@@ -36,6 +36,12 @@ public final class DialogEqualizerBinding implements ViewBinding {
   public final SeekBar seekBassBoost;
 
   @NonNull
+  public final SeekBar seekCompressor;
+
+  @NonNull
+  public final SeekBar seekPreamp;
+
+  @NonNull
   public final SeekBar seekVirtualizer;
 
   @NonNull
@@ -45,7 +51,13 @@ public final class DialogEqualizerBinding implements ViewBinding {
   public final TextView tvBassValue;
 
   @NonNull
+  public final TextView tvCompressorValue;
+
+  @NonNull
   public final TextView tvEqStatus;
+
+  @NonNull
+  public final TextView tvPreampValue;
 
   @NonNull
   public final TextView tvVirtValue;
@@ -53,17 +65,24 @@ public final class DialogEqualizerBinding implements ViewBinding {
   private DialogEqualizerBinding(@NonNull LinearLayout rootView,
       @NonNull LinearLayout bandsContainer, @NonNull ImageButton btnCloseEq,
       @NonNull ChipGroup presetContainer, @NonNull SeekBar seekBassBoost,
+      @NonNull SeekBar seekCompressor, @NonNull SeekBar seekPreamp,
       @NonNull SeekBar seekVirtualizer, @NonNull SwitchMaterial switchEq,
-      @NonNull TextView tvBassValue, @NonNull TextView tvEqStatus, @NonNull TextView tvVirtValue) {
+      @NonNull TextView tvBassValue, @NonNull TextView tvCompressorValue,
+      @NonNull TextView tvEqStatus, @NonNull TextView tvPreampValue,
+      @NonNull TextView tvVirtValue) {
     this.rootView = rootView;
     this.bandsContainer = bandsContainer;
     this.btnCloseEq = btnCloseEq;
     this.presetContainer = presetContainer;
     this.seekBassBoost = seekBassBoost;
+    this.seekCompressor = seekCompressor;
+    this.seekPreamp = seekPreamp;
     this.seekVirtualizer = seekVirtualizer;
     this.switchEq = switchEq;
     this.tvBassValue = tvBassValue;
+    this.tvCompressorValue = tvCompressorValue;
     this.tvEqStatus = tvEqStatus;
+    this.tvPreampValue = tvPreampValue;
     this.tvVirtValue = tvVirtValue;
   }
 
@@ -118,6 +137,18 @@ public final class DialogEqualizerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.seekCompressor;
+      SeekBar seekCompressor = ViewBindings.findChildViewById(rootView, id);
+      if (seekCompressor == null) {
+        break missingId;
+      }
+
+      id = R.id.seekPreamp;
+      SeekBar seekPreamp = ViewBindings.findChildViewById(rootView, id);
+      if (seekPreamp == null) {
+        break missingId;
+      }
+
       id = R.id.seekVirtualizer;
       SeekBar seekVirtualizer = ViewBindings.findChildViewById(rootView, id);
       if (seekVirtualizer == null) {
@@ -136,9 +167,21 @@ public final class DialogEqualizerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.tvCompressorValue;
+      TextView tvCompressorValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvCompressorValue == null) {
+        break missingId;
+      }
+
       id = R.id.tvEqStatus;
       TextView tvEqStatus = ViewBindings.findChildViewById(rootView, id);
       if (tvEqStatus == null) {
+        break missingId;
+      }
+
+      id = R.id.tvPreampValue;
+      TextView tvPreampValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvPreampValue == null) {
         break missingId;
       }
 
@@ -149,8 +192,8 @@ public final class DialogEqualizerBinding implements ViewBinding {
       }
 
       return new DialogEqualizerBinding((LinearLayout) rootView, bandsContainer, btnCloseEq,
-          presetContainer, seekBassBoost, seekVirtualizer, switchEq, tvBassValue, tvEqStatus,
-          tvVirtValue);
+          presetContainer, seekBassBoost, seekCompressor, seekPreamp, seekVirtualizer, switchEq,
+          tvBassValue, tvCompressorValue, tvEqStatus, tvPreampValue, tvVirtValue);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

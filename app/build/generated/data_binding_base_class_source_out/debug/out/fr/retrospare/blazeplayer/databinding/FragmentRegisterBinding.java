@@ -27,9 +27,6 @@ public final class FragmentRegisterBinding implements ViewBinding {
   public final ImageButton btnBack;
 
   @NonNull
-  public final MaterialButton btnGoogle;
-
-  @NonNull
   public final MaterialButton btnRegister;
 
   @NonNull
@@ -54,14 +51,12 @@ public final class FragmentRegisterBinding implements ViewBinding {
   public final TextInputLayout tilPassword;
 
   private FragmentRegisterBinding(@NonNull ScrollView rootView, @NonNull ImageButton btnBack,
-      @NonNull MaterialButton btnGoogle, @NonNull MaterialButton btnRegister,
-      @NonNull TextInputEditText etConfirmPassword, @NonNull TextInputEditText etEmail,
-      @NonNull TextInputEditText etPassword, @NonNull LinearProgressIndicator progressBar,
-      @NonNull TextInputLayout tilConfirmPassword, @NonNull TextInputLayout tilEmail,
-      @NonNull TextInputLayout tilPassword) {
+      @NonNull MaterialButton btnRegister, @NonNull TextInputEditText etConfirmPassword,
+      @NonNull TextInputEditText etEmail, @NonNull TextInputEditText etPassword,
+      @NonNull LinearProgressIndicator progressBar, @NonNull TextInputLayout tilConfirmPassword,
+      @NonNull TextInputLayout tilEmail, @NonNull TextInputLayout tilPassword) {
     this.rootView = rootView;
     this.btnBack = btnBack;
-    this.btnGoogle = btnGoogle;
     this.btnRegister = btnRegister;
     this.etConfirmPassword = etConfirmPassword;
     this.etEmail = etEmail;
@@ -102,12 +97,6 @@ public final class FragmentRegisterBinding implements ViewBinding {
       id = R.id.btnBack;
       ImageButton btnBack = ViewBindings.findChildViewById(rootView, id);
       if (btnBack == null) {
-        break missingId;
-      }
-
-      id = R.id.btnGoogle;
-      MaterialButton btnGoogle = ViewBindings.findChildViewById(rootView, id);
-      if (btnGoogle == null) {
         break missingId;
       }
 
@@ -159,7 +148,7 @@ public final class FragmentRegisterBinding implements ViewBinding {
         break missingId;
       }
 
-      return new FragmentRegisterBinding((ScrollView) rootView, btnBack, btnGoogle, btnRegister,
+      return new FragmentRegisterBinding((ScrollView) rootView, btnBack, btnRegister,
           etConfirmPassword, etEmail, etPassword, progressBar, tilConfirmPassword, tilEmail,
           tilPassword);
     }

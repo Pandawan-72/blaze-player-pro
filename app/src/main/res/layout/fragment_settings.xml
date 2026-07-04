@@ -83,7 +83,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="LECTURE"
+                android:text="@string/settings_section_playback"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-condensed"
@@ -105,7 +105,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="AUDIO"
+                android:text="@string/settings_section_audio"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-condensed"
@@ -123,7 +123,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="BLAZE AUDIO"
+                android:text="@string/settings_section_blaze_audio"
                 android:textColor="@color/green_accent"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-condensed"
@@ -132,6 +132,7 @@
                 android:paddingBottom="4dp" />
 
             <include android:id="@+id/settingMiniPlayer" layout="@layout/item_setting" />
+            <include android:id="@+id/settingAudioSpectrum" layout="@layout/item_setting" />
 
             <View android:layout_width="match_parent" android:layout_height="0.5dp"
                 android:background="#1FFFFFFF" android:layout_marginVertical="8dp" />
@@ -184,6 +185,24 @@
             <include android:id="@+id/settingAbout" layout="@layout/item_setting" />
 
             <include android:id="@+id/settingLanguage" layout="@layout/item_setting" />
+
+            <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                android:background="#1FFFFFFF" android:layout_marginVertical="8dp" />
+
+            <!-- SECTION CONTACT -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/contact_section"
+                android:textColor="@color/green_accent"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-condensed"
+                android:letterSpacing="0.1"
+                android:paddingHorizontal="16dp"
+                android:paddingBottom="4dp" />
+
+            <include android:id="@+id/settingSuggestions" layout="@layout/item_setting" />
+            <include android:id="@+id/settingReportBug" layout="@layout/item_setting" />
 
             <View android:layout_width="match_parent" android:layout_height="1dp"
                 android:background="#1FFFFFFF" android:layout_marginVertical="16dp" />

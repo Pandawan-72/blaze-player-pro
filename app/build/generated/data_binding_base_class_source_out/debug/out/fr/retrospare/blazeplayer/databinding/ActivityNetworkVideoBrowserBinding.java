@@ -36,9 +36,6 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
   public final ImageButton btnHome;
 
   @NonNull
-  public final ImageButton btnSearch;
-
-  @NonNull
   public final ImageView btnSortChevron;
 
   @NonNull
@@ -65,16 +62,15 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
   private ActivityNetworkVideoBrowserBinding(@NonNull LinearLayout rootView,
       @NonNull Button btnAddToPlaylist, @NonNull ImageButton btnBack,
       @NonNull ImageButton btnCancelSelection, @NonNull ImageButton btnHome,
-      @NonNull ImageButton btnSearch, @NonNull ImageView btnSortChevron,
-      @NonNull RecyclerView recyclerNetwork, @NonNull LinearLayout toolbarSelection,
-      @NonNull TextView tvCount, @NonNull TextView tvPath, @NonNull TextView tvSelectionCount,
-      @NonNull TextView tvSortLabel, @NonNull TextView tvTitle) {
+      @NonNull ImageView btnSortChevron, @NonNull RecyclerView recyclerNetwork,
+      @NonNull LinearLayout toolbarSelection, @NonNull TextView tvCount, @NonNull TextView tvPath,
+      @NonNull TextView tvSelectionCount, @NonNull TextView tvSortLabel,
+      @NonNull TextView tvTitle) {
     this.rootView = rootView;
     this.btnAddToPlaylist = btnAddToPlaylist;
     this.btnBack = btnBack;
     this.btnCancelSelection = btnCancelSelection;
     this.btnHome = btnHome;
-    this.btnSearch = btnSearch;
     this.btnSortChevron = btnSortChevron;
     this.recyclerNetwork = recyclerNetwork;
     this.toolbarSelection = toolbarSelection;
@@ -136,12 +132,6 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.btnSearch;
-      ImageButton btnSearch = ViewBindings.findChildViewById(rootView, id);
-      if (btnSearch == null) {
-        break missingId;
-      }
-
       id = R.id.btnSortChevron;
       ImageView btnSortChevron = ViewBindings.findChildViewById(rootView, id);
       if (btnSortChevron == null) {
@@ -191,8 +181,8 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
       }
 
       return new ActivityNetworkVideoBrowserBinding((LinearLayout) rootView, btnAddToPlaylist,
-          btnBack, btnCancelSelection, btnHome, btnSearch, btnSortChevron, recyclerNetwork,
-          toolbarSelection, tvCount, tvPath, tvSelectionCount, tvSortLabel, tvTitle);
+          btnBack, btnCancelSelection, btnHome, btnSortChevron, recyclerNetwork, toolbarSelection,
+          tvCount, tvPath, tvSelectionCount, tvSortLabel, tvTitle);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

@@ -1,5 +1,7 @@
 package fr.retrospare.blazeplayer.player;
 
+import androidx.datastore.core.DataStore;
+import androidx.datastore.preferences.core.Preferences;
 import dagger.MembersInjector;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.InjectedFieldSignature;
@@ -26,23 +28,35 @@ import javax.annotation.processing.Generated;
 public final class AudioPlayerFragment_MembersInjector implements MembersInjector<AudioPlayerFragment> {
   private final Provider<MediaRepository> mediaRepositoryProvider;
 
-  private AudioPlayerFragment_MembersInjector(Provider<MediaRepository> mediaRepositoryProvider) {
+  private final Provider<DataStore<Preferences>> dataStoreProvider;
+
+  private AudioPlayerFragment_MembersInjector(Provider<MediaRepository> mediaRepositoryProvider,
+      Provider<DataStore<Preferences>> dataStoreProvider) {
     this.mediaRepositoryProvider = mediaRepositoryProvider;
+    this.dataStoreProvider = dataStoreProvider;
   }
 
   @Override
   public void injectMembers(AudioPlayerFragment instance) {
     injectMediaRepository(instance, mediaRepositoryProvider.get());
+    injectDataStore(instance, dataStoreProvider.get());
   }
 
   public static MembersInjector<AudioPlayerFragment> create(
-      Provider<MediaRepository> mediaRepositoryProvider) {
-    return new AudioPlayerFragment_MembersInjector(mediaRepositoryProvider);
+      Provider<MediaRepository> mediaRepositoryProvider,
+      Provider<DataStore<Preferences>> dataStoreProvider) {
+    return new AudioPlayerFragment_MembersInjector(mediaRepositoryProvider, dataStoreProvider);
   }
 
   @InjectedFieldSignature("fr.retrospare.blazeplayer.player.AudioPlayerFragment.mediaRepository")
   public static void injectMediaRepository(AudioPlayerFragment instance,
       MediaRepository mediaRepository) {
     instance.mediaRepository = mediaRepository;
+  }
+
+  @InjectedFieldSignature("fr.retrospare.blazeplayer.player.AudioPlayerFragment.dataStore")
+  public static void injectDataStore(AudioPlayerFragment instance,
+      DataStore<Preferences> dataStore) {
+    instance.dataStore = dataStore;
   }
 }

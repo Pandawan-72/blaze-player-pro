@@ -119,6 +119,8 @@ class VideoPlaybackService : MediaSessionService() {
         // ANR au clic sur une vidéo — le service vidéo démarre de façon synchrone au clic.
         val httpFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(20_000)
+            .setReadTimeoutMs(240_000)
 
         val mediaSourceFactory = DefaultMediaSourceFactory(this)
             .setDataSourceFactory(httpFactory)
@@ -127,9 +129,9 @@ class VideoPlaybackService : MediaSessionService() {
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
         val loadControl = DefaultLoadControl.Builder()
             .setAllocator(DefaultAllocator(true, 64 * 1024))
-            .setBufferDurationsMs(60_000, 300_000, 5_000, 10_000)
+            .setBufferDurationsMs(180_000, 720_000, 8_000, 45_000)
             .setPrioritizeTimeOverSizeThresholds(true)
-            .setBackBuffer(30_000, true)
+            .setBackBuffer(120_000, true)
             .build()
 
         val localPlayer = ExoPlayer.Builder(this, renderersFactory)
@@ -283,9 +285,13 @@ class VideoPlaybackService : MediaSessionService() {
                     playerCommand: Int
                 ): Int {
                     if (playerCommand == Player.COMMAND_STOP) {
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            stopPlaybackAndSelf("video stop command")
-                        }
+                        // Ne coupe plus le service vidéo depuis une commande STOP externe. Sur certains
+                        // flux réseau 4K, Media3/Android peut émettre STOP après une coupure de source
+                        // sans vraie action utilisateur, ce qui supprimait la notification et laissait
+                        // PlayerActivity revenir à l'accueil. Le bouton Stop in-app garde son chemin
+                        // explicite via PlayerActivity.stopVideoPlaybackFromUi().
+                        android.util.Log.w("VideoPlaybackService", "Ignoring external video STOP command to keep network playback recoverable")
+                        return SessionResult.RESULT_SUCCESS
                     }
                     return SessionResult.RESULT_SUCCESS
                 }

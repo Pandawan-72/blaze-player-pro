@@ -26,9 +26,36 @@
         android:ellipsize="end"
         android:singleLine="true" />
 
+    <TextView
+        android:id="@+id/tvAudioSimpleCodec"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_badge_gray"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
+        android:textSize="10sp"
+        android:textColor="@color/on_surface_variant"
+        android:fontFamily="sans-serif-condensed"
+        android:layout_marginStart="8dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvAudioSimpleFormatBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_badge_gray"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
+        android:textSize="10sp"
+        android:textColor="@color/on_surface_variant"
+        android:fontFamily="sans-serif-condensed"
+        android:layout_marginStart="4dp"
+        android:visibility="gone" />
+
     <ImageView
         android:layout_width="16dp"
         android:layout_height="16dp"
+        android:layout_marginStart="8dp"
         android:src="@drawable/ic_play"
         android:tint="@color/on_surface_variant"
         android:contentDescription="@null" />

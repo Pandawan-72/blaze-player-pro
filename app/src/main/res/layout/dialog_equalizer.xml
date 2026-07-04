@@ -148,7 +148,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="PRÉAMPLI &amp; COMPRESSEUR"
+                android:text="@string/eq_preamp_compressor_section"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-condensed"
@@ -174,7 +174,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Préampli"
+                        android:text="@string/eq_preamp_label"
                         android:textColor="@color/on_background"
                         android:textSize="14sp"
                         android:fontFamily="sans-serif-condensed" />
@@ -210,7 +210,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Compresseur"
+                        android:text="@string/eq_compressor_label"
                         android:textColor="@color/on_background"
                         android:textSize="14sp"
                         android:fontFamily="sans-serif-condensed" />

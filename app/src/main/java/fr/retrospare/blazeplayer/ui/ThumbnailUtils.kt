@@ -65,6 +65,10 @@ object ThumbnailUtils {
     private fun diskFileFor(context: Context, path: String): File =
         File(diskCacheDir(context), keyFor(path) + ".jpg")
 
+    private fun deleteFromDisk(context: Context, path: String) {
+        try { diskFileFor(context, path).delete() } catch (_: Exception) {}
+    }
+
     private fun readFromDisk(context: Context, path: String): Bitmap? {
         val file = diskFileFor(context, path)
         if (!file.exists()) return null
@@ -165,6 +169,7 @@ object ThumbnailUtils {
     // ancien cache Vxx ou artworkUri Cast) soit réutilisée comme pochette audio.
     private fun audioKey(path: String): String = "audio:$path"
     private fun videoKey(path: String): String = "video:$path"
+    private fun customVideoKey(path: String): String = "custom-video-thumb:$path"
     // Versionne le cache des frames vidéo pour forcer une vraie extraction à 10s
     // après mise à jour, au lieu de réutiliser d'anciennes miniatures à 1s/5s
     // ou des artworks DLNA mis en cache sous la même URL.
@@ -253,9 +258,46 @@ object ThumbnailUtils {
 
     /** Retourne immédiatement une image déjà en cache mémoire/disque, sans extraction réseau. */
     fun getCachedThumbnailBitmap(context: Context, path: String): Bitmap? {
+        if (!isAudioPath(path)) {
+            val customKey = customVideoKey(path)
+            cache.get(customKey)?.let { return it }
+            readFromDisk(context.applicationContext, customKey)?.let {
+                cache.put(customKey, it)
+                return it
+            }
+        }
         val key = thumbnailKey(path)
         cache.get(key)?.let { return it }
         return readFromDisk(context.applicationContext, key)?.also { cache.put(key, it) }
+    }
+
+    fun hasCustomVideoThumbnail(context: Context, path: String): Boolean {
+        if (isAudioPath(path)) return false
+        val key = customVideoKey(path)
+        return cache.get(key) != null || diskFileFor(context.applicationContext, key).exists()
+    }
+
+    fun setCustomVideoThumbnail(context: Context, videoPath: String, imageUri: Uri): Boolean {
+        if (isAudioPath(videoPath)) return false
+        return try {
+            val bitmap = context.contentResolver.openInputStream(imageUri)?.use { input ->
+                BitmapFactory.decodeStream(input)
+            } ?: return false
+            val scaled = scaleBitmap(bitmap, 256)
+            val key = customVideoKey(videoPath)
+            cache.put(key, scaled)
+            writeToDisk(context.applicationContext, key, scaled)
+            true
+        } catch (e: Exception) {
+            android.util.Log.w("ThumbnailUtils", "Failed to set custom video thumbnail for $videoPath", e)
+            false
+        }
+    }
+
+    fun deleteCustomVideoThumbnail(context: Context, videoPath: String) {
+        val key = customVideoKey(videoPath)
+        cache.remove(key)
+        deleteFromDisk(context.applicationContext, key)
     }
 
     /** Retourne une pochette déjà cachée en JPEG, prête à être remise dans MediaMetadata. */
@@ -309,6 +351,15 @@ object ThumbnailUtils {
         path: String,
         timeUs: Long = defaultVideoFrameTimeUs(path)
     ): Bitmap? = coroutineScope {
+        if (!isAudioPath(path)) {
+            val customKey = customVideoKey(path)
+            cache.get(customKey)?.let { return@coroutineScope it }
+            readFromDisk(context.applicationContext, customKey)?.let { custom ->
+                cache.put(customKey, custom)
+                return@coroutineScope custom
+            }
+        }
+
         val key = thumbnailKey(path)
         // Cache mémoire immédiat avant de passer sur IO.
         cache.get(key)?.let { return@coroutineScope it }
@@ -340,6 +391,15 @@ object ThumbnailUtils {
 
     private fun extractThumbnailInternal(context: Context, path: String, timeUs: Long): Bitmap? {
         return try {
+            if (!isAudioPath(path)) {
+                val customKey = customVideoKey(path)
+                cache.get(customKey)?.let { return it }
+                readFromDisk(context, customKey)?.let { custom ->
+                    cache.put(customKey, custom)
+                    return custom
+                }
+            }
+
             val key = thumbnailKey(path)
             cache.get(key)?.let { return it }
 

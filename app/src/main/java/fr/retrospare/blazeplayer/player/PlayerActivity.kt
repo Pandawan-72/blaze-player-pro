@@ -50,6 +50,7 @@ import fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.debug.CrashReporter
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
+import fr.retrospare.blazeplayer.ui.InfoDialog
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -112,6 +113,27 @@ class PlayerActivity : AppCompatActivity() {
     private var lastKnownLocalPosition = 0L
     private var lastKnownRemotePosition = 0L
     private var playNextCalled = false
+    private var networkEarlyEndRecoveries = 0
+    private var lastNetworkRecoverAtMs = 0L
+    private var lastNetworkBufferingAtMs = 0L
+    private var lastNetworkBufferPositionMs = 0L
+    private var networkStarvationRecoveries = 0
+    private val networkStarvationRunnable: Runnable = Runnable {
+        if (!::player.isInitialized || !isNetworkPlayback()) return@Runnable
+        if (player.playbackState != Player.STATE_BUFFERING) return@Runnable
+        val pos = player.currentPosition.coerceAtLeast(lastKnownLocalPosition)
+        val buffered = player.bufferedPosition
+        val stalled = kotlin.math.abs(pos - lastNetworkBufferPositionMs) < 1_500L && buffered <= pos + 1_500L
+        val bufferingFor = android.os.SystemClock.elapsedRealtime() - lastNetworkBufferingAtMs
+        if (bufferingFor >= 8_000L && stalled && networkStarvationRecoveries < 8) {
+            recoverNetworkStarvation(pos)
+        } else if (bufferingFor < 45_000L) {
+            uiHandler.postDelayed(networkStarvationRunnable, 4_000L)
+        } else {
+            showNetworkBufferingMessage("Réseau instable, toujours en tampon…")
+            uiHandler.postDelayed(networkStarvationRunnable, 6_000L)
+        }
+    }
     private var seekBarDragging = false
     // File d'attente de lecture (playlist "Jouer la playlist") : quand non vide, playNext()
     // enchaîne sur l'élément suivant de cette liste au lieu de chercher dans le même dossier local.
@@ -131,6 +153,7 @@ class PlayerActivity : AppCompatActivity() {
     private var videoStoppedByUser = false
     private var closingPlayerExplicitly = false
     private var lastProgressPersistAt = 0L
+    private var networkPlaybackReachedNaturalEnd = false
 
 
     override fun onNewIntent(intent: Intent) {
@@ -248,7 +271,7 @@ class PlayerActivity : AppCompatActivity() {
             VideoStreamServerManager.startServer(applicationContext, mediaPath)
         } catch (e: Exception) {
             CrashReporter.log(this, "Failed to start local video stream server for $mediaPath", e)
-            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
             finish()
             return
         }
@@ -264,7 +287,7 @@ class PlayerActivity : AppCompatActivity() {
             startService(android.content.Intent(this, VideoPlaybackService::class.java))
         } catch (e: Exception) {
             CrashReporter.log(this, "Failed to start VideoPlaybackService", e)
-            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
             finish()
             return
         }
@@ -280,7 +303,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (!playerReady.isCompleted) playerReady.completeExceptionally(e)
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
-                        android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+                        InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
                         finish()
                     }
                 }
@@ -335,7 +358,7 @@ class PlayerActivity : AppCompatActivity() {
             }
             if (!ready || !::player.isInitialized) {
                 CrashReporter.log(this@PlayerActivity, "Video player controller timeout for $mediaPath")
-                android.widget.Toast.makeText(this@PlayerActivity, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+                InfoDialog.show(this@PlayerActivity, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
                 finish()
                 return@launch
             }
@@ -465,6 +488,11 @@ class PlayerActivity : AppCompatActivity() {
      *  setMediaItem -> prepare -> play. Pas de RemoteMediaClient, pas de MediaQueueItem manuel. */
     private fun loadMedia(path: String, name: String, positionMs: Long = 0L, autoPlay: Boolean = true) {
         videoStoppedByUser = false
+        if (path != mediaPath || positionMs <= 1000L) {
+            networkPlaybackReachedNaturalEnd = false
+            networkEarlyEndRecoveries = 0
+            networkStarvationRecoveries = 0
+        }
         val item = buildMediaItem(path, name)
         android.util.Log.i(
             "CAST",
@@ -487,6 +515,111 @@ class PlayerActivity : AppCompatActivity() {
         }
         loadNotificationMetadata(path, name)
         loadNotificationArtwork(path)
+    }
+
+
+    private fun isNetworkPlayback(): Boolean {
+        return isNetworkMedia || mediaPath.startsWith("smb://", true) || mediaPath.startsWith("ftp://", true) ||
+            mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true)
+    }
+
+    private fun showNetworkBufferingMessage(message: String = "Mise en tampon…") {
+        // Ce message restait affiché en permanence par-dessus la vidéo : rien ne le masquait
+        // quand l'état repassait à STATE_READY (contrairement aux autres usages de seekIndicator,
+        // qui se cachent tous eux-mêmes via un postDelayed). On désactive donc l'affichage du
+        // texte, sans toucher à la logique de reprise réseau (scheduleNetworkStarvationWatch /
+        // recoverNetworkStarvation), qui continue de fonctionner en silence pour relancer la
+        // lecture en cas de coupure.
+    }
+
+    private fun scheduleNetworkStarvationWatch() {
+        if (!isNetworkPlayback()) return
+        lastNetworkBufferingAtMs = android.os.SystemClock.elapsedRealtime()
+        lastNetworkBufferPositionMs = if (::player.isInitialized) player.currentPosition else 0L
+        uiHandler.removeCallbacks(networkStarvationRunnable)
+        uiHandler.postDelayed(networkStarvationRunnable, 8_000L)
+    }
+
+    private fun cancelNetworkStarvationWatch() {
+        uiHandler.removeCallbacks(networkStarvationRunnable)
+        lastNetworkBufferingAtMs = 0L
+        lastNetworkBufferPositionMs = 0L
+    }
+
+    private fun recoverNetworkStarvation(positionMs: Long = if (::player.isInitialized) player.currentPosition else lastKnownLocalPosition) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastNetworkRecoverAtMs < 4_000L) {
+            uiHandler.postDelayed(networkStarvationRunnable, 4_000L)
+            return
+        }
+        lastNetworkRecoverAtMs = now
+        networkStarvationRecoveries++
+        val retryPosition = positionMs.coerceAtLeast(lastKnownLocalPosition).coerceAtLeast(0L)
+        android.util.Log.w("PlayerActivity", "Network starvation recovery at ${retryPosition}ms, retry #$networkStarvationRecoveries for $mediaPath")
+        showNetworkBufferingMessage("Réseau instable, reprise du tampon…")
+        try {
+            if (!mediaPath.startsWith("http://", true) && !mediaPath.startsWith("https://", true)) {
+                VideoStreamServerManager.startServer(applicationContext, mediaPath)
+            }
+            loadMedia(mediaPath, mediaName, retryPosition, autoPlay = true)
+            scheduleNetworkStarvationWatch()
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Network starvation recovery failed", e)
+            if (networkStarvationRecoveries < 8) {
+                uiHandler.postDelayed(networkStarvationRunnable, 5_000L)
+            } else {
+                showNetworkErrorDialog()
+            }
+        }
+    }
+
+    /** Certains NAS/serveurs UPnP coupent silencieusement une connexion HTTP/SMB 4K : ExoPlayer
+     *  peut alors recevoir une fin de flux propre au lieu d'une erreur réseau. Sans cette garde,
+     *  l'app croyait que la vidéo était terminée, enchaînait/quittait le lecteur et revenait à
+     *  l'accueil. Pour les médias réseau uniquement, si STATE_ENDED arrive loin avant la durée
+     *  réelle, on traite ça comme une coupure réseau et on relance le même média au même offset. */
+    private fun shouldRecoverPrematureNetworkEnd(): Boolean {
+        if (!isNetworkPlayback()) return false
+        if (!::player.isInitialized) return false
+        if (closingPlayerExplicitly || videoStoppedByUser || networkPlaybackReachedNaturalEnd) return false
+        if (networkEarlyEndRecoveries >= 8) return false
+
+        val duration = player.duration
+        val position = player.currentPosition.coerceAtLeast(lastKnownLocalPosition).coerceAtLeast(0L)
+
+        // Certains flux SMB/UPnP/HTTP locaux ne publient pas de durée fiable. Dans ce cas, un
+        // STATE_ENDED après quelques secondes est presque toujours une coupure réseau/proxy et non
+        // une vraie fin de vidéo. On relance donc au même timecode au lieu de fermer l'écran.
+        if (duration <= 0 || duration == C.TIME_UNSET) return position > 5_000L
+
+        val remaining = duration - position
+        if (remaining <= 8_000L) {
+            networkPlaybackReachedNaturalEnd = true
+            return false
+        }
+        return true
+    }
+
+    private fun recoverPrematureNetworkEnd() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastNetworkRecoverAtMs < 2_500L) return
+        lastNetworkRecoverAtMs = now
+        networkEarlyEndRecoveries++
+        val retryPosition = player.currentPosition.coerceAtLeast(lastKnownLocalPosition).coerceAtLeast(0L)
+        android.util.Log.w("PlayerActivity", "Premature network end at ${retryPosition}ms, retry #$networkEarlyEndRecoveries for $mediaPath")
+        updatePlayPauseBtn(false)
+        cancelHide()
+        showUI()
+        try {
+            // Redémarre aussi le relais local pour forcer un nouveau handle SMB/HTTP propre.
+            if (!mediaPath.startsWith("http://", true) && !mediaPath.startsWith("https://", true)) {
+                VideoStreamServerManager.startServer(applicationContext, mediaPath)
+            }
+            loadMedia(mediaPath, mediaName, retryPosition, autoPlay = true)
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Network premature end recovery failed", e)
+            showNetworkErrorDialog()
+        }
     }
 
     private fun loadNotificationMetadata(path: String, name: String) {
@@ -609,13 +742,13 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun showAudioTracks() {
         if (isCastingVideo()) {
-            android.widget.Toast.makeText(this, getString(R.string.cast_audio_language_unavailable), android.widget.Toast.LENGTH_SHORT).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_unavailable), getString(R.string.cast_audio_language_unavailable), R.drawable.ic_cast)
             return
         }
         val tracks = player.currentTracks
         val audioGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
         if (audioGroups.isEmpty()) {
-            android.widget.Toast.makeText(this, getString(R.string.toast_no_audio_track), android.widget.Toast.LENGTH_SHORT).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_info), getString(R.string.toast_no_audio_track))
             return
         }
         val labels = audioGroups.mapIndexed { i, group ->
@@ -668,7 +801,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun showSubtitles() {
         if (isCastingVideo()) {
-            android.widget.Toast.makeText(this, getString(R.string.cast_subtitles_unavailable), android.widget.Toast.LENGTH_SHORT).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_unavailable), getString(R.string.cast_subtitles_unavailable), R.drawable.ic_cast)
             return
         }
         val tracks = player.currentTracks
@@ -768,7 +901,7 @@ class PlayerActivity : AppCompatActivity() {
             try { VideoStreamServerManager.stopServer() } catch (e: Exception) {
                 CrashReporter.log(this, "Failed to stop local video stream server after PiP close", e)
             }
-        } else if (!isCasting) VideoStreamServerManager.stopServer()
+        } else if (!isCasting && (closingPlayerExplicitly || !isNetworkPlayback())) VideoStreamServerManager.stopServer()
         // Ne pas relancer artificiellement le service audio ici : après un swipe de fermeture,
         // cela recréait une notification audio fantôme. La reprise audio doit venir d'une action
         // utilisateur explicite ou d'un contrôleur déjà connecté, pas de la destruction du player.
@@ -810,11 +943,12 @@ class PlayerActivity : AppCompatActivity() {
                     compatWarningShown = true
                     withContext(Dispatchers.Main) {
                         if (isDestroyed || isFinishing) return@withContext
-                        android.widget.Toast.makeText(
+                        InfoDialog.show(
                             this@PlayerActivity,
+                            getString(R.string.info_dialog_title_chromecast),
                             getString(R.string.toast_chromecast_incompatible, modelName ?: getString(R.string.unknown_model), reason),
-                            android.widget.Toast.LENGTH_LONG
-                        ).show()
+                            R.drawable.ic_cast
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -836,8 +970,14 @@ class PlayerActivity : AppCompatActivity() {
                     error
                 )
                 val isCasting = ::player.isInitialized && player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE
-                if (mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://") || isCasting) {
-                    runOnUiThread { showNetworkErrorDialog() }
+                if (isNetworkPlayback() || isCasting) {
+                    runOnUiThread {
+                        if (networkStarvationRecoveries < 8) {
+                            recoverNetworkStarvation(player.currentPosition.coerceAtLeast(lastKnownLocalPosition))
+                        } else {
+                            showNetworkErrorDialog()
+                        }
+                    }
                 }
             }
 
@@ -867,15 +1007,36 @@ class PlayerActivity : AppCompatActivity() {
                     Player.STATE_ENDED -> "STATE_ENDED"
                     else -> "UNKNOWN($state)"
                 }
-                android.util.Log.i("CAST", "onPlaybackStateChanged: $stateName (isRemote=${player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE})")
+                android.util.Log.i(
+                    "CAST",
+                    "onPlaybackStateChanged: $stateName pos=${player.currentPosition} buffered=${player.bufferedPosition} duration=${player.duration} network=${isNetworkPlayback()} remote=${player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE}"
+                )
+                if (state == Player.STATE_BUFFERING && isNetworkPlayback()) {
+                    showNetworkBufferingMessage()
+                    scheduleNetworkStarvationWatch()
+                    return
+                }
+                if (state == Player.STATE_READY) {
+                    cancelNetworkStarvationWatch()
+                    if (isNetworkPlayback()) networkStarvationRecoveries = 0
+                }
+                if (state == Player.STATE_IDLE && isNetworkPlayback() && !closingPlayerExplicitly && !videoStoppedByUser) {
+                    runOnUiThread { recoverNetworkStarvation(player.currentPosition.coerceAtLeast(lastKnownLocalPosition)) }
+                    return
+                }
                 if (state == Player.STATE_ENDED) {
                     runOnUiThread {
+                        cancelNetworkStarvationWatch()
+                        if (shouldRecoverPrematureNetworkEnd()) {
+                            recoverPrematureNetworkEnd()
+                            return@runOnUiThread
+                        }
                         updatePlayPauseBtn(false)
                         cancelHide()
                         showUI()
                         if (!playNextCalled) {
                             playNextCalled = true
-                            if (prefAutoPlay) playNext()
+                            if (prefAutoPlay && (!isNetworkPlayback() || networkPlaybackReachedNaturalEnd)) playNext()
                         }
                     }
                 }
@@ -1067,16 +1228,13 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun goBackToHistory() {
+        // Ne relance plus MainActivity avec NEW_TASK/CLEAR_TOP. Sur les flux réseau 4K, ce chemin
+        // créait un clear-task-stack : PlayerActivity était détruite et la vidéo revenait à l'accueil
+        // comme si la lecture était terminée. MainActivity est déjà sous le lecteur dans la pile ;
+        // il suffit de finir explicitement le lecteur quand l'utilisateur appuie sur retour.
+        closingPlayerExplicitly = true
         stopVideoPlaybackAndNotification()
-        if (isNetworkMedia || mediaPath.startsWith("smb://") || mediaPath.startsWith("ftp://") || mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true)) {
-            val intent = android.content.Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
-            intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-            intent.putExtra("requestedTab", 2)
-            startActivity(intent)
-            finish()
-        } else {
-            finish()
-        }
+        finish()
     }
 
     private fun showNetworkErrorDialog() {
@@ -1091,7 +1249,7 @@ class PlayerActivity : AppCompatActivity() {
                 player.prepare()
                 player.play()
             }
-            .setNegativeButton(getString(R.string.action_quit)) { _, _ -> finish() }
+            .setNegativeButton(getString(R.string.action_quit)) { _, _ -> goBackToHistory() }
             .show()
     }
 
@@ -1256,12 +1414,12 @@ class PlayerActivity : AppCompatActivity() {
     private fun captureCurrentVideoFrame() {
         if (!::player.isInitialized) return
         if (player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) {
-            android.widget.Toast.makeText(this, "Capture indisponible pendant la diffusion Cast", android.widget.Toast.LENGTH_SHORT).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_unavailable), getString(R.string.toast_capture_unavailable_cast), R.drawable.ic_camera)
             return
         }
         val textureView = binding.playerView.videoSurfaceView as? TextureView
         if (textureView == null || !textureView.isAvailable) {
-            android.widget.Toast.makeText(this, "Capture vidéo indisponible", android.widget.Toast.LENGTH_SHORT).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_unavailable), getString(R.string.toast_capture_unavailable), R.drawable.ic_camera)
             return
         }
         val bitmap = try {
@@ -1271,7 +1429,7 @@ class PlayerActivity : AppCompatActivity() {
             null
         }
         if (bitmap == null || bitmap.width <= 0 || bitmap.height <= 0) {
-            android.widget.Toast.makeText(this, "Capture vidéo impossible", android.widget.Toast.LENGTH_SHORT).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.toast_capture_failed), R.drawable.ic_camera)
             return
         }
 
@@ -1282,11 +1440,11 @@ class PlayerActivity : AppCompatActivity() {
             try { bitmap.recycle() } catch (_: Exception) {}
             withContext(Dispatchers.Main) {
                 if (isFinishing || isDestroyed) return@withContext
-                android.widget.Toast.makeText(
-                    this@PlayerActivity,
-                    if (saved) "Screenshot enregistré dans Images/Blaze Screenshots" else "Erreur lors de l’enregistrement du screenshot",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
+                if (saved) {
+                    android.widget.Toast.makeText(this@PlayerActivity, getString(R.string.toast_screenshot_saved), android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    InfoDialog.show(this@PlayerActivity, getString(R.string.info_dialog_title_error), getString(R.string.toast_screenshot_save_error), R.drawable.ic_camera)
+                }
             }
         }
     }
@@ -1479,7 +1637,7 @@ class PlayerActivity : AppCompatActivity() {
             VideoStreamServerManager.startServer(applicationContext, mediaPath)
         } catch (e: Exception) {
             CrashReporter.log(this, "Failed to restart local video stream server after user stop for $mediaPath", e)
-            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
             return
         }
 
@@ -1487,7 +1645,7 @@ class PlayerActivity : AppCompatActivity() {
             startService(android.content.Intent(this, VideoPlaybackService::class.java))
         } catch (e: Exception) {
             CrashReporter.log(this, "Failed to restart VideoPlaybackService after user stop", e)
-            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
             return
         }
 
@@ -1504,7 +1662,7 @@ class PlayerActivity : AppCompatActivity() {
             withContext(Dispatchers.IO) { newFuture.get(6, TimeUnit.SECONDS) }
         } catch (e: Exception) {
             CrashReporter.log(this, "Failed to reconnect video MediaController after user stop", e)
-            android.widget.Toast.makeText(this, getString(R.string.error_loading_media), android.widget.Toast.LENGTH_LONG).show()
+            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
             return
         }
 
@@ -1857,6 +2015,9 @@ class PlayerActivity : AppCompatActivity() {
             binding.tvTitle.text = mediaName
             resumeHandled = true
             playNextCalled = false
+            networkPlaybackReachedNaturalEnd = false
+            networkEarlyEndRecoveries = 0
+            networkStarvationRecoveries = 0
             loadMedia(path, name)
             saveHistory()
             binding.root.alpha = 0f

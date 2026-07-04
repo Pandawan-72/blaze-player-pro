@@ -29,6 +29,9 @@ public final class ItemNetworkVideoBinding implements ViewBinding {
   public final CheckBox checkboxSelect;
 
   @NonNull
+  public final ImageView ivPlayOverlay;
+
+  @NonNull
   public final ImageView ivThumbnail;
 
   @NonNull
@@ -50,12 +53,14 @@ public final class ItemNetworkVideoBinding implements ViewBinding {
   public final TextView tvVideoCodec;
 
   private ItemNetworkVideoBinding(@NonNull LinearLayout rootView, @NonNull ImageButton btnMore,
-      @NonNull CheckBox checkboxSelect, @NonNull ImageView ivThumbnail,
-      @NonNull TextView tvAudioCodec, @NonNull TextView tvDuration, @NonNull TextView tvFileName,
-      @NonNull TextView tvFormat, @NonNull TextView tvResolution, @NonNull TextView tvVideoCodec) {
+      @NonNull CheckBox checkboxSelect, @NonNull ImageView ivPlayOverlay,
+      @NonNull ImageView ivThumbnail, @NonNull TextView tvAudioCodec, @NonNull TextView tvDuration,
+      @NonNull TextView tvFileName, @NonNull TextView tvFormat, @NonNull TextView tvResolution,
+      @NonNull TextView tvVideoCodec) {
     this.rootView = rootView;
     this.btnMore = btnMore;
     this.checkboxSelect = checkboxSelect;
+    this.ivPlayOverlay = ivPlayOverlay;
     this.ivThumbnail = ivThumbnail;
     this.tvAudioCodec = tvAudioCodec;
     this.tvDuration = tvDuration;
@@ -104,6 +109,12 @@ public final class ItemNetworkVideoBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.ivPlayOverlay;
+      ImageView ivPlayOverlay = ViewBindings.findChildViewById(rootView, id);
+      if (ivPlayOverlay == null) {
+        break missingId;
+      }
+
       id = R.id.ivThumbnail;
       ImageView ivThumbnail = ViewBindings.findChildViewById(rootView, id);
       if (ivThumbnail == null) {
@@ -147,7 +158,8 @@ public final class ItemNetworkVideoBinding implements ViewBinding {
       }
 
       return new ItemNetworkVideoBinding((LinearLayout) rootView, btnMore, checkboxSelect,
-          ivThumbnail, tvAudioCodec, tvDuration, tvFileName, tvFormat, tvResolution, tvVideoCodec);
+          ivPlayOverlay, ivThumbnail, tvAudioCodec, tvDuration, tvFileName, tvFormat, tvResolution,
+          tvVideoCodec);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

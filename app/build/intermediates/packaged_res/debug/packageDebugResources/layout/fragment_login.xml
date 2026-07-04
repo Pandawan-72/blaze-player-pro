@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:gravity="center"
-            android:text="Connectez-vous pour continuer"
+            android:text="@string/login_to_continue"
             android:textColor="@color/on_surface_variant"
             android:textSize="14sp" />
 
@@ -40,7 +40,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
-            android:hint="Adresse email"
+            android:hint="@string/hint_email_address"
             app:boxStrokeColor="@color/outline"
             app:hintTextColor="@color/on_surface_variant">
             <com.google.android.material.textfield.TextInputEditText
@@ -59,7 +59,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:hint="Mot de passe"
+            android:hint="@string/hint_password"
             app:boxStrokeColor="@color/outline"
             app:endIconMode="password_toggle"
             app:hintTextColor="@color/on_surface_variant">
@@ -80,7 +80,7 @@
             android:layout_gravity="end"
             android:layout_marginTop="10dp"
             android:paddingVertical="4dp"
-            android:text="Mot de passe oublié ?"
+            android:text="@string/forgot_password_question"
             android:textColor="@color/blue_accent"
             android:textSize="13sp" />
 
@@ -90,7 +90,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="28dp"
-            android:text="Se connecter"
+            android:text="@string/sign_in"
             android:textSize="16sp"
             android:includeFontPadding="false"
             android:gravity="center"
@@ -123,7 +123,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
-                android:text="ou"
+                android:text="@string/or_separator"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="13sp" />
             <View
@@ -132,22 +132,6 @@
                 android:layout_weight="1"
                 android:background="@color/outline" />
         </LinearLayout>
-
-        <!-- Bouton Google -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnGoogle"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="16dp"
-            android:text="Continuer avec Google"
-            android:textColor="@color/on_background"
-            android:textSize="15sp"
-            app:cornerRadius="12dp"
-            app:icon="@drawable/ic_google"
-            app:iconGravity="textStart"
-            app:iconPadding="12dp"
-            app:strokeColor="@color/outline" />
 
         <!-- Lien inscription -->
         <LinearLayout
@@ -159,14 +143,14 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Pas encore de compte ? "
+                android:text="@string/no_account_yet"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="14sp" />
             <TextView
                 android:id="@+id/tvRegister"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="S'inscrire"
+                android:text="@string/sign_up"
                 android:textColor="@color/green_accent"
                 android:textSize="14sp"
                 android:textStyle="bold" />

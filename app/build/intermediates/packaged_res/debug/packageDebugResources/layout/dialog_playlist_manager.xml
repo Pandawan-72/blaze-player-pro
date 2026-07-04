@@ -18,7 +18,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="MES PLAYLISTS"
+        android:text="@string/my_playlists"
         android:textColor="@color/on_surface_variant"
         android:textSize="11sp"
         android:fontFamily="sans-serif-condensed"
@@ -39,7 +39,7 @@
         android:layout_height="40dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="16dp"
-        android:text="Sauvegarder la liste en cours"
+        android:text="@string/save_current_list"
         android:textSize="13sp"
         android:textColor="#FF000000"
         android:paddingHorizontal="20dp"

@@ -4,7 +4,6 @@ package fr.retrospare.blazeplayer.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -25,16 +24,19 @@ public final class ItemPlaylistBinding implements ViewBinding {
   public final MiniEqualizerView eqView;
 
   @NonNull
-  public final ImageView ivPlaylistCover;
+  public final View playingIndicator;
 
   @NonNull
-  public final View playingIndicator;
+  public final LinearLayout queueCard;
 
   @NonNull
   public final TextView tvPlaylistBitrate;
 
   @NonNull
   public final TextView tvPlaylistCodec;
+
+  @NonNull
+  public final TextView tvPlaylistFormatBadge;
 
   @NonNull
   public final TextView tvTrackArtist;
@@ -46,16 +48,17 @@ public final class ItemPlaylistBinding implements ViewBinding {
   public final TextView tvTrackName;
 
   private ItemPlaylistBinding(@NonNull LinearLayout rootView, @NonNull MiniEqualizerView eqView,
-      @NonNull ImageView ivPlaylistCover, @NonNull View playingIndicator,
+      @NonNull View playingIndicator, @NonNull LinearLayout queueCard,
       @NonNull TextView tvPlaylistBitrate, @NonNull TextView tvPlaylistCodec,
-      @NonNull TextView tvTrackArtist, @NonNull TextView tvTrackIndex,
-      @NonNull TextView tvTrackName) {
+      @NonNull TextView tvPlaylistFormatBadge, @NonNull TextView tvTrackArtist,
+      @NonNull TextView tvTrackIndex, @NonNull TextView tvTrackName) {
     this.rootView = rootView;
     this.eqView = eqView;
-    this.ivPlaylistCover = ivPlaylistCover;
     this.playingIndicator = playingIndicator;
+    this.queueCard = queueCard;
     this.tvPlaylistBitrate = tvPlaylistBitrate;
     this.tvPlaylistCodec = tvPlaylistCodec;
+    this.tvPlaylistFormatBadge = tvPlaylistFormatBadge;
     this.tvTrackArtist = tvTrackArtist;
     this.tvTrackIndex = tvTrackIndex;
     this.tvTrackName = tvTrackName;
@@ -94,15 +97,15 @@ public final class ItemPlaylistBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.ivPlaylistCover;
-      ImageView ivPlaylistCover = ViewBindings.findChildViewById(rootView, id);
-      if (ivPlaylistCover == null) {
-        break missingId;
-      }
-
       id = R.id.playingIndicator;
       View playingIndicator = ViewBindings.findChildViewById(rootView, id);
       if (playingIndicator == null) {
+        break missingId;
+      }
+
+      id = R.id.queueCard;
+      LinearLayout queueCard = ViewBindings.findChildViewById(rootView, id);
+      if (queueCard == null) {
         break missingId;
       }
 
@@ -115,6 +118,12 @@ public final class ItemPlaylistBinding implements ViewBinding {
       id = R.id.tvPlaylistCodec;
       TextView tvPlaylistCodec = ViewBindings.findChildViewById(rootView, id);
       if (tvPlaylistCodec == null) {
+        break missingId;
+      }
+
+      id = R.id.tvPlaylistFormatBadge;
+      TextView tvPlaylistFormatBadge = ViewBindings.findChildViewById(rootView, id);
+      if (tvPlaylistFormatBadge == null) {
         break missingId;
       }
 
@@ -136,8 +145,8 @@ public final class ItemPlaylistBinding implements ViewBinding {
         break missingId;
       }
 
-      return new ItemPlaylistBinding((LinearLayout) rootView, eqView, ivPlaylistCover,
-          playingIndicator, tvPlaylistBitrate, tvPlaylistCodec, tvTrackArtist, tvTrackIndex,
+      return new ItemPlaylistBinding((LinearLayout) rootView, eqView, playingIndicator, queueCard,
+          tvPlaylistBitrate, tvPlaylistCodec, tvPlaylistFormatBadge, tvTrackArtist, tvTrackIndex,
           tvTrackName);
     }
     String missingId = rootView.getResources().getResourceName(id);

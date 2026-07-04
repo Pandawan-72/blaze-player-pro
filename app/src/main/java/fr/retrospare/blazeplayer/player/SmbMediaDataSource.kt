@@ -56,6 +56,14 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
     private var retryBudget = 25 // limite cumulée sur la durée de vie de cette instance
 
     override fun readAt(position: Long, buffer: ByteArray, offset: Int, size: Int): Int {
+        // MediaMetadataRetriever/MediaExtractor peuvent demander une lecture unique de plusieurs
+        // Mo (sondage de conteneur MKV/MP4). Sans plafond, ça forçait smbj à allouer un paquet
+        // SMB2READ de cette taille d'un bloc, ce qui a provoqué un OutOfMemoryError en combinaison
+        // avec le tampon de lecture vidéo déjà actif (tas cible 256 Mo, sans largeHeap). On
+        // découpe donc toute lecture trop grosse en blocs de taille raisonnable.
+        if (size > MAX_SINGLE_READ_BYTES) {
+            return readAtChunked(position, buffer, offset, size)
+        }
         val file = smbFile ?: return -1
         return try {
             file.read(buffer, position, offset, size)
@@ -95,6 +103,23 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
         }
     }
 
+    // Découpe une lecture demandée trop grosse en plusieurs appels SMB de taille bornée, pour ne
+    // jamais laisser smbj allouer un seul paquet réseau de plusieurs Mo. On s'arrête au premier
+    // bloc partiel ou à la fin de fichier, comme le ferait un read() classique.
+    private fun readAtChunked(position: Long, buffer: ByteArray, offset: Int, size: Int): Int {
+        var totalRead = 0
+        while (totalRead < size) {
+            val chunkSize = minOf(MAX_SINGLE_READ_BYTES, size - totalRead)
+            val read = readAt(position + totalRead, buffer, offset + totalRead, chunkSize)
+            if (read <= 0) {
+                return if (totalRead > 0) totalRead else read
+            }
+            totalRead += read
+            if (read < chunkSize) break // lecture partielle (fin de fichier probable)
+        }
+        return totalRead
+    }
+
     override fun getSize(): Long = fileSize
 
     override fun close() {
@@ -107,5 +132,12 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
         }
         smbFile = null
         diskShare = null
+    }
+
+    companion object {
+        // Taille max d'une lecture SMB unique déclenchée par readAt. Volontairement bien en
+        // dessous du buffer SMB2 négocié (SmbClientPool, 2 Mo) pour garder une marge de sécurité
+        // mémoire même si plusieurs SmbMediaDataSource/SmbDataSource lisent en parallèle.
+        private const val MAX_SINGLE_READ_BYTES = 1 * 1024 * 1024
     }
 }

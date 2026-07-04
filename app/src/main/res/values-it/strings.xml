@@ -69,7 +69,6 @@
     <string name="settings">Impostazioni</string>
     <string name="login_optional">Accesso (opzionale)</string>
     <string name="login_to_continue">Accedi per continuare</string>
-    <string name="continue_with_google">Continua con Google</string>
     <string name="create_my_account">Crea il mio account</string>
     <string name="create_account">Crea un account</string>
     <string name="sign_in">Accedi</string>
@@ -96,6 +95,12 @@
     <string name="about_section">INFORMAZIONI</string>
     <string name="interface_section">INTERFACCIA</string>
     <string name="data_section">DATI</string>
+    <string name="contact_section">CONTATTO</string>
+    <string name="settings_suggestions">Suggerimenti</string>
+    <string name="settings_suggestions_desc">contact@retro-spare.fr</string>
+    <string name="settings_report_bug">Segnala un bug</string>
+    <string name="settings_report_bug_desc">dev@retro-spare.fr</string>
+    <string name="toast_no_email_app">Nessuna app email trovata</string>
     <string name="presets_section">PREIMPOSTAZIONI</string>
     <string name="local_network_label">Rete locale</string>
 
@@ -237,6 +242,15 @@
     <string name="dialog_favorite_folders">Cartelle preferite</string>
     <string name="action_manage">Gestisci</string>
     <string name="action_close">Chiudi</string>
+    <string name="info_dialog_title_chromecast">Chromecast</string>
+    <string name="info_dialog_title_error">Errore</string>
+    <string name="info_dialog_title_unavailable">Non disponibile</string>
+    <string name="info_dialog_title_info">Informazione</string>
+    <string name="toast_capture_unavailable_cast">Cattura non disponibile durante la trasmissione Cast</string>
+    <string name="toast_capture_unavailable">Cattura video non disponibile</string>
+    <string name="toast_capture_failed">Cattura video impossibile</string>
+    <string name="toast_screenshot_saved">Screenshot salvato in Immagini/Blaze Screenshots</string>
+    <string name="toast_screenshot_save_error">Errore durante il salvataggio dello screenshot</string>
     <string name="dialog_remove_favorites">Rimuovi dai preferiti</string>
     <string name="action_remove">Rimuovi</string>
 
@@ -351,6 +365,23 @@
         <item quantity="other">%1$d tracce selezionate</item>
     </plurals>
 
+    <plurals name="items_selected_count">
+        <item quantity="one">%1$d selezionato</item>
+        <item quantity="other">%1$d selezionati</item>
+    </plurals>
+
+    <string name="settings_section_playback">RIPRODUZIONE</string>
+    <string name="settings_section_audio">AUDIO</string>
+    <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
+    <string name="label_default">Predefinito</string>
+    <string name="eq_preamp_compressor_section">PREAMPLIFICATORE E COMPRESSORE</string>
+    <string name="eq_preamp_label">Preamplificatore</string>
+    <string name="eq_compressor_label">Compressore</string>
+    <string name="player_casting_in_progress">Trasmissione in corso</string>
+    <string name="player_stop_casting">Interrompi trasmissione</string>
+    <string name="player_speed_label_short">Velocità</string>
+    <string name="player_ratio_label">Proporzioni</string>
+
     <string name="content_desc_close_playlist">Chiudi playlist</string>
     <string name="content_desc_clean">Pulisci</string>
     <string name="content_desc_playlist">Playlist</string>
@@ -430,6 +461,9 @@
     <string name="gallery_sort_name">Ordine alfabetico</string>
     <string name="gallery_sort_size">Dimensione file</string>
     <string name="gallery_unknown_folder">Cartella sconosciuta</string>
+
+    <string name="action_open">Apri</string>
+    <string name="action_share">Condividi</string>
     <string name="gallery_trash">Cestino</string>
     <string name="gallery_empty_trash">Svuota definitivamente</string>
     <string name="gallery_restore">Ripristina</string>
@@ -451,4 +485,7 @@
         <item quantity="one">%d foto</item>
         <item quantity="other">%d foto</item>
     </plurals>
+    <string name="settings_audio_spectrum">Attiva spettro visivo</string>
+    <string name="settings_audio_spectrum_desc">Mostra il visualizzatore audio animato in Blaze Audio.</string>
+
 </resources>

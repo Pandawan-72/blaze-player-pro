@@ -129,7 +129,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
             toolbar.visibility = View.GONE
         } else {
             toolbar.visibility = View.VISIBLE
-            tvSelectionCount.text = "${selectedVideos.size} sélectionné(s)"
+            tvSelectionCount.text = resources.getQuantityString(R.plurals.items_selected_count, selectedVideos.size, selectedVideos.size)
         }
     }
 

@@ -48,6 +48,7 @@ import fr.retrospare.blazeplayer.di.AppModule_ProvideDataStoreFactory;
 import fr.retrospare.blazeplayer.di.NetworkModule_ProvideNetworkRepositoryFactory;
 import fr.retrospare.blazeplayer.di.NetworkModule_ProvideSmbBrowserFactory;
 import fr.retrospare.blazeplayer.home.HomeFragment;
+import fr.retrospare.blazeplayer.home.HomeFragment_MembersInjector;
 import fr.retrospare.blazeplayer.home.HomeViewModel;
 import fr.retrospare.blazeplayer.home.HomeViewModel_HiltModules;
 import fr.retrospare.blazeplayer.home.HomeViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
@@ -59,6 +60,7 @@ import fr.retrospare.blazeplayer.network.NetworkSharesViewModel_HiltModules;
 import fr.retrospare.blazeplayer.network.NetworkSharesViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
 import fr.retrospare.blazeplayer.network.NetworkSharesViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
 import fr.retrospare.blazeplayer.network.SmbBrowser;
+import fr.retrospare.blazeplayer.network.UpnpBrowser;
 import fr.retrospare.blazeplayer.paywall.PaywallFragment;
 import fr.retrospare.blazeplayer.paywall.PaywallViewModel;
 import fr.retrospare.blazeplayer.paywall.PaywallViewModel_HiltModules;
@@ -66,6 +68,7 @@ import fr.retrospare.blazeplayer.paywall.PaywallViewModel_HiltModules_BindsModul
 import fr.retrospare.blazeplayer.paywall.PaywallViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
 import fr.retrospare.blazeplayer.player.AudioBrowserActivity;
 import fr.retrospare.blazeplayer.player.AudioBrowserActivity_MembersInjector;
+import fr.retrospare.blazeplayer.player.AudioPlayerActivity;
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment;
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment_MembersInjector;
 import fr.retrospare.blazeplayer.player.MiniPlayerViewModel;
@@ -81,6 +84,8 @@ import fr.retrospare.blazeplayer.settings.SettingsViewModel;
 import fr.retrospare.blazeplayer.settings.SettingsViewModel_HiltModules;
 import fr.retrospare.blazeplayer.settings.SettingsViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
 import fr.retrospare.blazeplayer.settings.SettingsViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
+import fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity;
+import fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity_MembersInjector;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.processing.Generated;
@@ -378,6 +383,7 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
 
     @Override
     public void injectHomeFragment(HomeFragment arg0) {
+      injectHomeFragment2(arg0);
     }
 
     @Override
@@ -398,9 +404,16 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     }
 
     @CanIgnoreReturnValue
-    private AudioPlayerFragment injectAudioPlayerFragment2(AudioPlayerFragment instance) {
-      AudioPlayerFragment_MembersInjector.injectMediaRepository(instance, singletonCImpl.mediaRepositoryProvider.get());
+    private HomeFragment injectHomeFragment2(HomeFragment instance) {
+      HomeFragment_MembersInjector.injectUserRepository(instance, singletonCImpl.userRepositoryProvider.get());
       return instance;
+    }
+
+    @CanIgnoreReturnValue
+    private AudioPlayerFragment injectAudioPlayerFragment2(AudioPlayerFragment instance2) {
+      AudioPlayerFragment_MembersInjector.injectMediaRepository(instance2, singletonCImpl.mediaRepositoryProvider.get());
+      AudioPlayerFragment_MembersInjector.injectDataStore(instance2, singletonCImpl.provideDataStoreProvider.get());
+      return instance2;
     }
   }
 
@@ -485,6 +498,10 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     }
 
     @Override
+    public void injectAudioPlayerActivity(AudioPlayerActivity arg0) {
+    }
+
+    @Override
     public void injectNetworkVideoBrowserActivity(NetworkVideoBrowserActivity arg0) {
       injectNetworkVideoBrowserActivity2(arg0);
     }
@@ -494,10 +511,16 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
       injectPlayerActivity2(arg0);
     }
 
+    @Override
+    public void injectYouTubePlayerActivity(YouTubePlayerActivity arg0) {
+      injectYouTubePlayerActivity2(arg0);
+    }
+
     @CanIgnoreReturnValue
     private AudioBrowserActivity injectAudioBrowserActivity2(AudioBrowserActivity instance) {
       AudioBrowserActivity_MembersInjector.injectNetworkRepository(instance, singletonCImpl.provideNetworkRepositoryProvider.get());
       AudioBrowserActivity_MembersInjector.injectSmbBrowser(instance, singletonCImpl.provideSmbBrowserProvider.get());
+      AudioBrowserActivity_MembersInjector.injectUpnpBrowser(instance, singletonCImpl.upnpBrowserProvider.get());
       return instance;
     }
 
@@ -505,6 +528,7 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     private NetworkVideoBrowserActivity injectNetworkVideoBrowserActivity2(
         NetworkVideoBrowserActivity instance2) {
       NetworkVideoBrowserActivity_MembersInjector.injectSmbBrowser(instance2, singletonCImpl.provideSmbBrowserProvider.get());
+      NetworkVideoBrowserActivity_MembersInjector.injectUpnpBrowser(instance2, singletonCImpl.upnpBrowserProvider.get());
       NetworkVideoBrowserActivity_MembersInjector.injectNetworkRepository(instance2, singletonCImpl.provideNetworkRepositoryProvider.get());
       return instance2;
     }
@@ -514,6 +538,12 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
       PlayerActivity_MembersInjector.injectDataStore(instance3, singletonCImpl.provideDataStoreProvider.get());
       PlayerActivity_MembersInjector.injectMediaRepository(instance3, singletonCImpl.mediaRepositoryProvider.get());
       return instance3;
+    }
+
+    @CanIgnoreReturnValue
+    private YouTubePlayerActivity injectYouTubePlayerActivity2(YouTubePlayerActivity instance4) {
+      YouTubePlayerActivity_MembersInjector.injectDataStore(instance4, singletonCImpl.provideDataStoreProvider.get());
+      return instance4;
     }
   }
 
@@ -709,11 +739,13 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
 
     Provider<SmbBrowser> provideSmbBrowserProvider;
 
+    Provider<UpnpBrowser> upnpBrowserProvider;
+
     Provider<MediaRepository> mediaRepositoryProvider;
 
-    Provider<NetworkScanner> networkScannerProvider;
-
     Provider<UserRepository> userRepositoryProvider;
+
+    Provider<NetworkScanner> networkScannerProvider;
 
     SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
       this.applicationContextModule = applicationContextModuleParam;
@@ -726,9 +758,10 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
       this.provideDataStoreProvider = DoubleCheck.provider(new SwitchingProvider<DataStore<Preferences>>(singletonCImpl, 1));
       this.provideNetworkRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<NetworkRepository>(singletonCImpl, 0));
       this.provideSmbBrowserProvider = DoubleCheck.provider(new SwitchingProvider<SmbBrowser>(singletonCImpl, 2));
-      this.mediaRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<MediaRepository>(singletonCImpl, 3));
-      this.networkScannerProvider = DoubleCheck.provider(new SwitchingProvider<NetworkScanner>(singletonCImpl, 4));
+      this.upnpBrowserProvider = DoubleCheck.provider(new SwitchingProvider<UpnpBrowser>(singletonCImpl, 3));
+      this.mediaRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<MediaRepository>(singletonCImpl, 4));
       this.userRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<UserRepository>(singletonCImpl, 5));
+      this.networkScannerProvider = DoubleCheck.provider(new SwitchingProvider<NetworkScanner>(singletonCImpl, 6));
     }
 
     @Override
@@ -747,7 +780,7 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     }
 
     @Override
-    public void injectBlazePlayerApp(BlazePlayerApp arg0) {
+    public void injectBlazePlayerApp(BlazePlayerApp blazePlayerApp) {
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {
@@ -773,14 +806,17 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
           case 2: // fr.retrospare.blazeplayer.network.SmbBrowser
           return (T) NetworkModule_ProvideSmbBrowserFactory.provideSmbBrowser();
 
-          case 3: // fr.retrospare.blazeplayer.data.repository.MediaRepository
-          return (T) new MediaRepository(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.provideDataStoreProvider.get());
+          case 3: // fr.retrospare.blazeplayer.network.UpnpBrowser
+          return (T) new UpnpBrowser();
 
-          case 4: // fr.retrospare.blazeplayer.network.NetworkScanner
-          return (T) new NetworkScanner();
+          case 4: // fr.retrospare.blazeplayer.data.repository.MediaRepository
+          return (T) new MediaRepository(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.provideDataStoreProvider.get());
 
           case 5: // fr.retrospare.blazeplayer.data.repository.UserRepository
           return (T) new UserRepository(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.provideDataStoreProvider.get());
+
+          case 6: // fr.retrospare.blazeplayer.network.NetworkScanner
+          return (T) new NetworkScanner(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           default: throw new AssertionError(id);
         }

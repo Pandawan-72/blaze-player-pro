@@ -32,7 +32,7 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 16
+        versionCode = 18
         versionName = "0.9.1-Beta-RC"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Clé API YouTube Data v3 : lue depuis local.properties (jamais commité), à ajouter

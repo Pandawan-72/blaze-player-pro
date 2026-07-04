@@ -158,6 +158,14 @@ class SettingsFragment : Fragment() {
                 miniVm?.setMiniPlayerEnabled(isEnabled)
             }
         }
+
+        setupToggle(
+            binding.settingAudioSpectrum.root,
+            R.drawable.ic_equalizer,
+            getString(R.string.settings_audio_spectrum),
+            getString(R.string.settings_audio_spectrum_desc),
+            viewModel.getAudioSpectrumEnabled()
+        ) { viewModel.setAudioSpectrumEnabled(it) }
         setupToggle(
             binding.settingShowHidden.root,
             R.drawable.ic_settings,
@@ -210,6 +218,35 @@ class SettingsFragment : Fragment() {
         ) {
             showLanguagePicker()
         }
+
+        // CONTACT
+        setupAction(
+            binding.settingSuggestions.root,
+            R.drawable.ic_mail,
+            getString(R.string.settings_suggestions),
+            getString(R.string.settings_suggestions_desc)
+        ) {
+            sendContactEmail("contact@retro-spare.fr")
+        }
+        setupAction(
+            binding.settingReportBug.root,
+            R.drawable.ic_bug_report,
+            getString(R.string.settings_report_bug),
+            getString(R.string.settings_report_bug_desc)
+        ) {
+            sendContactEmail("dev@retro-spare.fr")
+        }
+        }
+    }
+
+    private fun sendContactEmail(address: String) {
+        val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+            data = android.net.Uri.parse("mailto:$address")
+        }
+        try {
+            startActivity(intent)
+        } catch (e: android.content.ActivityNotFoundException) {
+            fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_error), getString(R.string.toast_no_email_app))
         }
     }
 
@@ -298,7 +335,7 @@ class SettingsFragment : Fragment() {
 
     private fun setupLogout() {
         binding.btnRestorePurchases.setOnClickListener {
-            android.widget.Toast.makeText(requireContext(), getString(R.string.toast_restore_purchases_soon), android.widget.Toast.LENGTH_SHORT).show()
+            fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_info), getString(R.string.toast_restore_purchases_soon))
         }
     }
 

@@ -30,9 +30,10 @@ class SmbDataSource : BaseDataSource(true) {
     private var parsedUri: ParsedSmbUri? = null
 
     // Buffer interne pour eviter des centaines de micro-requetes SMB (1-4 octets) lors du parsing MKV/EBML.
-    // On lit par blocs de 8 Mo depuis le reseau et on sert les petites lectures de Media3 depuis ce buffer.
-    // 8 Mo est la taille minimale recommandée pour un débit confortable en 4K (1 Mo était trop
-    // juste pour des flux haut débit et multipliait les allers-retours réseau).
+    // On lit par blocs de 2 Mo depuis le reseau et on sert les petites lectures de Media3 depuis ce buffer.
+    // 2 Mo est un bon compromis débit confortable en 4K / empreinte mémoire (aligné sur le buffer
+    // SMB2 négocié dans SmbClientPool ; un buffer plus gros ici a provoqué un OutOfMemoryError en
+    // combinaison avec les lectures parallèles de miniatures/métadonnées, cf. SmbClientPool).
     private val readBuffer = ByteArray(DEFAULT_READ_BUFFER_BYTES)
     private var readBufferStart: Long = -1
     private var readBufferLength: Int = 0

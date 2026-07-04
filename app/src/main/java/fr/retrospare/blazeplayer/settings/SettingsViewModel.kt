@@ -46,6 +46,7 @@ class SettingsViewModel @Inject constructor(
         val KEY_SAVED_VOLUME     = intPreferencesKey("saved_volume")
         val KEY_SHOW_HIDDEN      = booleanPreferencesKey("show_hidden")
         val KEY_SHOW_AUDIO       = booleanPreferencesKey("show_audio")
+        val KEY_AUDIO_SPECTRUM   = booleanPreferencesKey("audio_spectrum_enabled")
         val KEY_THEME            = intPreferencesKey("theme")
         val KEY_LANGUAGE         = intPreferencesKey("language")
         val KEY_BROWSER_VIEW     = intPreferencesKey("browser_view")
@@ -157,6 +158,10 @@ class SettingsViewModel @Inject constructor(
     fun getShowAudio() = getBool(KEY_SHOW_AUDIO, false)
     suspend fun getShowAudioAsync(): Boolean = dataStore.data.first()[KEY_SHOW_AUDIO] ?: false
     fun setShowAudio(v: Boolean) = setBool(KEY_SHOW_AUDIO, v)
+
+    fun getAudioSpectrumEnabled() = getBool(KEY_AUDIO_SPECTRUM, true)
+    suspend fun getAudioSpectrumEnabledAsync(): Boolean = dataStore.data.first()[KEY_AUDIO_SPECTRUM] ?: true
+    fun setAudioSpectrumEnabled(v: Boolean) = setBool(KEY_AUDIO_SPECTRUM, v)
 
     fun removeFromHistory(item: fr.retrospare.blazeplayer.data.model.MediaItem) {
         viewModelScope.launch { mediaRepository.removeRecentItem(item.id) }

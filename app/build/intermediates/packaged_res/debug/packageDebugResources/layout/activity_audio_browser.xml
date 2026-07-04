@@ -32,7 +32,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Ajouter des pistes"
+            android:text="@string/add_tracks"
             android:textColor="@color/on_background"
             android:textSize="20sp"
             android:fontFamily="sans-serif-condensed" />
@@ -58,7 +58,7 @@
 
     </LinearLayout>
 
-    <!-- BOUTONS 2x2 : Tout ajouter / Pistes / Local / Réseau -->
+    <!-- ACTIONS AUDIO : sources en premier, playlist en pleine largeur -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -66,7 +66,7 @@
         android:paddingHorizontal="16dp"
         android:paddingBottom="12dp">
 
-        <!-- Ligne 1 -->
+        <!-- Ligne 1 : choix source -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
@@ -75,74 +75,11 @@
 
             <com.google.android.material.button.MaterialButton
                 android:includeFontPadding="false"
-                android:id="@+id/btnAddAll"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="Tout ajouter"
-                android:textSize="13sp"
-                android:textColor="#FF000000"
-                android:fontFamily="sans-serif-condensed"
-                android:layout_marginEnd="6dp"
-                app:icon="@drawable/ic_add_circle"
-                app:iconSize="16dp"
-                app:iconTint="#FF000000"
-                app:iconGravity="textStart"
-                app:backgroundTint="@color/orange_accent"
-                app:cornerRadius="24dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:includeFontPadding="false"
-                android:id="@+id/btnConfirm"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:text="Pistes"
-                android:textSize="13sp"
-                android:textColor="#FF000000"
-                android:fontFamily="sans-serif-condensed"
-                app:icon="@drawable/ic_add_circle"
-                app:iconSize="16dp"
-                app:iconTint="#FF000000"
-                app:iconGravity="textStart"
-                app:backgroundTint="#FFB3C6"
-                app:cornerRadius="24dp" />
-
-        </LinearLayout>
-
-        <!-- Ligne 1bis : Ajouter à une playlist sauvegardée -->
-        <com.google.android.material.button.MaterialButton
-            android:includeFontPadding="false"
-            android:id="@+id/btnAddToSavedPlaylist"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginBottom="8dp"
-            android:text="Ajouter la sélection à une playlist"
-            android:textSize="13sp"
-            android:textColor="@color/on_surface"
-            android:fontFamily="sans-serif-condensed"
-            app:icon="@drawable/ic_layout_list"
-            app:iconSize="16dp"
-            app:iconTint="@color/on_surface"
-            app:iconGravity="textStart"
-            app:backgroundTint="@color/surface_variant"
-            app:cornerRadius="24dp"
-            app:strokeColor="@color/outline_variant"
-            app:strokeWidth="1dp" />
-
-        <!-- Ligne 2 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
-                android:includeFontPadding="false"
                 android:id="@+id/btnLocal"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="Local"
+                android:text="@string/tab_local"
                 android:textSize="13sp"
                 android:textColor="#FF000000"
                 android:fontFamily="sans-serif-condensed"
@@ -160,7 +97,7 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="Réseau"
+                android:text="@string/tab_network"
                 android:textSize="13sp"
                 android:textColor="#FF000000"
                 android:fontFamily="sans-serif-condensed"
@@ -170,6 +107,73 @@
                 app:iconGravity="textStart"
                 app:backgroundTint="@color/blue_accent"
                 app:cornerRadius="24dp" />
+
+        </LinearLayout>
+
+        <!-- Ligne 2 : ajout à une playlist sauvegardée en pleine largeur -->
+        <com.google.android.material.button.MaterialButton
+            android:includeFontPadding="false"
+            android:id="@+id/btnAddToSavedPlaylist"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/add_selection_to_playlist"
+            android:textSize="13sp"
+            android:textColor="@color/on_surface"
+            android:fontFamily="sans-serif-condensed"
+            app:icon="@drawable/ic_layout_list"
+            app:iconSize="16dp"
+            app:iconTint="@color/on_surface"
+            app:iconGravity="textStart"
+            app:backgroundTint="@color/surface_variant"
+            app:cornerRadius="24dp"
+            app:strokeColor="@color/on_surface_variant"
+            app:strokeWidth="1dp" />
+
+        <!-- Ligne 3 : actions d'ajout rapide -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnAddAll"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/add_all"
+                android:textSize="13sp"
+                android:textColor="@color/on_surface"
+                android:fontFamily="sans-serif-condensed"
+                android:layout_marginEnd="6dp"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="@color/on_surface"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/surface_variant"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/green_accent"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:includeFontPadding="false"
+                android:id="@+id/btnConfirm"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="@string/tracks"
+                android:textSize="13sp"
+                android:textColor="@color/on_surface"
+                android:fontFamily="sans-serif-condensed"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="@color/on_surface"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/surface_variant"
+                app:cornerRadius="24dp"
+                app:strokeColor="@color/blue_accent"
+                app:strokeWidth="1dp" />
 
         </LinearLayout>
 
@@ -189,7 +193,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="0 piste trouvée"
+            android:text="@string/no_track_found"
             android:textColor="@color/green_accent"
             android:textSize="13sp"
             android:fontFamily="sans-serif-condensed" />
@@ -206,7 +210,7 @@
             android:id="@+id/tvSortLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Nom"
+            android:text="@string/name_label"
             android:textColor="@color/on_surface_variant"
             android:textSize="13sp"
             android:fontFamily="sans-serif-condensed"

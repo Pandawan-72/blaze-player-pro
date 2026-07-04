@@ -37,7 +37,10 @@ class BlazeCastMediaItemConverter : MediaItemConverter {
         // Cast vidéo uniquement : ne jamais lire d'URL relais ou d'extra audio ici.
         // Le lecteur audio ne possède plus d'implémentation Chromecast afin d'éviter tout mélange
         // d'état/métadonnées avec la vidéo.
-        val contentUrl = local.uri.toString()
+        val originalUrl = local.uri.toString()
+        val contentUrl = if (originalUrl.contains("127.0.0.1") || originalUrl.contains("localhost")) {
+            VideoStreamServerManager.getLanStreamUrl() ?: originalUrl
+        } else originalUrl
         val contentId = contentUrl
         val contentType = local.mimeType ?: guessContentType(local.uri)
 

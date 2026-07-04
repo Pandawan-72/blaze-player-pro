@@ -2,13 +2,17 @@ package fr.retrospare.blazeplayer.player
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.Manifest
 import android.app.Activity
 import android.content.ComponentName
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
+import android.media.audiofx.Visualizer
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -17,6 +21,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -34,16 +40,20 @@ import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.debug.CrashReporter
 import fr.retrospare.blazeplayer.databinding.ActivityAudioPlayerBinding
 import fr.retrospare.blazeplayer.home.SharedAudioViewModel
+import fr.retrospare.blazeplayer.settings.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class AudioPlayerFragment : Fragment() {
 
     @Inject lateinit var mediaRepository: MediaRepository
+    @Inject lateinit var dataStore: DataStore<Preferences>
     private var _binding: ActivityAudioPlayerBinding? = null
     private val binding get() = _binding!!
     private val sharedVm: SharedAudioViewModel by activityViewModels()
@@ -60,6 +70,17 @@ class AudioPlayerFragment : Fragment() {
     private var currentDynamicBgColor: Int = Color.rgb(10, 12, 14)
     private var currentAccentColor: Int = Color.rgb(63, 215, 143)
     private var bgAnimator: ValueAnimator? = null
+    private var audioVisualizer: Visualizer? = null
+    private var currentVisualizerSessionId: Int = 0
+    private var pendingVisualizerSessionId: Int = 0
+    private var audioSpectrumEnabled: Boolean = true
+
+    private val requestAudioVisualizerPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startAudioVisualizer(pendingVisualizerSessionId)
+        else _binding?.audioEqualizerView?.setIdle()
+    }
 
     private val dancerFrames = listOf(
         fr.retrospare.blazeplayer.R.drawable.pixel_dancer_1,
@@ -135,6 +156,7 @@ class AudioPlayerFragment : Fragment() {
         setupControls()
         setupSeekBar()
         startProgressUpdate()
+        observeAudioSpectrumSetting()
         connectMediaController()
     }
 
@@ -166,6 +188,7 @@ class AudioPlayerFragment : Fragment() {
         handler.removeCallbacksAndMessages(null)
         sleepTimerJob?.cancel()
         eqManager?.release()
+        stopAudioVisualizer()
         savePlaylistFromController()
         controllerFuture?.let { MediaController.releaseFuture(it) }
         try { bgAnimator?.cancel() } catch (_: Exception) {}
@@ -179,6 +202,25 @@ class AudioPlayerFragment : Fragment() {
 
 
     // ── MediaController ────────────────────────────────────────────────────────
+
+
+    private fun observeAudioSpectrumSetting() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            dataStore.data
+                .map { it[SettingsViewModel.KEY_AUDIO_SPECTRUM] ?: true }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    audioSpectrumEnabled = enabled
+                    binding.audioEqualizerView.visibility = if (enabled) View.VISIBLE else View.GONE
+                    if (enabled) {
+                        if (controller?.isPlaying == true) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
+                    } else {
+                        stopAudioVisualizer()
+                        binding.audioEqualizerView.setIdle()
+                    }
+                }
+        }
+    }
 
     private fun connectMediaController() {
         val token = SessionToken(requireContext(), ComponentName(requireContext(), BlazePlayerService::class.java))
@@ -329,6 +371,10 @@ class AudioPlayerFragment : Fragment() {
                 val idx = ctrl.currentMediaItemIndex
                 if (isPlaying) playlistAdapter.setPlayingIndex(idx)
                 else playlistAdapter.setPlayingIndex(-1)
+                if (!audioSpectrumEnabled) {
+                    stopAudioVisualizer()
+                    binding.audioEqualizerView.setIdle()
+                } else if (isPlaying) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -338,6 +384,7 @@ class AudioPlayerFragment : Fragment() {
                 savePlaylistFromController()
                 playlistAdapter.setCurrentIndex(idx)
                 playlistAdapter.setPlayingIndex(if (ctrl.isPlaying) idx else -1)
+                if (audioSpectrumEnabled) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
             }
 
             override fun onEvents(player: Player, events: Player.Events) {
@@ -346,6 +393,66 @@ class AudioPlayerFragment : Fragment() {
                 }
             }
         })
+
+        if (audioSpectrumEnabled) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
+    }
+
+    private fun ensureAudioVisualizer() {
+        if (!audioSpectrumEnabled || _binding == null) {
+            stopAudioVisualizer()
+            _binding?.audioEqualizerView?.setIdle()
+            return
+        }
+        val ctrl = controller ?: return
+        val future = ctrl.sendCustomCommand(
+            androidx.media3.session.SessionCommand(BlazePlayerService.COMMAND_GET_AUDIO_SESSION_ID, android.os.Bundle.EMPTY),
+            android.os.Bundle.EMPTY
+        )
+        future.addListener({
+            val sessionId = try {
+                future.get().extras.getInt(BlazePlayerService.EXTRA_AUDIO_SESSION_ID, 0)
+            } catch (_: Exception) { 0 }
+            if (sessionId != 0) startAudioVisualizer(sessionId)
+            else binding.audioEqualizerView.setIdle()
+        }, ContextCompat.getMainExecutor(requireContext()))
+    }
+
+    private fun startAudioVisualizer(sessionId: Int) {
+        if (sessionId == 0 || _binding == null) return
+        pendingVisualizerSessionId = sessionId
+        if (android.os.Build.VERSION.SDK_INT >= 23 &&
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestAudioVisualizerPermission.launch(Manifest.permission.RECORD_AUDIO)
+            return
+        }
+        if (audioVisualizer?.enabled == true && currentVisualizerSessionId == sessionId) return
+        stopAudioVisualizer()
+        try {
+            val captureSize = Visualizer.getCaptureSizeRange().lastOrNull() ?: 1024
+            audioVisualizer = Visualizer(sessionId).apply {
+                setCaptureSize(captureSize)
+                setDataCaptureListener(object : Visualizer.OnDataCaptureListener {
+                    override fun onWaveFormDataCapture(visualizer: Visualizer?, waveform: ByteArray?, samplingRate: Int) = Unit
+                    override fun onFftDataCapture(visualizer: Visualizer?, fft: ByteArray?, samplingRate: Int) {
+                        _binding?.audioEqualizerView?.post { _binding?.audioEqualizerView?.updateFft(fft) }
+                    }
+                }, Visualizer.getMaxCaptureRate() / 2, false, true)
+                enabled = true
+            }
+            currentVisualizerSessionId = sessionId
+        } catch (e: Exception) {
+            CrashReporter.log(requireContext(), "Audio visualizer failed", e)
+            _binding?.audioEqualizerView?.setIdle()
+            stopAudioVisualizer()
+        }
+    }
+
+    private fun stopAudioVisualizer() {
+        try { audioVisualizer?.enabled = false } catch (_: Exception) {}
+        try { audioVisualizer?.release() } catch (_: Exception) {}
+        audioVisualizer = null
+        currentVisualizerSessionId = 0
     }
 
     // ── Sync UI depuis MediaController (source unique) ─────────────────────────
@@ -431,17 +538,21 @@ class AudioPlayerFragment : Fragment() {
                     if (info.title.isNotEmpty()) _binding?.tvTitle?.text = info.title
                     if (info.artist.isNotEmpty()) _binding?.tvArtist?.text = info.artist
                     sanitizeAudioSecondaryText(info.album).takeIf { it.isNotBlank() }?.let { _binding?.tvAlbum?.text = it }
-                }
-                when {
-                    info.isLossless || losslessExt -> {
-                        _binding?.tvBitrate?.text = getString(fr.retrospare.blazeplayer.R.string.lossless_label)
-                        _binding?.tvBitrate?.visibility = View.VISIBLE
+                    // Le badge doit lui aussi rester derrière cette garde : sans elle, une
+                    // extraction encore en vol pour la piste PRÉCÉDENTE (après un skip rapide)
+                    // pouvait écraser le badge de la piste actuellement affichée avec des
+                    // données obsolètes, y compris en le masquant par erreur (GONE).
+                    when {
+                        info.isLossless || losslessExt -> {
+                            _binding?.tvBitrate?.text = getString(fr.retrospare.blazeplayer.R.string.lossless_label)
+                            _binding?.tvBitrate?.visibility = View.VISIBLE
+                        }
+                        info.bitrate > 0 -> {
+                            _binding?.tvBitrate?.text = "${info.bitrate / 1000} kbps"
+                            _binding?.tvBitrate?.visibility = View.VISIBLE
+                        }
+                        else -> _binding?.tvBitrate?.visibility = View.GONE
                     }
-                    info.bitrate > 0 -> {
-                        _binding?.tvBitrate?.text = "${info.bitrate / 1000} kbps"
-                        _binding?.tvBitrate?.visibility = View.VISIBLE
-                    }
-                    else -> _binding?.tvBitrate?.visibility = View.GONE
                 }
             }
         }
@@ -494,46 +605,15 @@ class AudioPlayerFragment : Fragment() {
     private fun applyDynamicBackgroundFromBitmap(bitmap: Bitmap?) {
         bitmap ?: return resetDynamicBackground()
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
-            val accent = try {
-                val scaled = Bitmap.createScaledBitmap(bitmap, 32, 32, true)
-                var r = 0L; var g = 0L; var b = 0L; var count = 0L
-                val pixels = IntArray(scaled.width * scaled.height)
-                scaled.getPixels(pixels, 0, scaled.width, 0, 0, scaled.width, scaled.height)
-                for (px in pixels) {
-                    val alpha = Color.alpha(px)
-                    if (alpha < 48) continue
-                    val hsv = FloatArray(3)
-                    Color.colorToHSV(px, hsv)
-                    if (hsv[2] < 0.10f) continue
-                    r += Color.red(px); g += Color.green(px); b += Color.blue(px); count++
-                }
-                if (scaled !== bitmap && !scaled.isRecycled) scaled.recycle()
-                val base = if (count <= 0L) Color.rgb(63, 215, 143) else Color.rgb((r / count).toInt(), (g / count).toInt(), (b / count).toInt())
-                boostAudioAccent(base)
-            } catch (_: Exception) {
-                Color.rgb(63, 215, 143)
-            }
-            val bg = mixColors(Color.rgb(8, 10, 12), accent, 0.30f)
+            val accent = AudioDynamicColor.accentFromBitmap(bitmap)
+            val bg = AudioDynamicColor.backgroundFromAccent(accent)
             launch(Dispatchers.Main) { animateDynamicBackground(bg, accent) }
         }
     }
 
-    private fun boostAudioAccent(color: Int): Int {
-        val hsv = FloatArray(3)
-        Color.colorToHSV(color, hsv)
-        hsv[1] = (hsv[1] * 1.35f + 0.12f).coerceIn(0f, 1f)
-        hsv[2] = (hsv[2] * 1.22f + 0.08f).coerceIn(0.35f, 1f)
-        return Color.HSVToColor(hsv)
-    }
+    private fun boostAudioAccent(color: Int): Int = AudioDynamicColor.boostAccent(color)
 
-    private fun mixColors(a: Int, b: Int, amount: Float): Int {
-        val t = amount.coerceIn(0f, 1f)
-        return Color.rgb(
-            (Color.red(a) + (Color.red(b) - Color.red(a)) * t).toInt().coerceIn(0, 255),
-            (Color.green(a) + (Color.green(b) - Color.green(a)) * t).toInt().coerceIn(0, 255),
-            (Color.blue(a) + (Color.blue(b) - Color.blue(a)) * t).toInt().coerceIn(0, 255)
-        )
-    }
+    private fun mixColors(a: Int, b: Int, amount: Float): Int = AudioDynamicColor.mix(a, b, amount)
 
     private fun resetDynamicBackground() {
         animateDynamicBackground(Color.rgb(10, 12, 14), Color.rgb(63, 215, 143))
@@ -564,6 +644,7 @@ class AudioPlayerFragment : Fragment() {
         _binding?.btnPlayPause?.background = buildPlayButtonBackground(accentColor)
         _binding?.btnPlayPause?.elevation = dp(10f)
         _binding?.btnPlayPause?.translationZ = dp(6f)
+        _binding?.audioEqualizerView?.setAccentColor(accentColor)
         _binding?.tvArtist?.setTextColor(appGreenColor())
         persistDynamicAudioColors(targetColor, accentColor)
     }
@@ -586,6 +667,7 @@ class AudioPlayerFragment : Fragment() {
         _binding?.btnPlayPause?.background = buildPlayButtonBackground(accent)
         _binding?.btnPlayPause?.elevation = dp(10f)
         _binding?.btnPlayPause?.translationZ = dp(6f)
+        _binding?.audioEqualizerView?.setAccentColor(accent)
         _binding?.tvArtist?.setTextColor(appGreenColor())
     }
 
@@ -652,18 +734,18 @@ class AudioPlayerFragment : Fragment() {
     private var squareArtworkContainer: View? = null
 
     private fun setupSquareArtwork() {
-        val container = binding.ivArtwork.parent as? View ?: return
+        val container = binding.artworkFrame.parent as? View ?: return
         val listener = android.view.ViewTreeObserver.OnGlobalLayoutListener {
             val b = _binding ?: return@OnGlobalLayoutListener
             val availableWidth = container.width - container.paddingLeft - container.paddingRight
             val availableHeight = container.height - container.paddingTop - container.paddingBottom
             if (availableWidth <= 0 || availableHeight <= 0) return@OnGlobalLayoutListener
             val size = minOf(availableWidth, availableHeight)
-            val params = b.ivArtwork.layoutParams
+            val params = b.artworkFrame.layoutParams
             if (params.width != size || params.height != size) {
                 params.width = size
                 params.height = size
-                b.ivArtwork.layoutParams = params
+                b.artworkFrame.layoutParams = params
             }
         }
         container.viewTreeObserver.addOnGlobalLayoutListener(listener)

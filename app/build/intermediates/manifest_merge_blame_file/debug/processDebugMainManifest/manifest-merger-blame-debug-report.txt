@@ -1,8 +1,8 @@
 1<?xml version="1.0" encoding="utf-8"?>
 2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 3    package="fr.retrospare.blazeplayer"
-4    android:versionCode="10"
-5    android:versionName="0.10.0-alpha" >
+4    android:versionCode="18"
+5    android:versionName="0.9.1-Beta-RC" >
 6
 7    <uses-sdk
 7-->INJECTED
@@ -13,559 +13,744 @@
 10
 11    <!-- Réseau -->
 12    <uses-permission android:name="android.permission.INTERNET" />
-12-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:6:5-67
-12-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:6:22-64
+12-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:8:5-67
+12-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:8:22-64
 13    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-13-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:7:5-79
-13-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:7:22-76
+13-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:9:5-79
+13-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:9:22-76
 14    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-14-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:8:5-76
-14-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:8:22-73
+14-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:10:5-76
+14-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:10:22-73
 15    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
-15-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:9:5-86
-15-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:9:22-83
+15-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:11:5-86
+15-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:11:22-83
 16    <!-- Requis depuis Android 13 (API 33) pour la decouverte mDNS/NSD utilisee par Google Cast -->
 17    <uses-permission
-17-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:11:5-125
+17-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:13:5-125
 18        android:name="android.permission.NEARBY_WIFI_DEVICES"
-18-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:11:22-75
+18-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:13:22-75
 19        android:usesPermissionFlags="neverForLocation" />
-19-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:11:76-122
+19-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:13:76-122
 20
 21    <!-- Stockage Android 9-12 -->
 22    <uses-permission
-22-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:14:5-16:38
+22-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:16:5-18:38
 23        android:name="android.permission.READ_EXTERNAL_STORAGE"
-23-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:15:9-64
+23-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:17:9-64
 24        android:maxSdkVersion="32" />
-24-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:16:9-35
-25
-26    <!-- Stockage Android 13+ -->
-27    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-27-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:19:5-75
-27-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:19:22-72
-28    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-28-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:20:5-75
-28-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:20:22-72
-29
-30    <!-- Luminosité -->
-31    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
-31-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:23:5-24:47
-31-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:23:22-70
-32
-33    <!-- Wake lock lecture -->
-34    <uses-permission android:name="android.permission.WAKE_LOCK" />
-34-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:27:5-68
-34-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:27:22-65
-35    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-35-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:28:5-77
-35-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:28:22-74
-36    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-36-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:29:5-92
-36-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:29:22-89
-37
-38    <!-- Notifications Android 13+ -->
-39    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-39-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:32:5-77
-39-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:32:22-74
-40
-41    <queries>
-41-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:14:5-16:15
-42        <package android:name="com.google.android.gms.policy_cast_dynamite" />
-42-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:15:9-79
-42-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:15:18-76
-43
-44        <intent>
-44-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:13:9-15:18
-45            <action android:name="com.android.vending.billing.InAppBillingService.BIND" />
-45-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:14:13-91
-45-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:14:21-88
-46        </intent>
-47    </queries>
-48
-49    <uses-permission android:name="android.permission.USE_BIOMETRIC" /> <!-- suppress DeprecatedClassUsageInspection -->
-49-->[androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:24:5-72
-49-->[androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:24:22-69
-50    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
-50-->[androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:27:5-74
-50-->[androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:27:22-71
-51    <uses-permission android:name="com.android.vending.BILLING" />
-51-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:10:5-67
-51-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:10:22-64
-52
-53    <permission
-53-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
-54        android:name="fr.retrospare.blazeplayer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-54-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
-55        android:protectionLevel="signature" />
-55-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
+24-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:18:9-35
+25    <uses-permission
+25-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:19:5-21:38
+26        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+26-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:20:9-65
+27        android:maxSdkVersion="28" />
+27-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:21:9-35
+28
+29    <!-- Stockage Android 13+ -->
+30    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+30-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:24:5-75
+30-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:24:22-72
+31    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+31-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:25:5-76
+31-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:25:22-73
+32    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+32-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:26:5-75
+32-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:26:22-72
+33
+34    <!-- Luminosité -->
+35    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+35-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:29:5-30:47
+35-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:29:22-70
+36
+37    <!-- Visualiseur audio : analyse FFT de la session de lecture -->
+38    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+38-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:33:5-71
+38-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:33:22-68
+39
+40    <!-- Wake lock lecture -->
+41    <uses-permission android:name="android.permission.WAKE_LOCK" />
+41-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:36:5-68
+41-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:36:22-65
+42    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+42-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:37:5-77
+42-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:37:22-74
+43    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+43-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:38:5-92
+43-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:38:22-89
+44
+45    <!-- Notifications Android 13+ -->
+46    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+46-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:41:5-77
+46-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:41:22-74
+47
+48    <queries>
+48-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:42:5-51:15
+49        <intent>
+49-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:43:9-46:18
+50            <action android:name="android.intent.action.GET_CONTENT" />
+50-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:44:13-72
+50-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:44:21-69
+51
+52            <data android:mimeType="*/*" />
+52-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+52-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+53        </intent>
+54        <intent>
+54-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:47:9-50:18
+55            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+55-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:48:13-74
+55-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:48:21-71
 56
-57    <uses-permission android:name="fr.retrospare.blazeplayer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-57-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
-57-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
-58
-59    <application
-59-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:34:5-140:15
-60        android:name="fr.retrospare.blazeplayer.BlazePlayerApp"
-60-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:35:9-39
-61        android:allowBackup="true"
-61-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:36:9-35
-62        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-62-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:28:18-86
-63        android:dataExtractionRules="@xml/data_extraction_rules"
-63-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:37:9-65
-64        android:debuggable="true"
-65        android:extractNativeLibs="false"
-65-->INJECTED
-66        android:fullBackupContent="@xml/backup_rules"
-66-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:38:9-54
-67        android:hardwareAccelerated="true"
-67-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:9-43
-68        android:icon="@mipmap/ic_launcher"
-68-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:39:9-43
-69        android:label="@string/app_name"
-69-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:40:9-41
-70        android:networkSecurityConfig="@xml/network_security_config"
-70-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:44:9-69
-71        android:roundIcon="@mipmap/ic_launcher_round"
-71-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:41:9-54
-72        android:supportsRtl="true"
-72-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:42:9-35
-73        android:theme="@style/Theme.BlazePlayer" >
-73-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:43:9-49
-74        <activity
-74-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:47:9-59:20
-75            android:name="fr.retrospare.blazeplayer.MainActivity"
-75-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:48:13-41
-76            android:configChanges="orientation|screenLayout|screenSize|smallestScreenSize|keyboardHidden"
-76-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:53:13-106
-77            android:exported="true"
-77-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:49:13-36
-78            android:label="@string/app_name"
-78-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:50:13-45
-79            android:launchMode="singleTop"
-79-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:51:13-43
-80            android:theme="@style/Theme.BlazePlayer"
-80-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:52:13-53
-81            android:windowSoftInputMode="adjustResize" >
-81-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:54:13-55
-82            <intent-filter>
-82-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:55:13-58:29
-83                <action android:name="android.intent.action.MAIN" />
-83-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:56:17-69
-83-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:56:25-66
-84
-85                <category android:name="android.intent.category.LAUNCHER" />
-85-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:57:17-77
-85-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:57:27-74
-86            </intent-filter>
-87        </activity>
-88
-89        <service
-89-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:61:9-68:19
-90            android:name="fr.retrospare.blazeplayer.player.BlazePlayerService"
-90-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:62:1-42
-91            android:exported="false"
-91-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:64:13-37
-92            android:foregroundServiceType="mediaPlayback" >
-92-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:63:13-58
-93            <intent-filter>
-93-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:65:13-67:29
-94                <action android:name="androidx.media3.session.MediaSessionService" />
-94-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:66:17-85
-94-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:66:25-83
-95            </intent-filter>
-96        </service>
-97
-98        <!--
-99             Service de lecture vidéo (ExoPlayer + CastPlayer) : démarré explicitement par
-100             PlayerActivity. Sa déclaration manquait précédemment, ce qui faisait planter
-101             startService() au runtime dès l'ouverture d'une vidéo.
-102        -->
-103        <service
-103-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:73:9-80:19
-104            android:name="fr.retrospare.blazeplayer.player.VideoPlaybackService"
-104-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:74:13-56
-105            android:exported="false"
-105-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:76:13-37
-106            android:foregroundServiceType="mediaPlayback" >
-106-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:75:13-58
-107            <intent-filter>
-107-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:65:13-67:29
-108                <action android:name="androidx.media3.session.MediaSessionService" />
-108-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:66:17-85
-108-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:66:25-83
-109            </intent-filter>
-110        </service>
-111
-112        <activity
-112-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:82:9-106:20
-113            android:name="fr.retrospare.blazeplayer.player.PlayerActivity"
-113-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:83:13-50
-114            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
-114-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:86:13-115
-115            android:exported="true"
-115-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:85:13-36
-116            android:launchMode="singleTop"
-116-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:87:13-43
-117            android:screenOrientation="fullSensor"
-117-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:88:13-51
-118            android:supportsPictureInPicture="true"
-118-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:84:13-52
-119            android:theme="@style/Theme.BlazePlayer.Fullscreen" >
-119-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:89:13-64
-120            <intent-filter>
-120-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:90:13-95:29
-121                <action android:name="android.intent.action.VIEW" />
-121-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:17-69
-121-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:25-66
-122
-123                <category android:name="android.intent.category.DEFAULT" />
-123-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:17-76
-123-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:27-73
-124                <category android:name="android.intent.category.BROWSABLE" />
-124-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:93:17-78
-124-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:93:27-75
-125
-126                <data android:mimeType="video/*" />
-126-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:17-52
-126-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:23-49
-127            </intent-filter>
-128            <intent-filter>
-128-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:96:13-100:29
-129                <action android:name="android.intent.action.VIEW" />
-129-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:17-69
-129-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:25-66
-130
-131                <category android:name="android.intent.category.DEFAULT" />
-131-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:17-76
-131-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:27-73
-132
-133                <data android:mimeType="video/mp4" />
-133-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:17-52
-133-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:23-49
-134            </intent-filter>
-135            <intent-filter>
-135-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:101:13-105:29
-136                <action android:name="android.intent.action.VIEW" />
-136-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:17-69
-136-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:25-66
-137
-138                <category android:name="android.intent.category.DEFAULT" />
-138-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:17-76
-138-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:27-73
-139
-140                <data android:mimeType="video/x-matroska" />
-140-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:17-52
-140-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:23-49
-141            </intent-filter>
-142        </activity>
-143        <activity
-143-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:108:9-112:56
-144            android:name="fr.retrospare.blazeplayer.player.AudioBrowserActivity"
-144-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:109:13-56
-145            android:exported="false"
-145-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:110:13-37
+57            <data android:mimeType="*/*" />
+57-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+57-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+58        </intent>
+59
+60        <package android:name="com.google.android.gms.policy_cast_dynamite" />
+60-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:15:9-79
+60-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:15:18-76
+61
+62        <intent>
+62-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:13:9-15:18
+63            <action android:name="com.android.vending.billing.InAppBillingService.BIND" />
+63-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:14:13-91
+63-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:14:21-88
+64        </intent>
+65    </queries>
+66
+67    <uses-permission android:name="android.permission.USE_BIOMETRIC" /> <!-- suppress DeprecatedClassUsageInspection -->
+67-->[androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:24:5-72
+67-->[androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:24:22-69
+68    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+68-->[androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:27:5-74
+68-->[androidx.biometric:biometric:1.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/ce4ab5bedd128433b17019f0d7a1289c/transformed/biometric-1.1.0/AndroidManifest.xml:27:22-71
+69    <uses-permission android:name="com.android.vending.BILLING" />
+69-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:10:5-67
+69-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:10:22-64
+70
+71    <permission
+71-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:22:5-24:47
+72        android:name="fr.retrospare.blazeplayer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+72-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:23:9-81
+73        android:protectionLevel="signature" />
+73-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:24:9-44
+74
+75    <uses-permission android:name="fr.retrospare.blazeplayer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+75-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:26:5-97
+75-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:26:22-94
+76
+77    <application
+77-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:53:5-217:15
+78        android:name="fr.retrospare.blazeplayer.BlazePlayerApp"
+78-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:54:9-39
+79        android:allowBackup="true"
+79-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:55:9-35
+80        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+80-->[androidx.core:core:1.18.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/16da068b16924e607005f4b58d0dce13/transformed/core-1.18.0/AndroidManifest.xml:28:18-86
+81        android:dataExtractionRules="@xml/data_extraction_rules"
+81-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:56:9-65
+82        android:debuggable="true"
+83        android:extractNativeLibs="false"
+83-->INJECTED
+84        android:fullBackupContent="@xml/backup_rules"
+84-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:57:9-54
+85        android:hardwareAccelerated="true"
+85-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:65:9-43
+86        android:icon="@mipmap/ic_launcher"
+86-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:59:9-43
+87        android:label="@string/app_name"
+87-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:60:9-41
+88        android:largeHeap="true"
+88-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:66:9-33
+89        android:localeConfig="@xml/locales_config"
+89-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:58:9-51
+90        android:networkSecurityConfig="@xml/network_security_config"
+90-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:64:9-69
+91        android:roundIcon="@mipmap/ic_launcher_round"
+91-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:61:9-54
+92        android:supportsRtl="true"
+92-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:62:9-35
+93        android:theme="@style/Theme.BlazePlayer" >
+93-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:63:9-49
+94
+95        <!--
+96             largeHeap : marge de sécurité supplémentaire pour la lecture vidéo réseau (SMB) qui
+97             combine tampon de lecture, miniatures et extraction de métadonnées en parallèle.
+98             Ajouté suite à un OutOfMemoryError observé sur un tas cible de 256 Mo (le vrai fix
+99             est la réduction des tailles de buffer SMB, cf. SmbClientPool/SmbMediaDataSource).
+100        -->
+101
+102        <activity
+102-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:72:9-85:20
+103            android:name="fr.retrospare.blazeplayer.MainActivity"
+103-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:73:13-41
+104            android:configChanges="orientation|screenLayout|screenSize|smallestScreenSize|keyboardHidden"
+104-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:79:13-106
+105            android:exported="true"
+105-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:74:13-36
+106            android:label="@string/app_name"
+106-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:75:13-45
+107            android:launchMode="singleTop"
+107-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:76:13-43
+108            android:screenOrientation="portrait"
+108-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:77:13-49
+109            android:theme="@style/Theme.BlazePlayer"
+109-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:78:13-53
+110            android:windowSoftInputMode="adjustResize" >
+110-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:80:13-55
+111            <intent-filter>
+111-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:81:13-84:29
+112                <action android:name="android.intent.action.MAIN" />
+112-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:82:17-69
+112-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:82:25-66
+113
+114                <category android:name="android.intent.category.LAUNCHER" />
+114-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:83:17-77
+114-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:83:27-74
+115            </intent-filter>
+116        </activity>
+117
+118        <service
+118-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:87:9-94:19
+119            android:name="fr.retrospare.blazeplayer.player.BlazePlayerService"
+119-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:88:1-42
+120            android:exported="false"
+120-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:90:13-37
+121            android:foregroundServiceType="mediaPlayback" >
+121-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:89:13-58
+122            <intent-filter>
+122-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:13-93:29
+123                <action android:name="androidx.media3.session.MediaSessionService" />
+123-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:17-85
+123-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:25-83
+124            </intent-filter>
+125        </service>
+126
+127        <!--
+128             Service de lecture vidéo (ExoPlayer + CastPlayer) : démarré explicitement par
+129             PlayerActivity. Sa déclaration manquait précédemment, ce qui faisait planter
+130             startService() au runtime dès l'ouverture d'une vidéo.
+131        -->
+132        <service
+132-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:99:9-106:19
+133            android:name="fr.retrospare.blazeplayer.player.VideoPlaybackService"
+133-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:100:13-56
+134            android:exported="false"
+134-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:102:13-37
+135            android:foregroundServiceType="mediaPlayback" >
+135-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:101:13-58
+136            <intent-filter>
+136-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:13-93:29
+137                <action android:name="androidx.media3.session.MediaSessionService" />
+137-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:17-85
+137-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:25-83
+138            </intent-filter>
+139        </service>
+140
+141        <activity
+141-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:109:9-134:20
+142            android:name="fr.retrospare.blazeplayer.player.AudioPlayerActivity"
+142-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:110:13-55
+143            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+143-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:112:13-115
+144            android:exported="true"
+144-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:111:13-36
+145            android:launchMode="singleTop"
+145-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:113:13-43
 146            android:screenOrientation="portrait"
-146-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:111:13-49
-147            android:theme="@style/Theme.BlazePlayer" />
-147-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:112:13-53
-148
-149        <meta-data
-149-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:114:9-116:82
-150            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
-150-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:115:13-93
-151            android:value="fr.retrospare.blazeplayer.cast.CastOptionsProvider" />
-151-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:116:13-79
-152
-153        <receiver
-153-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:9-120:40
-154            android:name="androidx.mediarouter.media.MediaTransferReceiver"
-154-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:13-76
-155            android:exported="false" />
-155-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:13-37
-156
-157        <activity
-157-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:127:5-130:52
-158            android:name="fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity"
-158-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:128:9-59
-159            android:exported="false"
-159-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:129:9-33
-160            android:theme="@style/Theme.BlazePlayer" />
-160-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:130:9-49
-161        <activity
-161-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:132:5-138:52
-162            android:name="fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity"
-162-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:133:9-54
-163            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
-163-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:136:9-109
-164            android:exported="false"
-164-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:134:9-33
-165            android:screenOrientation="fullSensor"
-165-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:135:9-47
-166            android:supportsPictureInPicture="true"
-166-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:137:9-48
-167            android:theme="@style/Theme.BlazePlayer" />
-167-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:138:9-49
-168
-169        <receiver
-169-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:19:9-21:40
-170            android:name="com.google.android.gms.cast.framework.media.MediaIntentReceiver"
-170-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:20:13-91
-171            android:exported="false" />
-171-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:21:13-37
-172
-173        <service
-173-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:23:9-25:40
-174            android:name="com.google.android.gms.cast.framework.ReconnectionService"
-174-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:24:13-85
-175            android:exported="false" />
-175-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:25:13-37
-176        <service
-176-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:24:9-32:19
-177            android:name="androidx.credentials.playservices.CredentialProviderMetadataHolder"
-177-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:25:13-94
-178            android:enabled="true"
-178-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:26:13-35
-179            android:exported="false" >
-179-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:27:13-37
-180            <meta-data
-180-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:29:13-31:104
-181                android:name="androidx.credentials.CREDENTIAL_PROVIDER_KEY"
-181-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:30:17-76
-182                android:value="androidx.credentials.playservices.CredentialProviderPlayServicesImpl" />
-182-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:31:17-101
-183        </service>
-184
-185        <activity
-185-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:34:9-41:20
-186            android:name="androidx.credentials.playservices.controllers.identityauth.HiddenActivity"
-186-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:35:13-101
-187            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-187-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:36:13-87
-188            android:enabled="true"
-188-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:37:13-35
-189            android:exported="false"
-189-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:38:13-37
-190            android:fitsSystemWindows="true"
-190-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:39:13-45
-191            android:theme="@style/Theme.Hidden" >
-191-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:40:13-48
-192        </activity>
-193        <activity
-193-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:42:9-49:20
-194            android:name="androidx.credentials.playservices.controllers.identitycredentials.IdentityCredentialApiHiddenActivity"
-194-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:43:13-129
-195            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-195-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:44:13-87
-196            android:enabled="true"
-196-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:45:13-35
-197            android:exported="false"
-197-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:46:13-37
-198            android:fitsSystemWindows="true"
-198-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:47:13-45
-199            android:theme="@style/Theme.Hidden" >
-199-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:48:13-48
-200        </activity>
-201        <activity
-201-->[androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:23:9-25:39
-202            android:name="androidx.compose.ui.tooling.PreviewActivity"
-202-->[androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:24:13-71
-203            android:exported="true" />
-203-->[androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:25:13-36
-204        <activity
-204-->[androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:23:9-26:79
-205            android:name="androidx.activity.ComponentActivity"
-205-->[androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:24:13-63
-206            android:exported="true"
-206-->[androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:25:13-36
-207            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
-207-->[androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:26:13-76
-208        <activity
-208-->[com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:10:9-13:75
-209            android:name="com.revenuecat.purchases.amazon.purchasing.ProxyAmazonBillingActivity"
-209-->[com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:11:13-97
-210            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
-210-->[com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:12:13-96
-211            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-211-->[com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:13:13-72
-212
-213        <meta-data
-213-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:19:9-21:37
-214            android:name="com.google.android.play.billingclient.version"
-214-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:20:13-73
-215            android:value="7.0.0" />
-215-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:21:13-34
-216
-217        <activity
-217-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:23:9-27:75
-218            android:name="com.android.billingclient.api.ProxyBillingActivity"
-218-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:24:13-78
-219            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
-219-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:25:13-96
-220            android:exported="false"
-220-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:26:13-37
-221            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-221-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:27:13-72
-222        <activity
-222-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:28:9-32:75
-223            android:name="com.android.billingclient.api.ProxyBillingActivityV2"
-223-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:29:13-80
-224            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
-224-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:30:13-96
-225            android:exported="false"
-225-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:31:13-37
-226            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-226-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:32:13-72
-227        <activity
-227-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:23:9-27:75
-228            android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity"
-228-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:24:13-93
-229            android:excludeFromRecents="true"
-229-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:25:13-46
-230            android:exported="false"
-230-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:26:13-37
-231            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-231-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:27:13-72
-232        <!--
-233            Service handling Google Sign-In user revocation. For apps that do not integrate with
-234            Google Sign-In, this service will never be started.
-235        -->
-236        <service
-236-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:33:9-37:51
-237            android:name="com.google.android.gms.auth.api.signin.RevocationBoundService"
-237-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:34:13-89
-238            android:exported="true"
-238-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:35:13-36
-239            android:permission="com.google.android.gms.auth.api.signin.permission.REVOCATION_NOTIFICATION"
-239-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:36:13-107
-240            android:visibleToInstantApps="true" />
-240-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:37:13-48
-241
-242        <activity
-242-->[com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:9-173
-243            android:name="com.google.android.gms.common.api.GoogleApiActivity"
-243-->[com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:19-85
-244            android:exported="false"
-244-->[com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:146-170
-245            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-245-->[com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:86-145
-246
-247        <uses-library
-247-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
-248            android:name="androidx.window.extensions"
-248-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
-249            android:required="false" />
-249-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
-250        <uses-library
-250-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
-251            android:name="androidx.window.sidecar"
-251-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
-252            android:required="false" />
-252-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
-253
-254        <provider
-254-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
-255            android:name="androidx.startup.InitializationProvider"
-255-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
-256            android:authorities="fr.retrospare.blazeplayer.androidx-startup"
-256-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
-257            android:exported="false" >
-257-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
-258            <meta-data
-258-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
-259                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-259-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
-260                android:value="androidx.startup" />
-260-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
-261            <meta-data
-261-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:29:13-31:52
-262                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-262-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:30:17-78
-263                android:value="androidx.startup" />
-263-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:31:17-49
-264            <meta-data
-264-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
-265                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-265-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
-266                android:value="androidx.startup" />
-266-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
-267        </provider>
-268
-269        <meta-data
-269-->[com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:21:9-23:69
-270            android:name="com.google.android.gms.version"
-270-->[com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:22:13-58
-271            android:value="@integer/google_play_services_version" />
-271-->[com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:23:13-66
-272
-273        <receiver
-273-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
-274            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-274-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
-275            android:directBootAware="false"
-275-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
-276            android:enabled="true"
-276-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
-277            android:exported="true"
-277-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
-278            android:permission="android.permission.DUMP" >
-278-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
-279            <intent-filter>
-279-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
-280                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-280-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
-280-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
-281            </intent-filter>
-282            <intent-filter>
-282-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
-283                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-283-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
-283-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
-284            </intent-filter>
-285            <intent-filter>
-285-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
-286                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-286-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
-286-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
-287            </intent-filter>
-288            <intent-filter>
-288-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
-289                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-289-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
-289-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92
-290            </intent-filter>
-291        </receiver>
-292
-293        <service
-293-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:28:9-34:19
-294            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
-294-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:29:13-103
-295            android:exported="false" >
-295-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:30:13-37
-296            <meta-data
-296-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:31:13-33:39
-297                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
-297-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:32:17-94
-298                android:value="cct" />
-298-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:33:17-36
-299        </service>
-300        <service
-300-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:26:9-30:19
-301            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
-301-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:27:13-117
-302            android:exported="false"
-302-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:28:13-37
-303            android:permission="android.permission.BIND_JOB_SERVICE" >
-303-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:29:13-69
-304        </service>
+146-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:114:13-49
+147            android:theme="@style/Theme.BlazePlayer" >
+147-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:115:13-53
+148            <intent-filter>
+148-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:116:13-123:29
+149                <action android:name="android.intent.action.VIEW" />
+149-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:17-69
+149-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:25-66
+150
+151                <category android:name="android.intent.category.DEFAULT" />
+151-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+151-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+152                <category android:name="android.intent.category.BROWSABLE" />
+152-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:17-78
+152-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:27-75
+153
+154                <data android:scheme="content" />
+154-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+154-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+155                <data android:scheme="file" />
+155-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+155-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+156                <data android:mimeType="audio/*" />
+156-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+156-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+157            </intent-filter>
+158            <intent-filter>
+158-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:124:13-128:29
+159                <action android:name="android.intent.action.SEND" />
+159-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:125:17-69
+159-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:125:25-66
+160
+161                <category android:name="android.intent.category.DEFAULT" />
+161-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+161-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+162
+163                <data android:mimeType="audio/*" />
+163-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+163-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+164            </intent-filter>
+165            <intent-filter>
+165-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:129:13-133:29
+166                <action android:name="android.intent.action.SEND_MULTIPLE" />
+166-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:130:17-78
+166-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:130:25-75
+167
+168                <category android:name="android.intent.category.DEFAULT" />
+168-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+168-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+169
+170                <data android:mimeType="audio/*" />
+170-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+170-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+171            </intent-filter>
+172        </activity>
+173        <activity
+173-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:136:9-178:20
+174            android:name="fr.retrospare.blazeplayer.player.PlayerActivity"
+174-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:137:13-50
+175            android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+175-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:140:13-115
+176            android:exported="true"
+176-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:139:13-36
+177            android:launchMode="singleTop"
+177-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:141:13-43
+178            android:screenOrientation="fullSensor"
+178-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:142:13-51
+179            android:supportsPictureInPicture="true"
+179-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:138:13-52
+180            android:theme="@style/Theme.BlazePlayer.Fullscreen" >
+180-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:143:13-64
+181            <intent-filter>
+181-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:144:13-151:29
+182                <action android:name="android.intent.action.VIEW" />
+182-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:17-69
+182-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:25-66
+183
+184                <category android:name="android.intent.category.DEFAULT" />
+184-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+184-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+185                <category android:name="android.intent.category.BROWSABLE" />
+185-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:17-78
+185-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:27-75
+186
+187                <data android:scheme="content" />
+187-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+187-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+188                <data android:scheme="file" />
+188-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+188-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+189                <data android:mimeType="video/*" />
+189-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+189-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+190            </intent-filter>
+191            <intent-filter>
+191-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:152:13-156:29
+192                <action android:name="android.intent.action.SEND" />
+192-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:125:17-69
+192-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:125:25-66
+193
+194                <category android:name="android.intent.category.DEFAULT" />
+194-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+194-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+195
+196                <data android:mimeType="video/*" />
+196-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+196-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+197            </intent-filter>
+198            <intent-filter>
+198-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:157:13-161:29
+199                <action android:name="android.intent.action.SEND_MULTIPLE" />
+199-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:130:17-78
+199-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:130:25-75
+200
+201                <category android:name="android.intent.category.DEFAULT" />
+201-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+201-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+202
+203                <data android:mimeType="video/*" />
+203-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+203-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+204            </intent-filter>
+205            <intent-filter>
+205-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:162:13-169:29
+206                <action android:name="android.intent.action.VIEW" />
+206-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:17-69
+206-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:25-66
+207
+208                <category android:name="android.intent.category.DEFAULT" />
+208-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+208-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+209                <category android:name="android.intent.category.BROWSABLE" />
+209-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:17-78
+209-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:27-75
+210
+211                <data android:scheme="content" />
+211-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+211-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+212                <data android:scheme="file" />
+212-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+212-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+213                <data android:mimeType="video/x-matroska" />
+213-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+213-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+214            </intent-filter>
+215            <intent-filter>
+215-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:170:13-177:29
+216                <action android:name="android.intent.action.VIEW" />
+216-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:17-69
+216-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:25-66
+217
+218                <category android:name="android.intent.category.DEFAULT" />
+218-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+218-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+219                <category android:name="android.intent.category.BROWSABLE" />
+219-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:17-78
+219-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:27-75
+220
+221                <data android:scheme="content" />
+221-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+221-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+222                <data android:scheme="file" />
+222-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+222-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+223                <data android:mimeType="application/octet-stream" />
+223-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
+223-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
+224            </intent-filter>
+225        </activity>
+226        <activity
+226-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:180:9-184:56
+227            android:name="fr.retrospare.blazeplayer.player.AudioBrowserActivity"
+227-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:181:13-56
+228            android:exported="false"
+228-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:182:13-37
+229            android:screenOrientation="portrait"
+229-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:183:13-49
+230            android:theme="@style/Theme.BlazePlayer" />
+230-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:184:13-53
+231
+232        <meta-data
+232-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:186:9-188:82
+233            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+233-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:187:13-93
+234            android:value="fr.retrospare.blazeplayer.cast.CastOptionsProvider" />
+234-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:188:13-79
+235
+236        <receiver
+236-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:190:9-192:40
+237            android:name="androidx.mediarouter.media.MediaTransferReceiver"
+237-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:191:13-76
+238            android:exported="false" />
+238-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:192:13-37
+239
+240        <activity
+240-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:194:5-197:52
+241            android:name="fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity"
+241-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:195:9-59
+242            android:exported="false"
+242-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:196:9-33
+243            android:theme="@style/Theme.BlazePlayer" />
+243-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:197:9-49
+244        <activity
+244-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:199:5-205:52
+245            android:name="fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity"
+245-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:200:9-54
+246            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
+246-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:203:9-109
+247            android:exported="false"
+247-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:201:9-33
+248            android:screenOrientation="fullSensor"
+248-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:202:9-47
+249            android:supportsPictureInPicture="true"
+249-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:204:9-48
+250            android:theme="@style/Theme.BlazePlayer" />
+250-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:205:9-49
+251
+252        <provider
+252-->INJECTED
+253            android:name="androidx.core.content.FileProvider"
+253-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:208:13-62
+254            android:authorities="fr.retrospare.blazeplayer.fileprovider"
+254-->INJECTED
+255            android:exported="false"
+255-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:210:13-37
+256            android:grantUriPermissions="true" >
+256-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:211:13-47
+257            <meta-data
+257-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:212:13-214:54
+258                android:name="android.support.FILE_PROVIDER_PATHS"
+258-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:213:17-67
+259                android:resource="@xml/file_paths" />
+259-->/Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:214:17-51
+260        </provider>
+261
+262        <receiver
+262-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:19:9-21:40
+263            android:name="com.google.android.gms.cast.framework.media.MediaIntentReceiver"
+263-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:20:13-91
+264            android:exported="false" />
+264-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:21:13-37
+265
+266        <service
+266-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:23:9-25:40
+267            android:name="com.google.android.gms.cast.framework.ReconnectionService"
+267-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:24:13-85
+268            android:exported="false" />
+268-->[com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:25:13-37
+269        <service
+269-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:24:9-32:19
+270            android:name="androidx.credentials.playservices.CredentialProviderMetadataHolder"
+270-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:25:13-94
+271            android:enabled="true"
+271-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:26:13-35
+272            android:exported="false" >
+272-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:27:13-37
+273            <meta-data
+273-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:29:13-31:104
+274                android:name="androidx.credentials.CREDENTIAL_PROVIDER_KEY"
+274-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:30:17-76
+275                android:value="androidx.credentials.playservices.CredentialProviderPlayServicesImpl" />
+275-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:31:17-101
+276        </service>
+277
+278        <activity
+278-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:34:9-41:20
+279            android:name="androidx.credentials.playservices.controllers.identityauth.HiddenActivity"
+279-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:35:13-101
+280            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+280-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:36:13-87
+281            android:enabled="true"
+281-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:37:13-35
+282            android:exported="false"
+282-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:38:13-37
+283            android:fitsSystemWindows="true"
+283-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:39:13-45
+284            android:theme="@style/Theme.Hidden" >
+284-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:40:13-48
+285        </activity>
+286        <activity
+286-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:42:9-49:20
+287            android:name="androidx.credentials.playservices.controllers.identitycredentials.IdentityCredentialApiHiddenActivity"
+287-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:43:13-129
+288            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+288-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:44:13-87
+289            android:enabled="true"
+289-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:45:13-35
+290            android:exported="false"
+290-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:46:13-37
+291            android:fitsSystemWindows="true"
+291-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:47:13-45
+292            android:theme="@style/Theme.Hidden" >
+292-->[androidx.credentials:credentials-play-services-auth:1.6.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/973e9e24786a09a86c6d0f7178f48ecb/transformed/credentials-play-services-auth-1.6.0/AndroidManifest.xml:48:13-48
+293        </activity>
+294        <activity
+294-->[androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:23:9-25:39
+295            android:name="androidx.compose.ui.tooling.PreviewActivity"
+295-->[androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:24:13-71
+296            android:exported="true" />
+296-->[androidx.compose.ui:ui-tooling-android:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/44ff1985acda8b8b154baadc5eac8920/transformed/ui-tooling/AndroidManifest.xml:25:13-36
+297        <activity
+297-->[androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:23:9-26:79
+298            android:name="androidx.activity.ComponentActivity"
+298-->[androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:24:13-63
+299            android:exported="true"
+299-->[androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:25:13-36
+300            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+300-->[androidx.compose.ui:ui-test-manifest:1.10.4] /Users/pandawan/.gradle/caches/9.4.1/transforms/6078406849b2aba2c5d9f2bc7122f018/transformed/ui-test-manifest-1.10.4/AndroidManifest.xml:26:13-76
+301        <activity
+301-->[com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:10:9-13:75
+302            android:name="com.revenuecat.purchases.amazon.purchasing.ProxyAmazonBillingActivity"
+302-->[com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:11:13-97
+303            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+303-->[com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:12:13-96
+304            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+304-->[com.revenuecat.purchases:purchases:8.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/85c58e5b72c1a511458dd85a95abfbfa/transformed/purchases-8.0.0/AndroidManifest.xml:13:13-72
 305
-306        <receiver
-306-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:32:9-34:40
-307            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
-307-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:33:13-132
-308            android:exported="false" />
-308-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:34:13-37
-309    </application>
-310
-311</manifest>
+306        <meta-data
+306-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:19:9-21:37
+307            android:name="com.google.android.play.billingclient.version"
+307-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:20:13-73
+308            android:value="7.0.0" />
+308-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:21:13-34
+309
+310        <activity
+310-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:23:9-27:75
+311            android:name="com.android.billingclient.api.ProxyBillingActivity"
+311-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:24:13-78
+312            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+312-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:25:13-96
+313            android:exported="false"
+313-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:26:13-37
+314            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+314-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:27:13-72
+315        <activity
+315-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:28:9-32:75
+316            android:name="com.android.billingclient.api.ProxyBillingActivityV2"
+316-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:29:13-80
+317            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+317-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:30:13-96
+318            android:exported="false"
+318-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:31:13-37
+319            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+319-->[com.android.billingclient:billing:7.0.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/69033832d63d0e13380fa4577d9a60b4/transformed/billing-7.0.0/AndroidManifest.xml:32:13-72
+320        <activity
+320-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:23:9-27:75
+321            android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity"
+321-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:24:13-93
+322            android:excludeFromRecents="true"
+322-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:25:13-46
+323            android:exported="false"
+323-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:26:13-37
+324            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+324-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:27:13-72
+325        <!--
+326            Service handling Google Sign-In user revocation. For apps that do not integrate with
+327            Google Sign-In, this service will never be started.
+328        -->
+329        <service
+329-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:33:9-37:51
+330            android:name="com.google.android.gms.auth.api.signin.RevocationBoundService"
+330-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:34:13-89
+331            android:exported="true"
+331-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:35:13-36
+332            android:permission="com.google.android.gms.auth.api.signin.permission.REVOCATION_NOTIFICATION"
+332-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:36:13-107
+333            android:visibleToInstantApps="true" />
+333-->[com.google.android.gms:play-services-auth:21.1.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/71157660352821bbeb4d1bd04650a40c/transformed/play-services-auth-21.1.1/AndroidManifest.xml:37:13-48
+334
+335        <activity
+335-->[com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:9-173
+336            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+336-->[com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:19-85
+337            android:exported="false"
+337-->[com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:146-170
+338            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+338-->[com.google.android.gms:play-services-base:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/4050eff0b9ca67045a2cae2c24f1128c/transformed/play-services-base-18.5.0/AndroidManifest.xml:5:86-145
+339
+340        <uses-library
+340-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:23:9-25:40
+341            android:name="androidx.window.extensions"
+341-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:24:13-54
+342            android:required="false" />
+342-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:25:13-37
+343        <uses-library
+343-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:26:9-28:40
+344            android:name="androidx.window.sidecar"
+344-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:27:13-51
+345            android:required="false" />
+345-->[androidx.window:window:1.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1effc5fc3435077195c7d8aab2530194/transformed/window-1.5.0/AndroidManifest.xml:28:13-37
+346
+347        <provider
+347-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:24:9-32:20
+348            android:name="androidx.startup.InitializationProvider"
+348-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:25:13-67
+349            android:authorities="fr.retrospare.blazeplayer.androidx-startup"
+349-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:26:13-68
+350            android:exported="false" >
+350-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:27:13-37
+351            <meta-data
+351-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:29:13-31:52
+352                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+352-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:30:17-75
+353                android:value="androidx.startup" />
+353-->[androidx.emoji2:emoji2:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/7d4b76e94c8421925e1b5f84f04840fd/transformed/emoji2-1.4.0/AndroidManifest.xml:31:17-49
+354            <meta-data
+354-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:29:13-31:52
+355                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+355-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:30:17-78
+356                android:value="androidx.startup" />
+356-->[androidx.lifecycle:lifecycle-process:2.10.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1cbb9414d7187c6794ba66fd0e4104cd/transformed/lifecycle-process-2.10.0/AndroidManifest.xml:31:17-49
+357            <meta-data
+357-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
+358                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+358-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
+359                android:value="androidx.startup" />
+359-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
+360        </provider>
+361
+362        <meta-data
+362-->[com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:21:9-23:69
+363            android:name="com.google.android.gms.version"
+363-->[com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:22:13-58
+364            android:value="@integer/google_play_services_version" />
+364-->[com.google.android.gms:play-services-basement:18.5.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/1c20297f167e4e679c6379f6fd625762/transformed/play-services-basement-18.5.0/AndroidManifest.xml:23:13-66
+365
+366        <receiver
+366-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
+367            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+367-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
+368            android:directBootAware="false"
+368-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
+369            android:enabled="true"
+369-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
+370            android:exported="true"
+370-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
+371            android:permission="android.permission.DUMP" >
+371-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
+372            <intent-filter>
+372-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
+373                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+373-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
+373-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
+374            </intent-filter>
+375            <intent-filter>
+375-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
+376                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+376-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
+376-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
+377            </intent-filter>
+378            <intent-filter>
+378-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
+379                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+379-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
+379-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
+380            </intent-filter>
+381            <intent-filter>
+381-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
+382                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+382-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
+382-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/68bf6162e16b59def2bba4d01d4ca1d3/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92
+383            </intent-filter>
+384        </receiver>
+385
+386        <service
+386-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:28:9-34:19
+387            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+387-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:29:13-103
+388            android:exported="false" >
+388-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:30:13-37
+389            <meta-data
+389-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:31:13-33:39
+390                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+390-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:32:17-94
+391                android:value="cct" />
+391-->[com.google.android.datatransport:transport-backend-cct:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/1ab5c46d7bc77cc3b61795cdc830322e/transformed/transport-backend-cct-3.1.8/AndroidManifest.xml:33:17-36
+392        </service>
+393        <service
+393-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:26:9-30:19
+394            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+394-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:27:13-117
+395            android:exported="false"
+395-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:28:13-37
+396            android:permission="android.permission.BIND_JOB_SERVICE" >
+396-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:29:13-69
+397        </service>
+398
+399        <receiver
+399-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:32:9-34:40
+400            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+400-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:33:13-132
+401            android:exported="false" />
+401-->[com.google.android.datatransport:transport-runtime:3.1.8] /Users/pandawan/.gradle/caches/9.4.1/transforms/356cd0b433ae45bccf8b54f1d1b9702e/transformed/transport-runtime-3.1.8/AndroidManifest.xml:34:13-37
+402    </application>
+403
+404</manifest>

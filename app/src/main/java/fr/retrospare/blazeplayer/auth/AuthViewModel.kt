@@ -23,6 +23,5 @@ class AuthViewModel @Inject constructor() : ViewModel() {
     fun register(email: String, password: String) { _authState.value = AuthState.Error("Auth disabled") }
     fun logout() { _authState.value = AuthState.LoggedOut }
     fun resetPassword(email: String) { _authState.value = AuthState.Error("Auth disabled") }
-    fun loginWithGoogle(idToken: String) { _authState.value = AuthState.Error("Auth disabled") }
     fun sendPasswordReset(email: String) { _authState.value = AuthState.Error("Auth disabled") }
 }

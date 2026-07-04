@@ -265,7 +265,7 @@
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
                 android:maxLines="1"
-                android:text="Diffusion en cours"
+                android:text="@string/player_casting_in_progress"
                 android:textColor="#FFFFFF"
                 android:textSize="20sp" />
 
@@ -302,7 +302,7 @@
                 android:focusable="true"
                 android:fontFamily="sans-serif-medium"
                 android:gravity="center"
-                android:text="Arrêter la diffusion"
+                android:text="@string/player_stop_casting"
                 android:textAllCaps="false"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp" />
@@ -431,7 +431,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="5dp"
-                        android:text="Sous-titres"
+                        android:text="@string/dialog_title_subtitles"
                         android:textColor="#B3FFFFFF"
                         android:textSize="9sp" />
                 </LinearLayout>
@@ -457,7 +457,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="5dp"
-                        android:text="Audio"
+                        android:text="@string/category_audio"
                         android:textColor="#B3FFFFFF"
                         android:textSize="9sp" />
                 </LinearLayout>
@@ -540,7 +540,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="5dp"
-                        android:text="Vitesse"
+                        android:text="@string/player_speed_label_short"
                         android:textColor="#B3FFFFFF"
                         android:textSize="9sp" />
                 </LinearLayout>
@@ -566,7 +566,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="5dp"
-                        android:text="Ratio"
+                        android:text="@string/player_ratio_label"
                         android:textColor="#B3FFFFFF"
                         android:textSize="9sp" />
                 </LinearLayout>

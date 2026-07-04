@@ -97,11 +97,11 @@
             android:id="@+id/tvVideoCodec"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_badge_blue"
+            android:background="@drawable/bg_badge_gray"
             android:paddingHorizontal="5dp"
             android:paddingVertical="1dp"
             android:textSize="9sp"
-            android:textColor="@color/blue_accent"
+            android:textColor="@color/on_surface_variant"
             android:layout_marginEnd="3dp"
             android:text="H.264"
             android:visibility="visible" />

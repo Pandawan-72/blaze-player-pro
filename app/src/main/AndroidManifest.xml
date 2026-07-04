@@ -29,6 +29,9 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Visualiseur audio : analyse FFT de la session de lecture -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- Wake lock lecture -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -59,7 +62,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BlazePlayer"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:largeHeap="true">
+        <!-- largeHeap : marge de sécurité supplémentaire pour la lecture vidéo réseau (SMB) qui
+             combine tampon de lecture, miniatures et extraction de métadonnées en parallèle.
+             Ajouté suite à un OutOfMemoryError observé sur un tas cible de 256 Mo (le vrai fix
+             est la réduction des tailles de buffer SMB, cf. SmbClientPool/SmbMediaDataSource). -->
 
         <activity
             android:name=".MainActivity"
@@ -182,11 +190,6 @@ android:name=".player.BlazePlayerService"
         <receiver
             android:name="androidx.mediarouter.media.MediaTransferReceiver"
             android:exported="false" />
-        <provider
-        android:name="com.google.firebase.provider.FirebaseInitProvider"
-        android:authorities="${applicationId}.firebaseinitprovider"
-        android:exported="false"
-        tools:node="remove" />
 
     <activity
         android:name=".player.NetworkVideoBrowserActivity"

@@ -114,6 +114,7 @@ class PlaylistAdapter(
         private val queueCard: View = view.findViewById(R.id.queueCard)
         private val tvArtist: TextView? = view.findViewById(R.id.tvTrackArtist)
         private val tvCodec: TextView? = view.findViewById(R.id.tvPlaylistCodec)
+        private val tvFormatBadge: TextView? = view.findViewById(R.id.tvPlaylistFormatBadge)
         private val tvBitrate: TextView? = view.findViewById(R.id.tvPlaylistBitrate)
 
         @Volatile private var loadToken: String? = null
@@ -142,7 +143,7 @@ class PlaylistAdapter(
 
             val cached = AudioMetadataExtractor.getCached(itemView.context, path)
             if (cached != null) {
-                applyMeta(cached, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvBitrate, tvName, isCurrent)
+                applyMeta(cached, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvFormatBadge, tvBitrate, tvName, isCurrent)
             } else {
                 tvArtist?.text = metaArtist ?: itemView.context.getString(R.string.unknown_artist)
                 tvArtist?.visibility = View.VISIBLE
@@ -153,6 +154,7 @@ class PlaylistAdapter(
                 } else {
                     tvCodec?.visibility = View.GONE
                 }
+                tvFormatBadge?.visibility = View.GONE
                 tvBitrate?.visibility = View.GONE
 
                 if (path.isNotEmpty()) {
@@ -170,7 +172,7 @@ class PlaylistAdapter(
                         if (meta != null) {
                             android.os.Handler(android.os.Looper.getMainLooper()).post {
                                 if (loadToken == token) {
-                                    applyMeta(meta, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvBitrate, tvName, isCurrent)
+                                    applyMeta(meta, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvFormatBadge, tvBitrate, tvName, isCurrent)
                                 }
                             }
                         }
@@ -198,6 +200,7 @@ class PlaylistAdapter(
             fallbackExtension: String,
             tvArtist: TextView?,
             tvCodec: TextView?,
+            tvFormatBadge: TextView?,
             tvBitrate: TextView?,
             tvName: TextView,
             isCurrent: Boolean
@@ -212,6 +215,20 @@ class PlaylistAdapter(
                 tvCodec?.visibility = View.VISIBLE
             } else {
                 tvCodec?.visibility = View.GONE
+            }
+
+            // Badge lossless ou bitrate, juste à droite du badge conteneur (mp3, flac...).
+            val lossless = meta.isLossless || ext in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+            when {
+                lossless -> {
+                    tvFormatBadge?.text = itemView.context.getString(R.string.lossless_label)
+                    tvFormatBadge?.visibility = View.VISIBLE
+                }
+                meta.bitrate > 0L -> {
+                    tvFormatBadge?.text = "${meta.bitrate / 1000} kbps"
+                    tvFormatBadge?.visibility = View.VISIBLE
+                }
+                else -> tvFormatBadge?.visibility = View.GONE
             }
 
             applyTimeBadge(tvBitrate, meta.duration * 1000L, isCurrent)
