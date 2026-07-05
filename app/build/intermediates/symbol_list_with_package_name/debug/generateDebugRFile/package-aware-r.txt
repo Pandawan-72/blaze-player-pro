@@ -760,6 +760,7 @@ string blaze_party_join
 string blaze_party_joined
 string blaze_party_launch
 string blaze_party_manual_hint
+string blaze_party_network_error
 string blaze_party_nickname
 string blaze_party_nickname_hint
 string blaze_party_nickname_title

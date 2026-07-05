@@ -759,6 +759,7 @@ int string blaze_party_join 0x0
 int string blaze_party_joined 0x0
 int string blaze_party_launch 0x0
 int string blaze_party_manual_hint 0x0
+int string blaze_party_network_error 0x0
 int string blaze_party_nickname 0x0
 int string blaze_party_nickname_hint 0x0
 int string blaze_party_nickname_title 0x0

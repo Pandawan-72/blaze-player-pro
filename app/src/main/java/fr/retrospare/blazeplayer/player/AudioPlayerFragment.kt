@@ -96,6 +96,46 @@ class AudioPlayerFragment : Fragment() {
     private val playedBlazePartyPaths: MutableSet<String> = linkedSetOf()
     private var currentBlazePartyPath: String? = null
 
+    // ── Blaze Party réseau ──────────────────────────────────────────────────
+    // Le serveur HTTP hôte vit désormais dans BlazePlayerService (cf. COMMAND_PARTY_START_HOST/
+    // STOP_HOST) pour survivre à la fermeture de cet écran : ce Fragment ne fait plus que le
+    // piloter via des commandes de session, comme le reste de l'UI le fait déjà pour le player.
+    // Client HTTP côté invité, construit une fois la connexion (host/port/token) connue.
+    private var partyClient: PartyClient? = null
+    // Dernier état reçu du serveur de l'hôte, source de vérité de la file côté invité
+    // (la playlist Party locale de l'invité est vide : ses fichiers ne sont pas ceux de l'hôte).
+    private var guestPartyState: PartyState? = null
+    private var guestPartyPollingActive = false
+    private val guestPartyPollRunnable: Runnable = object : Runnable {
+        override fun run() {
+            if (!guestPartyPollingActive) return
+            partyClient?.fetchState { state ->
+                if (!guestPartyPollingActive) return@fetchState
+                if (state != null) {
+                    guestPartyState = state
+                    if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
+                }
+                if (guestPartyPollingActive) handler.postDelayed(this, 3000L)
+            }
+        }
+    }
+
+    // Côté hôte, le serveur tourne dans BlazePlayerService : ce poll purement local (aucun réseau,
+    // juste une relecture de BlazePartyVoteManager/PlaylistManager) sert uniquement à rafraîchir
+    // la feuille "Party" affichée à l'écran si un invité distant vote pendant que l'hôte regarde.
+    private var hostPartyRefreshActive = false
+    private val hostPartyRefreshRunnable: Runnable = object : Runnable {
+        override fun run() {
+            if (!hostPartyRefreshActive) return
+            val ctx = context
+            if (ctx != null && BlazePartyVoteManager.isHost(ctx) && ::partyPlaylistAdapter.isInitialized) {
+                refreshPartyPlaylistSheet()
+                reorderBlazePartyPlaybackIfActive()
+            }
+            if (hostPartyRefreshActive) handler.postDelayed(this, 3000L)
+        }
+    }
+
     private val requestAudioVisualizerPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -226,6 +266,7 @@ class AudioPlayerFragment : Fragment() {
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
         playlistAdapter.refresh()
         if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
+        maybeResumeGuestPartySync()
         setupSavedPlaylistDrawers()
         syncSelection()
         syncMetadata()
@@ -248,6 +289,8 @@ class AudioPlayerFragment : Fragment() {
     override fun onDestroyView() {
         requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         handler.removeCallbacksAndMessages(null)
+        stopGuestPartyPolling()
+        stopHostPartyRefresh()
         sleepTimerJob?.cancel()
         eqManager?.release()
         stopAudioVisualizer()
@@ -909,7 +952,7 @@ class AudioPlayerFragment : Fragment() {
             adapter = playlistAdapter
         }
         partyPlaylistAdapter = PartyPlaylistAdapter(
-            voteCountProvider = { path -> context?.let { BlazePartyVoteManager.voteCount(it, path) } ?: 0 },
+            voteCountProvider = { path -> voteCountFor(path) },
             onItemClick = { track -> showBlazePartyTrackVotes(track) }
         )
         binding.recyclerPartyPlaylist.apply {
@@ -1005,9 +1048,39 @@ class AudioPlayerFragment : Fragment() {
 
     private fun refreshPartyPlaylistSheet() {
         val ctx = context ?: return
-        partyPlaylistAdapter.submitList(sortedBlazePartyTracks(ctx))
+        val isHost = BlazePartyVoteManager.isHost(ctx)
+        val tracks = if (isHost) sortedBlazePartyTracks(ctx) else sortedGuestPartyTracks()
+        partyPlaylistAdapter.submitList(tracks)
+        // Boutons Lancer/Vider : uniquement pertinents côté hôte, puisque c'est son appareil qui
+        // joue réellement les fichiers. Côté invité, seul le vote a un sens.
+        _binding?.btnLaunchPartyPlaylist?.visibility = if (isHost) android.view.View.VISIBLE else android.view.View.GONE
+        _binding?.btnClearPartyPlaylist?.visibility = if (isHost) android.view.View.VISIBLE else android.view.View.GONE
         val partyBtn = binding.root.findViewById<android.widget.ImageButton>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylistParty)
-        partyBtn?.isSelected = fr.retrospare.blazeplayer.playlist.PlaylistManager.getBlazePartyPlaylist(ctx).isNotEmpty()
+        partyBtn?.isSelected = if (isHost) {
+            fr.retrospare.blazeplayer.playlist.PlaylistManager.getBlazePartyPlaylist(ctx).isNotEmpty()
+        } else {
+            tracks.isNotEmpty()
+        }
+    }
+
+    /** Convertit le dernier état reçu du serveur de l'hôte ([guestPartyState]) en la même
+     *  structure [PlaylistTrackRef] que celle utilisée localement côté hôte, triée par votes
+     *  décroissants, pour réutiliser tel quel [PartyPlaylistAdapter]. */
+    private fun sortedGuestPartyTracks(): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> =
+        guestPartyState?.tracks
+            ?.sortedByDescending { it.votes }
+            ?.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.path, it.name) }
+            ?: emptyList()
+
+    /** Nombre de votes pour un morceau, quelle que soit la source (locale côté hôte, ou dernier
+     *  état réseau reçu côté invité). */
+    private fun voteCountFor(path: String): Int {
+        val ctx = context ?: return 0
+        return if (BlazePartyVoteManager.isHost(ctx)) {
+            BlazePartyVoteManager.voteCount(ctx, path)
+        } else {
+            guestPartyState?.tracks?.firstOrNull { it.path == path }?.votes ?: 0
+        }
     }
 
     private fun openPartyPlaylistSheet() {
@@ -1055,6 +1128,10 @@ class AudioPlayerFragment : Fragment() {
 
     private fun launchBlazePartyQueue() {
         val ctx = context ?: return
+        if (!BlazePartyVoteManager.isHost(ctx)) {
+            android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_not_host_queue), android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
         val tracks = sortedBlazePartyTracks(ctx)
         if (tracks.isEmpty()) {
             android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_playlist_empty_message), android.widget.Toast.LENGTH_SHORT).show()
@@ -1179,7 +1256,14 @@ class AudioPlayerFragment : Fragment() {
 
     private fun showBlazePartyTrackVotes(track: fr.retrospare.blazeplayer.playlist.PlaylistTrackRef) {
         val ctx = requireContext()
-        val voters = BlazePartyVoteManager.votersFor(ctx, track.path)
+        val isHost = BlazePartyVoteManager.isHost(ctx)
+        val nickname = BlazePartyVoteManager.getNickname(ctx)
+        val voters = if (isHost) {
+            BlazePartyVoteManager.votersFor(ctx, track.path)
+        } else {
+            guestPartyState?.tracks?.firstOrNull { it.path == track.path }?.voters.orEmpty()
+        }
+        val hasVoted = voters.any { it.equals(nickname, ignoreCase = true) }
         val root = android.widget.LinearLayout(ctx).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(dp(22), dp(18), dp(22), dp(8))
@@ -1204,21 +1288,48 @@ class AudioPlayerFragment : Fragment() {
         val builder = com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
             .setView(root)
             .setPositiveButton(getString(fr.retrospare.blazeplayer.R.string.blaze_party_vote)) { _, _ ->
-                BlazePartyVoteManager.addVote(ctx, track.path)
-                refreshPartyPlaylistSheet()
-                reorderBlazePartyPlaybackIfActive()
-                android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_vote_saved), android.widget.Toast.LENGTH_SHORT).show()
+                castPartyVote(track.path, nickname, add = true)
             }
             .setNegativeButton(android.R.string.cancel, null)
-        if (BlazePartyVoteManager.hasVoted(ctx, track.path)) {
+        if (hasVoted) {
             builder.setNeutralButton(getString(fr.retrospare.blazeplayer.R.string.blaze_party_remove_vote)) { _, _ ->
-                BlazePartyVoteManager.removeVote(ctx, track.path)
-                refreshPartyPlaylistSheet()
-                reorderBlazePartyPlaybackIfActive()
-                android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_vote_removed), android.widget.Toast.LENGTH_SHORT).show()
+                castPartyVote(track.path, nickname, add = false)
             }
         }
         builder.show()
+    }
+
+    /** Envoie un vote : localement si l'appareil est l'hôte (source de vérité), sinon via
+     *  [PartyClient] vers le serveur de l'hôte. Dans les deux cas, l'UI locale ne se met à jour
+     *  qu'une fois l'opération confirmée, pour ne jamais afficher un état qui n'a pas réellement
+     *  été enregistré côté hôte. */
+    private fun castPartyVote(path: String, nickname: String, add: Boolean) {
+        val ctx = context ?: return
+        val savedMsg = if (add) fr.retrospare.blazeplayer.R.string.blaze_party_vote_saved else fr.retrospare.blazeplayer.R.string.blaze_party_vote_removed
+        if (BlazePartyVoteManager.isHost(ctx)) {
+            if (add) BlazePartyVoteManager.addVote(ctx, path, nickname) else BlazePartyVoteManager.removeVote(ctx, path, nickname)
+            refreshPartyPlaylistSheet()
+            reorderBlazePartyPlaybackIfActive()
+            android.widget.Toast.makeText(ctx, getString(savedMsg), android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val client = partyClient
+        if (client == null) {
+            android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_network_error), android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        client.sendVote(path, nickname, add) { success ->
+            if (!isAdded) return@sendVote
+            if (success) {
+                client.fetchState { state ->
+                    if (state != null) guestPartyState = state
+                    if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
+                }
+                android.widget.Toast.makeText(ctx, getString(savedMsg), android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_network_error), android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun openSavedAudioPlaylist(slot: Int) {
@@ -1630,6 +1741,11 @@ class AudioPlayerFragment : Fragment() {
         })
         root.addView(partyButton(getString(fr.retrospare.blazeplayer.R.string.blaze_party_disconnect), fr.retrospare.blazeplayer.R.drawable.ic_close) {
             dialog.dismiss()
+            stopGuestPartyPolling()
+            stopHostPartyRefresh()
+            sendStopPartyHostCommand()
+            partyClient = null
+            guestPartyState = null
             BlazePartyVoteManager.disconnect(requireContext())
             android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.blaze_party_disconnected), android.widget.Toast.LENGTH_SHORT).show()
         })
@@ -1642,8 +1758,11 @@ class AudioPlayerFragment : Fragment() {
         BlazePartyVoteManager.setHost(requireContext(), true)
         val ip = getLocalIpv4Address() ?: "0.0.0.0"
         val token = Random.nextInt(100000, 999999).toString()
-        val payload = "bp://$ip/$token"
+        val payload = PartyProtocol.buildPayload(ip, token)
         BlazePartyVoteManager.saveSessionPayload(requireContext(), payload)
+        BlazePartyVoteManager.saveHostToken(requireContext(), token)
+        sendStartPartyHostCommand(token)
+        startHostPartyRefresh()
         val dialog = Dialog(requireContext())
         val root = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
@@ -1726,12 +1845,80 @@ class AudioPlayerFragment : Fragment() {
     }
 
     private fun showBlazePartyJoined(payload: String) {
+        val connection = PartyProtocol.parse(payload)
+        if (connection == null) {
+            android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.blaze_party_scan_unavailable), android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
         BlazePartyVoteManager.setHost(requireContext(), false)
         BlazePartyVoteManager.saveSessionPayload(requireContext(), payload)
+        BlazePartyVoteManager.saveConnection(requireContext(), connection)
         android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.blaze_party_joined), android.widget.Toast.LENGTH_LONG).show()
         showBlazePartyNicknameDialog()
-        // Point d'extension V1 : le payload contient l'adresse de l'hote et le token de session.
-        // La couche file d'attente/votes pourra se connecter ici au serveur local de l'hote.
+        startGuestPartySync(connection)
+    }
+
+    // ── Blaze Party réseau : hôte ────────────────────────────────────────────
+    // Le serveur lui-même vit dans BlazePlayerService (COMMAND_PARTY_START_HOST/STOP_HOST) pour
+    // continuer de répondre aux invités même après que cet écran a été quitté — exactement comme
+    // la lecture audio elle-même survit à la fermeture de l'écran. Ce Fragment se contente de le
+    // piloter via le MediaController, au même titre que play/pause/seek.
+
+    private fun sendStartPartyHostCommand(token: String) {
+        val ctrl = controller ?: return
+        val args = android.os.Bundle().apply { putString(BlazePlayerService.EXTRA_PARTY_TOKEN, token) }
+        ctrl.sendCustomCommand(SessionCommand(BlazePlayerService.COMMAND_PARTY_START_HOST, android.os.Bundle.EMPTY), args)
+    }
+
+    private fun sendStopPartyHostCommand() {
+        val ctrl = controller ?: return
+        ctrl.sendCustomCommand(SessionCommand(BlazePlayerService.COMMAND_PARTY_STOP_HOST, android.os.Bundle.EMPTY), android.os.Bundle.EMPTY)
+    }
+
+    private fun startHostPartyRefresh() {
+        if (hostPartyRefreshActive) return
+        hostPartyRefreshActive = true
+        handler.removeCallbacks(hostPartyRefreshRunnable)
+        handler.post(hostPartyRefreshRunnable)
+    }
+
+    private fun stopHostPartyRefresh() {
+        hostPartyRefreshActive = false
+        handler.removeCallbacks(hostPartyRefreshRunnable)
+    }
+
+    // ── Blaze Party réseau : invité ──────────────────────────────────────────
+
+    private fun startGuestPartySync(connection: PartyConnection) {
+        partyClient = PartyClient(connection)
+        partyClient?.join(BlazePartyVoteManager.getNickname(requireContext())) { }
+        startGuestPartyPolling()
+    }
+
+    private fun startGuestPartyPolling() {
+        if (guestPartyPollingActive) return
+        guestPartyPollingActive = true
+        handler.removeCallbacks(guestPartyPollRunnable)
+        handler.post(guestPartyPollRunnable)
+    }
+
+    private fun stopGuestPartyPolling() {
+        guestPartyPollingActive = false
+        handler.removeCallbacks(guestPartyPollRunnable)
+    }
+
+    /** Reconnecte le client réseau si le fragment est recréé (rotation, retour d'un autre écran)
+     *  alors qu'une session invité était déjà active. */
+    private fun maybeResumeGuestPartySync() {
+        val ctx = context ?: return
+        if (BlazePartyVoteManager.isHost(ctx) || !BlazePartyVoteManager.isActive(ctx)) return
+        val connection = BlazePartyVoteManager.getConnection(ctx) ?: return
+        if (partyClient == null) {
+            val client = PartyClient(connection)
+            partyClient = client
+            client.join(BlazePartyVoteManager.getNickname(ctx)) { }
+        }
+        startGuestPartyPolling()
     }
 
     private fun showBlazePartyNicknameDialog() {
@@ -1763,7 +1950,18 @@ class AudioPlayerFragment : Fragment() {
 
     private fun restoreBlazePartyRuntimeIfNeeded(ctrl: MediaController) {
         val ctx = context ?: return
-        if (!BlazePartyVoteManager.isActive(ctx) || !BlazePartyVoteManager.isHost(ctx)) return
+        if (!BlazePartyVoteManager.isActive(ctx)) return
+
+        if (!BlazePartyVoteManager.isHost(ctx)) {
+            // Invité : pas de file locale à reconstruire (les fichiers sont ceux de l'hôte, pas
+            // les nôtres) — on se contente de reprendre la synchronisation réseau si besoin.
+            maybeResumeGuestPartySync()
+            return
+        }
+
+        // Hôte : le serveur est géré par BlazePlayerService, qui le redémarre lui-même si besoin
+        // (cf. son onCreate) — ce Fragment n'a qu'à reprendre le rafraîchissement local de l'écran.
+        startHostPartyRefresh()
 
         // Au démarrage, si l'hôte n'a aucun client Blaze Party connecté, l'écran
         // "file d'attente" doit revenir sur la file locale personnelle. Sinon une

@@ -159,6 +159,10 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
+    // Génération de QR code (invitations Blaze Party) : bibliothèque de référence, testée contre
+    // la quasi-totalité des scanners du marché — remplace l'ancien encodeur QR fait main.
+    implementation("com.google.zxing:core:3.5.3")
+
     // Material Design (Views) + AppCompat
     implementation(libs.material)
     implementation("com.google.android.material:material:1.12.0")

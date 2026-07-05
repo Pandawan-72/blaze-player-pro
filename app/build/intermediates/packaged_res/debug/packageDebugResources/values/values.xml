@@ -197,6 +197,7 @@
     <string name="blaze_party_joined">Session Blaze Party rejointe</string>
     <string name="blaze_party_launch">Lancer</string>
     <string name="blaze_party_manual_hint">Coller le lien ou saisir le code</string>
+    <string name="blaze_party_network_error">Connexion à l\'hôte impossible. Vérifiez que vous êtes sur le même Wi‑Fi.</string>
     <string name="blaze_party_nickname">Pseudo</string>
     <string name="blaze_party_nickname_hint">Votre pseudo</string>
     <string name="blaze_party_nickname_title">Choisir un pseudo Blaze Party</string>

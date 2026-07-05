@@ -374,10 +374,17 @@ class MainActivity : AppCompatActivity() {
         val isLongInvite = data.scheme == "blazeparty" && data.host == "join"
         val isCompactInvite = data.scheme == "bp"
         if (!isLongInvite && !isCompactInvite) return false
-        val host = if (isCompactInvite) data.host.orEmpty() else data.getQueryParameter("host").orEmpty()
-        val port = if (isCompactInvite) "57931" else data.getQueryParameter("port").orEmpty()
-        val token = if (isCompactInvite) data.pathSegments.firstOrNull().orEmpty() else data.getQueryParameter("token").orEmpty()
+        val connection = fr.retrospare.blazeplayer.player.PartyProtocol.parse(data.toString())
+        if (connection == null) {
+            android.util.Log.w("MainActivity", "Lien Blaze Party invalide/incomplet : $data")
+            android.widget.Toast.makeText(this, getString(fr.retrospare.blazeplayer.R.string.blaze_party_scan_unavailable), android.widget.Toast.LENGTH_LONG).show()
+            intent.data = null
+            intent.removeExtra("blazePartyInvite")
+            return true
+        }
         fr.retrospare.blazeplayer.player.BlazePartyVoteManager.setHost(this, false)
+        fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveConnection(this, connection)
+        fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveSessionPayload(this, data.toString())
         android.widget.Toast.makeText(
             this,
             getString(fr.retrospare.blazeplayer.R.string.blaze_party_joined),
@@ -389,8 +396,9 @@ class MainActivity : AppCompatActivity() {
         }, 120L)
         intent.data = null
         intent.removeExtra("blazePartyInvite")
-        // Point d'extension V1 : host/port/token sont disponibles ici pour connecter le client
-        // au serveur local de l'hôte et synchroniser la file d'attente collaborative.
+        // host/port/token sont maintenant persistés via BlazePartyVoteManager.saveConnection() ;
+        // AudioPlayerFragment s'y connecte réellement via PartyClient dès son affichage
+        // (cf. maybeResumeGuestPartySync()).
         return true
     }
 

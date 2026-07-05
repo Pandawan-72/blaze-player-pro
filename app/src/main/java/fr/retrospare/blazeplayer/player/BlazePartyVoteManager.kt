@@ -12,6 +12,8 @@ object BlazePartyVoteManager {
     private const val KEY_CONNECTED = "connected"
     private const val KEY_SESSION_PAYLOAD = "session_payload"
     private const val KEY_ACTIVE = "active"
+    private const val KEY_CONNECTION = "connection"
+    private const val KEY_HOST_TOKEN = "host_token"
 
     fun getNickname(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -44,6 +46,17 @@ object BlazePartyVoteManager {
     fun isConnected(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_CONNECTED, false)
 
+    /** Marque qu'un client distant réel est connecté, sans toucher au rôle host/guest — contrairement
+     *  à [setHost] qui réinitialise volontairement KEY_CONNECTED selon le rôle. À utiliser côté hôte
+     *  quand [PartyHostServer] reçoit effectivement un /join, seul moment où "connecté" est vrai. */
+    fun markGuestConnected(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_CONNECTED, true)
+            .putBoolean(KEY_ACTIVE, true)
+            .apply()
+    }
+
     fun isActive(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_ACTIVE, false)
 
@@ -63,10 +76,41 @@ object BlazePartyVoteManager {
     fun getSessionPayload(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_SESSION_PAYLOAD, null)
 
+    /** Coordonnées réseau (IP/port/jeton) de l'hôte à contacter, côté invité. Persistées à part
+     *  du payload brut du QR pour rester utilisables quel que soit le point d'entrée (scan QR
+     *  interne à l'app ou lien profond intercepté par MainActivity). */
+    fun saveConnection(context: Context, connection: PartyConnection) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_CONNECTION, connection.toJson().toString())
+            .apply()
+    }
+
+    fun getConnection(context: Context): PartyConnection? {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_CONNECTION, null)
+            ?: return null
+        return try { PartyConnection.fromJson(org.json.JSONObject(raw)) } catch (_: Exception) { null }
+    }
+
+    /** Jeton de session généré par l'hôte au moment de la création de la party, utilisé pour
+     *  (re)démarrer [PartyHostServer] avec le même jeton que celui déjà distribué via le QR. */
+    fun saveHostToken(context: Context, token: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_HOST_TOKEN, token)
+            .apply()
+    }
+
+    fun getHostToken(context: Context): String? =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_HOST_TOKEN, null)
+
     fun disconnect(context: Context) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putBoolean(KEY_CONNECTED, false)
+            .putBoolean(KEY_ACTIVE, false)
+            .remove(KEY_CONNECTION)
+            .remove(KEY_HOST_TOKEN)
             .apply()
     }
 

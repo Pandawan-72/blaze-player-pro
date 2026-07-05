@@ -54,6 +54,13 @@ class BlazePlayerService : MediaSessionService() {
         const val EXTRA_EXTERNAL_AUDIO_PATH = "path"
         const val EXTRA_EXTERNAL_AUDIO_NAME = "name"
 
+        /** Commandes de session pour piloter le serveur réseau Blaze Party hébergé par CE service
+         *  (et non par AudioPlayerFragment), afin qu'une session hôte survive à la fermeture de
+         *  l'écran audio tant que la lecture — donc ce service — reste active en arrière-plan. */
+        const val COMMAND_PARTY_START_HOST = "fr.retrospare.blazeplayer.PARTY_START_HOST"
+        const val COMMAND_PARTY_STOP_HOST = "fr.retrospare.blazeplayer.PARTY_STOP_HOST"
+        const val EXTRA_PARTY_TOKEN = "partyToken"
+
         // ID de notification et channel dédiés : Media3 utilise le même ID par défaut pour tous
         // les MediaSessionService de l'app si non personnalisé, ce qui faisait que la notification
         // vidéo écrasait purement et simplement la notification audio (même slot de notification).
@@ -67,6 +74,10 @@ class BlazePlayerService : MediaSessionService() {
     private var eqManager: EqualizerManager? = null
     private val eqApplyHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // Serveur HTTP local Blaze Party : vit ici (et non dans AudioPlayerFragment) précisément pour
+    // continuer à répondre aux invités même quand l'utilisateur quitte l'écran audio, tant que la
+    // lecture — donc ce service — tourne toujours en arrière-plan.
+    private var partyHostServer: PartyHostServer? = null
 
 
     override fun onCreate() {
@@ -181,6 +192,44 @@ class BlazePlayerService : MediaSessionService() {
             .setSessionActivity(openIntent)
             .setCallback(SessionCallback())
             .build()
+
+        // Si une party était hébergée avant que le service ne soit recréé (process tué puis
+        // relancé par Android, par exemple), on redémarre le serveur avec le même jeton que celui
+        // déjà distribué via le QR, pour que les invités connectés n'aient rien à rescanner.
+        if (BlazePartyVoteManager.isActive(applicationContext) && BlazePartyVoteManager.isHost(applicationContext)) {
+            BlazePartyVoteManager.getHostToken(applicationContext)?.let { startPartyHostServer(it) }
+        }
+    }
+
+    /** Démarre (ou redémarre) le serveur HTTP local Blaze Party. Vit dans ce service — et non dans
+     *  AudioPlayerFragment — précisément pour continuer à répondre aux invités quand l'utilisateur
+     *  quitte l'écran audio, tant que la lecture (donc ce service) tourne en arrière-plan. Le
+     *  stateProvider lit toujours les données persistées ([BlazePartyQueue]) : aucune duplication
+     *  d'état, juste un canal réseau en plus autour de la même source de vérité. */
+    private fun startPartyHostServer(token: String) {
+        stopPartyHostServer()
+        try {
+            partyHostServer = PartyHostServer(
+                token = token,
+                stateProvider = { BlazePartyQueue.buildState(applicationContext, sessionPlayer) },
+                onVoteReceived = { path, nickname, add ->
+                    if (add) {
+                        BlazePartyVoteManager.addVote(applicationContext, path, nickname)
+                    } else {
+                        BlazePartyVoteManager.removeVote(applicationContext, path, nickname)
+                    }
+                },
+                onGuestJoined = { BlazePartyVoteManager.markGuestConnected(applicationContext) }
+            ).apply { start() }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Impossible de démarrer PartyHostServer", e)
+            partyHostServer = null
+        }
+    }
+
+    private fun stopPartyHostServer() {
+        try { partyHostServer?.stop() } catch (_: Exception) {}
+        partyHostServer = null
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -328,6 +377,8 @@ class BlazePlayerService : MediaSessionService() {
                 .buildUpon()
                 .add(SessionCommand(COMMAND_GET_AUDIO_SESSION_ID, Bundle.EMPTY))
                 .add(SessionCommand(COMMAND_PLAY_EXTERNAL_AUDIO, Bundle.EMPTY))
+                .add(SessionCommand(COMMAND_PARTY_START_HOST, Bundle.EMPTY))
+                .add(SessionCommand(COMMAND_PARTY_STOP_HOST, Bundle.EMPTY))
                 .build()
             return MediaSession.ConnectionResult.accept(
                 sessionCommands,
@@ -358,6 +409,16 @@ class BlazePlayerService : MediaSessionService() {
                 replaceWithExternalAudio(path, name)
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
+            if (customCommand.customAction == COMMAND_PARTY_START_HOST) {
+                val token = args.getString(EXTRA_PARTY_TOKEN).orEmpty()
+                if (token.isBlank()) return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
+                startPartyHostServer(token)
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            if (customCommand.customAction == COMMAND_PARTY_STOP_HOST) {
+                stopPartyHostServer()
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_NOT_SUPPORTED))
         }
     }
@@ -384,6 +445,7 @@ class BlazePlayerService : MediaSessionService() {
     override fun onDestroy() {
         try { eqApplyHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { serviceScope.cancel() } catch (_: Exception) {}
+        stopPartyHostServer()
         val sessionToRelease = mediaSession
         val eqToRelease = eqManager
         val playerToRelease = player

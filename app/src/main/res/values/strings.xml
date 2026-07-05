@@ -603,6 +603,7 @@ Code : %2$s</string>
     <string name="gallery_folder_button">Dossier</string>
     <string name="blaze_party_default_host">Hôte</string>
     <string name="blaze_party_default_guest">Invité</string>
+    <string name="blaze_party_network_error">Connexion à l\'hôte impossible. Vérifiez que vous êtes sur le même Wi‑Fi.</string>
     <string name="app_name_gallery">Blaze Gallery</string>
     <string name="app_name_audio">Blaze Audio</string>
 </resources>
