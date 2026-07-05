@@ -77,11 +77,22 @@ class SettingsViewModel @Inject constructor(
         prefsCache?.get(key) ?: default
 
     private fun setInt(key: Preferences.Key<Int>, value: Int) = viewModelScope.launch {
-        dataStore.edit { it[key] = value }
+        dataStore.edit { prefs ->
+            prefs[key] = value
+            // Le MutablePreferences fourni par edit implémente Preferences : on garde le cache
+            // aligné avec la valeur qui vient d'être écrite, sans dépendre de toMutablePreferences
+            // qui n'est pas disponible dans toutes les versions de DataStore.
+            prefsCache = prefs
+        }
     }
 
     private fun setBool(key: Preferences.Key<Boolean>, value: Boolean) = viewModelScope.launch {
-        dataStore.edit { it[key] = value }
+        dataStore.edit { prefs ->
+            prefs[key] = value
+            // Après un changement de langue, l'activité est recréée rapidement. Ce cache évite
+            // que les getters synchrones relisent une ancienne valeur visuelle par défaut.
+            prefsCache = prefs
+        }
     }
 
     suspend fun getMiniPlayerEnabledAsync(): Boolean =

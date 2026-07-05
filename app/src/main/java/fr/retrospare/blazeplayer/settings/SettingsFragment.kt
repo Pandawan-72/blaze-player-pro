@@ -302,7 +302,19 @@ class SettingsFragment : Fragment() {
         view.findViewById<TextView>(R.id.tvTitle).text = title
         view.findViewById<TextView>(R.id.tvSubtitle).apply { text = subtitle; visibility = View.VISIBLE }
         val sw = view.findViewById<SwitchMaterial>(R.id.switchToggle)
+
+        // Les lignes de réglage sont incluses plusieurs fois et contiennent toutes un switch avec
+        // le même id (`switchToggle`). Lors d'un changement de langue, AppCompat recrée le fragment
+        // et Android restaure ensuite l'état des vues par id : avec ces ids dupliqués, un ancien
+        // état visuel pouvait écraser la valeur lue depuis DataStore. Résultat visible :
+        // "Activer le spectre visuel" revenait sur OFF après changement de langue alors que la
+        // préférence ne devait pas changer. Les switches des réglages sont déjà persistés dans
+        // DataStore, donc on désactive leur sauvegarde/restauration automatique de vue.
+        sw.isSaveEnabled = false
+        sw.isSaveFromParentEnabled = false
+
         sw.visibility = View.VISIBLE
+        sw.setOnCheckedChangeListener(null)
         sw.isChecked = value
         sw.setOnCheckedChangeListener { _, checked -> onChange(checked) }
         view.setOnClickListener { sw.isChecked = !sw.isChecked }
