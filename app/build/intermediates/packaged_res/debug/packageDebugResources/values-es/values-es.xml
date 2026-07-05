@@ -24,6 +24,10 @@
         <item quantity="one">%d foto</item>
         <item quantity="other">%d fotos</item>
     </plurals>
+    <plurals name="gallery_video_count">
+        <item quantity="one">%d vídeo</item>
+        <item quantity="other">%d vídeos</item>
+    </plurals>
     <plurals name="items_selected_count">
         <item quantity="one">%1$d seleccionado</item>
         <item quantity="other">%1$d seleccionados</item>
@@ -247,7 +251,7 @@ Token: %2$s</string>
     <string name="gallery_folder_create_error">No se puede crear la carpeta</string>
     <string name="gallery_folder_created">Carpeta creada</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
-    <string name="gallery_folders">Blaze Gallery — carpetas</string>
+    <string name="gallery_folders">Blaze Gallery</string>
     <string name="gallery_move_photo_title">Mover foto</string>
     <string name="gallery_move_to_folder">Mover a otra carpeta</string>
     <string name="gallery_moved_to_trash">Foto enviada a la papelera</string>
@@ -264,6 +268,8 @@ Token: %2$s</string>
     <string name="gallery_sort_size">Tamaño del archivo</string>
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_trash">Papelera</string>
+    <string name="gallery_type_photo">Fotos</string>
+    <string name="gallery_type_video">Vídeos</string>
     <string name="gallery_unknown_folder">Carpeta desconocida</string>
     <string name="hint_confirm_password">Confirmar contraseña</string>
     <string name="hint_email_address">Dirección de correo</string>
@@ -336,8 +342,8 @@ Token: %2$s</string>
     <string name="paywall_debug_unlocked">Modo debug: Pro y Pro+ están desbloqueados temporalmente.</string>
     <string name="paywall_free_desc">Reproducción de vídeos locales y cast de vídeos locales. Solo pestaña Local.</string>
     <string name="paywall_free_title">Blaze Player Gratis</string>
-    <string name="paywall_pro_desc">Desbloquea red SMB, Blaze Audio y el mini reproductor.</string>
-    <string name="paywall_pro_plus_desc">Desbloquea Blaze Gallery para galería e incluye todas las funciones Pro.</string>
+    <string name="paywall_pro_desc">Desbloquea la red SMB y la pestaña Blaze Gallery.</string>
+    <string name="paywall_pro_plus_desc">Desbloquea Blaze Audio y su modo \"Party\". También incluye todas las funciones Pro.</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_price">3,99 €</string>
@@ -487,7 +493,10 @@ Token: %2$s</string>
     <string name="unknown_model">modelo desconocido</string>
     <string name="unknown_size">Desconocido</string>
     <string name="unknown_title">Título desconocido</string>
-    <string name="upgrade_to_pro">⭐ Pasar a Blaze Pro</string>
+    <string name="upgrade_to_pro">⭐ Pasa a Blaze Player Pro o Pro+</string>
+    <string name="version_badge_free">Gratis</string>
+    <string name="version_badge_pro">Pro</string>
+    <string name="version_badge_pro_plus">Pro+</string>
     <string name="video_setting_brightness">Brillo</string>
     <string name="video_setting_color">Tono</string>
     <string name="video_setting_contrast">Contraste</string>

@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.first
  *
  * Règles produit :
  * - Gratuit : onglet Local + Cast vidéo locale.
- * - Pro : Réseau SMB + Blaze Audio / mini player.
- * - Pro+ : Blaze Tube, inclut automatiquement Pro.
+ * - Pro : onglet Réseau (SMB) + onglet Blaze Gallery.
+ * - Pro+ : onglet Blaze Audio / mini player, inclut automatiquement Pro.
  *
  * DEBUG_UNLOCK_ALL reste à true pour les builds de développement actuels afin de ne pas bloquer
  * les tests. Passer à false en production quand l'achat sera branché.

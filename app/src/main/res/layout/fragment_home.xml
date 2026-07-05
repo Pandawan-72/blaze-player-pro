@@ -2,6 +2,7 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background">
@@ -30,6 +31,26 @@
                     android:src="@drawable/logo"
                     android:scaleType="fitStart"
                     android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/tvVersionBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:layout_toEndOf="@id/ivLogo"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_badge_gray"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="@string/version_badge_free"
+                    android:textColor="@color/on_background"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-condensed"
+                    android:includeFontPadding="false"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    tools:text="Pro+" />
 
                 <ImageButton
                     android:id="@+id/btnSettings"
@@ -457,6 +478,28 @@
                         android:textColor="@color/on_surface_variant"
                         android:textSize="13sp"
                         android:fontFamily="sans-serif-condensed" />
+
+                    <ImageButton
+                        android:id="@+id/btnGalleryTypePhoto"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="4dp"
+                        android:padding="6dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_camera"
+                        android:tint="@color/green_accent"
+                        android:contentDescription="@string/gallery_type_photo" />
+
+                    <ImageButton
+                        android:id="@+id/btnGalleryTypeVideo"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginEnd="8dp"
+                        android:padding="6dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_video_camera"
+                        android:tint="@color/on_surface_variant"
+                        android:contentDescription="@string/gallery_type_video" />
 
                     <com.google.android.material.button.MaterialButton
                         android:includeFontPadding="false"

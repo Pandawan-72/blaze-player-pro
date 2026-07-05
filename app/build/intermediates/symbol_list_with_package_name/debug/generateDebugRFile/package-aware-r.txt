@@ -226,6 +226,7 @@ drawable ic_subtitles
 drawable ic_sun
 drawable ic_timer
 drawable ic_trash
+drawable ic_video_camera
 drawable ic_volume
 drawable ic_wifi
 drawable ic_youtube_tab
@@ -308,6 +309,8 @@ id btnFavoritesNetwork
 id btnFolderBack
 id btnFolderMore
 id btnForward
+id btnGalleryTypePhoto
+id btnGalleryTypeVideo
 id btnHeaderCast
 id btnHome
 id btnInfos
@@ -606,6 +609,7 @@ id tvTrackIndex
 id tvTrackLabel
 id tvTrackName
 id tvTypeBadge
+id tvVersionBadge
 id tvVideoCodec
 id tvVirtValue
 id tvVolumeZone
@@ -680,6 +684,7 @@ plurals devices_found
 plurals file_count
 plurals folder_count
 plurals gallery_photo_count
+plurals gallery_video_count
 plurals items_selected_count
 plurals playlist_item_count
 plurals playlist_items_added
@@ -897,6 +902,8 @@ string gallery_sort_name
 string gallery_sort_size
 string gallery_title
 string gallery_trash
+string gallery_type_photo
+string gallery_type_video
 string gallery_unknown_folder
 string hint_confirm_password
 string hint_email_address
@@ -1122,6 +1129,9 @@ string unknown_model
 string unknown_size
 string unknown_title
 string upgrade_to_pro
+string version_badge_free
+string version_badge_pro
+string version_badge_pro_plus
 string video_setting_brightness
 string video_setting_color
 string video_setting_contrast

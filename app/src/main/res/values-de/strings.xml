@@ -9,6 +9,11 @@
     <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
+    <!-- Version badge -->
+    <string name="version_badge_free">Kostenlos</string>
+    <string name="version_badge_pro">Pro</string>
+    <string name="version_badge_pro_plus">Pro+</string>
+
     <string name="section_local_history">Lokaler Verlauf</string>
     <string name="section_network_history">Netzwerkverlauf</string>
     <string name="local_files">Lokale Dateien</string>
@@ -82,7 +87,7 @@
     <string name="forgot_password_description">Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen.</string>
     <string name="send_link">Link senden</string>
     <string name="email_sent">E-Mail gesendet! Überprüfe dein Postfach.</string>
-    <string name="upgrade_to_pro">⭐ Zu Blaze Pro wechseln</string>
+    <string name="upgrade_to_pro">⭐ Zu Blaze Player Pro oder Pro+ wechseln</string>
     <string name="free_trial_15_days">15 Tage kostenlos testen</string>
     <string name="enjoy_free_trial">Genieße 15 Tage kostenlose Testphase</string>
     <string name="buy_pro_lifetime">Pro kaufen — 3,99 € einmalig</string>
@@ -410,10 +415,10 @@
     <string name="paywall_free_desc">Lokale Videowiedergabe und lokales Video-Casting. Nur der lokale Tab.</string>
     <string name="paywall_pro_title">Blaze Player Pro</string>
     <string name="paywall_pro_price">3,99 €</string>
-    <string name="paywall_pro_desc">Schaltet SMB-Netzwerk, Blaze Audio und den Mini-Player frei.</string>
+    <string name="paywall_pro_desc">Schaltet das SMB-Netzwerk und den Blaze Gallery-Tab frei.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Schaltet Blaze Gallery für Gallery frei und enthält alle Pro-Funktionen.</string>
+    <string name="paywall_pro_plus_desc">Schaltet Blaze Audio und dessen \"Party\"-Modus frei. Enthält außerdem alle Pro-Funktionen.</string>
     <string name="paywall_buy_pro">Pro freischalten — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Pro+ freischalten — 5,99 €</string>
     <string name="paywall_debug_unlocked">Debug-Modus: Pro und Pro+ sind vorübergehend freigeschaltet.</string>
@@ -454,7 +459,9 @@
 
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery — Ordner</string>
+    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_type_photo">Fotos</string>
+    <string name="gallery_type_video">Videos</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Sortieren</string>
     <string name="gallery_sort_folder">Ordnername</string>
@@ -486,6 +493,10 @@
     <plurals name="gallery_photo_count">
         <item quantity="one">%d Foto</item>
         <item quantity="other">%d Fotos</item>
+    </plurals>
+    <plurals name="gallery_video_count">
+        <item quantity="one">%d Video</item>
+        <item quantity="other">%d Videos</item>
     </plurals>
     <string name="settings_audio_spectrum">Visuelles Spektrum aktivieren</string>
     <string name="settings_audio_spectrum_desc">Den animierten Audio-Visualizer in Blaze Audio anzeigen.</string>

@@ -24,6 +24,10 @@
         <item quantity="one">%d foto</item>
         <item quantity="other">%d foto’s</item>
     </plurals>
+    <plurals name="gallery_video_count">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d video\'s</item>
+    </plurals>
     <plurals name="items_selected_count">
         <item quantity="one">%1$d geselecteerd</item>
         <item quantity="other">%1$d geselecteerd</item>
@@ -247,7 +251,7 @@ Token: %2$s</string>
     <string name="gallery_folder_create_error">Kan map niet maken</string>
     <string name="gallery_folder_created">Map gemaakt</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
-    <string name="gallery_folders">Blaze Gallery — mappen</string>
+    <string name="gallery_folders">Blaze Gallery</string>
     <string name="gallery_move_photo_title">Foto verplaatsen</string>
     <string name="gallery_move_to_folder">Naar andere map verplaatsen</string>
     <string name="gallery_moved_to_trash">Foto naar prullenbak verplaatst</string>
@@ -264,6 +268,8 @@ Token: %2$s</string>
     <string name="gallery_sort_size">Bestandsgrootte</string>
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_trash">Prullenbak</string>
+    <string name="gallery_type_photo">Foto\'s</string>
+    <string name="gallery_type_video">Video\'s</string>
     <string name="gallery_unknown_folder">Onbekende map</string>
     <string name="hint_confirm_password">Wachtwoord bevestigen</string>
     <string name="hint_email_address">E-mailadres</string>
@@ -336,8 +342,8 @@ Token: %2$s</string>
     <string name="paywall_debug_unlocked">Debugmodus: Pro en Pro+ zijn tijdelijk ontgrendeld.</string>
     <string name="paywall_free_desc">Lokale video afspelen en lokale video casten. Alleen het lokale tabblad.</string>
     <string name="paywall_free_title">Blaze Player Gratis</string>
-    <string name="paywall_pro_desc">Ontgrendelt SMB-netwerk, Blaze Audio en de mini-player.</string>
-    <string name="paywall_pro_plus_desc">Ontgrendelt Blaze Gallery voor galerij en bevat alle Pro-functies.</string>
+    <string name="paywall_pro_desc">Ontgrendelt het SMB-netwerk en het tabblad Blaze Gallery.</string>
+    <string name="paywall_pro_plus_desc">Ontgrendelt Blaze Audio en de \"Party\"-modus. Bevat ook alle Pro-functies.</string>
     <string name="paywall_pro_plus_price">€ 5,99</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_price">€ 3,99</string>
@@ -487,7 +493,10 @@ Token: %2$s</string>
     <string name="unknown_model">onbekend model</string>
     <string name="unknown_size">Onbekend</string>
     <string name="unknown_title">Onbekende titel</string>
-    <string name="upgrade_to_pro">⭐ Overstappen naar Blaze Pro</string>
+    <string name="upgrade_to_pro">⭐ Overstappen naar Blaze Player Pro of Pro+</string>
+    <string name="version_badge_free">Gratis</string>
+    <string name="version_badge_pro">Pro</string>
+    <string name="version_badge_pro_plus">Pro+</string>
     <string name="video_setting_brightness">Helderheid</string>
     <string name="video_setting_color">Tint</string>
     <string name="video_setting_contrast">Contrast</string>

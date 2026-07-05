@@ -30,6 +30,10 @@
         <item quantity="one">%d фото</item>
         <item quantity="other">%d фото</item>
     </plurals>
+    <plurals name="gallery_video_count">
+        <item quantity="one">%d видео</item>
+        <item quantity="other">%d видео</item>
+    </plurals>
     <plurals name="items_selected_count">
         <item quantity="one">%1$d выбрано</item>
         <item quantity="few">%1$d выбрано</item>
@@ -269,7 +273,7 @@
     <string name="gallery_folder_create_error">Не удалось создать папку</string>
     <string name="gallery_folder_created">Папка создана</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
-    <string name="gallery_folders">Blaze Gallery — папки</string>
+    <string name="gallery_folders">Blaze Gallery</string>
     <string name="gallery_move_photo_title">Переместить фото</string>
     <string name="gallery_move_to_folder">Переместить в другую папку</string>
     <string name="gallery_moved_to_trash">Фото перемещено в корзину</string>
@@ -286,6 +290,8 @@
     <string name="gallery_sort_size">Размер файла</string>
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_trash">Корзина</string>
+    <string name="gallery_type_photo">Фото</string>
+    <string name="gallery_type_video">Видео</string>
     <string name="gallery_unknown_folder">Неизвестная папка</string>
     <string name="hint_confirm_password">Подтвердите пароль</string>
     <string name="hint_email_address">Адрес электронной почты</string>
@@ -358,8 +364,8 @@
     <string name="paywall_debug_unlocked">Debug-режим: Pro и Pro+ временно разблокированы.</string>
     <string name="paywall_free_desc">Локальное видео и трансляция локального видео. Только вкладка Local.</string>
     <string name="paywall_free_title">Blaze Player Free</string>
-    <string name="paywall_pro_desc">Открывает SMB-сеть, Blaze Audio и мини-плеер.</string>
-    <string name="paywall_pro_plus_desc">Открывает Blaze Gallery для галереи и включает все функции Pro.</string>
+    <string name="paywall_pro_desc">Открывает сеть SMB и вкладку Blaze Gallery.</string>
+    <string name="paywall_pro_plus_desc">Открывает Blaze Audio и режим \"Party\". А также включает все функции Pro.</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_price">3,99 €</string>
@@ -509,7 +515,10 @@
     <string name="unknown_model">неизвестная модель</string>
     <string name="unknown_size">Неизвестно</string>
     <string name="unknown_title">Неизвестное название</string>
-    <string name="upgrade_to_pro">⭐ Перейти на Blaze Pro</string>
+    <string name="upgrade_to_pro">⭐ Перейти на Blaze Player Pro или Pro+</string>
+    <string name="version_badge_free">Free</string>
+    <string name="version_badge_pro">Pro</string>
+    <string name="version_badge_pro_plus">Pro+</string>
     <string name="video_setting_brightness">Яркость</string>
     <string name="video_setting_color">Оттенок</string>
     <string name="video_setting_contrast">Контраст</string>

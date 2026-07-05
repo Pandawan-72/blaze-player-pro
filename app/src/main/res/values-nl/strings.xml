@@ -9,6 +9,11 @@
     <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
+    <!-- Version badge -->
+    <string name="version_badge_free">Gratis</string>
+    <string name="version_badge_pro">Pro</string>
+    <string name="version_badge_pro_plus">Pro+</string>
+
     <string name="section_local_history">Lokale geschiedenis</string>
     <string name="section_network_history">Netwerkgeschiedenis</string>
     <string name="local_files">Lokale bestanden</string>
@@ -82,7 +87,7 @@
     <string name="forgot_password_description">Voer je e-mailadres in en we sturen je een resetlink.</string>
     <string name="send_link">Link versturen</string>
     <string name="email_sent">E-mail verzonden! Controleer je inbox.</string>
-    <string name="upgrade_to_pro">⭐ Overstappen naar Blaze Pro</string>
+    <string name="upgrade_to_pro">⭐ Overstappen naar Blaze Player Pro of Pro+</string>
     <string name="free_trial_15_days">15 dagen gratis proberen</string>
     <string name="enjoy_free_trial">Profiteer van 15 dagen gratis proefperiode</string>
     <string name="buy_pro_lifetime">Pro kopen — € 3,99 levenslang</string>
@@ -410,10 +415,10 @@
     <string name="paywall_free_desc">Lokale video afspelen en lokale video casten. Alleen het lokale tabblad.</string>
     <string name="paywall_pro_title">Blaze Player Pro</string>
     <string name="paywall_pro_price">€ 3,99</string>
-    <string name="paywall_pro_desc">Ontgrendelt SMB-netwerk, Blaze Audio en de mini-player.</string>
+    <string name="paywall_pro_desc">Ontgrendelt het SMB-netwerk en het tabblad Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">€ 5,99</string>
-    <string name="paywall_pro_plus_desc">Ontgrendelt Blaze Gallery voor galerij en bevat alle Pro-functies.</string>
+    <string name="paywall_pro_plus_desc">Ontgrendelt Blaze Audio en de \"Party\"-modus. Bevat ook alle Pro-functies.</string>
     <string name="paywall_buy_pro">Pro ontgrendelen — € 3,99</string>
     <string name="paywall_buy_pro_plus">Pro+ ontgrendelen — € 5,99</string>
     <string name="paywall_debug_unlocked">Debugmodus: Pro en Pro+ zijn tijdelijk ontgrendeld.</string>
@@ -454,7 +459,9 @@
 
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery — mappen</string>
+    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_type_photo">Foto\'s</string>
+    <string name="gallery_type_video">Video\'s</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Sorteren</string>
     <string name="gallery_sort_folder">Mapnaam</string>
@@ -486,6 +493,10 @@
     <plurals name="gallery_photo_count">
         <item quantity="one">%d foto</item>
         <item quantity="other">%d foto’s</item>
+    </plurals>
+    <plurals name="gallery_video_count">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d video\'s</item>
     </plurals>
     <string name="settings_audio_spectrum">Visueel spectrum inschakelen</string>
     <string name="settings_audio_spectrum_desc">Toon de geanimeerde audiovisualizer in Blaze Audio.</string>

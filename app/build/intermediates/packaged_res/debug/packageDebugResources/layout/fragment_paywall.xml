@@ -198,6 +198,7 @@
                 android:layout_height="56dp"
                 android:text="@string/paywall_buy_pro"
                 android:textSize="15sp"
+                android:textStyle="bold"
                 android:textColor="@color/background_auth"
                 app:backgroundTint="@color/green_accent"
                 app:cornerRadius="13dp" />
@@ -209,8 +210,11 @@
                 android:layout_marginTop="10dp"
                 android:text="@string/paywall_buy_pro_plus"
                 android:textSize="15sp"
+                android:textStyle="bold"
                 android:textColor="@color/on_background"
                 app:backgroundTint="@color/surface"
+                app:strokeColor="@color/yellow_accent"
+                app:strokeWidth="1.5dp"
                 app:cornerRadius="13dp" />
 
             <com.google.android.material.button.MaterialButton

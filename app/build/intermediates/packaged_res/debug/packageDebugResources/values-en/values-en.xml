@@ -24,6 +24,10 @@
         <item quantity="one">%d photo</item>
         <item quantity="other">%d photos</item>
     </plurals>
+    <plurals name="gallery_video_count">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d videos</item>
+    </plurals>
     <plurals name="items_selected_count">
         <item quantity="one">%1$d selected</item>
         <item quantity="other">%1$d selected</item>
@@ -247,7 +251,7 @@ Token: %2$s</string>
     <string name="gallery_folder_create_error">Unable to create folder</string>
     <string name="gallery_folder_created">Folder created</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
-    <string name="gallery_folders">Blaze Gallery — folders</string>
+    <string name="gallery_folders">Blaze Gallery</string>
     <string name="gallery_move_photo_title">Move photo</string>
     <string name="gallery_move_to_folder">Move to another folder</string>
     <string name="gallery_moved_to_trash">Photo moved to trash</string>
@@ -264,6 +268,8 @@ Token: %2$s</string>
     <string name="gallery_sort_size">File size</string>
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_trash">Trash</string>
+    <string name="gallery_type_photo">Photos</string>
+    <string name="gallery_type_video">Videos</string>
     <string name="gallery_unknown_folder">Unknown folder</string>
     <string name="hint_confirm_password">Confirm password</string>
     <string name="hint_email_address">Email address</string>
@@ -336,8 +342,8 @@ Token: %2$s</string>
     <string name="paywall_debug_unlocked">Debug mode: Pro and Pro+ are temporarily unlocked.</string>
     <string name="paywall_free_desc">Local video playback and local video casting. Local tab only.</string>
     <string name="paywall_free_title">Blaze Player Free</string>
-    <string name="paywall_pro_desc">Unlocks SMB network playback, Blaze Audio and the mini player.</string>
-    <string name="paywall_pro_plus_desc">Unlocks Blaze Gallery for gallery and includes all Pro features.</string>
+    <string name="paywall_pro_desc">Unlocks SMB network playback and the Blaze Gallery tab.</string>
+    <string name="paywall_pro_plus_desc">Unlocks Blaze Audio and its \"Party\" mode. Also includes all Pro features.</string>
     <string name="paywall_pro_plus_price">€5.99</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_price">€3.99</string>
@@ -487,7 +493,10 @@ Token: %2$s</string>
     <string name="unknown_model">unknown model</string>
     <string name="unknown_size">Unknown</string>
     <string name="unknown_title">Unknown title</string>
-    <string name="upgrade_to_pro">⭐ Upgrade to Blaze Pro</string>
+    <string name="upgrade_to_pro">⭐ Upgrade to Blaze Player Pro or Pro+</string>
+    <string name="version_badge_free">Free</string>
+    <string name="version_badge_pro">Pro</string>
+    <string name="version_badge_pro_plus">Pro+</string>
     <string name="video_setting_brightness">Brightness</string>
     <string name="video_setting_color">Hue</string>
     <string name="video_setting_contrast">Contrast</string>

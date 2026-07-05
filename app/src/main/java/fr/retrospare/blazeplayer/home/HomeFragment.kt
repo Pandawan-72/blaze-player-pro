@@ -57,8 +57,10 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
 
     private enum class GallerySort { FOLDER_NAME, DATE_DESC, DATE_ASC, PHOTO_NAME, FILE_SIZE }
+    private enum class GalleryMediaType { PHOTO, VIDEO }
 
     private var gallerySort: GallerySort = GallerySort.DATE_DESC
+    private var currentGalleryMediaType: GalleryMediaType = GalleryMediaType.PHOTO
     private var currentGalleryBucketId: String? = null
     private var currentGalleryBucketName: String? = null
     private var galleryTrashMode: Boolean = false
@@ -157,6 +159,7 @@ class HomeFragment : Fragment() {
         setupButtons()
         setupYoutubeTab()
         observeViewModel()
+        updateVersionBadge()
         // Force la réapparition du mini player si nécessaire : recréer cette vue (retour de
         // Réglages, d'une vidéo locale...) ne déclenche pas onResume() de l'Activity, donc rien
         // d'autre ne le refaisait apparaître automatiquement dans ces cas-là.
@@ -194,6 +197,7 @@ class HomeFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        updateVersionBadge()
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
         // Retour systématique sur l'historique par défaut au retour du lecteur YouTube (ou de
@@ -320,10 +324,40 @@ class HomeFragment : Fragment() {
 
 
     private suspend fun canOpenTab(index: Int): Boolean {
+        // 1 = Local (gratuit), 2 = Réseau (Pro), 3 = Blaze Gallery (Pro), 4 = Blaze Audio (Pro+).
         return when (index) {
-            2, 4 -> fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
-            3 -> fr.retrospare.blazeplayer.paywall.FeatureAccess.isProPlus(userRepository)
+            2, 3 -> fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
+            4 -> fr.retrospare.blazeplayer.paywall.FeatureAccess.isProPlus(userRepository)
             else -> true
+        }
+    }
+
+    /** Affiche à droite du logo la mention Free / Pro / Pro+ correspondant à la version
+     *  actuellement débloquée (en debug, DEBUG_UNLOCK_ALL fait toujours remonter Pro+). */
+    private fun updateVersionBadge() {
+        if (_binding == null) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val proPlus = fr.retrospare.blazeplayer.paywall.FeatureAccess.isProPlus(userRepository)
+            val pro = proPlus || fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
+            if (_binding == null) return@launch
+            when {
+                proPlus -> {
+                    binding.tvVersionBadge.text = getString(R.string.version_badge_pro_plus)
+                    binding.tvVersionBadge.setBackgroundResource(R.drawable.bg_pro_badge)
+                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.background))
+                }
+                pro -> {
+                    binding.tvVersionBadge.text = getString(R.string.version_badge_pro)
+                    binding.tvVersionBadge.setBackgroundResource(R.drawable.bg_pro_badge)
+                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.background))
+                }
+                else -> {
+                    binding.tvVersionBadge.text = getString(R.string.version_badge_free)
+                    binding.tvVersionBadge.setBackgroundResource(R.drawable.bg_badge_gray)
+                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_background))
+                }
+            }
+            binding.tvVersionBadge.visibility = View.VISIBLE
         }
     }
 
@@ -350,6 +384,38 @@ class HomeFragment : Fragment() {
         binding.btnFavoritesCloud.text = getString(R.string.action_back)
         binding.btnFavoritesCloud.setOnClickListener { showGalleryFolders() }
         binding.btnFavoritesCloud.visibility = View.GONE
+        setupGalleryTypeToggle()
+    }
+
+    /** Câble une seule fois les 2 icônes de bascule Photo/Vidéo de l'accueil Blaze Gallery et
+     *  applique leur couleur initiale (vert = actif, gris = inactif). */
+    private fun setupGalleryTypeToggle() {
+        binding.btnGalleryTypePhoto.setOnClickListener { switchGalleryMediaType(GalleryMediaType.PHOTO) }
+        binding.btnGalleryTypeVideo.setOnClickListener { switchGalleryMediaType(GalleryMediaType.VIDEO) }
+        refreshGalleryTypeToggleColors()
+    }
+
+    private fun switchGalleryMediaType(type: GalleryMediaType) {
+        if (currentGalleryMediaType == type || galleryCustomThumbnailMode) return
+        currentGalleryMediaType = type
+        refreshGalleryTypeToggleColors()
+        showGalleryFolders()
+    }
+
+    private fun refreshGalleryTypeToggleColors() {
+        val activeColor = ContextCompat.getColor(requireContext(), R.color.green_accent)
+        val inactiveColor = ContextCompat.getColor(requireContext(), R.color.on_surface_variant)
+        binding.btnGalleryTypePhoto.setColorFilter(if (currentGalleryMediaType == GalleryMediaType.PHOTO) activeColor else inactiveColor)
+        binding.btnGalleryTypeVideo.setColorFilter(if (currentGalleryMediaType == GalleryMediaType.VIDEO) activeColor else inactiveColor)
+    }
+
+    /** Le sélecteur Photo/Vidéo n'est visible qu'à l'accueil de Blaze Gallery (liste des
+     *  dossiers) : il disparaît dès qu'on entre dans un dossier, la corbeille, ou un mode de
+     *  sélection multiple, exactement comme le reste de la barre d'action de cet écran. */
+    private fun updateGalleryTypeToggle(visible: Boolean) {
+        val visibility = if (visible) View.VISIBLE else View.GONE
+        binding.btnGalleryTypePhoto.visibility = visibility
+        binding.btnGalleryTypeVideo.visibility = visibility
     }
 
     private fun handleBlazeGalleryBack(): Boolean {
@@ -375,9 +441,29 @@ class HomeFragment : Fragment() {
         }
     }
 
+    /** URI MediaStore correspondant au type de média actuellement affiché dans Blaze Gallery. */
+    private val galleryContentUri: android.net.Uri
+        get() = if (currentGalleryMediaType == GalleryMediaType.VIDEO)
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        else
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+
+    /** Dossier public de base (Pictures ou Movies) selon le type de média affiché. */
+    private val galleryBaseDirectory: String
+        get() = if (currentGalleryMediaType == GalleryMediaType.VIDEO) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES
+
+    private val galleryDefaultMimeType: String
+        get() = if (currentGalleryMediaType == GalleryMediaType.VIDEO) "video/*" else "image/*"
+
+    /** Clé SharedPreferences des dossiers vides créés manuellement : séparée par type de média
+     *  pour qu'un dossier photo créé n'apparaisse pas comme dossier vidéo, et inversement. */
+    private fun createdGalleryFoldersPrefKey(): String =
+        if (currentGalleryMediaType == GalleryMediaType.VIDEO) "created_folders_video" else "created_folders_photo"
+
     private fun hasGalleryPermission(): Boolean {
         return if (android.os.Build.VERSION.SDK_INT >= 33) {
-            ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_MEDIA_VIDEO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         } else {
             ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
         }
@@ -386,7 +472,7 @@ class HomeFragment : Fragment() {
     private fun requestGalleryPermissionIfNeeded(): Boolean {
         if (hasGalleryPermission()) return true
         val permissions = if (android.os.Build.VERSION.SDK_INT >= 33) {
-            arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES)
+            arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO)
         } else {
             arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
         }
@@ -468,6 +554,9 @@ class HomeFragment : Fragment() {
         } else {
             getString(R.string.gallery_folders)
         }
+        // Le sélecteur Photo/Vidéo n'a de sens qu'à l'accueil de la galerie ; en mode sélection
+        // de miniature personnalisée, on reste forcé sur Photo (voir startCustomThumbnailSelection).
+        updateGalleryTypeToggle(visible = !galleryCustomThumbnailMode)
         binding.listCloud.visibility = View.VISIBLE
         binding.listCloud.apply {
             setHasFixedSize(true)
@@ -495,6 +584,7 @@ class HomeFragment : Fragment() {
         currentGalleryBucketName = bucketName
         galleryTrashMode = false
         clearGallerySelection()
+        updateGalleryTypeToggle(visible = false)
         binding.btnFavoritesCloud.visibility = View.VISIBLE
         binding.btnFavoritesCloud.text = getString(R.string.action_back)
         binding.btnFavoritesCloud.setIconResource(R.drawable.ic_arrow_back)
@@ -540,6 +630,7 @@ class HomeFragment : Fragment() {
 
     private fun loadGalleryFoldersFromMediaStore(): List<MediaItem> {
         val resolver = requireContext().contentResolver
+        val contentUri = galleryContentUri
         val projection = arrayOf(
             MediaStore.Images.Media.BUCKET_ID,
             MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
@@ -556,9 +647,9 @@ class HomeFragment : Fragment() {
             }
         } else null
         val cursorResult = if (queryArgs != null) {
-            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, queryArgs, null)
+            resolver.query(contentUri, projection, queryArgs, null)
         } else {
-            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null, null, "${MediaStore.Images.Media.DATE_MODIFIED} DESC")
+            resolver.query(contentUri, projection, null, null, "${MediaStore.Images.Media.DATE_MODIFIED} DESC")
         }
         cursorResult?.use { cursor ->
             val bucketIdCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_ID)
@@ -570,9 +661,9 @@ class HomeFragment : Fragment() {
                 val bucketName = cursor.getString(bucketNameCol)?.takeIf { it.isNotBlank() } ?: getString(R.string.gallery_unknown_folder)
                 val date = cursor.getLong(dateCol)
                 val imageId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
-                val imageUri = android.content.ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, imageId).toString()
+                val imageUri = android.content.ContentUris.withAppendedId(contentUri, imageId).toString()
                 val relativePath = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    cursor.getString(folderPathCol)?.takeIf { it.isNotBlank() } ?: "${Environment.DIRECTORY_PICTURES}/$bucketName/"
+                    cursor.getString(folderPathCol)?.takeIf { it.isNotBlank() } ?: "${galleryBaseDirectory}/$bucketName/"
                 } else {
                     File(cursor.getString(folderPathCol).orEmpty()).parentFile?.absolutePath.orEmpty()
                 }
@@ -611,6 +702,7 @@ class HomeFragment : Fragment() {
 
     private fun loadGalleryPhotosFromMediaStore(bucketId: String): List<MediaItem> {
         val resolver = requireContext().contentResolver
+        val contentUri = galleryContentUri
         val relativePathFilter = bucketId.removePrefix("relative:").takeIf { bucketId.startsWith("relative:") }
         val projection = arrayOf(
             MediaStore.Images.Media._ID,
@@ -630,10 +722,10 @@ class HomeFragment : Fragment() {
                 putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.Images.Media.DATE_MODIFIED))
                 putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
             }
-            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, args, null)
+            resolver.query(contentUri, projection, args, null)
         } else {
             resolver.query(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                contentUri,
                 projection,
                 if (relativePathFilter != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) "${MediaStore.Images.Media.RELATIVE_PATH} = ?" else "${MediaStore.Images.Media.BUCKET_ID} = ?",
                 arrayOf(relativePathFilter ?: bucketId),
@@ -649,9 +741,9 @@ class HomeFragment : Fragment() {
             val photoPathCol = cursor.getColumnIndexOrThrow(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Images.Media.RELATIVE_PATH else MediaStore.Images.Media.DATA)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
-                val uri = android.content.ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
-                val name = cursor.getString(nameCol) ?: "Photo $id"
-                val mime = cursor.getString(mimeCol) ?: "image/*"
+                val uri = android.content.ContentUris.withAppendedId(contentUri, id)
+                val name = cursor.getString(nameCol) ?: "$id"
+                val mime = cursor.getString(mimeCol) ?: galleryDefaultMimeType
                 photos += MediaItem(
                     id = "gallery_photo_$id",
                     name = name,
@@ -682,7 +774,11 @@ class HomeFragment : Fragment() {
     )
 
     private fun openGalleryPhoto(photo: MediaItem) {
-        showInAppPhotoViewer(photo)
+        if (currentGalleryMediaType == GalleryMediaType.VIDEO) {
+            fr.retrospare.blazeplayer.player.PlayerRouter.open(requireContext(), photo.path, photo.name)
+        } else {
+            showInAppPhotoViewer(photo)
+        }
     }
 
     private fun showInAppPhotoViewer(photo: MediaItem) {
@@ -726,6 +822,15 @@ class HomeFragment : Fragment() {
 
     private fun loadGalleryImage(imageView: ImageView, uriString: String, requestSize: Size = Size(360, 360)) {
         imageView.setImageDrawable(null)
+        if (currentGalleryMediaType == GalleryMediaType.VIDEO) {
+            // Les vignettes vidéo passent par le même extracteur de frame (+ cache mémoire/disque)
+            // que le reste de l'app (navigateur local/réseau), plutôt que par Coil qui ne décode
+            // pas les conteneurs vidéo.
+            viewLifecycleOwner.lifecycleScope.launch {
+                ThumbnailUtils.loadThumbnail(requireContext(), uriString, imageView)
+            }
+            return
+        }
         val request = ImageRequest.Builder(requireContext())
             .data(android.net.Uri.parse(uriString))
             .target(imageView)
@@ -756,7 +861,7 @@ class HomeFragment : Fragment() {
     private fun getCreatedGalleryFolders(): MutableSet<String> {
         return requireContext()
             .getSharedPreferences("blaze_gallery", android.content.Context.MODE_PRIVATE)
-            .getStringSet("created_folders", emptySet())
+            .getStringSet(createdGalleryFoldersPrefKey(), emptySet())
             ?.toMutableSet() ?: mutableSetOf()
     }
 
@@ -766,7 +871,7 @@ class HomeFragment : Fragment() {
         requireContext()
             .getSharedPreferences("blaze_gallery", android.content.Context.MODE_PRIVATE)
             .edit()
-            .putStringSet("created_folders", folders)
+            .putStringSet(createdGalleryFoldersPrefKey(), folders)
             .apply()
     }
 
@@ -791,8 +896,9 @@ class HomeFragment : Fragment() {
             val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 try {
                     val safeName = folderName.replace(Regex("[\\/:*?\"<>|]"), "_").trim().ifBlank { return@withContext false }
-                    val relativePath = "${Environment.DIRECTORY_PICTURES}/$safeName/"
-                    val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), safeName)
+                    val baseDir = galleryBaseDirectory
+                    val relativePath = "${baseDir}/$safeName/"
+                    val dir = File(Environment.getExternalStoragePublicDirectory(baseDir), safeName)
                     val created = dir.mkdirs() || dir.isDirectory
                     rememberCreatedGalleryFolder(relativePath)
                     created || Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
@@ -864,9 +970,9 @@ class HomeFragment : Fragment() {
                     val values = ContentValues().apply {
                         put(MediaStore.Images.Media.DATA, target.absolutePath)
                         put(MediaStore.Images.Media.DISPLAY_NAME, target.name)
-                        put(MediaStore.Images.Media.MIME_TYPE, photo.mimeType.ifBlank { "image/*" })
+                        put(MediaStore.Images.Media.MIME_TYPE, photo.mimeType.ifBlank { galleryDefaultMimeType })
                     }
-                    resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                    resolver.insert(galleryContentUri, values)
                 }
                 moved
             }
@@ -884,6 +990,10 @@ class HomeFragment : Fragment() {
             pendingCustomThumbnailVideo = item
             returnTabAfterCustomThumbnail = sourceTab.takeIf { it == 1 || it == 2 } ?: 1
             galleryCustomThumbnailMode = true
+            // La miniature personnalisée doit toujours venir d'une photo, quel que soit le mode
+            // affiché précédemment dans Blaze Gallery.
+            currentGalleryMediaType = GalleryMediaType.PHOTO
+            refreshGalleryTypeToggleColors()
             clearGallerySelection()
             currentTabIndex = 3
             updateTabStyles(3)
@@ -968,7 +1078,7 @@ class HomeFragment : Fragment() {
 
     private fun shareGalleryPhoto(photo: MediaItem) {
         val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = photo.mimeType.ifBlank { "image/*" }
+            type = photo.mimeType.ifBlank { galleryDefaultMimeType }
             putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(photo.path))
             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
@@ -1070,6 +1180,7 @@ class HomeFragment : Fragment() {
         clearGallerySelection()
         currentGalleryBucketId = null
         currentGalleryBucketName = null
+        updateGalleryTypeToggle(visible = false)
         binding.tvSectionCloud.text = getString(R.string.gallery_trash)
         binding.btnFavoritesCloud.visibility = View.VISIBLE
         binding.btnFavoritesCloud.text = getString(R.string.action_back)
@@ -1115,6 +1226,7 @@ class HomeFragment : Fragment() {
     private fun loadAllGalleryPhotosFromMediaStore(includeOnlyTrashed: Boolean = false): List<MediaItem> {
         val all = mutableListOf<MediaItem>()
         val resolver = requireContext().contentResolver
+        val contentUri = galleryContentUri
         val projection = arrayOf(
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DISPLAY_NAME,
@@ -1131,9 +1243,9 @@ class HomeFragment : Fragment() {
                 putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.Images.Media.DATE_MODIFIED))
                 putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
             }
-            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, args, null)
+            resolver.query(contentUri, projection, args, null)
         } else {
-            resolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null, null, "${MediaStore.Images.Media.DATE_MODIFIED} DESC")
+            resolver.query(contentUri, projection, null, null, "${MediaStore.Images.Media.DATE_MODIFIED} DESC")
         }
         cursorResult?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
@@ -1143,8 +1255,8 @@ class HomeFragment : Fragment() {
             val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
-                val uri = android.content.ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
-                val name = cursor.getString(nameCol) ?: "Photo $id"
+                val uri = android.content.ContentUris.withAppendedId(contentUri, id)
+                val name = cursor.getString(nameCol) ?: "$id"
                 all += MediaItem(
                     id = "gallery_photo_$id",
                     name = name,
@@ -1152,7 +1264,7 @@ class HomeFragment : Fragment() {
                     size = cursor.getLong(sizeCol),
                     lastPlayedAt = cursor.getLong(dateCol),
                     extension = name.substringAfterLast('.', "").uppercase(),
-                    mimeType = cursor.getString(mimeCol) ?: "image/*"
+                    mimeType = cursor.getString(mimeCol) ?: galleryDefaultMimeType
                 )
             }
         }
@@ -1223,7 +1335,8 @@ class HomeFragment : Fragment() {
         val zipFile = File(dir, "blaze_gallery_${System.currentTimeMillis()}.zip")
         ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
             photos.forEachIndexed { index, photo ->
-                val name = photo.name.ifBlank { "photo_${index + 1}.jpg" }
+                val fallbackExt = if (currentGalleryMediaType == GalleryMediaType.VIDEO) "mp4" else "jpg"
+                val name = photo.name.ifBlank { "media_${index + 1}.$fallbackExt" }
                 requireContext().contentResolver.openInputStream(android.net.Uri.parse(photo.path))?.use { input ->
                     zip.putNextEntry(ZipEntry(name))
                     input.copyTo(zip)
@@ -1302,7 +1415,11 @@ class HomeFragment : Fragment() {
                 holder.btnMore.setOnClickListener { onMore(item, it) }
             } else if (holder is FolderViewHolder) {
                 holder.tvFolderName.text = item.name
-                holder.tvFolderCount.text = resources.getQuantityString(R.plurals.gallery_photo_count, item.size.toInt(), item.size.toInt())
+                holder.tvFolderCount.text = resources.getQuantityString(
+                    if (currentGalleryMediaType == GalleryMediaType.VIDEO) R.plurals.gallery_video_count else R.plurals.gallery_photo_count,
+                    item.size.toInt(),
+                    item.size.toInt()
+                )
                 holder.previews.forEachIndexed { index, imageView ->
                     val uri = item.previewUris.getOrNull(index)
                     if (uri != null) {
