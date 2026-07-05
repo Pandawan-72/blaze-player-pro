@@ -8,16 +8,16 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/activity_audio_pick.xml"
     },
     {
-        "merged": "fr.retrospare.blazeplayer.app-mergeDebugResources-81:/layout/item_gallery_folder_tile.xml",
-        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/item_gallery_folder_tile.xml"
-    },
-    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-mergeDebugResources-81:/layout/item_network_device.xml",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/item_network_device.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-mergeDebugResources-81:/layout/dialog_track_selector.xml",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/dialog_track_selector.xml"
+    },
+    {
+        "merged": "fr.retrospare.blazeplayer.app-mergeDebugResources-81:/layout/fragment_home.xml",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/fragment_home.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-mergeDebugResources-81:/layout/item_folder.xml",

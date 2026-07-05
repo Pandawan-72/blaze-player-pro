@@ -577,4 +577,5 @@
     <string name="blaze_party_vote_removed">Голос удалён</string>
     <string name="blaze_party_default_host">Хост</string>
     <string name="blaze_party_default_guest">Гость</string>
+    <string name="app_name_gallery">Blaze Gallery</string>
 </resources>

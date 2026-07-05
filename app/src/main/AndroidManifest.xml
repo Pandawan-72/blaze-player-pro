@@ -84,6 +84,51 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".BlazeGalleryLauncherActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:icon="@mipmap/ic_blaze_gallery_launcher"
+            android:label="@string/app_name_gallery"
+            android:noHistory="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="fr.retrospare.blazeplayer.gallery"
+            android:roundIcon="@mipmap/ic_blaze_gallery_launcher_round"
+            android:theme="@android:style/Theme.NoDisplay">
+            <!-- taskAffinity dédiée + singleInstance : certains launchers/ROM ne relancent pas
+                 réellement une activité qui partage l'affinité de tâche par défaut de l'app
+                 (celle de MainActivity) quand une tâche de cette app existe déjà — ils se
+                 contentent de ramener cette tâche au premier plan sans exécuter onCreate() de
+                 BlazeGalleryLauncherActivity ni onNewIntent() de MainActivity. Résultat : l'icône
+                 "Blaze Gallery" rouvrait Blaze Player sur son dernier onglet (souvent "Local")
+                 au lieu de forcer l'onglet Blaze Gallery. Une tâche dédiée garantit que cette
+                 activité (donc son trampoline vers MainActivity) s'exécute à chaque appui sur
+                 l'icône, même quand Blaze Player tourne déjà en arrière-plan. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".BlazeAudioLauncherActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:icon="@mipmap/ic_blaze_audio_launcher"
+            android:label="@string/app_name_audio"
+            android:noHistory="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="fr.retrospare.blazeplayer.audio"
+            android:roundIcon="@mipmap/ic_blaze_audio_launcher_round"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <service
 android:name=".player.BlazePlayerService"
             android:foregroundServiceType="mediaPlayback"

@@ -1,20 +1,20 @@
 -- Merging decision tree log ---
 provider#androidx.core.content.FileProvider
-INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:214:9-222:20
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:259:9-267:20
 	android:grantUriPermissions
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:218:13-47
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:263:13-47
 	android:authorities
 		INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:216:13-64
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:261:13-64
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:217:13-37
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:262:13-37
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:215:13-62
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:260:13-62
 manifest
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-226:12
-INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-226:12
-INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-226:12
-INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-226:12
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-271:12
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-271:12
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-271:12
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:2:1-271:12
 MERGED from [androidx.databinding:viewbinding:9.2.1] /Users/pandawan/.gradle/caches/9.4.1/transforms/90fdd286b1455b1fb12d4d26d15d240f/transformed/viewbinding-9.2.1/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.hilt:hilt-navigation-fragment:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c4e3c5ebf61148e3febf8608476a59b9/transformed/hilt-navigation-fragment-1.2.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.hilt:hilt-navigation:1.2.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/0095b00a00aabd4f49f5974bd893e38a/transformed/hilt-navigation-1.2.0/AndroidManifest.xml:2:1-7:12
@@ -278,9 +278,9 @@ ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:44:
 data
 ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:13-44
 	android:host
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:138:51-70
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:183:51-70
 	android:scheme
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:23-47
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:165:23-47
 	android:mimeType
 		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:45:19-41
 intent#action:name:android.intent.action.OPEN_DOCUMENT+data:mimeType:*/*
@@ -290,8 +290,8 @@ ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:48:
 	android:name
 		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:48:21-71
 application
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:53:5-224:15
-INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:53:5-224:15
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:53:5-269:15
+INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:53:5-269:15
 MERGED from [com.google.android.material:material:1.12.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c8a1e967435affb3194efc0c6e244d49/transformed/material-1.12.0/AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.material:material:1.12.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/c8a1e967435affb3194efc0c6e244d49/transformed/material-1.12.0/AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.gms:play-services-cast-framework:22.1.0] /Users/pandawan/.gradle/caches/9.4.1/transforms/bd3660da66badd8c9c998511be574fc6/transformed/play-services-cast-framework-22.1.0/AndroidManifest.xml:18:5-26:19
@@ -404,146 +404,194 @@ category#android.intent.category.LAUNCHER
 ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:83:17-77
 	android:name
 		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:83:27-74
+activity#fr.retrospare.blazeplayer.BlazeGalleryLauncherActivity
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:87:9-112:20
+	android:enabled
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:89:13-35
+	android:label
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:93:13-53
+	android:excludeFromRecents
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:13-46
+	android:launchMode
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:95:13-48
+	android:noHistory
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:94:13-37
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:90:13-36
+	android:roundIcon
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:97:13-72
+	android:icon
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:13-61
+	android:theme
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:98:13-59
+	android:taskAffinity
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:96:13-69
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:88:13-57
+activity#fr.retrospare.blazeplayer.BlazeAudioLauncherActivity
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:114:9-130:20
+	android:enabled
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:116:13-35
+	android:label
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:120:13-51
+	android:excludeFromRecents
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:13-46
+	android:launchMode
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:122:13-48
+	android:noHistory
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:121:13-37
+	android:exported
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:13-36
+	android:roundIcon
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:124:13-70
+	android:icon
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:13-59
+	android:theme
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:125:13-59
+	android:taskAffinity
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:123:13-67
+	android:name
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:115:13-55
 service#fr.retrospare.blazeplayer.player.BlazePlayerService
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:87:9-94:19
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:132:9-139:19
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:90:13-37
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:135:13-37
 	android:foregroundServiceType
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:89:13-58
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:134:13-58
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:88:1-42
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:133:1-42
 intent-filter#action:name:androidx.media3.session.MediaSessionService
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:91:13-93:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:136:13-138:29
 action#androidx.media3.session.MediaSessionService
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:17-85
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:137:17-85
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:92:25-83
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:137:25-83
 service#fr.retrospare.blazeplayer.player.VideoPlaybackService
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:99:9-106:19
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:144:9-151:19
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:102:13-37
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:147:13-37
 	android:foregroundServiceType
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:101:13-58
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:146:13-58
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:100:13-56
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:145:13-56
 activity#fr.retrospare.blazeplayer.player.AudioPlayerActivity
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:109:9-141:20
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:154:9-186:20
 	android:screenOrientation
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:114:13-49
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:159:13-49
 	android:launchMode
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:113:13-43
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:158:13-43
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:111:13-36
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:156:13-36
 	android:configChanges
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:112:13-115
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:157:13-115
 	android:theme
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:115:13-53
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:160:13-53
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:110:13-55
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:155:13-55
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:mimeType:audio/*+data:scheme:content+data:scheme:file
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:116:13-123:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:161:13-168:29
 action#android.intent.action.VIEW
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:17-69
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:162:17-69
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:117:25-66
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:162:25-66
 category#android.intent.category.DEFAULT
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:17-76
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:163:17-76
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:118:27-73
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:163:27-73
 category#android.intent.category.BROWSABLE
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:17-78
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:164:17-78
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:119:27-75
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:164:27-75
 intent-filter#action:name:android.intent.action.SEND+category:name:android.intent.category.DEFAULT+data:mimeType:audio/*
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:124:13-128:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:169:13-173:29
 action#android.intent.action.SEND
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:125:17-69
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:170:17-69
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:125:25-66
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:170:25-66
 intent-filter#action:name:android.intent.action.SEND_MULTIPLE+category:name:android.intent.category.DEFAULT+data:mimeType:audio/*
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:129:13-133:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:174:13-178:29
 action#android.intent.action.SEND_MULTIPLE
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:130:17-78
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:175:17-78
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:130:25-75
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:175:25-75
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:join+data:scheme:blazeparty+data:scheme:bp
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:134:13-140:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:179:13-185:29
 activity#fr.retrospare.blazeplayer.player.PlayerActivity
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:143:9-185:20
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:188:9-230:20
 	android:screenOrientation
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:149:13-51
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:194:13-51
 	android:launchMode
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:148:13-43
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:193:13-43
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:146:13-36
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:191:13-36
 	android:supportsPictureInPicture
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:145:13-52
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:190:13-52
 	android:configChanges
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:147:13-115
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:192:13-115
 	android:theme
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:150:13-64
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:195:13-64
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:144:13-50
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:189:13-50
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:mimeType:video/*+data:scheme:content+data:scheme:file
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:151:13-158:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:196:13-203:29
 intent-filter#action:name:android.intent.action.SEND+category:name:android.intent.category.DEFAULT+data:mimeType:video/*
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:159:13-163:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:204:13-208:29
 intent-filter#action:name:android.intent.action.SEND_MULTIPLE+category:name:android.intent.category.DEFAULT+data:mimeType:video/*
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:164:13-168:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:209:13-213:29
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:mimeType:video/x-matroska+data:scheme:content+data:scheme:file
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:169:13-176:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:214:13-221:29
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:mimeType:application/octet-stream+data:scheme:content+data:scheme:file
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:177:13-184:29
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:222:13-229:29
 activity#fr.retrospare.blazeplayer.player.AudioBrowserActivity
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:187:9-191:56
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:232:9-236:56
 	android:screenOrientation
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:190:13-49
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:235:13-49
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:189:13-37
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:234:13-37
 	android:theme
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:191:13-53
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:236:13-53
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:188:13-56
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:233:13-56
 meta-data#com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:193:9-195:82
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:238:9-240:82
 	android:value
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:195:13-79
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:240:13-79
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:194:13-93
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:239:13-93
 receiver#androidx.mediarouter.media.MediaTransferReceiver
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:197:9-199:40
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:242:9-244:40
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:199:13-37
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:244:13-37
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:198:13-76
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:243:13-76
 activity#fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:201:5-204:52
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:246:5-249:52
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:203:9-33
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:248:9-33
 	android:theme
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:204:9-49
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:249:9-49
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:202:9-59
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:247:9-59
 activity#fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:206:5-212:52
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:251:5-257:52
 	android:screenOrientation
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:209:9-47
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:254:9-47
 	android:exported
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:208:9-33
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:253:9-33
 	android:supportsPictureInPicture
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:211:9-48
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:256:9-48
 	android:configChanges
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:210:9-109
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:255:9-109
 	android:theme
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:212:9-49
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:257:9-49
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:207:9-54
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:252:9-54
 meta-data#android.support.FILE_PROVIDER_PATHS
-ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:219:13-221:54
+ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:264:13-266:54
 	android:resource
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:221:17-51
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:266:17-51
 	android:name
-		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:220:17-67
+		ADDED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml:265:17-67
 uses-sdk
 INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/pandawan/blaze-player-pro/app/src/main/AndroidManifest.xml

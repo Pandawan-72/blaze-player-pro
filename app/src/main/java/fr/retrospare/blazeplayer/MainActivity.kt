@@ -245,6 +245,69 @@ class MainActivity : AppCompatActivity() {
         if (::binding.isInitialized) {
             applyMiniPlayerState(miniPlayerVm.state.value)
         }
+        consumePendingBlazeGalleryLaunch()
+    }
+
+    private fun findHomeFragment(): fr.retrospare.blazeplayer.home.HomeFragment? {
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+        return navHost?.childFragmentManager?.fragments
+            ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
+            ?.firstOrNull()
+    }
+
+    /** Point d'entrée unique pour forcer l'ouverture sur l'onglet Blaze Gallery, quelle que soit
+     *  la situation dans laquelle se trouvait l'application :
+     *  - app pas lancée / tâche froide : consommé plus tard par HomeFragment.onViewCreated().
+     *  - app déjà ouverte sur l'accueil : appliqué immédiatement via HomeFragment.
+     *  - app déjà ouverte sur un autre écran (Réglages, Réseau, Recherche...) : on revient
+     *    d'abord explicitement à l'accueil via le NavController avant d'appliquer l'onglet,
+     *    sinon HomeFragment n'a pas de vue et la demande était auparavant silencieusement
+     *    ignorée (c'était la cause du bug : l'icône "Blaze Gallery" retombait sur "Local"). */
+    private fun consumePendingBlazeGalleryLaunch(): Boolean {
+        val prefs = getSharedPreferences("launcher_requests", MODE_PRIVATE)
+        val pending = prefs.getBoolean("pendingOpenBlazeGallery", false) ||
+            prefs.getLong("pendingOpenBlazeGalleryAt", 0L) > 0L
+        if (!pending) return false
+
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                as? androidx.navigation.fragment.NavHostFragment
+        // Si une autre destination que l'accueil est affichée, on y revient d'abord : sans ça,
+        // HomeFragment n'a pas de vue et ne peut pas appliquer l'onglet demandé.
+        navHost?.navController?.let { nav ->
+            if (nav.currentDestination?.id != fr.retrospare.blazeplayer.R.id.homeFragment) {
+                nav.popBackStack(fr.retrospare.blazeplayer.R.id.homeFragment, false)
+            }
+        }
+
+        // Ne PAS effacer le flag ici : HomeFragment est seul responsable de l'effacer, une
+        // fois l'onglet Blaze Gallery réellement appliqué (voir requestBlazeGalleryTab()).
+        findHomeFragment()?.requestBlazeGalleryTab()
+        // HomeFragment peut ne pas encore exister (vue en cours de (re)création après le
+        // popBackStack ci-dessus) : on retente sur quelques frames pour couvrir ce cas, sans
+        // dépendre uniquement d'un délai fixe.
+        handler.postDelayed({ findHomeFragment()?.requestBlazeGalleryTab() }, 120L)
+        handler.postDelayed({ findHomeFragment()?.requestBlazeGalleryTab() }, 300L)
+        return true
+    }
+
+    private fun consumePendingBlazeAudioLaunch(): Boolean {
+        val prefs = getSharedPreferences("launcher_requests", MODE_PRIVATE)
+        val pending = prefs.getBoolean("pendingOpenBlazeAudio", false) ||
+            prefs.getLong("pendingOpenBlazeAudioAt", 0L) > 0L
+        if (!pending) return false
+
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                as? androidx.navigation.fragment.NavHostFragment
+        navHost?.navController?.let { nav ->
+            if (nav.currentDestination?.id != fr.retrospare.blazeplayer.R.id.homeFragment) {
+                nav.popBackStack(fr.retrospare.blazeplayer.R.id.homeFragment, false)
+            }
+        }
+
+        findHomeFragment()?.requestBlazeAudioTab()
+        handler.postDelayed({ findHomeFragment()?.requestBlazeAudioTab() }, 120L)
+        handler.postDelayed({ findHomeFragment()?.requestBlazeAudioTab() }, 300L)
+        return true
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -269,8 +332,27 @@ class MainActivity : AppCompatActivity() {
             intent.removeExtra("openAudioName")
             return
         }
-        if (intent.getBooleanExtra("openBlazeAudio", false)) {
-            handler.postDelayed({ openBlazeAudio() }, 300)
+        if (intent.getBooleanExtra("openBlazeAudio", false) ||
+            intent.component?.className == "$packageName.BlazeAudioLauncherActivity") {
+            getSharedPreferences("launcher_requests", MODE_PRIVATE)
+                .edit()
+                .putBoolean("pendingOpenBlazeAudio", true)
+                .putLong("pendingOpenBlazeAudioAt", System.currentTimeMillis())
+                .apply()
+            consumePendingBlazeAudioLaunch()
+            intent.removeExtra("openBlazeAudio")
+            return
+        }
+        if (intent.getBooleanExtra("openBlazeGallery", false) ||
+            intent.component?.className == "$packageName.BlazeGalleryLauncherActivity") {
+            getSharedPreferences("launcher_requests", MODE_PRIVATE)
+                .edit()
+                .putBoolean("pendingOpenBlazeGallery", true)
+                .putLong("pendingOpenBlazeGalleryAt", System.currentTimeMillis())
+                .apply()
+            consumePendingBlazeGalleryLaunch()
+            intent.removeExtra("openBlazeGallery")
+            return
         }
         val requestedTab = intent.getIntExtra("requestedTab", -1)
         if (requestedTab in 1..4) {
@@ -438,20 +520,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun switchToTab(index: Int) {
+    private fun switchToTab(index: Int): Boolean {
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
         val homeFragment = navHost?.childFragmentManager?.fragments
             ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
             ?.firstOrNull()
-        homeFragment?.switchToTab(index)
+        return if (homeFragment != null) {
+            homeFragment.switchToTab(index)
+            true
+        } else {
+            false
+        }
     }
 
     private fun openBlazeAudio() {
-        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-        val homeFragment = navHost?.childFragmentManager?.fragments
-            ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
-            ?.firstOrNull()
-        homeFragment?.switchToAudioTab()
+        getSharedPreferences("launcher_requests", MODE_PRIVATE)
+            .edit()
+            .putBoolean("pendingOpenBlazeAudio", true)
+            .putLong("pendingOpenBlazeAudioAt", System.currentTimeMillis())
+            .apply()
+        consumePendingBlazeAudioLaunch()
     }
 
     override fun onDestroy() {

@@ -555,4 +555,5 @@ Token: %2$s</string>
     <string name="blaze_party_vote_removed">Stimme entfernt</string>
     <string name="blaze_party_default_host">Host</string>
     <string name="blaze_party_default_guest">Gast</string>
+    <string name="app_name_gallery">Blaze Gallery</string>
 </resources>

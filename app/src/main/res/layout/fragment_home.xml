@@ -23,11 +23,11 @@
 
                 <ImageView
                     android:id="@+id/ivLogo"
-                    android:layout_width="130dp"
-                    android:layout_height="49dp"
+                    android:layout_width="126dp"
+                    android:layout_height="47dp"
                     android:layout_centerVertical="true"
                     android:layout_alignParentStart="true"
-                    android:src="@drawable/logo_blaze"
+                    android:src="@drawable/logo"
                     android:scaleType="fitStart"
                     android:contentDescription="@null" />
 

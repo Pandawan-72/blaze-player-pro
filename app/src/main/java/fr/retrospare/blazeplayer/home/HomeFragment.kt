@@ -161,6 +161,24 @@ class HomeFragment : Fragment() {
         // Réglages, d'une vidéo locale...) ne déclenche pas onResume() de l'Activity, donc rien
         // d'autre ne le refaisait apparaître automatiquement dans ces cas-là.
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.refreshMiniPlayer()
+
+        // Lancement depuis l'icône indépendante "Blaze Gallery".
+        // MainActivity peut recevoir l'intent avant que HomeFragment soit réellement attaché ;
+        // on le retraitera donc ici, au moment où les onglets existent vraiment.
+        requireActivity().intent?.let { launchIntent ->
+            val fromGalleryAlias = launchIntent.component?.className == "${requireContext().packageName}.BlazeGalleryLauncherActivity"
+            val requestedGallery = launchIntent.getBooleanExtra("openBlazeGallery", false)
+            val alreadyConsumed = launchIntent.getBooleanExtra("blazeGalleryLaunchConsumed", false)
+            if ((fromGalleryAlias || requestedGallery) && !alreadyConsumed) {
+                launchIntent.putExtra("blazeGalleryLaunchConsumed", true)
+                launchIntent.removeExtra("openBlazeGallery")
+                binding.root.post { requestBlazeGalleryTab() }
+            }
+        }
+
+        consumePendingBlazeGalleryLaunchInHome()
+        consumePendingBlazeAudioLaunchInHome()
+
         // Switche vers Blaze Audio quand un fichier audio est ajouté depuis le navigateur
         val sharedAudioVm = androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
         viewLifecycleOwner.lifecycleScope.launch {
@@ -176,6 +194,8 @@ class HomeFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        consumePendingBlazeGalleryLaunchInHome()
+        consumePendingBlazeAudioLaunchInHome()
         // Retour systématique sur l'historique par défaut au retour du lecteur YouTube (ou de
         // tout autre écran), quelle que soit la façon dont la vidéo a été ouverte (recherche,
         // favoris, historique) — l'historique vient d'être mis à jour par YouTubePlayerActivity
@@ -183,6 +203,91 @@ class HomeFragment : Fragment() {
         if (currentTabIndex == 3) {
             showYoutubeDefaultContent()
         }
+    }
+
+    /** Point d'entrée unique et sûr pour forcer l'onglet Blaze Gallery, appelable depuis
+     *  MainActivity sans risquer de planter ou de ne rien faire silencieusement si la vue de ce
+     *  fragment n'existe pas encore (écran d'accueil pas encore affiché) ou plus (une autre
+     *  destination du NavHost est actuellement affichée). Dans ce dernier cas, la demande reste
+     *  persistée dans les SharedPreferences et sera reconsommée dès que HomeFragment sera recréé
+     *  (onViewCreated) ou repasse au premier plan (onResume) — voir ces deux méthodes. */
+    fun requestBlazeGalleryTab() {
+        requireContext().getSharedPreferences("launcher_requests", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("pendingOpenBlazeGallery", true)
+            .putLong("pendingOpenBlazeGalleryAt", System.currentTimeMillis())
+            .apply()
+        // N'applique tout de suite que si la vue existe réellement ; sinon onViewCreated/onResume
+        // s'en chargeront eux-mêmes une fois la vue disponible.
+        if (_binding != null && isAdded) {
+            consumePendingBlazeGalleryLaunchInHome()
+        }
+    }
+
+    private fun consumePendingBlazeGalleryLaunchInHome(): Boolean {
+        if (_binding == null || !isAdded) return false
+        val prefs = requireContext().getSharedPreferences("launcher_requests", android.content.Context.MODE_PRIVATE)
+        val pending = prefs.getBoolean("pendingOpenBlazeGallery", false) ||
+            prefs.getLong("pendingOpenBlazeGalleryAt", 0L) > 0L
+        if (!pending) return false
+
+        fun applyGalleryTab() {
+            if (_binding == null) return
+            switchToTab(3)
+        }
+
+        applyGalleryTab()
+        binding.root.postDelayed({ applyGalleryTab() }, 120L)
+        binding.root.postDelayed({ applyGalleryTab() }, 300L)
+        binding.root.postDelayed({ applyGalleryTab() }, 700L)
+
+        // On efface seulement après plusieurs applications, pour éviter que l'ancien
+        // état restauré de l'écran d'accueil repasse sur Local quand l'application
+        // était déjà en tâche de fond.
+        binding.root.postDelayed({
+            prefs.edit()
+                .putBoolean("pendingOpenBlazeGallery", false)
+                .remove("pendingOpenBlazeGalleryAt")
+                .apply()
+        }, 1000L)
+        return true
+    }
+
+    fun requestBlazeAudioTab() {
+        requireContext().getSharedPreferences("launcher_requests", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("pendingOpenBlazeAudio", true)
+            .putLong("pendingOpenBlazeAudioAt", System.currentTimeMillis())
+            .apply()
+        if (_binding != null && isAdded) {
+            consumePendingBlazeAudioLaunchInHome()
+        }
+    }
+
+    private fun consumePendingBlazeAudioLaunchInHome(): Boolean {
+        if (_binding == null || !isAdded) return false
+        val prefs = requireContext().getSharedPreferences("launcher_requests", android.content.Context.MODE_PRIVATE)
+        val pending = prefs.getBoolean("pendingOpenBlazeAudio", false) ||
+            prefs.getLong("pendingOpenBlazeAudioAt", 0L) > 0L
+        if (!pending) return false
+
+        fun applyAudioTab() {
+            if (_binding == null) return
+            switchToTab(4)
+        }
+
+        applyAudioTab()
+        binding.root.postDelayed({ applyAudioTab() }, 120L)
+        binding.root.postDelayed({ applyAudioTab() }, 300L)
+        binding.root.postDelayed({ applyAudioTab() }, 700L)
+
+        binding.root.postDelayed({
+            prefs.edit()
+                .putBoolean("pendingOpenBlazeAudio", false)
+                .remove("pendingOpenBlazeAudioAt")
+                .apply()
+        }, 1000L)
+        return true
     }
 
     private fun setupTabs() {
@@ -1474,6 +1579,9 @@ class HomeFragment : Fragment() {
     }
 
     fun switchToTab(index: Int) {
+        // Garde-fou : si la vue n'existe pas (fragment présent dans le back stack mais pas
+        // affiché, ex. Réglages/Réseau au premier plan), viewLifecycleOwner planterait.
+        if (_binding == null || !isAdded) return
         viewLifecycleOwner.lifecycleScope.launch {
             if (!canOpenTab(index)) {
                 findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)

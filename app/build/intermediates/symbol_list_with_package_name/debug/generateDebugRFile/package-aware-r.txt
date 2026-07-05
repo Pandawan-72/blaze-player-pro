@@ -229,6 +229,7 @@ drawable ic_trash
 drawable ic_volume
 drawable ic_wifi
 drawable ic_youtube_tab
+drawable logo
 drawable logo_blaze
 drawable pixel_dancer_1
 drawable pixel_dancer_2
@@ -662,6 +663,12 @@ layout item_track_option
 layout item_youtube_favorite
 layout item_youtube_video
 menu bottom_nav_menu
+mipmap ic_blaze_audio_launcher
+mipmap ic_blaze_audio_launcher_foreground
+mipmap ic_blaze_audio_launcher_round
+mipmap ic_blaze_gallery_launcher
+mipmap ic_blaze_gallery_launcher_foreground
+mipmap ic_blaze_gallery_launcher_round
 mipmap ic_launcher
 mipmap ic_launcher_foreground
 mipmap ic_launcher_round
@@ -730,6 +737,8 @@ string add_to_party_short
 string add_to_playlist_short
 string add_tracks
 string app_name
+string app_name_audio
+string app_name_gallery
 string audio_track
 string available_devices
 string blaze_party

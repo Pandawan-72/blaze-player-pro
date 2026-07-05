@@ -228,6 +228,7 @@ int drawable ic_trash 0x0
 int drawable ic_volume 0x0
 int drawable ic_wifi 0x0
 int drawable ic_youtube_tab 0x0
+int drawable logo 0x0
 int drawable logo_blaze 0x0
 int drawable pixel_dancer_1 0x0
 int drawable pixel_dancer_2 0x0
@@ -661,6 +662,12 @@ int layout item_track_option 0x0
 int layout item_youtube_favorite 0x0
 int layout item_youtube_video 0x0
 int menu bottom_nav_menu 0x0
+int mipmap ic_blaze_audio_launcher 0x0
+int mipmap ic_blaze_audio_launcher_foreground 0x0
+int mipmap ic_blaze_audio_launcher_round 0x0
+int mipmap ic_blaze_gallery_launcher 0x0
+int mipmap ic_blaze_gallery_launcher_foreground 0x0
+int mipmap ic_blaze_gallery_launcher_round 0x0
 int mipmap ic_launcher 0x0
 int mipmap ic_launcher_foreground 0x0
 int mipmap ic_launcher_round 0x0
@@ -729,6 +736,8 @@ int string add_to_party_short 0x0
 int string add_to_playlist_short 0x0
 int string add_tracks 0x0
 int string app_name 0x0
+int string app_name_audio 0x0
+int string app_name_gallery 0x0
 int string audio_track 0x0
 int string available_devices 0x0
 int string blaze_party 0x0

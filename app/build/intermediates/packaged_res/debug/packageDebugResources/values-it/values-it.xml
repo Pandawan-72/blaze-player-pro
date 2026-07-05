@@ -104,6 +104,7 @@
     <string name="add_to_playlist_short">Aggiungi a playlist</string>
     <string name="add_tracks">Aggiungi tracce</string>
     <string name="app_name">Blaze Player</string>
+    <string name="app_name_gallery">Blaze Gallery</string>
     <string name="audio_track">Traccia audio</string>
     <string name="available_devices">Dispositivi disponibili</string>
     <string name="blaze_party">Blaze Party</string>
