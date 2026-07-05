@@ -151,10 +151,12 @@ class BlazePlayerService : MediaSessionService() {
         sessionPlayer = audioSessionPlayer
 
         val openIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            this, 2001,
+            Intent(this, fr.retrospare.blazeplayer.BlazeAudioLauncherActivity::class.java).apply {
+                action = "fr.retrospare.blazeplayer.action.OPEN_BLAZE_AUDIO_FROM_NOTIFICATION"
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 putExtra("openBlazeAudio", true)
+                putExtra("requestedTab", 4)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

@@ -246,6 +246,10 @@ class MainActivity : AppCompatActivity() {
             applyMiniPlayerState(miniPlayerVm.state.value)
         }
         consumePendingBlazeGalleryLaunch()
+        // Important pour la notification audio : selon le launcher/ROM et l'état de la tâche,
+        // le PendingIntent peut simplement ramener MainActivity au premier plan sans repasser par
+        // onNewIntent(). On consomme donc aussi ici la demande persistante d'ouverture Blaze Audio.
+        consumePendingBlazeAudioLaunch()
     }
 
     private fun findHomeFragment(): fr.retrospare.blazeplayer.home.HomeFragment? {
