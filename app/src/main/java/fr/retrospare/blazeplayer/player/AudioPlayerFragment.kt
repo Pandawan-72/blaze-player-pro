@@ -1753,6 +1753,31 @@ class AudioPlayerFragment : Fragment() {
     private fun restoreBlazePartyRuntimeIfNeeded(ctrl: MediaController) {
         val ctx = context ?: return
         if (!BlazePartyVoteManager.isActive(ctx) || !BlazePartyVoteManager.isHost(ctx)) return
+
+        // Au démarrage, si l'hôte n'a aucun client Blaze Party connecté, l'écran
+        // "file d'attente" doit revenir sur la file locale personnelle. Sinon une
+        // ancienne session Party pouvait remplacer visuellement la file locale par
+        // défaut, même quand personne n'était connecté.
+        if (!BlazePartyVoteManager.isConnected(ctx)) {
+            val snapshot = loadLocalQueueSnapshot(ctx)
+            localHostQueueSnapshot = snapshot
+            isPlayingBlazePartyQueue = false
+            currentBlazePartyPath = null
+            if (::playlistAdapter.isInitialized) playlistAdapter.setOverrideItems(null)
+            if (!snapshot.isNullOrEmpty()) {
+                ctrl.shuffleModeEnabled = false
+                ctrl.clearMediaItems()
+                ctrl.setMediaItems(snapshot, 0, 0L)
+                ctrl.prepare()
+                if (::playlistAdapter.isInitialized) playlistAdapter.refresh()
+                syncSelection()
+                syncMetadata()
+                syncButtons()
+                savePlaylistFromController()
+            }
+            return
+        }
+
         val partyTracks = sortedBlazePartyTracks(ctx)
         if (partyTracks.isEmpty()) return
         localHostQueueSnapshot = loadLocalQueueSnapshot(ctx)

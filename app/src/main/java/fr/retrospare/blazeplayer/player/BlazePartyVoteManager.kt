@@ -33,7 +33,10 @@ object BlazePartyVoteManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putBoolean(KEY_IS_HOST, host)
-            .putBoolean(KEY_CONNECTED, true)
+            // Côté hôte, KEY_CONNECTED représente la présence d'un vrai client distant,
+            // pas simplement le fait d'avoir ouvert/hosté Blaze Party. Sans client,
+            // le démarrage doit rester sur la file locale.
+            .putBoolean(KEY_CONNECTED, !host)
             .putBoolean(KEY_ACTIVE, true)
             .apply()
     }
@@ -45,10 +48,14 @@ object BlazePartyVoteManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_ACTIVE, false)
 
     fun saveSessionPayload(context: Context, payload: String) {
+        val isHost = isHost(context)
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_SESSION_PAYLOAD, payload)
-            .putBoolean(KEY_CONNECTED, true)
+            // En mode hôte, générer/afficher le QR ne veut pas dire qu'un client
+            // est connecté. En mode invité, sauvegarder le payload signifie bien
+            // que l'utilisateur rejoint une session distante.
+            .putBoolean(KEY_CONNECTED, !isHost)
             .putBoolean(KEY_ACTIVE, true)
             .apply()
     }
