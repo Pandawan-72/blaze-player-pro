@@ -13,7 +13,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -112,26 +111,42 @@ class VideoPlaybackService : MediaSessionService() {
             android.util.Log.w("VideoPlaybackService", "Failed to acquire wifi/wake lock", e)
         }
 
-        // Le MediaItem est TOUJOURS une URL HTTP (notre propre relais local) : un DataSource HTTP
-        // standard suffit dans tous les cas, plus besoin de SmbDataSource ici.
-        // Le cache disque Media3 (SimpleCache) a été retiré ici : son initialisation peut
-        // scanner/verrouiller le cache sur le thread principal (onCreate), ce qui provoquait un
-        // ANR au clic sur une vidéo — le service vidéo démarre de façon synchrone au clic.
-        val httpFactory = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(20_000)
-            .setReadTimeoutMs(240_000)
-
+        // Le lecteur local lit désormais directement les URI file/content/http(s)/smb via
+        // BlazeDataSourceFactory. Cela évite le détour par le relais HTTP local pour les lectures
+        // non castées, qui ajoutait de la latence et pouvait transformer une coupure du relais en
+        // fausse fin de vidéo.
         val mediaSourceFactory = DefaultMediaSourceFactory(this)
-            .setDataSourceFactory(httpFactory)
+            .setDataSourceFactory(BlazeDataSourceFactory(this))
 
         val renderersFactory = DefaultRenderersFactory(this)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
         val loadControl = DefaultLoadControl.Builder()
             .setAllocator(DefaultAllocator(true, 64 * 1024))
-            .setBufferDurationsMs(180_000, 720_000, 8_000, 45_000)
-            .setPrioritizeTimeOverSizeThresholds(true)
-            .setBackBuffer(120_000, true)
+            // ATTENTION : ne pas remonter ces durées sans plafond en octets associé. Les valeurs
+            // précédentes (min 180s / max 720s de buffer, avec setPrioritizeTimeOverSizeThresholds
+            // désactivant le garde-fou en taille) étaient pensées pour tolérer les coupures SMB,
+            // mais s'appliquaient aussi à la lecture locale : un fichier local se lit bien plus
+            // vite qu'un flux réseau, donc ExoPlayer chargeait des centaines de Mo de vidéo par
+            // anticipation sans aucune limite en octets pour l'arrêter -> OutOfMemoryError et
+            // crash du process en quelques secondes sur toute vidéo locale (le GC qui tourne en
+            // boucle juste avant le crash provoque aussi le ralenti visible à l'écran).
+            // maxBufferMs et targetBufferBytes remontés par rapport au tout premier correctif :
+            // 48 Mo / 50s était sûr pour le local mais trop juste pour absorber les à-coups d'un
+            // NAS Wi-Fi/SMB, ce qui se traduisait par une latence d'affichage (frames qui
+            // arrivent en retard) spécifiquement en lecture réseau. 100 Mo reste très loin du
+            // plafond de tas Java (512 Mo observé dans les crashs OOM) même cumulé avec le reste
+            // de l'app, tout en donnant à ExoPlayer assez de marge pour lisser le réseau.
+            .setBufferDurationsMs(
+                /* minBufferMs = */ 15_000,
+                /* maxBufferMs = */ 90_000,
+                /* bufferForPlaybackMs = */ 2_500,
+                /* bufferForPlaybackAfterRebufferMs = */ 5_000
+            )
+            // Plafond dur en octets, quel que soit le débit binaire (4K/HDR compris) : c'est LE
+            // garde-fou qui manquait. setPrioritizeTimeOverSizeThresholds reste à sa valeur par
+            // défaut (false) pour que ce plafond soit réellement respecté.
+            .setTargetBufferBytes(100 * 1024 * 1024)
+            .setBackBuffer(30_000, true)
             .build()
 
         val localPlayer = ExoPlayer.Builder(this, renderersFactory)

@@ -154,6 +154,8 @@ class PlayerActivity : AppCompatActivity() {
     private var closingPlayerExplicitly = false
     private var lastProgressPersistAt = 0L
     private var networkPlaybackReachedNaturalEnd = false
+    private var prematureLocalEndRecoveries = 0
+    private var lastLocalRecoverAtMs = 0L
 
 
     override fun onNewIntent(intent: Intent) {
@@ -266,14 +268,14 @@ class PlayerActivity : AppCompatActivity() {
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
-        // Démarre tout de suite le relais HTTP local : le MediaItem construit plus bas en a besoin.
+        // Prépare le relais HTTP local seulement comme URL de secours pour Chromecast.
+        // La lecture locale utilise désormais directement file/content/http/smb via la DataSource
+        // Media3 appropriée : éviter le détour 127.0.0.1 supprime une source de coupures locales
+        // et réduit la latence sur les vidéos réseau.
         try {
             VideoStreamServerManager.startServer(applicationContext, mediaPath)
         } catch (e: Exception) {
-            CrashReporter.log(this, "Failed to start local video stream server for $mediaPath", e)
-            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
-            finish()
-            return
+            CrashReporter.log(this, "Failed to prepare local video stream server for cast fallback $mediaPath", e)
         }
 
         // Met l'audio en pause (sans arrêter le service ni sa notification) pour pouvoir la
@@ -451,23 +453,28 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    /** Construit le MediaItem unique utilisé pour la lecture — valide et identique pour le local
-     *  ET le Cast (URL réseau dans les deux cas, cf. doc de VideoPlaybackService). Attache la
-     *  piste sous-titres depuis le cache si elle est déjà disponible. */
+    /** Construit le MediaItem pour la lecture locale.
+     *
+     *  Important : on ne force plus toutes les vidéos à passer par le relais HTTP 127.0.0.1.
+     *  Le lecteur local lit directement file://, content://, http(s):// et smb:// via
+     *  BlazeDataSourceFactory. Le relais reste actif uniquement pour Chromecast, où
+     *  BlazeCastMediaItemConverter réécrit les sources non joignables en URL LAN. */
     private fun buildMediaItem(path: String, name: String): MediaItem {
-        // UPnP/DLNA fournit déjà une URL HTTP(S) directement lisible par Media3 et Chromecast.
-        // Ne pas la faire passer par le relais local : LocalStreamServer ne sait relayer que les
-        // fichiers locaux/content:// et SMB. L'ancien comportement transformait une URL UPnP en
-        // http://telephone:8927/stream/... puis le relais tentait d'ouvrir cette URL comme un
-        // fichier local, ce qui empêchait la vidéo de démarrer.
-        val url = if (path.startsWith("http://", true) || path.startsWith("https://", true)) {
-            path
-        } else {
-            VideoStreamServerManager.startServer(applicationContext, path)
-            VideoStreamServerManager.getStreamUrl() ?: path
+        try {
+            if (!path.startsWith("http://", true) && !path.startsWith("https://", true)) {
+                VideoStreamServerManager.startServer(applicationContext, path)
+            }
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Failed to refresh cast fallback stream for $path", e)
+        }
+        val uri = when {
+            path.startsWith("content://", true) || path.startsWith("file://", true) ||
+                path.startsWith("smb://", true) || path.startsWith("ftp://", true) ||
+                path.startsWith("http://", true) || path.startsWith("https://", true) -> Uri.parse(path)
+            else -> Uri.fromFile(File(path))
         }
         val builder = MediaItem.Builder()
-            .setUri(Uri.parse(url))
+            .setUri(uri)
             .setMediaId(path)
             .setMimeType(guessVideoMimeType(path))
             .setMediaMetadata(
@@ -492,6 +499,7 @@ class PlayerActivity : AppCompatActivity() {
             networkPlaybackReachedNaturalEnd = false
             networkEarlyEndRecoveries = 0
             networkStarvationRecoveries = 0
+            prematureLocalEndRecoveries = 0
         }
         val item = buildMediaItem(path, name)
         android.util.Log.i(
@@ -619,6 +627,35 @@ class PlayerActivity : AppCompatActivity() {
         } catch (e: Exception) {
             CrashReporter.log(this, "Network premature end recovery failed", e)
             showNetworkErrorDialog()
+        }
+    }
+
+    private fun shouldRecoverPrematureLocalEnd(): Boolean {
+        if (isNetworkPlayback()) return false
+        if (!::player.isInitialized) return false
+        if (closingPlayerExplicitly || videoStoppedByUser) return false
+        if (prematureLocalEndRecoveries >= 3) return false
+        val duration = player.duration
+        if (duration <= 0 || duration == C.TIME_UNSET) return false
+        val position = player.currentPosition.coerceAtLeast(lastKnownLocalPosition).coerceAtLeast(0L)
+        return position > 3_000L && duration - position > 12_000L
+    }
+
+    private fun recoverPrematureLocalEnd() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastLocalRecoverAtMs < 2_500L) return
+        lastLocalRecoverAtMs = now
+        prematureLocalEndRecoveries++
+        val retryPosition = player.currentPosition.coerceAtLeast(lastKnownLocalPosition).coerceAtLeast(0L)
+        android.util.Log.w("PlayerActivity", "Premature local end at ${retryPosition}ms, retry #$prematureLocalEndRecoveries for $mediaPath")
+        updatePlayPauseBtn(false)
+        cancelHide()
+        showUI()
+        try {
+            loadMedia(mediaPath, mediaName, retryPosition, autoPlay = true)
+        } catch (e: Exception) {
+            CrashReporter.log(this, "Local premature end recovery failed", e)
+            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.error_loading_media))
         }
     }
 
@@ -1029,6 +1066,10 @@ class PlayerActivity : AppCompatActivity() {
                         cancelNetworkStarvationWatch()
                         if (shouldRecoverPrematureNetworkEnd()) {
                             recoverPrematureNetworkEnd()
+                            return@runOnUiThread
+                        }
+                        if (shouldRecoverPrematureLocalEnd()) {
+                            recoverPrematureLocalEnd()
                             return@runOnUiThread
                         }
                         updatePlayPauseBtn(false)
@@ -2018,6 +2059,7 @@ class PlayerActivity : AppCompatActivity() {
             networkPlaybackReachedNaturalEnd = false
             networkEarlyEndRecoveries = 0
             networkStarvationRecoveries = 0
+            prematureLocalEndRecoveries = 0
             loadMedia(path, name)
             saveHistory()
             binding.root.alpha = 0f

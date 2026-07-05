@@ -1658,12 +1658,23 @@ class AudioPlayerFragment : Fragment() {
             typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD)
             gravity = Gravity.CENTER
         })
-        root.addView(ImageView(requireContext()).apply {
-            setImageBitmap(SimpleQrCode.bitmap(payload))
-            adjustViewBounds = true
-            layoutParams = LinearLayout.LayoutParams(dp(220), dp(220)).apply { topMargin = dp(16); bottomMargin = dp(12) }
-            contentDescription = getString(fr.retrospare.blazeplayer.R.string.blaze_party_qr_desc)
-        })
+        try {
+            root.addView(ImageView(requireContext()).apply {
+                setImageBitmap(SimpleQrCode.bitmap(payload))
+                adjustViewBounds = true
+                layoutParams = LinearLayout.LayoutParams(dp(220), dp(220)).apply { topMargin = dp(16); bottomMargin = dp(12) }
+                contentDescription = getString(fr.retrospare.blazeplayer.R.string.blaze_party_qr_desc)
+            })
+        } catch (e: IllegalArgumentException) {
+            CrashReporter.log(requireContext(), "Blaze Party QR generation failed for payload length=${payload.length}", e)
+            root.addView(TextView(requireContext()).apply {
+                text = payload
+                setTextColor(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.green_accent))
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(0, dp(16), 0, dp(12))
+            })
+        }
         root.addView(TextView(requireContext()).apply {
             text = getString(fr.retrospare.blazeplayer.R.string.blaze_party_share_code, ip, token)
             setTextColor(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.on_surface_variant))
