@@ -36,18 +36,65 @@ object PlaylistManager {
 
     private fun key(category: PlaylistCategory, slot: Int) = "${category.prefKey}_$slot"
 
+    private const val BLAZE_PARTY_PREFS = "blaze_party_dedicated_playlist"
+    private const val BLAZE_PARTY_KEY = "queue"
+
+    fun getBlazePartyPlaylist(context: Context): List<PlaylistTrackRef> {
+        val prefs = context.getSharedPreferences(BLAZE_PARTY_PREFS, Context.MODE_PRIVATE)
+        val json = prefs.getString(BLAZE_PARTY_KEY, null) ?: return emptyList()
+        return parsePlaylist(json)
+    }
+
+    fun addToBlazePartyPlaylist(context: Context, tracks: List<PlaylistTrackRef>): Int {
+        val current = getBlazePartyPlaylist(context).toMutableList()
+        val existingPaths = current.map { it.path }.toHashSet()
+        var added = 0
+        tracks.forEach { track ->
+            if (existingPaths.add(track.path)) {
+                current.add(track)
+                added++
+            }
+        }
+        if (added > 0) saveBlazePartyPlaylist(context, current)
+        return added
+    }
+
+    fun removeFromBlazePartyPlaylist(context: Context, path: String) {
+        saveBlazePartyPlaylist(context, getBlazePartyPlaylist(context).filter { it.path != path })
+    }
+
+    fun clearBlazePartyPlaylist(context: Context) {
+        context.getSharedPreferences(BLAZE_PARTY_PREFS, Context.MODE_PRIVATE).edit().remove(BLAZE_PARTY_KEY).commit()
+    }
+
+    private fun saveBlazePartyPlaylist(context: Context, tracks: List<PlaylistTrackRef>) {
+        val arr = JSONArray()
+        tracks.forEach { ref ->
+            arr.put(JSONObject().apply {
+                put("path", ref.path)
+                put("name", ref.name)
+            })
+        }
+        context.getSharedPreferences(BLAZE_PARTY_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(BLAZE_PARTY_KEY, arr.toString())
+            .commit()
+    }
+
+    private fun parsePlaylist(json: String): List<PlaylistTrackRef> = try {
+        val arr = JSONArray(json)
+        (0 until arr.length()).map {
+            val o = arr.getJSONObject(it)
+            PlaylistTrackRef(o.getString("path"), o.getString("name"))
+        }
+    } catch (_: Exception) {
+        emptyList()
+    }
+
     fun getPlaylist(context: Context, category: PlaylistCategory, slot: Int): List<PlaylistTrackRef> {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val json = prefs.getString(key(category, slot), null) ?: return emptyList()
-        return try {
-            val arr = JSONArray(json)
-            (0 until arr.length()).map {
-                val o = arr.getJSONObject(it)
-                PlaylistTrackRef(o.getString("path"), o.getString("name"))
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return parsePlaylist(json)
     }
 
     fun getAllSlotCounts(context: Context, category: PlaylistCategory): List<Int> =

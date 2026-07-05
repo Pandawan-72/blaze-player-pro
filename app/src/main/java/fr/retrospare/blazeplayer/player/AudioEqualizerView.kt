@@ -22,15 +22,15 @@ class AudioEqualizerView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val barCount = 10
+    private val barCount = 14
     private val values = FloatArray(barCount) { 0.08f }
     private val targetValues = FloatArray(barCount) { 0.08f }
     private val rollingPeaks = FloatArray(barCount) { 0.22f }
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var gradient: LinearGradient? = null
-    private var bottomColor: Int = 0xFFE7FF00.toInt()
-    private var middleColor: Int = 0xFFFFB000.toInt()
-    private var topColor: Int = 0xFFFF5A00.toInt()
+    private var bottomColor: Int = 0xFF087E80.toInt()
+    private var middleColor: Int = 0xFF14C8C4.toInt()
+    private var topColor: Int = 0xFF76FFF6.toInt()
 
     init {
         alpha = 1f
@@ -40,7 +40,7 @@ class AudioEqualizerView @JvmOverloads constructor(
     fun setAccentColor(accentColor: Int) {
         bottomColor = mix(accentColor, Color.BLACK, 0.18f)
         middleColor = accentColor
-        topColor = mix(accentColor, Color.WHITE, 0.46f)
+        topColor = mix(accentColor, Color.WHITE, 0.28f)
         rebuildGradient()
         invalidate()
     }
@@ -139,12 +139,14 @@ class AudioEqualizerView @JvmOverloads constructor(
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
         paint.shader = gradient
-        val gap = w * 0.035f
-        val barW = (w - gap * (barCount - 1)) / barCount
+        // Barres plus larges et visualiseur beaucoup plus étendu, proche de la maquette.
+        // Le gap est proportionnel à la largeur pour occuper presque tout l’écran sans débordement.
+        val gap = w * 0.012f
+        val barW = ((w - gap * (barCount - 1)) / barCount).coerceAtLeast(1f)
         val radius = barW / 2f
         for (i in 0 until barCount) {
             values[i] += (targetValues[i] - values[i]) * 0.34f
-            val minH = h * 0.16f
+            val minH = h * 0.26f
             val barH = min(h * 0.92f, minH + values[i] * (h - minH))
             val left = i * (barW + gap)
             val top = h - barH

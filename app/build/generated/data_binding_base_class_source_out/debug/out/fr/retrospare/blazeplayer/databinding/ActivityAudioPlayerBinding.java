@@ -19,6 +19,8 @@ import androidx.viewbinding.ViewBindings;
 import com.google.android.material.button.MaterialButton;
 import fr.retrospare.blazeplayer.R;
 import fr.retrospare.blazeplayer.player.AudioEqualizerView;
+import fr.retrospare.blazeplayer.ui.ArtworkMetadataOverlayLayout;
+import fr.retrospare.blazeplayer.ui.RoundedImageView;
 import java.lang.NullPointerException;
 import java.lang.Override;
 import java.lang.String;
@@ -31,10 +33,13 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
   public final FrameLayout artworkFrame;
 
   @NonNull
-  public final LinearLayout artworkMetadataOverlay;
+  public final ArtworkMetadataOverlayLayout artworkMetadataOverlay;
 
   @NonNull
   public final AudioEqualizerView audioEqualizerView;
+
+  @NonNull
+  public final LinearLayout audioPlaylistStrip;
 
   @NonNull
   public final TextView btnAddFolder;
@@ -58,10 +63,22 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
   public final TextView btnAudioPlaylist5;
 
   @NonNull
+  public final ImageButton btnAudioPlaylistParty;
+
+  @NonNull
   public final ImageButton btnBack;
 
   @NonNull
+  public final MaterialButton btnBlazeParty;
+
+  @NonNull
   public final TextView btnCleanPlaylist;
+
+  @NonNull
+  public final TextView btnClearPartyPlaylist;
+
+  @NonNull
+  public final ImageButton btnClosePartyPlaylist;
 
   @NonNull
   public final ImageButton btnClosePlaylist;
@@ -74,6 +91,9 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
 
   @NonNull
   public final LinearLayout btnInfos;
+
+  @NonNull
+  public final TextView btnLaunchPartyPlaylist;
 
   @NonNull
   public final ImageButton btnNext;
@@ -100,7 +120,16 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
   public final LinearLayout btnSleepTimer;
 
   @NonNull
-  public final ImageView ivArtwork;
+  public final TextView btnVotePartyPlaylist;
+
+  @NonNull
+  public final ImageView icLocalUserContext;
+
+  @NonNull
+  public final ImageView icPartyContext;
+
+  @NonNull
+  public final RoundedImageView ivArtwork;
 
   @NonNull
   public final View ivPixelChar;
@@ -109,7 +138,16 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
   public final View ivPixelCharLeft;
 
   @NonNull
+  public final LinearLayout partyPlaylistSheet;
+
+  @NonNull
+  public final LinearLayout playerPanel;
+
+  @NonNull
   public final LinearLayout playlistSheet;
+
+  @NonNull
+  public final RecyclerView recyclerPartyPlaylist;
 
   @NonNull
   public final RecyclerView recyclerPlaylist;
@@ -133,35 +171,40 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
   public final TextView tvCurrentTime;
 
   @NonNull
-  public final TextView tvNowPlaying;
-
-  @NonNull
   public final TextView tvTitle;
 
   @NonNull
   public final TextView tvTotalTime;
 
   private ActivityAudioPlayerBinding(@NonNull CoordinatorLayout rootView,
-      @NonNull FrameLayout artworkFrame, @NonNull LinearLayout artworkMetadataOverlay,
-      @NonNull AudioEqualizerView audioEqualizerView, @NonNull TextView btnAddFolder,
-      @NonNull MaterialButton btnAudioFavoriteFolders, @NonNull TextView btnAudioPlaylist1,
-      @NonNull TextView btnAudioPlaylist2, @NonNull TextView btnAudioPlaylist3,
-      @NonNull TextView btnAudioPlaylist4, @NonNull TextView btnAudioPlaylist5,
-      @NonNull ImageButton btnBack, @NonNull TextView btnCleanPlaylist,
-      @NonNull ImageButton btnClosePlaylist, @NonNull LinearLayout btnEq,
-      @NonNull ImageButton btnForward, @NonNull LinearLayout btnInfos, @NonNull ImageButton btnNext,
+      @NonNull FrameLayout artworkFrame,
+      @NonNull ArtworkMetadataOverlayLayout artworkMetadataOverlay,
+      @NonNull AudioEqualizerView audioEqualizerView, @NonNull LinearLayout audioPlaylistStrip,
+      @NonNull TextView btnAddFolder, @NonNull MaterialButton btnAudioFavoriteFolders,
+      @NonNull TextView btnAudioPlaylist1, @NonNull TextView btnAudioPlaylist2,
+      @NonNull TextView btnAudioPlaylist3, @NonNull TextView btnAudioPlaylist4,
+      @NonNull TextView btnAudioPlaylist5, @NonNull ImageButton btnAudioPlaylistParty,
+      @NonNull ImageButton btnBack, @NonNull MaterialButton btnBlazeParty,
+      @NonNull TextView btnCleanPlaylist, @NonNull TextView btnClearPartyPlaylist,
+      @NonNull ImageButton btnClosePartyPlaylist, @NonNull ImageButton btnClosePlaylist,
+      @NonNull LinearLayout btnEq, @NonNull ImageButton btnForward, @NonNull LinearLayout btnInfos,
+      @NonNull TextView btnLaunchPartyPlaylist, @NonNull ImageButton btnNext,
       @NonNull ImageButton btnPlayPause, @NonNull ImageButton btnPlaylistSheet,
       @NonNull ImageButton btnPrev, @NonNull ImageButton btnRepeat, @NonNull ImageButton btnRewind,
       @NonNull ImageButton btnShuffle, @NonNull LinearLayout btnSleepTimer,
-      @NonNull ImageView ivArtwork, @NonNull View ivPixelChar, @NonNull View ivPixelCharLeft,
-      @NonNull LinearLayout playlistSheet, @NonNull RecyclerView recyclerPlaylist,
-      @NonNull SeekBar seekBar, @NonNull TextView tvAlbum, @NonNull TextView tvArtist,
-      @NonNull TextView tvBitrate, @NonNull TextView tvCodec, @NonNull TextView tvCurrentTime,
-      @NonNull TextView tvNowPlaying, @NonNull TextView tvTitle, @NonNull TextView tvTotalTime) {
+      @NonNull TextView btnVotePartyPlaylist, @NonNull ImageView icLocalUserContext,
+      @NonNull ImageView icPartyContext, @NonNull RoundedImageView ivArtwork,
+      @NonNull View ivPixelChar, @NonNull View ivPixelCharLeft,
+      @NonNull LinearLayout partyPlaylistSheet, @NonNull LinearLayout playerPanel,
+      @NonNull LinearLayout playlistSheet, @NonNull RecyclerView recyclerPartyPlaylist,
+      @NonNull RecyclerView recyclerPlaylist, @NonNull SeekBar seekBar, @NonNull TextView tvAlbum,
+      @NonNull TextView tvArtist, @NonNull TextView tvBitrate, @NonNull TextView tvCodec,
+      @NonNull TextView tvCurrentTime, @NonNull TextView tvTitle, @NonNull TextView tvTotalTime) {
     this.rootView = rootView;
     this.artworkFrame = artworkFrame;
     this.artworkMetadataOverlay = artworkMetadataOverlay;
     this.audioEqualizerView = audioEqualizerView;
+    this.audioPlaylistStrip = audioPlaylistStrip;
     this.btnAddFolder = btnAddFolder;
     this.btnAudioFavoriteFolders = btnAudioFavoriteFolders;
     this.btnAudioPlaylist1 = btnAudioPlaylist1;
@@ -169,12 +212,17 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
     this.btnAudioPlaylist3 = btnAudioPlaylist3;
     this.btnAudioPlaylist4 = btnAudioPlaylist4;
     this.btnAudioPlaylist5 = btnAudioPlaylist5;
+    this.btnAudioPlaylistParty = btnAudioPlaylistParty;
     this.btnBack = btnBack;
+    this.btnBlazeParty = btnBlazeParty;
     this.btnCleanPlaylist = btnCleanPlaylist;
+    this.btnClearPartyPlaylist = btnClearPartyPlaylist;
+    this.btnClosePartyPlaylist = btnClosePartyPlaylist;
     this.btnClosePlaylist = btnClosePlaylist;
     this.btnEq = btnEq;
     this.btnForward = btnForward;
     this.btnInfos = btnInfos;
+    this.btnLaunchPartyPlaylist = btnLaunchPartyPlaylist;
     this.btnNext = btnNext;
     this.btnPlayPause = btnPlayPause;
     this.btnPlaylistSheet = btnPlaylistSheet;
@@ -183,10 +231,16 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
     this.btnRewind = btnRewind;
     this.btnShuffle = btnShuffle;
     this.btnSleepTimer = btnSleepTimer;
+    this.btnVotePartyPlaylist = btnVotePartyPlaylist;
+    this.icLocalUserContext = icLocalUserContext;
+    this.icPartyContext = icPartyContext;
     this.ivArtwork = ivArtwork;
     this.ivPixelChar = ivPixelChar;
     this.ivPixelCharLeft = ivPixelCharLeft;
+    this.partyPlaylistSheet = partyPlaylistSheet;
+    this.playerPanel = playerPanel;
     this.playlistSheet = playlistSheet;
+    this.recyclerPartyPlaylist = recyclerPartyPlaylist;
     this.recyclerPlaylist = recyclerPlaylist;
     this.seekBar = seekBar;
     this.tvAlbum = tvAlbum;
@@ -194,7 +248,6 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
     this.tvBitrate = tvBitrate;
     this.tvCodec = tvCodec;
     this.tvCurrentTime = tvCurrentTime;
-    this.tvNowPlaying = tvNowPlaying;
     this.tvTitle = tvTitle;
     this.tvTotalTime = tvTotalTime;
   }
@@ -233,7 +286,7 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
       }
 
       id = R.id.artworkMetadataOverlay;
-      LinearLayout artworkMetadataOverlay = ViewBindings.findChildViewById(rootView, id);
+      ArtworkMetadataOverlayLayout artworkMetadataOverlay = ViewBindings.findChildViewById(rootView, id);
       if (artworkMetadataOverlay == null) {
         break missingId;
       }
@@ -241,6 +294,12 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
       id = R.id.audioEqualizerView;
       AudioEqualizerView audioEqualizerView = ViewBindings.findChildViewById(rootView, id);
       if (audioEqualizerView == null) {
+        break missingId;
+      }
+
+      id = R.id.audioPlaylistStrip;
+      LinearLayout audioPlaylistStrip = ViewBindings.findChildViewById(rootView, id);
+      if (audioPlaylistStrip == null) {
         break missingId;
       }
 
@@ -286,15 +345,39 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnAudioPlaylistParty;
+      ImageButton btnAudioPlaylistParty = ViewBindings.findChildViewById(rootView, id);
+      if (btnAudioPlaylistParty == null) {
+        break missingId;
+      }
+
       id = R.id.btnBack;
       ImageButton btnBack = ViewBindings.findChildViewById(rootView, id);
       if (btnBack == null) {
         break missingId;
       }
 
+      id = R.id.btnBlazeParty;
+      MaterialButton btnBlazeParty = ViewBindings.findChildViewById(rootView, id);
+      if (btnBlazeParty == null) {
+        break missingId;
+      }
+
       id = R.id.btnCleanPlaylist;
       TextView btnCleanPlaylist = ViewBindings.findChildViewById(rootView, id);
       if (btnCleanPlaylist == null) {
+        break missingId;
+      }
+
+      id = R.id.btnClearPartyPlaylist;
+      TextView btnClearPartyPlaylist = ViewBindings.findChildViewById(rootView, id);
+      if (btnClearPartyPlaylist == null) {
+        break missingId;
+      }
+
+      id = R.id.btnClosePartyPlaylist;
+      ImageButton btnClosePartyPlaylist = ViewBindings.findChildViewById(rootView, id);
+      if (btnClosePartyPlaylist == null) {
         break missingId;
       }
 
@@ -319,6 +402,12 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
       id = R.id.btnInfos;
       LinearLayout btnInfos = ViewBindings.findChildViewById(rootView, id);
       if (btnInfos == null) {
+        break missingId;
+      }
+
+      id = R.id.btnLaunchPartyPlaylist;
+      TextView btnLaunchPartyPlaylist = ViewBindings.findChildViewById(rootView, id);
+      if (btnLaunchPartyPlaylist == null) {
         break missingId;
       }
 
@@ -370,8 +459,26 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnVotePartyPlaylist;
+      TextView btnVotePartyPlaylist = ViewBindings.findChildViewById(rootView, id);
+      if (btnVotePartyPlaylist == null) {
+        break missingId;
+      }
+
+      id = R.id.icLocalUserContext;
+      ImageView icLocalUserContext = ViewBindings.findChildViewById(rootView, id);
+      if (icLocalUserContext == null) {
+        break missingId;
+      }
+
+      id = R.id.icPartyContext;
+      ImageView icPartyContext = ViewBindings.findChildViewById(rootView, id);
+      if (icPartyContext == null) {
+        break missingId;
+      }
+
       id = R.id.ivArtwork;
-      ImageView ivArtwork = ViewBindings.findChildViewById(rootView, id);
+      RoundedImageView ivArtwork = ViewBindings.findChildViewById(rootView, id);
       if (ivArtwork == null) {
         break missingId;
       }
@@ -388,9 +495,27 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.partyPlaylistSheet;
+      LinearLayout partyPlaylistSheet = ViewBindings.findChildViewById(rootView, id);
+      if (partyPlaylistSheet == null) {
+        break missingId;
+      }
+
+      id = R.id.playerPanel;
+      LinearLayout playerPanel = ViewBindings.findChildViewById(rootView, id);
+      if (playerPanel == null) {
+        break missingId;
+      }
+
       id = R.id.playlistSheet;
       LinearLayout playlistSheet = ViewBindings.findChildViewById(rootView, id);
       if (playlistSheet == null) {
+        break missingId;
+      }
+
+      id = R.id.recyclerPartyPlaylist;
+      RecyclerView recyclerPartyPlaylist = ViewBindings.findChildViewById(rootView, id);
+      if (recyclerPartyPlaylist == null) {
         break missingId;
       }
 
@@ -436,12 +561,6 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.tvNowPlaying;
-      TextView tvNowPlaying = ViewBindings.findChildViewById(rootView, id);
-      if (tvNowPlaying == null) {
-        break missingId;
-      }
-
       id = R.id.tvTitle;
       TextView tvTitle = ViewBindings.findChildViewById(rootView, id);
       if (tvTitle == null) {
@@ -455,13 +574,15 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
       }
 
       return new ActivityAudioPlayerBinding((CoordinatorLayout) rootView, artworkFrame,
-          artworkMetadataOverlay, audioEqualizerView, btnAddFolder, btnAudioFavoriteFolders,
-          btnAudioPlaylist1, btnAudioPlaylist2, btnAudioPlaylist3, btnAudioPlaylist4,
-          btnAudioPlaylist5, btnBack, btnCleanPlaylist, btnClosePlaylist, btnEq, btnForward,
-          btnInfos, btnNext, btnPlayPause, btnPlaylistSheet, btnPrev, btnRepeat, btnRewind,
-          btnShuffle, btnSleepTimer, ivArtwork, ivPixelChar, ivPixelCharLeft, playlistSheet,
-          recyclerPlaylist, seekBar, tvAlbum, tvArtist, tvBitrate, tvCodec, tvCurrentTime,
-          tvNowPlaying, tvTitle, tvTotalTime);
+          artworkMetadataOverlay, audioEqualizerView, audioPlaylistStrip, btnAddFolder,
+          btnAudioFavoriteFolders, btnAudioPlaylist1, btnAudioPlaylist2, btnAudioPlaylist3,
+          btnAudioPlaylist4, btnAudioPlaylist5, btnAudioPlaylistParty, btnBack, btnBlazeParty,
+          btnCleanPlaylist, btnClearPartyPlaylist, btnClosePartyPlaylist, btnClosePlaylist, btnEq,
+          btnForward, btnInfos, btnLaunchPartyPlaylist, btnNext, btnPlayPause, btnPlaylistSheet,
+          btnPrev, btnRepeat, btnRewind, btnShuffle, btnSleepTimer, btnVotePartyPlaylist,
+          icLocalUserContext, icPartyContext, ivArtwork, ivPixelChar, ivPixelCharLeft,
+          partyPlaylistSheet, playerPanel, playlistSheet, recyclerPartyPlaylist, recyclerPlaylist,
+          seekBar, tvAlbum, tvArtist, tvBitrate, tvCodec, tvCurrentTime, tvTitle, tvTotalTime);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

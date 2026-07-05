@@ -29,6 +29,24 @@ class PlaylistAdapter(
     private var currentIndex = 0
     private var currentPositionMs = 0L
     private var currentDurationMs = 0L
+    private var overrideItems: List<MediaItem>? = null
+
+    /**
+     * File affichée indépendante du Player. Utilisé pendant Blaze Party pour que la
+     * file locale personnelle de l’hôte ne soit jamais remplacée visuellement par
+     * la file Party, même si le Player lit temporairement la Party.
+     */
+    fun setOverrideItems(items: List<MediaItem>?) {
+        overrideItems = items
+        currentIndex = currentIndex.coerceAtMost((items?.size ?: (player()?.mediaItemCount ?: 1)) - 1).coerceAtLeast(0)
+        notifyDataSetChanged()
+    }
+
+    fun hasOverrideItems(): Boolean = overrideItems != null
+
+    fun overrideItemAt(position: Int): MediaItem? = overrideItems?.let {
+        if (position in it.indices) it[position] else null
+    }
 
     fun setPlayingIndex(index: Int) {
         val old = currentPlayingIndex
@@ -61,8 +79,9 @@ class PlaylistAdapter(
         notifyDataSetChanged()
     }
 
-    private fun itemAt(position: Int): MediaItem? = player()?.let {
-        if (position in 0 until it.mediaItemCount) it.getMediaItemAt(position) else null
+    private fun itemAt(position: Int): MediaItem? {
+        overrideItems?.let { return if (position in it.indices) it[position] else null }
+        return player()?.let { if (position in 0 until it.mediaItemCount) it.getMediaItemAt(position) else null }
     }
 
     private fun pathAt(position: Int): String =
@@ -105,7 +124,7 @@ class PlaylistAdapter(
         holder.cancelPendingLoad()
     }
 
-    override fun getItemCount(): Int = player()?.mediaItemCount ?: 0
+    override fun getItemCount(): Int = overrideItems?.size ?: (player()?.mediaItemCount ?: 0)
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvName: TextView = view.findViewById(R.id.tvTrackName)

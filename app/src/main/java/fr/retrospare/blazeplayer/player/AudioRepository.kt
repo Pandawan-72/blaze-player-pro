@@ -168,11 +168,13 @@ object AudioRepository {
 
         val ext = clean.substringAfterLast('.', "").lowercase()
         if (ext in setOf("mp3", "flac", "m4a", "aac", "wav", "ogg", "oga", "opus", "wma", "ape", "dts", "ac3", "mka", "wv", "aiff", "alac")) return true
-        // Certains serveurs UPnP/DLNA exposent les pistes via des URLs temporaires sans extension
-        // (ex: /object/12345?token=...). Le navigateur audio les a déjà filtrées grâce au MIME
-        // UPnP audio/* ; il ne faut donc pas les supprimer de la file ni de la sauvegarde juste
-        // parce que l'URL HTTP ne contient pas .mp3/.flac.
-        return (path.startsWith("http://", true) || path.startsWith("https://", true)) && ext.isBlank()
+        // Les morceaux ajoutés depuis un chemin réseau doivent persister exactement comme
+        // les fichiers locaux, même quand le serveur ne fournit pas d'extension dans l'URL/URI.
+        // Le navigateur réseau a déjà filtré les médias audio en amont ; ici on évite surtout
+        // de les supprimer de la file sauvegardée et de la file Blaze Party.
+        return (path.startsWith("smb://", true) ||
+            path.startsWith("http://", true) ||
+            path.startsWith("https://", true)) && ext.isBlank()
     }
 
     fun buildSimpleMediaItem(context: Context, path: String, fileName: String): MediaItem {

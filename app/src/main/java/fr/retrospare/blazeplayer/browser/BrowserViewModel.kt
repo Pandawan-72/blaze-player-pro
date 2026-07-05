@@ -38,7 +38,7 @@ class BrowserViewModel @Inject constructor(
     sealed class BrowserState {
         object Loading : BrowserState()
         data class Success(val items: List<MediaItem>) : BrowserState()
-        data class Error(val message: String) : BrowserState()
+        data class Error(val message: String = "", val resId: Int? = null) : BrowserState()
     }
 
     private val _state = MutableStateFlow<BrowserState>(BrowserState.Loading)
@@ -75,7 +75,7 @@ class BrowserViewModel @Inject constructor(
             _state.value = BrowserState.Loading
             val shares = networkRepository.getShares().first()
             if (shares.isEmpty()) {
-                _state.value = BrowserState.Error("Aucun chemin réseau configuré")
+                _state.value = BrowserState.Error(resId = fr.retrospare.blazeplayer.R.string.toast_no_network_path_configured)
             } else {
                 val items = shares.map { share ->
                     fr.retrospare.blazeplayer.data.model.MediaItem(
@@ -126,7 +126,7 @@ class BrowserViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _state.value = BrowserState.Error(e.message ?: "Erreur de lecture")
+                _state.value = BrowserState.Error(e.message ?: "")
             }
         }
     }
@@ -136,11 +136,11 @@ class BrowserViewModel @Inject constructor(
             _state.value = BrowserState.Loading
             try {
                 val share = networkRepository.getShareById(shareId)
-                if (share == null) { _state.value = BrowserState.Error("Partage introuvable"); return@launch }
+                if (share == null) { _state.value = BrowserState.Error(resId = fr.retrospare.blazeplayer.R.string.toast_share_not_found); return@launch }
                 currentShare = share
                 loadNetworkFiles(share, path)
             } catch (e: Exception) {
-                _state.value = BrowserState.Error(e.message ?: "Erreur")
+                _state.value = BrowserState.Error(e.message ?: "")
             }
         }
     }
@@ -172,10 +172,10 @@ class BrowserViewModel @Inject constructor(
                         }
                     }
                 }.onFailure { e ->
-                    _state.value = BrowserState.Error(e.message ?: "Erreur réseau SMB")
+                    _state.value = BrowserState.Error(e.message ?: "SMB")
                 }
             } catch (e: Exception) {
-                _state.value = BrowserState.Error(e.message ?: "Erreur réseau")
+                _state.value = BrowserState.Error(e.message ?: "Network")
             }
         }
     }

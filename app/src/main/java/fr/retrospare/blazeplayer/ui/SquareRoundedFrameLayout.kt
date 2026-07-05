@@ -18,6 +18,11 @@ class SquareRoundedFrameLayout @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : RoundedFrameLayout(context, attrs, defStyleAttr) {
 
+    init {
+        radiusDp = 0f
+        clipToOutline = false
+    }
+
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, widthMeasureSpec)
     }

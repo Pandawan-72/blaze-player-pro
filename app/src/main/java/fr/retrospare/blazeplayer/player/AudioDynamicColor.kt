@@ -47,7 +47,7 @@ object AudioDynamicColor {
     }
 
     /** Fond sombre teinté par l'accent (même dosage que l'écran Blaze Audio). */
-    fun backgroundFromAccent(accent: Int): Int = mix(Color.rgb(8, 10, 12), accent, 0.30f)
+    fun backgroundFromAccent(accent: Int): Int = mix(Color.rgb(4, 14, 16), accent, 0.30f)
 
     fun mix(a: Int, b: Int, amount: Float): Int {
         val t = amount.coerceIn(0f, 1f)

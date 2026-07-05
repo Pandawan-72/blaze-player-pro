@@ -61,6 +61,8 @@
     <!-- Playlists / sélection -->
     <string name="add_tracks">Ajouter des pistes</string>
     <string name="add_selection_to_playlist">Ajouter la sélection à une playlist</string>
+    <string name="add_to_playlist_short">Ajouter à playlist</string>
+    <string name="add_to_party_short">Ajouter à Party</string>
     <string name="play_selection">Lire la sélection</string>
     <string name="add_all">Tout ajouter</string>
     <string name="save_current_list">Sauvegarder la liste en cours</string>
@@ -497,6 +499,16 @@
     <string name="action_open">Ouvrir</string>
     <string name="action_share">Partager</string>
 
+
+    <string name="gallery_create_folder">Dossier</string>
+    <string name="gallery_create_folder_title">Nouveau dossier photo</string>
+    <string name="gallery_create_folder_hint">Nom du dossier</string>
+    <string name="gallery_folder_created">Dossier créé</string>
+    <string name="gallery_folder_create_error">Impossible de créer le dossier</string>
+    <string name="gallery_move_to_folder">Déplacer vers autre dossier</string>
+    <string name="gallery_move_photo_title">Déplacer vers</string>
+    <string name="gallery_photo_moved">Photo déplacée</string>
+    <string name="gallery_photo_move_error">Impossible de déplacer la photo</string>
     <string name="gallery_trash">Corbeille</string>
     <string name="gallery_empty_trash">Vider définitivement</string>
     <string name="gallery_restore">Restaurer</string>
@@ -531,4 +543,52 @@
     <string name="settings_audio_spectrum">Activer le spectre visuel</string>
     <string name="settings_audio_spectrum_desc">Afficher le visualiseur audio animé dans Blaze Audio.</string>
 
+    <!-- Blaze Party -->
+    <string name="blaze_party">Blaze Party</string>
+    <string name="blaze_party_intro">Crée une session locale ou rejoins une file d’attente partagée sur le même Wi‑Fi.</string>
+    <string name="blaze_party_host">Hôte Blaze Party</string>
+    <string name="blaze_party_join">Rejoindre Blaze Party</string>
+    <string name="blaze_party_disconnect">Se déconnecter</string>
+    <string name="blaze_party_disconnected">Déconnecté de Blaze Party</string>
+    <string name="blaze_party_host_title">Hôte Blaze Party</string>
+    <string name="blaze_party_qr_desc">QR code Blaze Party</string>
+    <string name="blaze_party_share_code">Adresse : %1$s
+Code : %2$s</string>
+    <string name="blaze_party_host_waiting">Session prête : les invités peuvent scanner ce code.</string>
+    <string name="blaze_party_manual_hint">Coller le lien ou saisir le code</string>
+    <string name="blaze_party_scan_unavailable">Scanner QR indisponible. Installe un scanner QR ou saisis le code manuellement.</string>
+    <string name="blaze_party_joined">Session Blaze Party rejointe</string>
+    <string name="action_join">Rejoindre</string>
+
+    <string name="blaze_party_short">Party</string>
+    <string name="add_to_blaze_party">Ajouter à Blaze Party</string>
+    <string name="blaze_party_playlist_title">Playlist Blaze Party</string>
+    <string name="blaze_party_playlist_empty_message">Aucun morceau dans la playlist Blaze Party. Ajoutez des morceaux depuis le navigateur audio avec « Ajouter à Blaze Party ».</string>
+    <string name="blaze_party_items_already_present">Ces morceaux sont déjà dans Blaze Party</string>
+    <string name="toast_blaze_party_playlist_emptied">Playlist Blaze Party vidée</string>
+    <plurals name="blaze_party_items_added">
+        <item quantity="one">%d morceau ajouté à Blaze Party</item>
+        <item quantity="other">%d morceaux ajoutés à Blaze Party</item>
+    </plurals>
+
+
+    <string name="blaze_party_launch">Lancer</string>
+    <string name="blaze_party_vote">Voter</string>
+    <string name="blaze_party_vote_hint">Touchez un morceau pour voir les votes et voter.</string>
+    <string name="blaze_party_vote_saved">Vote enregistré</string>
+    <string name="blaze_party_no_voters">Aucun vote pour le moment</string>
+    <string name="blaze_party_not_host_queue">Vous n’êtes pas l’hôte de cette file d’attente</string>
+    <string name="blaze_party_remove_vote">Retirer mon vote</string>
+    <string name="blaze_party_vote_removed">Vote retiré</string>
+    <string name="blaze_party_nickname">Pseudo</string>
+    <string name="blaze_party_nickname_hint">Votre pseudo</string>
+    <string name="blaze_party_nickname_title">Choisir un pseudo Blaze Party</string>
+    <plurals name="blaze_party_vote_count">
+        <item quantity="one">%d vote</item>
+        <item quantity="other">%d votes</item>
+    </plurals>
+
+    <string name="gallery_folder_button">Dossier</string>
+    <string name="blaze_party_default_host">Hôte</string>
+    <string name="blaze_party_default_guest">Invité</string>
 </resources>

@@ -71,6 +71,14 @@
     <color name="white">#FFFFFFFF</color>
     <color name="yellow_accent">#F0B429</color>
     <color name="yellow_container">#2A1F00</color>
+    <plurals name="blaze_party_items_added">
+        <item quantity="one">%d morceau ajouté à Blaze Party</item>
+        <item quantity="other">%d morceaux ajoutés à Blaze Party</item>
+    </plurals>
+    <plurals name="blaze_party_vote_count">
+        <item quantity="one">%d vote</item>
+        <item quantity="other">%d votes</item>
+    </plurals>
     <plurals name="devices_found">
         <item quantity="one">%1$d appareil trouvé</item>
         <item quantity="other">%1$d appareils trouvés</item>
@@ -138,6 +146,7 @@
     <string name="action_from_beginning">Depuis le début</string>
     <string name="action_ignore">Ignorer</string>
     <string name="action_information">Informations</string>
+    <string name="action_join">Rejoindre</string>
     <string name="action_manage">Gérer</string>
     <string name="action_off">Désactivé</string>
     <string name="action_ok">OK</string>
@@ -161,10 +170,44 @@
     <string name="add_manually">Ajouter manuellement</string>
     <string name="add_network_path">Ajouter un chemin réseau</string>
     <string name="add_selection_to_playlist">Ajouter la sélection à une playlist</string>
+    <string name="add_to_blaze_party">Ajouter à Blaze Party</string>
+    <string name="add_to_party_short">Ajouter à Party</string>
+    <string name="add_to_playlist_short">Ajouter à playlist</string>
     <string name="add_tracks">Ajouter des pistes</string>
     <string name="app_name">Blaze Player</string>
     <string name="audio_track">Piste audio</string>
     <string name="available_devices">Appareils disponibles</string>
+    <string name="blaze_party">Blaze Party</string>
+    <string name="blaze_party_default_guest">Invité</string>
+    <string name="blaze_party_default_host">Hôte</string>
+    <string name="blaze_party_disconnect">Se déconnecter</string>
+    <string name="blaze_party_disconnected">Déconnecté de Blaze Party</string>
+    <string name="blaze_party_host">Hôte Blaze Party</string>
+    <string name="blaze_party_host_title">Hôte Blaze Party</string>
+    <string name="blaze_party_host_waiting">Session prête : les invités peuvent scanner ce code.</string>
+    <string name="blaze_party_intro">Crée une session locale ou rejoins une file d’attente partagée sur le même Wi‑Fi.</string>
+    <string name="blaze_party_items_already_present">Ces morceaux sont déjà dans Blaze Party</string>
+    <string name="blaze_party_join">Rejoindre Blaze Party</string>
+    <string name="blaze_party_joined">Session Blaze Party rejointe</string>
+    <string name="blaze_party_launch">Lancer</string>
+    <string name="blaze_party_manual_hint">Coller le lien ou saisir le code</string>
+    <string name="blaze_party_nickname">Pseudo</string>
+    <string name="blaze_party_nickname_hint">Votre pseudo</string>
+    <string name="blaze_party_nickname_title">Choisir un pseudo Blaze Party</string>
+    <string name="blaze_party_no_voters">Aucun vote pour le moment</string>
+    <string name="blaze_party_not_host_queue">Vous n’êtes pas l’hôte de cette file d’attente</string>
+    <string name="blaze_party_playlist_empty_message">Aucun morceau dans la playlist Blaze Party. Ajoutez des morceaux depuis le navigateur audio avec « Ajouter à Blaze Party ».</string>
+    <string name="blaze_party_playlist_title">Playlist Blaze Party</string>
+    <string name="blaze_party_qr_desc">QR code Blaze Party</string>
+    <string name="blaze_party_remove_vote">Retirer mon vote</string>
+    <string name="blaze_party_scan_unavailable">Scanner QR indisponible. Installe un scanner QR ou saisis le code manuellement.</string>
+    <string name="blaze_party_share_code">Adresse : %1$s
+Code : %2$s</string>
+    <string name="blaze_party_short">Party</string>
+    <string name="blaze_party_vote">Voter</string>
+    <string name="blaze_party_vote_hint">Touchez un morceau pour voir les votes et voter.</string>
+    <string name="blaze_party_vote_removed">Vote retiré</string>
+    <string name="blaze_party_vote_saved">Vote enregistré</string>
     <string name="breadcrumb_home">Accueil</string>
     <string name="browse_files_local">Fichiers locaux</string>
     <string name="browse_files_network">Fichiers réseau</string>
@@ -262,14 +305,24 @@
     <string name="forward_10s">+10s</string>
     <string name="free_label">Gratuit</string>
     <string name="free_trial_15_days">15 jours d\'essai gratuit</string>
+    <string name="gallery_create_folder">Dossier</string>
+    <string name="gallery_create_folder_hint">Nom du dossier</string>
+    <string name="gallery_create_folder_title">Nouveau dossier photo</string>
     <string name="gallery_delete">Supprimer</string>
     <string name="gallery_delete_all">Supprimer tout</string>
     <string name="gallery_delete_folder">Supprimer dossier</string>
     <string name="gallery_delete_permanently_from_trash">Supprimer définitivement de la corbeille</string>
     <string name="gallery_empty_trash">Vider définitivement</string>
+    <string name="gallery_folder_button">Dossier</string>
+    <string name="gallery_folder_create_error">Impossible de créer le dossier</string>
+    <string name="gallery_folder_created">Dossier créé</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_folders">Blaze Gallery — dossiers</string>
+    <string name="gallery_move_photo_title">Déplacer vers</string>
+    <string name="gallery_move_to_folder">Déplacer vers autre dossier</string>
     <string name="gallery_moved_to_trash">Photo envoyée dans la corbeille</string>
+    <string name="gallery_photo_move_error">Impossible de déplacer la photo</string>
+    <string name="gallery_photo_moved">Photo déplacée</string>
     <string name="gallery_restore">Restaurer</string>
     <string name="gallery_selected_count">%1$d sélectionnée(s)</string>
     <string name="gallery_share_all">Partager tout</string>
@@ -472,6 +525,7 @@
     <string name="toast_added_to_favorites">%1$s ajouté aux favoris</string>
     <string name="toast_added_to_favorites_short">Ajouté aux favoris</string>
     <string name="toast_billing_soon">Achats bientôt disponibles</string>
+    <string name="toast_blaze_party_playlist_emptied">Playlist Blaze Party vidée</string>
     <string name="toast_cannot_open_screen_cast_settings">Impossible d\'ouvrir les paramètres de diffusion d\'écran</string>
     <string name="toast_capture_failed">Capture vidéo impossible</string>
     <string name="toast_capture_unavailable">Capture vidéo indisponible</string>
@@ -523,7 +577,7 @@
     <string name="zero_time">0:00</string>
     <string name="zero_time_long">0:00:00</string>
     <style name="BlazeBottomSheet" parent="Widget.Material3.BottomSheet">
-        <item name="backgroundTint">@color/surface</item>
+        <item name="backgroundTint">#0D0F14</item>
         <item name="shapeAppearance">@style/ShapeAppearance.BlazePlayer.BottomSheet</item>
     </style>
     <style name="ShapeAppearance.BlazePlayer.BottomNavigationView.ActiveIndicator" parent="">
@@ -531,14 +585,24 @@
     </style>
     <style name="ShapeAppearance.BlazePlayer.BottomSheet" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSizeTopLeft">16dp</item>
-        <item name="cornerSizeTopRight">16dp</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">28dp</item>
+    </style>
+    <style name="ShapeAppearance.BlazePlayer.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
     </style>
     <style name="TabTextAppearance" parent="TextAppearance.Design.Tab">
         <item name="android:textSize">13sp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:paddingStart">12dp</item>
         <item name="android:paddingEnd">12dp</item>
+    </style>
+    <style name="TextAppearance.BlazePlayer.DialogTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/on_background</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
     </style>
     <style name="Theme.BlazePlayer" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:fontFamily">sans-serif-condensed</item>
@@ -551,7 +615,7 @@
         <item name="colorOnSecondary">@color/background</item>
         <item name="colorTertiary">@color/blue_accent</item>
         <item name="android:colorBackground">@color/background</item>
-        <item name="colorSurface">@color/surface</item>
+        <item name="colorSurface">#0D0F14</item>
         <item name="colorOnSurface">@color/on_background</item>
         <item name="colorSurfaceVariant">@color/surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
@@ -560,6 +624,12 @@
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:alertDialogTheme">@style/ThemeOverlay.BlazePlayer.Dialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.BlazePlayer.Dialog</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.BlazePlayer.Dialog</item>
+        <item name="popupMenuStyle">@style/Widget.BlazePlayer.PopupMenu</item>
+        <item name="android:popupMenuStyle">@style/Widget.BlazePlayer.PopupMenu</item>
+        <item name="android:windowActionModeOverlay">true</item>
     </style>
     <style name="Theme.BlazePlayer.Fullscreen" parent="Theme.BlazePlayer">
         <item name="android:windowFullscreen">true</item>
@@ -573,6 +643,19 @@
     <style name="ThemeOverlay.BlazePlayer.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/BlazeBottomSheet</item>
     </style>
+    <style name="ThemeOverlay.BlazePlayer.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">#0D0F14</item>
+        <item name="colorOnSurface">@color/on_background</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.BlazePlayer.Dialog</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
+        <item name="android:windowBackground">@drawable/bg_modal_video_style</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.72</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+    </style>
     <style name="Widget.BlazePlayer.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
         <item name="itemActiveIndicatorStyle">@style/Widget.BlazePlayer.BottomNavigationView.ActiveIndicator</item>
         <item name="android:background">@color/surface</item>
@@ -580,5 +663,15 @@
     <style name="Widget.BlazePlayer.BottomNavigationView.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
         <item name="android:color">@android:color/transparent</item>
         <item name="shapeAppearance">@style/ShapeAppearance.BlazePlayer.BottomNavigationView.ActiveIndicator</item>
+    </style>
+    <style name="Widget.BlazePlayer.DialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/on_background</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
+    </style>
+    <style name="Widget.BlazePlayer.PopupMenu" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@drawable/bg_modal_video_style</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
     </style>
 </resources>

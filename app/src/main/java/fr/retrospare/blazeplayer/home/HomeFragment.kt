@@ -7,6 +7,8 @@ import android.os.Build
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.provider.MediaStore
+import android.content.ContentValues
+import android.os.Environment
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.OnBackPressedCallback
@@ -346,7 +348,11 @@ class HomeFragment : Fragment() {
         currentGalleryBucketName = null
         galleryTrashMode = false
         clearGallerySelection()
-        binding.btnFavoritesCloud.visibility = View.GONE
+        binding.btnFavoritesCloud.visibility = View.VISIBLE
+        binding.btnFavoritesCloud.text = getString(R.string.gallery_folder_button)
+        binding.btnFavoritesCloud.setIconResource(R.drawable.ic_add)
+        binding.btnFavoritesCloud.setOnClickListener { showCreateGalleryFolderDialog() }
+        styleGalleryBackButton()
         binding.btnCloudFiles.visibility = View.VISIBLE
         binding.btnCloudFiles.text = getString(R.string.gallery_trash)
         binding.btnCloudFiles.setIconResource(R.drawable.ic_trash)
@@ -361,6 +367,7 @@ class HomeFragment : Fragment() {
         binding.listCloud.apply {
             setHasFixedSize(true)
             setItemViewCacheSize(12)
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
             layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2)
             itemAnimator = null
         }
@@ -402,6 +409,7 @@ class HomeFragment : Fragment() {
         binding.listCloud.apply {
             setHasFixedSize(true)
             setItemViewCacheSize(24)
+            setBackgroundColor(android.graphics.Color.BLACK)
             layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
             itemAnimator = null
         }
@@ -431,7 +439,8 @@ class HomeFragment : Fragment() {
             MediaStore.Images.Media.BUCKET_ID,
             MediaStore.Images.Media.BUCKET_DISPLAY_NAME,
             MediaStore.Images.Media.DATE_MODIFIED,
-            MediaStore.Images.Media._ID
+            MediaStore.Images.Media._ID,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Images.Media.RELATIVE_PATH else MediaStore.Images.Media.DATA
         )
         val folders = linkedMapOf<String, MutableGalleryFolder>()
         val queryArgs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -450,16 +459,32 @@ class HomeFragment : Fragment() {
             val bucketIdCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_ID)
             val bucketNameCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.BUCKET_DISPLAY_NAME)
             val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+            val folderPathCol = cursor.getColumnIndexOrThrow(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Images.Media.RELATIVE_PATH else MediaStore.Images.Media.DATA)
             while (cursor.moveToNext()) {
                 val bucketId = cursor.getString(bucketIdCol) ?: continue
                 val bucketName = cursor.getString(bucketNameCol)?.takeIf { it.isNotBlank() } ?: getString(R.string.gallery_unknown_folder)
                 val date = cursor.getLong(dateCol)
                 val imageId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
                 val imageUri = android.content.ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, imageId).toString()
-                val folder = folders.getOrPut(bucketId) { MutableGalleryFolder(bucketId, bucketName) }
+                val relativePath = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    cursor.getString(folderPathCol)?.takeIf { it.isNotBlank() } ?: "${Environment.DIRECTORY_PICTURES}/$bucketName/"
+                } else {
+                    File(cursor.getString(folderPathCol).orEmpty()).parentFile?.absolutePath.orEmpty()
+                }
+                val folder = folders.getOrPut(bucketId) { MutableGalleryFolder(bucketId, bucketName, relativePath = relativePath) }
                 folder.count += 1
                 if (folder.previewUris.size < 4) folder.previewUris += imageUri
                 if (date > folder.lastModified) folder.lastModified = date
+            }
+        }
+        getCreatedGalleryFolders().forEach { relativePath ->
+            val name = relativePath.trimEnd('/').substringAfterLast('/').ifBlank { getString(R.string.gallery_unknown_folder) }
+            if (folders.values.none { it.relativePath == relativePath }) {
+                folders["created_$relativePath"] = MutableGalleryFolder(
+                    bucketId = "relative:$relativePath",
+                    name = name,
+                    relativePath = relativePath
+                )
             }
         }
         val result = folders.values.map {
@@ -470,6 +495,7 @@ class HomeFragment : Fragment() {
                 size = it.count.toLong(),
                 lastPlayedAt = it.lastModified,
                 mimeType = "folder",
+                resolution = it.relativePath,
                 previewUris = it.previewUris
             )
         }
@@ -480,18 +506,21 @@ class HomeFragment : Fragment() {
 
     private fun loadGalleryPhotosFromMediaStore(bucketId: String): List<MediaItem> {
         val resolver = requireContext().contentResolver
+        val relativePathFilter = bucketId.removePrefix("relative:").takeIf { bucketId.startsWith("relative:") }
         val projection = arrayOf(
             MediaStore.Images.Media._ID,
             MediaStore.Images.Media.DISPLAY_NAME,
             MediaStore.Images.Media.SIZE,
             MediaStore.Images.Media.DATE_MODIFIED,
-            MediaStore.Images.Media.MIME_TYPE
+            MediaStore.Images.Media.MIME_TYPE,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Images.Media.RELATIVE_PATH else MediaStore.Images.Media.DATA
         )
         val photos = mutableListOf<MediaItem>()
         val cursorResult = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val args = android.os.Bundle().apply {
-                putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, "${MediaStore.Images.Media.BUCKET_ID} = ?")
-                putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, arrayOf(bucketId))
+                val selectionColumn = if (relativePathFilter != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Images.Media.RELATIVE_PATH else MediaStore.Images.Media.BUCKET_ID
+                putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, "$selectionColumn = ?")
+                putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, arrayOf(relativePathFilter ?: bucketId))
                 putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_EXCLUDE)
                 putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.Images.Media.DATE_MODIFIED))
                 putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
@@ -501,8 +530,8 @@ class HomeFragment : Fragment() {
             resolver.query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 projection,
-                "${MediaStore.Images.Media.BUCKET_ID} = ?",
-                arrayOf(bucketId),
+                if (relativePathFilter != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) "${MediaStore.Images.Media.RELATIVE_PATH} = ?" else "${MediaStore.Images.Media.BUCKET_ID} = ?",
+                arrayOf(relativePathFilter ?: bucketId),
                 null
             )
         }
@@ -512,6 +541,7 @@ class HomeFragment : Fragment() {
             val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
             val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
             val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+            val photoPathCol = cursor.getColumnIndexOrThrow(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Images.Media.RELATIVE_PATH else MediaStore.Images.Media.DATA)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
                 val uri = android.content.ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
@@ -524,7 +554,8 @@ class HomeFragment : Fragment() {
                     size = cursor.getLong(sizeCol),
                     lastPlayedAt = cursor.getLong(dateCol),
                     extension = name.substringAfterLast('.', "").uppercase(),
-                    mimeType = mime
+                    mimeType = mime,
+                    resolution = cursor.getString(photoPathCol).orEmpty()
                 )
             }
         }
@@ -541,7 +572,8 @@ class HomeFragment : Fragment() {
         val name: String,
         var count: Int = 0,
         var lastModified: Long = 0L,
-        var previewUris: List<String> = emptyList()
+        var previewUris: List<String> = emptyList(),
+        var relativePath: String = ""
     )
 
     private fun openGalleryPhoto(photo: MediaItem) {
@@ -594,7 +626,7 @@ class HomeFragment : Fragment() {
             .target(imageView)
             .size(requestSize)
             .scale(Scale.FILL)
-            .allowHardware(true)
+            .allowHardware(false)
             .crossfade(false)
             .build()
         requireContext().imageLoader.enqueue(request)
@@ -613,6 +645,129 @@ class HomeFragment : Fragment() {
             }
         }
         popup.show()
+    }
+
+
+    private fun getCreatedGalleryFolders(): MutableSet<String> {
+        return requireContext()
+            .getSharedPreferences("blaze_gallery", android.content.Context.MODE_PRIVATE)
+            .getStringSet("created_folders", emptySet())
+            ?.toMutableSet() ?: mutableSetOf()
+    }
+
+    private fun rememberCreatedGalleryFolder(relativePath: String) {
+        val folders = getCreatedGalleryFolders()
+        folders += relativePath
+        requireContext()
+            .getSharedPreferences("blaze_gallery", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putStringSet("created_folders", folders)
+            .apply()
+    }
+
+    private fun showCreateGalleryFolderDialog() {
+        val input = android.widget.EditText(requireContext()).apply {
+            hint = getString(R.string.gallery_create_folder_hint)
+            isSingleLine = true
+        }
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.gallery_create_folder_title))
+            .setView(input)
+            .setNegativeButton(getString(R.string.action_cancel), null)
+            .setPositiveButton(getString(R.string.gallery_create_folder)) { _, _ ->
+                val name = input.text?.toString()?.trim().orEmpty()
+                if (name.isNotBlank()) createGalleryFolder(name)
+            }
+            .show()
+    }
+
+    private fun createGalleryFolder(folderName: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val safeName = folderName.replace(Regex("[\\/:*?\"<>|]"), "_").trim().ifBlank { return@withContext false }
+                    val relativePath = "${Environment.DIRECTORY_PICTURES}/$safeName/"
+                    val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), safeName)
+                    val created = dir.mkdirs() || dir.isDirectory
+                    rememberCreatedGalleryFolder(relativePath)
+                    created || Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            android.widget.Toast.makeText(
+                requireContext(),
+                getString(if (ok) R.string.gallery_folder_created else R.string.gallery_folder_create_error),
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+            showGalleryFolders()
+        }
+    }
+
+    private fun showMoveGalleryPhotoDialog(photo: MediaItem) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val folders = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadGalleryFoldersFromMediaStore() }
+                .filter { it.path != currentGalleryBucketId && !it.resolution.isNullOrBlank() }
+            if (folders.isEmpty()) {
+                android.widget.Toast.makeText(requireContext(), getString(R.string.gallery_photo_move_error), android.widget.Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val names = folders.map { it.name }.toTypedArray()
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(getString(R.string.gallery_move_photo_title))
+                .setItems(names) { _, which -> moveGalleryPhotoToFolder(photo, folders[which]) }
+                .show()
+        }
+    }
+
+    private fun moveGalleryPhotoToFolder(photo: MediaItem, folder: MediaItem) {
+        val photoUri = photo.path.toUriOrNull() ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            pendingGallerySystemActionRefresh = {
+                val ok = updateGalleryPhotoFolder(photo, folder)
+                android.widget.Toast.makeText(requireContext(), getString(if (ok) R.string.gallery_photo_moved else R.string.gallery_photo_move_error), android.widget.Toast.LENGTH_SHORT).show()
+                currentGalleryBucketId?.let { showGalleryPhotos(it, currentGalleryBucketName.orEmpty()) } ?: showGalleryFolders()
+            }
+            val request = MediaStore.createWriteRequest(requireContext().contentResolver, listOf(photoUri))
+            gallerySystemActionLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        } else {
+            val ok = updateGalleryPhotoFolder(photo, folder)
+            android.widget.Toast.makeText(requireContext(), getString(if (ok) R.string.gallery_photo_moved else R.string.gallery_photo_move_error), android.widget.Toast.LENGTH_SHORT).show()
+            currentGalleryBucketId?.let { showGalleryPhotos(it, currentGalleryBucketName.orEmpty()) } ?: showGalleryFolders()
+        }
+    }
+
+    private fun updateGalleryPhotoFolder(photo: MediaItem, folder: MediaItem): Boolean {
+        return try {
+            val resolver = requireContext().contentResolver
+            val photoUri = photo.path.toUriOrNull() ?: return false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val targetRelativePath = folder.resolution?.takeIf { it.isNotBlank() } ?: return false
+                val values = ContentValues().apply {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, targetRelativePath)
+                }
+                resolver.update(photoUri, values, null, null) > 0
+            } else {
+                val sourcePath = photo.resolution?.takeIf { it.isNotBlank() } ?: return false
+                val targetDir = File(folder.resolution.orEmpty())
+                if (!targetDir.exists()) targetDir.mkdirs()
+                val source = File(sourcePath)
+                val target = File(targetDir, source.name)
+                val moved = source.renameTo(target)
+                if (moved) {
+                    resolver.delete(photoUri, null, null)
+                    val values = ContentValues().apply {
+                        put(MediaStore.Images.Media.DATA, target.absolutePath)
+                        put(MediaStore.Images.Media.DISPLAY_NAME, target.name)
+                        put(MediaStore.Images.Media.MIME_TYPE, photo.mimeType.ifBlank { "image/*" })
+                    }
+                    resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                }
+                moved
+            }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun startCustomThumbnailSelection(item: MediaItem, sourceTab: Int = currentTabIndex) {
@@ -685,7 +840,8 @@ class HomeFragment : Fragment() {
         } else {
             popup.menu.add(0, 1, 0, getString(R.string.action_open))
             popup.menu.add(0, 2, 1, getString(R.string.action_share))
-            popup.menu.add(0, 3, 2, getString(R.string.gallery_delete))
+            popup.menu.add(0, 4, 2, getString(R.string.gallery_move_to_folder))
+            popup.menu.add(0, 3, 3, getString(R.string.gallery_delete))
         }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -698,6 +854,7 @@ class HomeFragment : Fragment() {
                     true
                 }
                 3 -> { confirmGalleryDeletion(getString(R.string.confirm_delete_photo_message)) { moveGalleryPhotoToTrash(photo) }; true }
+                4 -> { showMoveGalleryPhotoDialog(photo); true }
                 else -> false
             }
         }
@@ -823,6 +980,7 @@ class HomeFragment : Fragment() {
         binding.listCloud.apply {
             setHasFixedSize(true)
             setItemViewCacheSize(24)
+            setBackgroundColor(android.graphics.Color.BLACK)
             layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
             itemAnimator = null
         }

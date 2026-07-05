@@ -27,6 +27,9 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
   public final MaterialButton btnAddAll;
 
   @NonNull
+  public final MaterialButton btnAddToBlazeParty;
+
+  @NonNull
   public final MaterialButton btnAddToSavedPlaylist;
 
   @NonNull
@@ -45,9 +48,6 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
   public final MaterialButton btnNetwork;
 
   @NonNull
-  public final ImageButton btnSearch;
-
-  @NonNull
   public final ImageView btnSortChevron;
 
   @NonNull
@@ -60,21 +60,21 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
   public final TextView tvSortLabel;
 
   private ActivityAudioBrowserBinding(@NonNull LinearLayout rootView,
-      @NonNull MaterialButton btnAddAll, @NonNull MaterialButton btnAddToSavedPlaylist,
-      @NonNull ImageButton btnBack, @NonNull MaterialButton btnConfirm,
-      @NonNull ImageButton btnHome, @NonNull MaterialButton btnLocal,
-      @NonNull MaterialButton btnNetwork, @NonNull ImageButton btnSearch,
+      @NonNull MaterialButton btnAddAll, @NonNull MaterialButton btnAddToBlazeParty,
+      @NonNull MaterialButton btnAddToSavedPlaylist, @NonNull ImageButton btnBack,
+      @NonNull MaterialButton btnConfirm, @NonNull ImageButton btnHome,
+      @NonNull MaterialButton btnLocal, @NonNull MaterialButton btnNetwork,
       @NonNull ImageView btnSortChevron, @NonNull RecyclerView recyclerAudio,
       @NonNull TextView tvSelected, @NonNull TextView tvSortLabel) {
     this.rootView = rootView;
     this.btnAddAll = btnAddAll;
+    this.btnAddToBlazeParty = btnAddToBlazeParty;
     this.btnAddToSavedPlaylist = btnAddToSavedPlaylist;
     this.btnBack = btnBack;
     this.btnConfirm = btnConfirm;
     this.btnHome = btnHome;
     this.btnLocal = btnLocal;
     this.btnNetwork = btnNetwork;
-    this.btnSearch = btnSearch;
     this.btnSortChevron = btnSortChevron;
     this.recyclerAudio = recyclerAudio;
     this.tvSelected = tvSelected;
@@ -114,6 +114,12 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnAddToBlazeParty;
+      MaterialButton btnAddToBlazeParty = ViewBindings.findChildViewById(rootView, id);
+      if (btnAddToBlazeParty == null) {
+        break missingId;
+      }
+
       id = R.id.btnAddToSavedPlaylist;
       MaterialButton btnAddToSavedPlaylist = ViewBindings.findChildViewById(rootView, id);
       if (btnAddToSavedPlaylist == null) {
@@ -150,12 +156,6 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.btnSearch;
-      ImageButton btnSearch = ViewBindings.findChildViewById(rootView, id);
-      if (btnSearch == null) {
-        break missingId;
-      }
-
       id = R.id.btnSortChevron;
       ImageView btnSortChevron = ViewBindings.findChildViewById(rootView, id);
       if (btnSortChevron == null) {
@@ -180,9 +180,9 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
         break missingId;
       }
 
-      return new ActivityAudioBrowserBinding((LinearLayout) rootView, btnAddAll,
-          btnAddToSavedPlaylist, btnBack, btnConfirm, btnHome, btnLocal, btnNetwork, btnSearch,
-          btnSortChevron, recyclerAudio, tvSelected, tvSortLabel);
+      return new ActivityAudioBrowserBinding((LinearLayout) rootView, btnAddAll, btnAddToBlazeParty,
+          btnAddToSavedPlaylist, btnBack, btnConfirm, btnHome, btnLocal, btnNetwork, btnSortChevron,
+          recyclerAudio, tvSelected, tvSortLabel);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

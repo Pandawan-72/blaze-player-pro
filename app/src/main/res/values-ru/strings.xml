@@ -55,6 +55,8 @@
 
     <string name="add_tracks">Добавить треки</string>
     <string name="add_selection_to_playlist">Добавить выбранное в плейлист</string>
+    <string name="add_to_playlist_short">Добавить в плейлист</string>
+    <string name="add_to_party_short">Добавить в Party</string>
     <string name="play_selection">Воспроизвести выбранное</string>
     <string name="add_all">Добавить всё</string>
     <string name="save_current_list">Сохранить текущий список</string>
@@ -417,7 +419,7 @@
 
     <string name="notif_channel_youtube">Воспроизведение YouTube</string>
     <string name="action_pause">Пауза</string>
-    <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
+    <string name="error_loading_media">Не удалось начать воспроизведение видео.</string>
 
     <string name="cast_dialog_status">Идет трансляция</string>
     <string name="cast_dialog_stop">Остановить трансляцию</string>
@@ -460,7 +462,7 @@
     <string name="movie_genres_label">Жанры:</string>
     <string name="movie_actors_label">Актёры:</string>
     <string name="movie_studio_label">Студия:</string>
-    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="tmdb_title_not_found">Название не найдено</string>
     <string name="cloud_history">История облака</string>
     <string name="cloud_files">Облачные файлы</string>
     <string name="cloud_providers_hint">Выберите аудио- или видеофайл из Google Drive, OneDrive, Dropbox или другого установленного облачного провайдера.</string>
@@ -510,4 +512,69 @@
     <string name="settings_audio_spectrum">Включить визуальный спектр</string>
     <string name="settings_audio_spectrum_desc">Показывать анимированный аудиовизуализатор в Blaze Audio.</string>
 
+    <!-- Blaze Party -->
+    <string name="blaze_party">Blaze Party</string>
+    <string name="blaze_party_intro">Создайте локальную сессию или присоединитесь к общей очереди в той же сети Wi‑Fi.</string>
+    <string name="blaze_party_host">Хост Blaze Party</string>
+    <string name="blaze_party_join">Присоединиться к Blaze Party</string>
+    <string name="blaze_party_disconnect">Отключиться</string>
+    <string name="blaze_party_disconnected">Отключено от Blaze Party</string>
+    <string name="blaze_party_host_title">Хост Blaze Party</string>
+    <string name="blaze_party_qr_desc">QR code Blaze Party</string>
+    <string name="blaze_party_share_code">Адрес: %1$s
+Токен: %2$s</string>
+    <string name="blaze_party_host_waiting">Сессия готова: гости могут отсканировать этот код.</string>
+    <string name="blaze_party_manual_hint">Вставьте ссылку или введите код</string>
+    <string name="blaze_party_scan_unavailable">QR-сканер недоступен. Установите QR-сканер или введите код вручную.</string>
+    <string name="blaze_party_joined">Вы присоединились к сессии Blaze Party</string>
+    <string name="action_join">Присоединиться</string>
+
+    <string name="blaze_party_short">Party</string>
+    <string name="add_to_blaze_party">Добавить в Blaze Party</string>
+    <string name="blaze_party_playlist_title">Плейлист Blaze Party</string>
+    <string name="blaze_party_playlist_empty_message">В плейлисте Blaze Party нет треков. Добавьте треки из аудиобраузера кнопкой «Добавить в Blaze Party».</string>
+    <string name="blaze_party_items_already_present">Эти треки уже есть в Blaze Party</string>
+    <string name="toast_blaze_party_playlist_emptied">Плейлист Blaze Party очищен</string>
+    <plurals name="blaze_party_items_added">
+        <item quantity="one">%d трек добавлен в Blaze Party</item>
+        <item quantity="other">%d трека(ов) добавлено в Blaze Party</item>
+    </plurals>
+
+
+    <string name="blaze_party_launch">Запустить</string>
+    <string name="blaze_party_vote">Голосовать</string>
+    <string name="blaze_party_vote_hint">Нажмите на трек, чтобы посмотреть голоса и проголосовать.</string>
+    <string name="blaze_party_vote_saved">Голос сохранён</string>
+    <string name="blaze_party_no_voters">Пока нет голосов</string>
+    <string name="blaze_party_nickname">Ник</string>
+    <string name="blaze_party_nickname_hint">Ваш ник</string>
+    <string name="blaze_party_nickname_title">Выберите ник для Blaze Party</string>
+    <plurals name="blaze_party_vote_count">
+        <item quantity="one">%d vote</item>
+        <item quantity="other">%d votes</item>
+    </plurals>
+
+    <string name="gallery_folder_button">Папка</string>
+    <string name="gallery_create_folder">Папка</string>
+    <string name="gallery_create_folder_title">Новая папка фото</string>
+    <string name="gallery_create_folder_hint">Имя папки</string>
+    <string name="gallery_folder_created">Папка создана</string>
+    <string name="gallery_folder_create_error">Не удалось создать папку</string>
+    <string name="gallery_move_to_folder">Переместить в другую папку</string>
+    <string name="gallery_move_photo_title">Переместить фото</string>
+    <string name="gallery_photo_moved">Фото перемещено</string>
+    <string name="gallery_photo_move_error">Не удалось переместить фото</string>
+    <string name="action_custom_thumbnail">Своя миниатюра</string>
+    <string name="action_delete_thumbnail">Удалить миниатюру</string>
+    <string name="custom_thumbnail_pick_folder">Выберите папку</string>
+    <string name="custom_thumbnail_pick_image">Выберите изображение</string>
+    <string name="custom_thumbnail_pick_toast">Выберите изображение для миниатюры</string>
+    <string name="custom_thumbnail_saved">Миниатюра сохранена</string>
+    <string name="custom_thumbnail_deleted">Миниатюра удалена</string>
+    <string name="custom_thumbnail_error">Не удалось обновить миниатюру</string>
+    <string name="blaze_party_not_host_queue">Только хост может менять эту очередь</string>
+    <string name="blaze_party_remove_vote">Удалить мой голос</string>
+    <string name="blaze_party_vote_removed">Голос удалён</string>
+    <string name="blaze_party_default_host">Хост</string>
+    <string name="blaze_party_default_guest">Гость</string>
 </resources>

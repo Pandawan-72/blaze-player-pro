@@ -93,13 +93,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         }
         // Boutons action
         binding.btnAddAll.setOnClickListener {
-            val all = currentItems.map { Pair(it.path, it.name) }
-            val intent = android.content.Intent().apply {
-                putStringArrayListExtra(EXTRA_PATHS, ArrayList(all.map { it.first }))
-                putStringArrayListExtra(EXTRA_NAMES, ArrayList(all.map { it.second }))
-            }
-            setResult(android.app.Activity.RESULT_OK, intent)
-            finish()
+            selectAllCurrentFolderTracks()
         }
         binding.btnConfirm.setOnClickListener {
             if (selectedItems.isEmpty()) {
@@ -129,73 +123,24 @@ class AudioBrowserActivity : AppCompatActivity() {
                 updateCounter()
             }
         }
-
-        // Recherche globale dans tous les fichiers audio locaux
-        binding.btnSearch.setOnClickListener {
-            val searchBar = android.widget.SearchView(this).apply {
-                queryHint = getString(R.string.search_hint_all_folders)
-                isIconified = false
+        binding.btnAddToBlazeParty.setOnClickListener {
+            if (selectedItems.isEmpty()) {
+                android.widget.Toast.makeText(this, getString(R.string.toast_select_tracks_first), android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
-            var allAudioFiles: List<AudioFile> = emptyList()
-            var lastFilteredResults: List<AudioFile> = emptyList()
-            var searchJob: kotlinx.coroutines.Job? = null
-            val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.action_search))
-                .setView(searchBar)
-                .setPositiveButton(getString(R.string.action_show_results)) { d, _ ->
-                    d.dismiss()
-                    if (lastFilteredResults.isNotEmpty()) {
-                        // Pousse l'état actuel pour pouvoir revenir
-                        val prevAdapter = binding.recyclerAudio.adapter
-                        val prevText = binding.tvSelected.text.toString()
-                        folderStack.addLast {
-                            binding.recyclerAudio.adapter = prevAdapter
-                            binding.tvSelected.text = prevText
-                        }
-                        showFileList(lastFilteredResults)
-                    } else {
-                        if (folderStack.isEmpty()) loadLocalFiles()
-                    }
-                }
-                .setNegativeButton(getString(R.string.action_cancel)) { d, _ ->
-                    d.dismiss()
-                    if (folderStack.isEmpty()) loadLocalFiles()
-                }
-                .create()
-
-            dialog.setOnDismissListener {
-                searchJob?.cancel()
+            val tracks = selectedItems.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.first, it.second) }
+            val added = fr.retrospare.blazeplayer.playlist.PlaylistManager.addToBlazePartyPlaylist(this, tracks)
+            val msg = if (added > 0) {
+                resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.blaze_party_items_added, added, added)
+            } else {
+                getString(fr.retrospare.blazeplayer.R.string.blaze_party_items_already_present)
             }
-
-            // Recherche locale uniquement — tous dossiers confondus via un scan local, qui est
-            // rapide (accès disque, pas de réseau). Pas de recherche réseau ici.
-            searchJob = lifecycleScope.launch {
-                allAudioFiles = withContext(kotlinx.coroutines.Dispatchers.IO) { scanLocalAudio() }
-            }
-
-            searchBar.setOnQueryTextListener(object : android.widget.SearchView.OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String?): Boolean = false
-                override fun onQueryTextChange(newText: String?): Boolean {
-                    val q = newText?.lowercase() ?: ""
-                    if (q.isEmpty()) {
-                        // Vide - ne rien afficher, attendre une saisie
-                        binding.recyclerAudio.adapter = null
-                        binding.tvSelected.text = getString(R.string.search_enter_term)
-                        return true
-                    }
-                    val filtered = allAudioFiles.filter { it.name.lowercase().contains(q) }
-                    lastFilteredResults = filtered
-                    val adapter = AudioBrowserAdapter(filtered) { _, path, name, checked ->
-                        if (checked) selectedItems.add(Pair(path, name))
-                        else selectedItems.removeAll { it.first == path }
-                        updateCounter()
-                    }
-                    binding.recyclerAudio.adapter = adapter
-                    binding.tvSelected.text = resources.getQuantityString(R.plurals.track_count_found, filtered.size, filtered.size)
-                    return true
-                }
-            })
-            dialog.show()
+            android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
+            selectedItems.clear()
+            (binding.recyclerAudio.adapter as? AudioBrowserAdapter)?.clearSelection()
+            (binding.recyclerAudio.adapter as? CombinedAudioAdapter)?.clearSelection()
+            (binding.recyclerAudio.adapter as? MixedAudioAdapter)?.clearSelection()
+            updateCounter()
         }
 
         // Chargement initial : soit un dossier favori précis (local ou réseau), soit la
@@ -278,7 +223,17 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun showFolderList(folders: List<java.io.File>) {
-        val adapter = FolderAdapter(folders) { folder -> browseFolderAudio(folder) }
+        val adapter = FolderAdapter(
+            folders = folders,
+            onClick = { folder -> browseFolderAudio(folder) },
+            onMoreClick = { folder ->
+                fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
+                    this,
+                    fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
+                    fr.retrospare.blazeplayer.favorites.FavoriteFolder(path = folder.absolutePath, name = folder.name)
+                )
+            }
+        )
         binding.recyclerAudio.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         binding.recyclerAudio.adapter = adapter
         binding.tvSelected.text = resources.getQuantityString(R.plurals.folder_count, folders.size, folders.size)
@@ -872,7 +827,8 @@ class FolderBrowserAdapter(
 
 class FolderAdapter(
     private val folders: List<java.io.File>,
-    private val onClick: (java.io.File) -> Unit
+    private val onClick: (java.io.File) -> Unit,
+    private val onMoreClick: (java.io.File) -> Unit = {}
 ) : androidx.recyclerview.widget.RecyclerView.Adapter<FolderAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int) =
@@ -882,6 +838,11 @@ class FolderAdapter(
         val folder = folders[position]
         holder.itemView.findViewById<android.widget.TextView>(R.id.tvFolderName).text = folder.name
         holder.itemView.setOnClickListener { onClick(folder) }
+        // Le "..." doit toujours permettre d'ajouter le dossier aux favoris, même s'il
+        // contient d'autres sous-dossiers à l'intérieur.
+        holder.itemView.findViewById<android.view.View>(R.id.btnFolderMore)?.setOnClickListener {
+            onMoreClick(folder)
+        }
     }
 
     override fun getItemCount() = folders.size

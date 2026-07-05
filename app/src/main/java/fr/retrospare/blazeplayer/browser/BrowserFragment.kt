@@ -248,7 +248,7 @@ class BrowserFragment : Fragment() {
                             }
                             is BrowserViewModel.BrowserState.Error -> {
                                 binding.recyclerView.visibility = View.VISIBLE
-                                fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_error), getString(R.string.toast_error_generic, state.message))
+                                fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_error), getString(R.string.toast_error_generic, state.resId?.let { getString(it) } ?: state.message))
                             }
                         }
                     }

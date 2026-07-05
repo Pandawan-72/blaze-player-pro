@@ -11,8 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 18,
-      "versionName": "0.9.1-Beta-RC",
+      "versionCode": 20,
+      "versionName": "0.9.5-Beta-RC",
       "outputFile": "app-debug.apk"
     }
   ],

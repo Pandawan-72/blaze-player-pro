@@ -20,10 +20,6 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_layout_list.xml"
     },
     {
-        "merged": "fr.retrospare.blazeplayer.app-debug-82:/layout_activity_audio_player.xml.flat",
-        "source": "fr.retrospare.blazeplayer.app-main-84:/layout/activity_audio_player.xml"
-    },
-    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_pixel_dancer_f2.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/pixel_dancer_f2.xml"
     },
@@ -58,6 +54,10 @@
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_close.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_close.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_badge_black_green.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_badge_black_green.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/color_bottom_nav_selector.xml.flat",
@@ -104,6 +104,10 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_badge_blue.xml"
     },
     {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_group_people.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_group_people.xml"
+    },
+    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_stop_btn_player.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_stop_btn_player.xml"
     },
@@ -122,6 +126,10 @@
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_dialog.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_dialog.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_artwork_glow.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_artwork_glow.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_logout.xml.flat",
@@ -208,12 +216,20 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/item_saved_playlist.xml"
     },
     {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_audio_seekbar.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_audio_seekbar.xml"
+    },
+    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/mipmap-hdpi_ic_launcher_foreground.png.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/mipmap-hdpi/ic_launcher_foreground.png"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/xml_file_paths.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/xml/file_paths.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_modal_video_style.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_modal_video_style.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_google_drive_cloud.xml.flat",
@@ -236,8 +252,16 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/item_gallery_folder_tile.xml"
     },
     {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_party_playlist_chip.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_party_playlist_chip.xml"
+    },
+    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_center_video_btn.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_center_video_btn.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_gallery_photo_bottom_overlay.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_gallery_photo_bottom_overlay.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_pixel_dancer_2.xml.flat",
@@ -292,6 +316,10 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/fragment_paywall.xml"
     },
     {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_queue_card_party_current.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_queue_card_party_current.xml"
+    },
+    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_pro_banner.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_pro_banner.xml"
     },
@@ -332,12 +360,12 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_smartphone.xml"
     },
     {
-        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_star.xml.flat",
-        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_star.xml"
-    },
-    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/layout_fragment_settings.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/fragment_settings.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_star.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_star.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_playlist_manager.xml.flat",
@@ -354,6 +382,14 @@
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/layout_item_favorite_folder.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/item_favorite_folder.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_audio_glass_panel.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_audio_glass_panel.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_music_note_button.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_music_note_button.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_icon_green_bordered.xml.flat",
@@ -390,6 +426,10 @@
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_replay_10.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_replay_10.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_person_single.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_person_single.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_cpu.xml.flat",
@@ -660,6 +700,10 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/fragment_home.xml"
     },
     {
+        "merged": "fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_gallery_tile_overlay.xml.flat",
+        "source": "fr.retrospare.blazeplayer.app-main-84:/drawable/bg_gallery_tile_overlay.xml"
+    },
+    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/layout_dialog_add_network_share.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/dialog_add_network_share.xml"
     },
@@ -724,12 +768,12 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_language.xml"
     },
     {
-        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_dropbox_cloud.xml.flat",
-        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_dropbox_cloud.xml"
-    },
-    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_gallery_tile_card.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_gallery_tile_card.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_dropbox_cloud.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_dropbox_cloud.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_media_card.xml.flat",
@@ -808,6 +852,10 @@
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_hero_icon_green.xml"
     },
     {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_play_button_glow.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_play_button_glow.xml"
+    },
+    {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/layout_item_audio_simple.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/layout/item_audio_simple.xml"
     },
@@ -826,6 +874,10 @@
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_remove_circle.xml.flat",
         "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/ic_remove_circle.xml"
+    },
+    {
+        "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_bg_audio_seek_thumb.xml.flat",
+        "source": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-main-84:/drawable/bg_audio_seek_thumb.xml"
     },
     {
         "merged": "/Users/pandawan/.gradle/daemon/9.4.1/fr.retrospare.blazeplayer.app-debug-82:/drawable_ic_bug_report.xml.flat",

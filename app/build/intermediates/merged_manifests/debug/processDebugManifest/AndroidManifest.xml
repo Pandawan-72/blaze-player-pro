@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fr.retrospare.blazeplayer"
-    android:versionCode="18"
-    android:versionName="0.9.1-Beta-RC" >
+    android:versionCode="20"
+    android:versionName="0.9.5-Beta-RC" >
 
     <uses-sdk
         android:minSdkVersion="28"
@@ -168,6 +168,17 @@
                 <category android:name="android.intent.category.DEFAULT" />
 
                 <data android:mimeType="audio/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="join"
+                    android:scheme="blazeparty" />
+                <data android:scheme="bp" />
             </intent-filter>
         </activity>
         <activity

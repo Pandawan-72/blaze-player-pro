@@ -256,6 +256,7 @@ class MainActivity : AppCompatActivity() {
     /** Traite les intents demandant l'ouverture d'un fichier audio (depuis PlayerRouter) ou le
      *  retour à l'écran audio (depuis la notification/sessionActivity de BlazePlayerService). */
     private fun handleAudioIntent(intent: Intent) {
+        if (handleBlazePartyInvite(intent)) return
         if (handleExternalAudioLaunchIntent(intent)) return
         handleExternalViewIntent(intent)?.let { return }
 
@@ -282,6 +283,53 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    private fun handleBlazePartyInvite(intent: Intent): Boolean {
+        val data = intent.data ?: return false
+        val isLongInvite = data.scheme == "blazeparty" && data.host == "join"
+        val isCompactInvite = data.scheme == "bp"
+        if (!isLongInvite && !isCompactInvite) return false
+        val host = if (isCompactInvite) data.host.orEmpty() else data.getQueryParameter("host").orEmpty()
+        val port = if (isCompactInvite) "57931" else data.getQueryParameter("port").orEmpty()
+        val token = if (isCompactInvite) data.pathSegments.firstOrNull().orEmpty() else data.getQueryParameter("token").orEmpty()
+        fr.retrospare.blazeplayer.player.BlazePartyVoteManager.setHost(this, false)
+        android.widget.Toast.makeText(
+            this,
+            getString(fr.retrospare.blazeplayer.R.string.blaze_party_joined),
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+        handler.postDelayed({
+            openBlazeAudio()
+            showBlazePartyNicknameDialogFromInvite()
+        }, 120L)
+        intent.data = null
+        intent.removeExtra("blazePartyInvite")
+        // Point d'extension V1 : host/port/token sont disponibles ici pour connecter le client
+        // au serveur local de l'hôte et synchroniser la file d'attente collaborative.
+        return true
+    }
+
+
+    private fun showBlazePartyNicknameDialogFromInvite() {
+        val input = com.google.android.material.textfield.TextInputEditText(this).apply {
+            setSingleLine(true)
+            hint = getString(fr.retrospare.blazeplayer.R.string.blaze_party_nickname_hint)
+            setText(fr.retrospare.blazeplayer.player.BlazePartyVoteManager.getNickname(this@MainActivity).takeIf { it != getString(fr.retrospare.blazeplayer.R.string.blaze_party_default_host) && it != "Hôte" }.orEmpty())
+        }
+        val density = resources.displayMetrics.density
+        val box = com.google.android.material.textfield.TextInputLayout(this).apply {
+            setPadding((20 * density).toInt(), (10 * density).toInt(), (20 * density).toInt(), 0)
+            hint = getString(fr.retrospare.blazeplayer.R.string.blaze_party_nickname)
+            addView(input)
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(getString(fr.retrospare.blazeplayer.R.string.blaze_party_nickname_title))
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveNickname(this, input.text?.toString().orEmpty())
+            }
+            .setCancelable(false)
+            .show()
+    }
 
     private fun handleExternalAudioLaunchIntent(intent: Intent): Boolean {
         val path = intent.getStringExtra("externalAudioPath") ?: return false

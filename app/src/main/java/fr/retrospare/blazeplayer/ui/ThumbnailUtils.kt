@@ -52,7 +52,7 @@ object ThumbnailUtils {
     // fichiers réseau. Plafonné en taille avec une purge des plus anciens fichiers au besoin.
     private const val DISK_CACHE_DIR_NAME = "thumb_cache"
     private const val DISK_CACHE_MAX_BYTES = 300L * 1024 * 1024 // 300 Mo
-    private const val DISK_CACHE_JPEG_QUALITY = 85
+    private const val DISK_CACHE_JPEG_QUALITY = 95
 
     private fun diskCacheDir(context: Context): File =
         File(context.cacheDir, DISK_CACHE_DIR_NAME).apply { if (!exists()) mkdirs() }
@@ -167,7 +167,7 @@ object ThumbnailUtils {
 
     // Caches séparés audio/vidéo : évite qu'une miniature vidéo (même chemin logique,
     // ancien cache Vxx ou artworkUri Cast) soit réutilisée comme pochette audio.
-    private fun audioKey(path: String): String = "audio:$path"
+    private fun audioKey(path: String): String = "audio-hires-v2:$path"
     private fun videoKey(path: String): String = "video:$path"
     private fun customVideoKey(path: String): String = "custom-video-thumb:$path"
     // Versionne le cache des frames vidéo pour forcer une vraie extraction à 10s
@@ -190,7 +190,7 @@ object ThumbnailUtils {
         if (artworkData == null || artworkData.isEmpty()) return
         try {
             val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size) ?: return
-            val scaled = scaleBitmap(bitmap, 256)
+            val scaled = scaleBitmap(bitmap, 1024)
             val key = audioKey(path)
             cache.put(key, scaled)
             writeToDisk(context.applicationContext, key, scaled)
@@ -249,7 +249,7 @@ object ThumbnailUtils {
             }
         } catch (_: Exception) { null }
         return bitmap?.let {
-            val scaled = scaleBitmap(it, 256)
+            val scaled = scaleBitmap(it, 1024)
             cache.put(key, scaled)
             writeToDisk(context, key, scaled)
             scaled
@@ -283,7 +283,7 @@ object ThumbnailUtils {
             val bitmap = context.contentResolver.openInputStream(imageUri)?.use { input ->
                 BitmapFactory.decodeStream(input)
             } ?: return false
-            val scaled = scaleBitmap(bitmap, 256)
+            val scaled = scaleBitmap(bitmap, 1024)
             val key = customVideoKey(videoPath)
             cache.put(key, scaled)
             writeToDisk(context.applicationContext, key, scaled)
@@ -316,7 +316,7 @@ object ThumbnailUtils {
         if (artworkData == null || artworkData.isEmpty()) return
         try {
             val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size) ?: return
-            val scaled = scaleBitmap(bitmap, 256)
+            val scaled = scaleBitmap(bitmap, 1024)
             val key = thumbnailKey(path)
             cache.put(key, scaled)
             writeToDisk(context.applicationContext, key, scaled)

@@ -8,184 +8,288 @@
 
     <!-- CONTENU PRINCIPAL -->
     <LinearLayout
+        android:id="@+id/playerPanel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:background="@drawable/bg_audio_glass_panel"
+        android:paddingTop="8dp"
         android:paddingBottom="76dp"
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <!-- HEADER -->
-        <RelativeLayout
+        <!-- Barre haute : contexte Party / file Party / bouton Party / file locale / utilisateur -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:paddingHorizontal="16dp">
+            android:layout_height="52dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingTop="6dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <ImageView
+                android:id="@+id/icPartyContext"
+                android:layout_width="32dp"
+                android:layout_height="42dp"
+                android:padding="6dp"
+                android:src="@drawable/ic_group_people"
+                android:tint="@color/on_surface_variant"
+                android:alpha="0.78"
+                android:contentDescription="@null" />
+
+            <ImageButton
+                android:id="@+id/btnAudioPlaylistParty"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="2dp"
+                android:minWidth="42dp"
+                android:minHeight="42dp"
+                android:padding="6dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_layout_list"
+                android:tint="@color/yellow_accent"
+                android:background="@android:color/transparent"
+                android:elevation="0dp"
+                android:translationZ="0dp"
+                android:contentDescription="@string/content_desc_playlist"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBlazeParty"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:minWidth="0dp"
+                android:minHeight="42dp"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:includeFontPadding="false"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingVertical="0dp"
+                android:text="@string/blaze_party_short"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.08"
+                android:drawableEnd="@drawable/ic_music_note_button"
+                android:drawableTint="@android:color/white"
+                android:drawablePadding="8dp"
+                android:elevation="10dp"
+                android:translationZ="8dp"
+                app:icon="@drawable/ic_equalizer"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconSize="18dp"
+                app:iconTint="@android:color/white"
+                app:backgroundTint="@color/surface_variant"
+                app:strokeColor="@color/yellow_accent"
+                app:strokeWidth="1.2dp"
+                app:cornerRadius="21dp" />
+
+            <ImageButton
+                android:id="@+id/btnPlaylistSheet"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:minWidth="42dp"
+                android:minHeight="42dp"
+                android:padding="6dp"
+                android:scaleType="centerInside"
+                android:background="@android:color/transparent"
+                android:src="@drawable/ic_layout_list"
+                android:tint="@android:color/white"
+                android:contentDescription="@string/content_desc_playlist" />
+
+            <ImageView
+                android:id="@+id/icLocalUserContext"
+                android:layout_width="32dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="2dp"
+                android:padding="7dp"
+                android:src="@drawable/ic_person_single"
+                android:tint="@color/on_surface_variant"
+                android:alpha="0.78"
+                android:contentDescription="@null" />
+
+        </LinearLayout>
+
+        <!-- Playlists 1/2/3/4/5 au-dessus de la cover -->
+        <LinearLayout
+            android:id="@+id/audioPlaylistStrip"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="28dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="6dp">
 
             <ImageButton
                 android:id="@+id/btnBack"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
                 android:visibility="gone"
-                android:layout_centerVertical="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_chevron_down"
                 android:tint="@color/on_surface_variant"
                 android:contentDescription="@string/action_close" />
 
             <TextView
-                android:id="@+id/tvNowPlaying"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:text="@string/now_playing"
-                android:textColor="@color/on_surface_variant"
-                android:textSize="11sp"
+                android:id="@+id/btnAudioPlaylist1"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center"
+                android:text="1"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
                 android:fontFamily="sans-serif-condensed"
-                android:letterSpacing="0.15" />
+                android:background="@drawable/bg_playlist_chip"
+                android:clickable="true"
+                android:focusable="true" />
 
-            <ImageButton
-                android:id="@+id/btnPlaylistSheet"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_layout_list"
-                android:tint="@android:color/white"
-                android:contentDescription="@string/content_desc_playlist" />
+            <TextView
+                android:id="@+id/btnAudioPlaylist2"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center"
+                android:text="2"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-condensed"
+                android:background="@drawable/bg_playlist_chip"
+                android:clickable="true"
+                android:focusable="true" />
 
-        </RelativeLayout>
+            <TextView
+                android:id="@+id/btnAudioPlaylist3"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center"
+                android:text="3"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-condensed"
+                android:background="@drawable/bg_playlist_chip"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btnAudioPlaylist4"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center"
+                android:text="4"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-condensed"
+                android:background="@drawable/bg_playlist_chip"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btnAudioPlaylist5"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:gravity="center"
+                android:text="5"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
+                android:fontFamily="sans-serif-condensed"
+                android:background="@drawable/bg_playlist_chip"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
 
         <!-- ARTWORK -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="318dp"
             android:gravity="center"
-            android:paddingHorizontal="32dp"
-            android:paddingTop="0dp"
-            android:paddingBottom="4dp">
+            android:paddingHorizontal="52dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp">
 
             <FrameLayout
                 android:id="@+id/artworkFrame"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/bg_artwork"
-                android:clipToOutline="true">
+                android:layout_width="310dp"
+                android:layout_height="310dp"
+                android:padding="0dp"
+                android:clipChildren="true"
+                android:clipToPadding="true">
 
-                <ImageView
+                <fr.retrospare.blazeplayer.ui.RoundedImageView
                     android:id="@+id/ivArtwork"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
+                    android:adjustViewBounds="false"
                     android:contentDescription="@null" />
 
-                <LinearLayout
+                <fr.retrospare.blazeplayer.ui.ArtworkMetadataOverlayLayout
                     android:id="@+id/artworkMetadataOverlay"
                     android:layout_width="match_parent"
-                    android:layout_height="68dp"
-                    android:layout_gravity="bottom"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:background="#99000000"
-                    android:paddingHorizontal="18dp"
-                    android:paddingTop="6dp"
-                    android:paddingBottom="6dp">
+                    android:layout_height="match_parent">
 
-                    <TextView
-                        android:id="@+id/tvTitle"
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/unknown_title"
-                        android:textColor="@android:color/white"
-                        android:textSize="20sp"
-                        android:fontFamily="sans-serif-condensed"
-                        android:ellipsize="end"
-                        android:singleLine="true"
-                        android:gravity="center" />
-
-                    <TextView
-                        android:id="@+id/tvArtist"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/unknown_artist"
-                        android:textColor="@color/green_accent"
-                        android:textSize="13sp"
-                        android:fontFamily="sans-serif-condensed"
-                        android:layout_marginTop="2dp"
-                        android:ellipsize="end"
-                        android:singleLine="true"
-                        android:gravity="center" />
-
-                    <TextView
-                        android:id="@+id/tvAlbum"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/on_surface_variant"
-                        android:textSize="11sp"
-                        android:fontFamily="sans-serif-condensed"
+                        android:layout_height="92dp"
+                        android:layout_gravity="bottom"
+                        android:orientation="vertical"
                         android:gravity="center"
-                        android:visibility="gone" />
+                        android:paddingHorizontal="18dp"
+                        android:paddingTop="18dp"
+                        android:paddingBottom="12dp">
 
-                </LinearLayout>
+                        <TextView
+                            android:id="@+id/tvTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/unknown_title"
+                            android:textColor="@android:color/white"
+                            android:textSize="21sp"
+                            android:fontFamily="sans-serif-condensed"
+                            android:ellipsize="end"
+                            android:singleLine="true"
+                            android:gravity="center" />
+
+                        <TextView
+                            android:id="@+id/tvArtist"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/unknown_artist"
+                            android:textColor="@color/green_accent"
+                            android:textSize="14sp"
+                            android:fontFamily="sans-serif-condensed"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:singleLine="true"
+                            android:gravity="center" />
+
+                        <TextView
+                            android:id="@+id/tvAlbum"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/on_surface_variant"
+                            android:textSize="11sp"
+                            android:fontFamily="sans-serif-condensed"
+                            android:gravity="center"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
+
+                </fr.retrospare.blazeplayer.ui.ArtworkMetadataOverlayLayout>
 
             </FrameLayout>
-
-        </LinearLayout>
-
-        <!-- SPECTRE VISUEL -->
-        <RelativeLayout
-            android:layout_width="match_parent"
-            android:layout_height="88dp"
-            android:paddingHorizontal="24dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="4dp"
-            android:clipChildren="false"
-            android:clipToPadding="false">
-
-            <fr.retrospare.blazeplayer.player.AudioEqualizerView
-                android:id="@+id/audioEqualizerView"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:layout_centerVertical="true"
-                android:layout_marginHorizontal="10dp"
-                android:importantForAccessibility="no" />
-
-        </RelativeLayout>
-
-        <!-- CODEC + BITRATE -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="24dp"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:paddingHorizontal="24dp">
-
-            <TextView
-                android:id="@+id/tvCodec"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_badge_blue"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:textSize="10sp"
-                android:textColor="@color/blue_accent"
-                android:fontFamily="sans-serif-condensed"
-                android:text="MP3"
-                android:visibility="gone"
-                android:layout_marginEnd="8dp" />
-
-            <TextView
-                android:id="@+id/tvBitrate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/bg_badge_gray"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:textColor="@color/on_surface_variant"
-                android:textSize="10sp"
-                android:fontFamily="sans-serif-condensed"
-                android:visibility="gone" />
 
         </LinearLayout>
 
@@ -194,15 +298,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="24dp"
-            android:paddingTop="8dp">
+            android:paddingHorizontal="34dp"
+            android:paddingTop="10dp">
 
             <SeekBar
                 android:id="@+id/seekBar"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:progressTint="@color/green_accent"
-                android:thumbTint="@color/green_accent" />
+                android:layout_height="28dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:progressDrawable="@drawable/bg_audio_seekbar"
+                android:thumb="@drawable/bg_audio_seek_thumb"
+                android:splitTrack="false" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -233,10 +340,66 @@
 
         </LinearLayout>
 
+        <!-- SPECTRE VISUEL -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="76dp"
+            android:paddingHorizontal="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <fr.retrospare.blazeplayer.player.AudioEqualizerView
+                android:id="@+id/audioEqualizerView"
+                android:layout_width="match_parent"
+                android:layout_height="62dp"
+                android:layout_centerVertical="true"
+                android:layout_marginHorizontal="0dp"
+                android:importantForAccessibility="no" />
+
+        </RelativeLayout>
+
+        <!-- CODEC + BITRATE -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="24dp">
+
+            <TextView
+                android:id="@+id/tvCodec"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_black_green"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textSize="10sp"
+                android:textColor="@color/green_accent"
+                android:fontFamily="sans-serif-condensed"
+                android:text="MP3"
+                android:visibility="gone"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/tvBitrate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_gray"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="2dp"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="10sp"
+                android:fontFamily="sans-serif-condensed"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
         <!-- CONTRÔLES PRINCIPAUX -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="88dp"
+            android:layout_height="104dp"
             android:orientation="horizontal"
             android:gravity="center"
             android:paddingHorizontal="16dp"
@@ -271,15 +434,15 @@
 
             <ImageButton
                 android:id="@+id/btnPlayPause"
-                android:layout_width="78dp"
-                android:layout_height="78dp"
-                android:background="@drawable/bg_play_button"
+                android:layout_width="88dp"
+                android:layout_height="88dp"
+                android:background="@drawable/bg_play_button_glow"
                 android:elevation="10dp"
                 android:translationZ="6dp"
                 android:outlineProvider="background"
                 android:src="@drawable/ic_play"
                 android:tint="@color/background"
-                android:padding="19dp"
+                android:padding="22dp"
                 android:contentDescription="@string/content_desc_play_pause" />
 
             <ImageButton
@@ -420,101 +583,6 @@
 
         </LinearLayout>
 
-        <!-- Playlists audio sauvegardées -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:paddingBottom="16dp">
-
-            <ImageView
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:src="@drawable/ic_layout_list"
-                android:tint="@android:color/white"
-                android:layout_marginEnd="6dp"
-                android:contentDescription="@null" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/playlists_label"
-                android:textColor="@color/on_surface_variant"
-                android:textSize="12sp"
-                android:fontFamily="sans-serif-condensed"
-                android:layout_marginEnd="10dp" />
-
-            <TextView
-                android:id="@+id/btnAudioPlaylist1"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:layout_marginEnd="8dp"
-                android:gravity="center"
-                android:text="1"
-                android:textColor="@color/on_surface"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-condensed"
-                android:background="@drawable/bg_playlist_chip"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/btnAudioPlaylist2"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:layout_marginEnd="8dp"
-                android:gravity="center"
-                android:text="2"
-                android:textColor="@color/on_surface"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-condensed"
-                android:background="@drawable/bg_playlist_chip"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/btnAudioPlaylist3"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:layout_marginEnd="8dp"
-                android:gravity="center"
-                android:text="3"
-                android:textColor="@color/on_surface"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-condensed"
-                android:background="@drawable/bg_playlist_chip"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/btnAudioPlaylist4"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:layout_marginEnd="8dp"
-                android:gravity="center"
-                android:text="4"
-                android:textColor="@color/on_surface"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-condensed"
-                android:background="@drawable/bg_playlist_chip"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <TextView
-                android:id="@+id/btnAudioPlaylist5"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:gravity="center"
-                android:text="5"
-                android:textColor="@color/on_surface"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-condensed"
-                android:background="@drawable/bg_playlist_chip"
-                android:clickable="true"
-                android:focusable="true" />
-
-        </LinearLayout>
 
         <!-- Éléments cachés pour compatibilité -->
         <View android:id="@+id/ivPixelChar" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
@@ -637,6 +705,116 @@
         <!-- Liste -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerPlaylist"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:overScrollMode="always"
+            android:paddingBottom="24dp"
+            android:clipToPadding="false" />
+
+    </LinearLayout>
+
+
+    <!-- FILE D'ATTENTE BLAZE PARTY - independante de la file personnelle du lecteur -->
+    <LinearLayout
+        android:id="@+id/partyPlaylistSheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/background"
+        android:paddingBottom="76dp"
+        android:elevation="10dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="20dp"
+            android:paddingBottom="12dp"
+            android:background="@color/background">
+
+            <ImageButton
+                android:id="@+id/btnClosePartyPlaylist"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_chevron_down"
+                android:tint="@color/on_surface"
+                android:contentDescription="@string/content_desc_close_playlist"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/blaze_party_playlist_title"
+                android:textColor="#FFFFC107"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-condensed"
+                android:letterSpacing="0.1" />
+
+            <TextView
+                android:id="@+id/btnLaunchPartyPlaylist"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:text="@string/blaze_party_launch"
+                android:paddingHorizontal="14dp"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:textColor="@color/on_surface"
+                android:background="@drawable/bg_party_playlist_chip" />
+
+            <TextView
+                android:id="@+id/btnVotePartyPlaylist"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="6dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:text="@string/blaze_party_vote"
+                android:paddingHorizontal="14dp"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:textColor="@color/yellow_accent"
+                android:background="@drawable/bg_party_playlist_chip" />
+
+            <TextView
+                android:id="@+id/btnClearPartyPlaylist"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="6dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:text="@string/action_empty_playlist"
+                android:paddingHorizontal="14dp"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:textColor="@color/red_accent"
+                android:background="@drawable/bg_queue_action_remove_pill" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#33FFFFFF" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerPartyPlaylist"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"

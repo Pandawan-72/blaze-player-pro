@@ -55,7 +55,8 @@ object PlaylistDialogs {
         category: PlaylistCategory,
         slot: Int,
         onPlayAll: (List<PlaylistTrackRef>) -> Unit,
-        onPlayOne: (PlaylistTrackRef) -> Unit
+        onPlayOne: (PlaylistTrackRef) -> Unit,
+        onAddToParty: ((List<PlaylistTrackRef>) -> Unit)? = null
     ) {
         val tracks = PlaylistManager.getPlaylist(context, category, slot)
         if (tracks.isEmpty()) {
@@ -71,11 +72,45 @@ object PlaylistDialogs {
             .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.playlist_slot_name, slot) + " — " + category.displayLabel(context) + " (${tracks.size})")
             .setItems(names) { _, which -> onPlayOne(tracks[which]) }
             .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_play_playlist)) { _, _ -> onPlayAll(tracks) }
-            .setNeutralButton(context.getString(fr.retrospare.blazeplayer.R.string.action_empty_playlist)) { _, _ ->
-                PlaylistManager.clearPlaylist(context, category, slot)
-                Toast.makeText(context, context.getString(fr.retrospare.blazeplayer.R.string.toast_playlist_emptied, slot), Toast.LENGTH_SHORT).show()
+            .setNeutralButton(
+                if (onAddToParty != null) context.getString(fr.retrospare.blazeplayer.R.string.add_to_blaze_party)
+                else context.getString(fr.retrospare.blazeplayer.R.string.action_empty_playlist)
+            ) { _, _ ->
+                if (onAddToParty != null) {
+                    onAddToParty.invoke(tracks)
+                } else {
+                    PlaylistManager.clearPlaylist(context, category, slot)
+                    Toast.makeText(context, context.getString(fr.retrospare.blazeplayer.R.string.toast_playlist_emptied, slot), Toast.LENGTH_SHORT).show()
+                }
             }
             .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_close), null)
             .show()
     }
+    fun showBlazePartyPlaylistViewer(
+        context: Context,
+        onPlayAll: (List<PlaylistTrackRef>) -> Unit,
+        onPlayOne: (PlaylistTrackRef) -> Unit
+    ) {
+        val tracks = PlaylistManager.getBlazePartyPlaylist(context)
+        if (tracks.isEmpty()) {
+            AlertDialog.Builder(context)
+                .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.blaze_party_playlist_title))
+                .setMessage(context.getString(fr.retrospare.blazeplayer.R.string.blaze_party_playlist_empty_message))
+                .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_ok), null)
+                .show()
+            return
+        }
+        val names = tracks.map { it.name }.toTypedArray()
+        AlertDialog.Builder(context)
+            .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.blaze_party_playlist_title) + " (${tracks.size})")
+            .setItems(names) { _, which -> onPlayOne(tracks[which]) }
+            .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_play_playlist)) { _, _ -> onPlayAll(tracks) }
+            .setNeutralButton(context.getString(fr.retrospare.blazeplayer.R.string.action_empty_playlist)) { _, _ ->
+                PlaylistManager.clearBlazePartyPlaylist(context)
+                Toast.makeText(context, context.getString(fr.retrospare.blazeplayer.R.string.toast_blaze_party_playlist_emptied), Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_close), null)
+            .show()
+    }
+
 }

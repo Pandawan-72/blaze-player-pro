@@ -55,6 +55,8 @@
 
     <string name="add_tracks">Adicionar faixas</string>
     <string name="add_selection_to_playlist">Adicionar seleção a uma lista</string>
+    <string name="add_to_playlist_short">Adicionar à playlist</string>
+    <string name="add_to_party_short">Adicionar à Party</string>
     <string name="play_selection">Reproduzir seleção</string>
     <string name="add_all">Adicionar tudo</string>
     <string name="save_current_list">Salvar lista atual</string>
@@ -395,7 +397,7 @@
 
     <string name="notif_channel_youtube">Reprodução do YouTube</string>
     <string name="action_pause">Pausa</string>
-    <string name="error_loading_media">Impossible de démarrer la lecture vidéo.</string>
+    <string name="error_loading_media">Não foi possível iniciar a reprodução de vídeo.</string>
 
     <string name="cast_dialog_status">Transmitindo agora</string>
     <string name="cast_dialog_stop">Parar transmissão</string>
@@ -438,7 +440,7 @@
     <string name="movie_genres_label">Gêneros:</string>
     <string name="movie_actors_label">Atores:</string>
     <string name="movie_studio_label">Estúdio:</string>
-    <string name="tmdb_title_not_found">Titre non trouvé</string>
+    <string name="tmdb_title_not_found">Título não encontrado</string>
     <string name="cloud_history">Histórico da nuvem</string>
     <string name="cloud_files">Ficheiros na nuvem</string>
     <string name="cloud_providers_hint">Escolhe um ficheiro de áudio ou vídeo do Google Drive, OneDrive, Dropbox ou outro fornecedor cloud instalado.</string>
@@ -488,4 +490,69 @@
     <string name="settings_audio_spectrum">Ativar espectro visual</string>
     <string name="settings_audio_spectrum_desc">Mostrar o visualizador de áudio animado no Blaze Audio.</string>
 
+    <!-- Blaze Party -->
+    <string name="blaze_party">Blaze Party</string>
+    <string name="blaze_party_intro">Cria uma sessão local ou entra numa fila partilhada na mesma rede Wi‑Fi.</string>
+    <string name="blaze_party_host">Anfitrião Blaze Party</string>
+    <string name="blaze_party_join">Entrar no Blaze Party</string>
+    <string name="blaze_party_disconnect">Desligar</string>
+    <string name="blaze_party_disconnected">Desligado do Blaze Party</string>
+    <string name="blaze_party_host_title">Anfitrião Blaze Party</string>
+    <string name="blaze_party_qr_desc">QR code Blaze Party</string>
+    <string name="blaze_party_share_code">Endereço: %1$s
+Token: %2$s</string>
+    <string name="blaze_party_host_waiting">Sessão pronta: os convidados podem ler este código.</string>
+    <string name="blaze_party_manual_hint">Cola a ligação ou introduz o código</string>
+    <string name="blaze_party_scan_unavailable">Leitor QR indisponível. Instala um leitor QR ou introduz o código manualmente.</string>
+    <string name="blaze_party_joined">Entraste na sessão Blaze Party</string>
+    <string name="action_join">Entrar</string>
+
+    <string name="blaze_party_short">Party</string>
+    <string name="add_to_blaze_party">Adicionar à Blaze Party</string>
+    <string name="blaze_party_playlist_title">Playlist Blaze Party</string>
+    <string name="blaze_party_playlist_empty_message">Nenhuma faixa na playlist Blaze Party. Adicione faixas pelo navegador de áudio com “Adicionar à Blaze Party”.</string>
+    <string name="blaze_party_items_already_present">Estas faixas já estão na Blaze Party</string>
+    <string name="toast_blaze_party_playlist_emptied">Playlist Blaze Party esvaziada</string>
+    <plurals name="blaze_party_items_added">
+        <item quantity="one">%d faixa adicionada à Blaze Party</item>
+        <item quantity="other">%d faixas adicionadas à Blaze Party</item>
+    </plurals>
+
+
+    <string name="blaze_party_launch">Iniciar</string>
+    <string name="blaze_party_vote">Votar</string>
+    <string name="blaze_party_vote_hint">Toca numa faixa para ver votos e votar.</string>
+    <string name="blaze_party_vote_saved">Voto guardado</string>
+    <string name="blaze_party_no_voters">Ainda sem votos</string>
+    <string name="blaze_party_nickname">Nome</string>
+    <string name="blaze_party_nickname_hint">O teu nome</string>
+    <string name="blaze_party_nickname_title">Escolher um nome Blaze Party</string>
+    <plurals name="blaze_party_vote_count">
+        <item quantity="one">%d vote</item>
+        <item quantity="other">%d votes</item>
+    </plurals>
+
+    <string name="gallery_folder_button">Pasta</string>
+    <string name="gallery_create_folder">Pasta</string>
+    <string name="gallery_create_folder_title">Nova pasta de fotos</string>
+    <string name="gallery_create_folder_hint">Nome da pasta</string>
+    <string name="gallery_folder_created">Pasta criada</string>
+    <string name="gallery_folder_create_error">Não foi possível criar a pasta</string>
+    <string name="gallery_move_to_folder">Mover para outra pasta</string>
+    <string name="gallery_move_photo_title">Mover foto</string>
+    <string name="gallery_photo_moved">Foto movida</string>
+    <string name="gallery_photo_move_error">Não foi possível mover a foto</string>
+    <string name="action_custom_thumbnail">Miniatura personalizada</string>
+    <string name="action_delete_thumbnail">Excluir miniatura</string>
+    <string name="custom_thumbnail_pick_folder">Escolher uma pasta</string>
+    <string name="custom_thumbnail_pick_image">Escolher uma imagem</string>
+    <string name="custom_thumbnail_pick_toast">Escolha uma imagem para a miniatura</string>
+    <string name="custom_thumbnail_saved">Miniatura salva</string>
+    <string name="custom_thumbnail_deleted">Miniatura excluída</string>
+    <string name="custom_thumbnail_error">Não foi possível atualizar a miniatura</string>
+    <string name="blaze_party_not_host_queue">Só o anfitrião pode alterar esta fila</string>
+    <string name="blaze_party_remove_vote">Remover o meu voto</string>
+    <string name="blaze_party_vote_removed">Voto removido</string>
+    <string name="blaze_party_default_host">Anfitrião</string>
+    <string name="blaze_party_default_guest">Convidado</string>
 </resources>

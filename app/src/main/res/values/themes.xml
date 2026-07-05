@@ -12,7 +12,7 @@
         <item name="colorOnSecondary">@color/background</item>
         <item name="colorTertiary">@color/blue_accent</item>
         <item name="android:colorBackground">@color/background</item>
-        <item name="colorSurface">@color/surface</item>
+        <item name="colorSurface">#0D0F14</item>
         <item name="colorOnSurface">@color/on_background</item>
         <item name="colorSurfaceVariant">@color/surface_variant</item>
         <item name="colorOnSurfaceVariant">@color/on_surface_variant</item>
@@ -21,6 +21,12 @@
         <item name="android:statusBarColor">@color/background</item>
         <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:alertDialogTheme">@style/ThemeOverlay.BlazePlayer.Dialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.BlazePlayer.Dialog</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.BlazePlayer.Dialog</item>
+        <item name="popupMenuStyle">@style/Widget.BlazePlayer.PopupMenu</item>
+        <item name="android:popupMenuStyle">@style/Widget.BlazePlayer.PopupMenu</item>
+        <item name="android:windowActionModeOverlay">true</item>
     </style>
 
     <!-- Thème lecteur vidéo — plein écran total, fond noir -->
@@ -39,13 +45,33 @@
     </style>
 
     <style name="BlazeBottomSheet" parent="Widget.Material3.BottomSheet">
-        <item name="backgroundTint">@color/surface</item>
+        <item name="backgroundTint">#0D0F14</item>
         <item name="shapeAppearance">@style/ShapeAppearance.BlazePlayer.BottomSheet</item>
     </style>
 
     <style name="ShapeAppearance.BlazePlayer.BottomSheet" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSizeTopLeft">16dp</item>
-        <item name="cornerSizeTopRight">16dp</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">28dp</item>
     </style>
+
+    <style name="ThemeOverlay.BlazePlayer.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">#0D0F14</item>
+        <item name="colorOnSurface">@color/on_background</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.BlazePlayer.Dialog</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
+        <item name="android:windowBackground">@drawable/bg_modal_video_style</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.72</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+    </style>
+
+    <style name="ShapeAppearance.BlazePlayer.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
 </resources>
