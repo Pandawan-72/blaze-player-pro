@@ -60,7 +60,7 @@
         <item quantity="one">%1$d vídeo</item>
         <item quantity="other">%1$d vídeos</item>
     </plurals>
-    <string name="about_dialog_message">Blaze Player\n\nVersión %1$s\n\nDesarrollado por Retro-Spare\n\nTu reproductor multimedia para Android</string>
+    <string name="about_dialog_message">Versión %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nTu reproductor multimedia para Android</string>
     <string name="about_section">ACERCA DE</string>
     <string name="action_add_to_favorites">Añadir a favoritos</string>
     <string name="action_allow">Permitir</string>
@@ -71,6 +71,7 @@
     <string name="action_close">Cerrar</string>
     <string name="action_close_favorites">Cerrar favoritos</string>
     <string name="action_confirm_delete">Eliminar</string>
+    <string name="action_continue">Continuar</string>
     <string name="action_custom_thumbnail">Miniatura personalizada</string>
     <string name="action_delete">Eliminar</string>
     <string name="action_delete_thumbnail">Eliminar miniatura</string>
@@ -143,8 +144,8 @@ Token: %2$s</string>
     <string name="blaze_party_vote_removed">Voto eliminado</string>
     <string name="blaze_party_vote_saved">Voto guardado</string>
     <string name="breadcrumb_home">Inicio</string>
-    <string name="browse_files_local">Archivos locales</string>
-    <string name="browse_files_network">Archivos de red</string>
+    <string name="browse_files_local">Explorar</string>
+    <string name="browse_files_network">Explorar</string>
     <string name="browse_this_path">Explorar esta ruta</string>
     <string name="browser_files_audio">Mis archivos de audio</string>
     <string name="browser_files_local">Mis archivos locales</string>
@@ -212,6 +213,8 @@ Token: %2$s</string>
     <string name="dialog_favorite_folders">Carpetas favoritas</string>
     <string name="dialog_network_error_message">La reproducción de este vídeo ha fallado (conexión al NAS interrumpida, Wi-Fi inestable o archivo inaccesible).</string>
     <string name="dialog_no_favorite_folders">Aún no hay carpetas favoritas.\n\nEn el explorador, abre el menú (⋮) junto a una carpeta para añadirla a tus favoritos.</string>
+    <string name="dialog_permission_intro_message">Para funcionar correctamente, Blaze Player te pedirá varios permisos, todos a la vez:\n\n• Fotos, música y vídeos: para mostrar tu biblioteca y Blaze Gallery\n• Notificaciones: para los controles de reproducción\n• Red local: para descubrir invitados de Blaze Party\n• Micrófono: solo para el ecualizador visual dinámico — nunca se graba audio</string>
+    <string name="dialog_permission_intro_title">Permisos necesarios</string>
     <string name="dialog_permission_message">Blaze Player necesita acceso a tus archivos de vídeo para funcionar.</string>
     <string name="dialog_permission_needed">Permiso necesario</string>
     <string name="dialog_playlist_empty_message">Esta lista está vacía.\n\nEn el explorador, selecciona archivos y usa \"Añadir a la lista\" para rellenarla.</string>
@@ -221,7 +224,9 @@ Token: %2$s</string>
     <string name="dialog_title_network_error">Error de reproducción de red</string>
     <string name="dialog_title_subtitles">Subtítulos</string>
     <string name="dialog_track_info_message">Título: %1$s\nArtista: %2$s\nÁlbum: %3$s</string>
+    <string name="dialog_video_info_audio_codec">Códec de audio: %1$s</string>
     <string name="dialog_video_info_message">Ruta: %1$s\n\nContenedor: %2$s\nResolución: %3$s\nDuración: %4$s\nTamaño: %5$s</string>
+    <string name="dialog_video_info_video_codec">Códec de vídeo: %1$s</string>
     <string name="dialog_which_playlist">¿Añadir a qué lista?</string>
     <string name="email_sent">¡Email enviado! Revisa tu bandeja de entrada.</string>
     <string name="enjoy_free_trial">Disfruta de 15 días de prueba gratis</string>
@@ -246,6 +251,8 @@ Token: %2$s</string>
     <string name="gallery_delete_all">Eliminar todo</string>
     <string name="gallery_delete_folder">Eliminar carpeta</string>
     <string name="gallery_delete_permanently_from_trash">Eliminar definitivamente de la papelera</string>
+    <string name="gallery_empty_folders">Aún no hay carpetas — crea una para empezar</string>
+    <string name="gallery_empty_photos">Esta carpeta está vacía</string>
     <string name="gallery_empty_trash">Vaciar definitivamente</string>
     <string name="gallery_folder_button">Carpeta</string>
     <string name="gallery_folder_create_error">No se puede crear la carpeta</string>
@@ -268,6 +275,7 @@ Token: %2$s</string>
     <string name="gallery_sort_size">Tamaño del archivo</string>
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_trash">Papelera</string>
+    <string name="gallery_trash_empty_message">La papelera está vacía</string>
     <string name="gallery_type_photo">Fotos</string>
     <string name="gallery_type_video">Vídeos</string>
     <string name="gallery_unknown_folder">Carpeta desconocida</string>
@@ -282,6 +290,10 @@ Token: %2$s</string>
     <string name="hint_shared_folder_example">Carpeta compartida (ej: videos)</string>
     <string name="hint_username">Usuario</string>
     <string name="hint_username_optional">Usuario (opcional)</string>
+    <string name="history_empty_local_subtitle">Explora tu biblioteca local para empezar</string>
+    <string name="history_empty_local_title">No hay vídeos vistos recientemente</string>
+    <string name="history_empty_network_subtitle">Explora tus recursos de red para empezar</string>
+    <string name="history_empty_network_title">No hay vídeos vistos recientemente</string>
     <string name="history_label">Historial</string>
     <string name="history_local">Historial local</string>
     <string name="history_network">Historial de red</string>

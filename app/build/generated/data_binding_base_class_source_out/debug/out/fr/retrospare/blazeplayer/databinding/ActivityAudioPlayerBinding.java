@@ -18,6 +18,7 @@ import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import com.google.android.material.button.MaterialButton;
 import fr.retrospare.blazeplayer.R;
+import fr.retrospare.blazeplayer.player.ArtworkAuraView;
 import fr.retrospare.blazeplayer.player.AudioEqualizerView;
 import fr.retrospare.blazeplayer.ui.ArtworkMetadataOverlayLayout;
 import fr.retrospare.blazeplayer.ui.RoundedImageView;
@@ -132,6 +133,9 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
   public final RoundedImageView ivArtwork;
 
   @NonNull
+  public final ArtworkAuraView ivArtworkGlow;
+
+  @NonNull
   public final View ivPixelChar;
 
   @NonNull
@@ -194,12 +198,13 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
       @NonNull ImageButton btnShuffle, @NonNull LinearLayout btnSleepTimer,
       @NonNull TextView btnVotePartyPlaylist, @NonNull ImageView icLocalUserContext,
       @NonNull ImageView icPartyContext, @NonNull RoundedImageView ivArtwork,
-      @NonNull View ivPixelChar, @NonNull View ivPixelCharLeft,
-      @NonNull LinearLayout partyPlaylistSheet, @NonNull LinearLayout playerPanel,
-      @NonNull LinearLayout playlistSheet, @NonNull RecyclerView recyclerPartyPlaylist,
-      @NonNull RecyclerView recyclerPlaylist, @NonNull SeekBar seekBar, @NonNull TextView tvAlbum,
-      @NonNull TextView tvArtist, @NonNull TextView tvBitrate, @NonNull TextView tvCodec,
-      @NonNull TextView tvCurrentTime, @NonNull TextView tvTitle, @NonNull TextView tvTotalTime) {
+      @NonNull ArtworkAuraView ivArtworkGlow, @NonNull View ivPixelChar,
+      @NonNull View ivPixelCharLeft, @NonNull LinearLayout partyPlaylistSheet,
+      @NonNull LinearLayout playerPanel, @NonNull LinearLayout playlistSheet,
+      @NonNull RecyclerView recyclerPartyPlaylist, @NonNull RecyclerView recyclerPlaylist,
+      @NonNull SeekBar seekBar, @NonNull TextView tvAlbum, @NonNull TextView tvArtist,
+      @NonNull TextView tvBitrate, @NonNull TextView tvCodec, @NonNull TextView tvCurrentTime,
+      @NonNull TextView tvTitle, @NonNull TextView tvTotalTime) {
     this.rootView = rootView;
     this.artworkFrame = artworkFrame;
     this.artworkMetadataOverlay = artworkMetadataOverlay;
@@ -235,6 +240,7 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
     this.icLocalUserContext = icLocalUserContext;
     this.icPartyContext = icPartyContext;
     this.ivArtwork = ivArtwork;
+    this.ivArtworkGlow = ivArtworkGlow;
     this.ivPixelChar = ivPixelChar;
     this.ivPixelCharLeft = ivPixelCharLeft;
     this.partyPlaylistSheet = partyPlaylistSheet;
@@ -483,6 +489,12 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.ivArtworkGlow;
+      ArtworkAuraView ivArtworkGlow = ViewBindings.findChildViewById(rootView, id);
+      if (ivArtworkGlow == null) {
+        break missingId;
+      }
+
       id = R.id.ivPixelChar;
       View ivPixelChar = ViewBindings.findChildViewById(rootView, id);
       if (ivPixelChar == null) {
@@ -580,9 +592,10 @@ public final class ActivityAudioPlayerBinding implements ViewBinding {
           btnCleanPlaylist, btnClearPartyPlaylist, btnClosePartyPlaylist, btnClosePlaylist, btnEq,
           btnForward, btnInfos, btnLaunchPartyPlaylist, btnNext, btnPlayPause, btnPlaylistSheet,
           btnPrev, btnRepeat, btnRewind, btnShuffle, btnSleepTimer, btnVotePartyPlaylist,
-          icLocalUserContext, icPartyContext, ivArtwork, ivPixelChar, ivPixelCharLeft,
-          partyPlaylistSheet, playerPanel, playlistSheet, recyclerPartyPlaylist, recyclerPlaylist,
-          seekBar, tvAlbum, tvArtist, tvBitrate, tvCodec, tvCurrentTime, tvTitle, tvTotalTime);
+          icLocalUserContext, icPartyContext, ivArtwork, ivArtworkGlow, ivPixelChar,
+          ivPixelCharLeft, partyPlaylistSheet, playerPanel, playlistSheet, recyclerPartyPlaylist,
+          recyclerPlaylist, seekBar, tvAlbum, tvArtist, tvBitrate, tvCodec, tvCurrentTime, tvTitle,
+          tvTotalTime);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

@@ -30,6 +30,21 @@ class PlaylistAdapter(
     private var currentPositionMs = 0L
     private var currentDurationMs = 0L
     private var overrideItems: List<MediaItem>? = null
+    @Volatile private var metadataLoadsEnabled = true
+    private val metadataLoadGeneration = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /**
+     * Pendant un scroll rapide, on évite de lancer des extractions MediaMetadataRetriever par ligne
+     * (surtout sur SMB/NAS), sinon la file d'attente devient saccadée. Les métadonnées déjà
+     * en cache restent affichées ; les extractions lourdes reprennent seulement quand la liste
+     * redevient idle.
+     */
+    fun setMetadataLoadsEnabled(enabled: Boolean) {
+        if (metadataLoadsEnabled != enabled) {
+            metadataLoadsEnabled = enabled
+            metadataLoadGeneration.incrementAndGet()
+        }
+    }
 
     /**
      * File affichée indépendante du Player. Utilisé pendant Blaze Party pour que la
@@ -160,7 +175,7 @@ class PlaylistAdapter(
             // extraction par ligne). Les pochettes restent affichées dans le lecteur audio et
             // le mini-lecteur, qui n'en chargent qu'une à la fois.
 
-            val cached = AudioMetadataExtractor.getCached(itemView.context, path)
+            val cached = if (metadataLoadsEnabled) AudioMetadataExtractor.getCached(itemView.context, path) else AudioMetadataExtractor.getCached(path)
             if (cached != null) {
                 applyMeta(cached, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvFormatBadge, tvBitrate, tvName, isCurrent)
             } else {
@@ -176,12 +191,14 @@ class PlaylistAdapter(
                 tvFormatBadge?.visibility = View.GONE
                 tvBitrate?.visibility = View.GONE
 
-                if (path.isNotEmpty()) {
+                if (path.isNotEmpty() && metadataLoadsEnabled) {
                     val token = path
+                    val generation = metadataLoadGeneration.get()
                     loadToken = token
                     loadExecutor.submit {
-                        // Si la vue a deja ete recyclee pour un autre item avant meme le debut du chargement, on annule
-                        if (loadToken != token) return@submit
+                        // Si la vue a deja ete recyclee ou si un scroll a désactivé les chargements
+                        // lourds avant le début de cette tâche, on annule immédiatement.
+                        if (loadToken != token || !metadataLoadsEnabled || metadataLoadGeneration.get() != generation) return@submit
                         // Extension toujours derivee du path (URI reelle), pas du nom affiche (titre sans extension)
                         val meta = kotlinx.coroutines.runBlocking {
                             kotlinx.coroutines.withTimeoutOrNull(3_000L) {
@@ -190,7 +207,7 @@ class PlaylistAdapter(
                         }
                         if (meta != null) {
                             android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                if (loadToken == token) {
+                                if (loadToken == token && metadataLoadsEnabled && metadataLoadGeneration.get() == generation) {
                                     applyMeta(meta, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvFormatBadge, tvBitrate, tvName, isCurrent)
                                 }
                             }

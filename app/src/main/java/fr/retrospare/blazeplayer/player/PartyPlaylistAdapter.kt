@@ -27,6 +27,15 @@ class PartyPlaylistAdapter(
     private var currentPath: String? = null
     private var currentPositionMs: Long = 0L
     private var currentDurationMs: Long = 0L
+    @Volatile private var metadataLoadsEnabled = true
+    private val metadataLoadGeneration = java.util.concurrent.atomic.AtomicInteger(0)
+
+    fun setMetadataLoadsEnabled(enabled: Boolean) {
+        if (metadataLoadsEnabled != enabled) {
+            metadataLoadsEnabled = enabled
+            metadataLoadGeneration.incrementAndGet()
+        }
+    }
 
     fun submitList(newItems: List<PlaylistTrackRef>) {
         rawItems = newItems
@@ -115,7 +124,7 @@ class PartyPlaylistAdapter(
             try { indicator.backgroundTintList = android.content.res.ColorStateList.valueOf(itemView.context.getColor(R.color.yellow_accent)) } catch (_: Exception) {}
             queueCard.setBackgroundResource(if (isCurrent) R.drawable.bg_queue_card_party_current else R.drawable.bg_surface_card)
 
-            val cached = AudioMetadataExtractor.getCached(itemView.context, path)
+            val cached = if (metadataLoadsEnabled) AudioMetadataExtractor.getCached(itemView.context, path) else AudioMetadataExtractor.getCached(path)
             if (cached != null) {
                 applyMeta(cached, title, fallbackExt(track), isCurrent)
             } else {
@@ -129,17 +138,20 @@ class PartyPlaylistAdapter(
                 } else tvCodec?.visibility = View.GONE
                 tvFormatBadge?.visibility = View.GONE
                 tvTime?.visibility = View.GONE
-                val token = path
-                loadToken = token
-                loadExecutor.submit {
-                    if (loadToken != token) return@submit
-                    val meta = kotlinx.coroutines.runBlocking {
-                        kotlinx.coroutines.withTimeoutOrNull(3_000L) {
-                            AudioMetadataExtractor.extract(itemView.context, path, track.name)
+                if (metadataLoadsEnabled) {
+                    val token = path
+                    val generation = metadataLoadGeneration.get()
+                    loadToken = token
+                    loadExecutor.submit {
+                        if (loadToken != token || !metadataLoadsEnabled || metadataLoadGeneration.get() != generation) return@submit
+                        val meta = kotlinx.coroutines.runBlocking {
+                            kotlinx.coroutines.withTimeoutOrNull(3_000L) {
+                                AudioMetadataExtractor.extract(itemView.context, path, track.name)
+                            }
                         }
-                    }
-                    if (meta != null) android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        if (loadToken == token) applyMeta(meta, title, fallbackExt(track), currentPath == path)
+                        if (meta != null) android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            if (loadToken == token && metadataLoadsEnabled && metadataLoadGeneration.get() == generation) applyMeta(meta, title, fallbackExt(track), currentPath == path)
+                        }
                     }
                 }
             }

@@ -81,7 +81,7 @@ class ArtworkMetadataOverlayLayout @JvmOverloads constructor(
         gradientRect.set(0f, top, w.toFloat(), h.toFloat())
         shader = LinearGradient(
             0f, top, 0f, h.toFloat(),
-            intArrayOf(Color.TRANSPARENT, Color.argb(148, 0, 0, 0), Color.argb(235, 0, 0, 0)),
+            intArrayOf(Color.TRANSPARENT, Color.argb(178, 0, 0, 0), Color.argb(252, 0, 0, 0)),
             floatArrayOf(0f, 0.42f, 1f),
             Shader.TileMode.CLAMP
         )

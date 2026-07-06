@@ -433,6 +433,9 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                                         extension = video.extension.uppercase(),
                                         itemSizeBytes = video.size,
                                         itemDurationSeconds = video.duration,
+                                        resolution = video.resolution,
+                                        videoCodec = video.videoCodec,
+                                        audioCodec = video.audioCodec,
                                         fullExtract = true
                                     )
                                     true

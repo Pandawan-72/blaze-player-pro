@@ -161,7 +161,7 @@
 
     <string name="settings_about">Over</string>
     <string name="settings_about_desc">Wat je moet weten over Blaze Player</string>
-    <string name="about_dialog_message">Blaze Player\n\nVersie %1$s\n\nOntwikkeld door Retro-Spare\n\nJouw mediaspeler voor Android</string>
+    <string name="about_dialog_message">Versie %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nJouw mediaspeler voor Android</string>
     <string name="action_ok">OK</string>
     <string name="settings_language">Taal</string>
     <string name="language_system_auto">Systeem (automatisch)</string>
@@ -307,6 +307,10 @@
     <string name="unknown_size">Onbekend</string>
     <string name="dialog_video_info_message">Pad: %1$s\n\nContainer: %2$s\nResolutie: %3$s\nDuur: %4$s\nGrootte: %5$s</string>
 
+    <string name="dialog_video_info_video_codec">Videocodec: %1$s</string>
+
+    <string name="dialog_video_info_audio_codec">Audiocodec: %1$s</string>
+
     <plurals name="video_count">
         <item quantity="one">%1$d video</item>
         <item quantity="other">%1$d video\'s</item>
@@ -321,6 +325,15 @@
     <string name="sort_size">Grootte</string>
 
     <string name="dialog_permission_needed">Toestemming vereist</string>
+
+
+    <string name="dialog_permission_intro_title">Toestemmingen vereist</string>
+
+
+    <string name="dialog_permission_intro_message">Om goed te werken, vraagt Blaze Player een paar toestemmingen tegelijk:\n\n• Foto\'s, muziek en video\'s: om je bibliotheek en Blaze Gallery te tonen\n• Meldingen: voor de afspeelbediening\n• Lokaal netwerk: om Blaze Party-gasten te vinden\n• Microfoon: alleen voor de dynamische visuele equalizer — er wordt nooit audio opgenomen</string>
+
+
+    <string name="action_continue">Doorgaan</string>
     <string name="dialog_permission_message">Blaze Player heeft toegang tot je videobestanden nodig om te werken.</string>
     <string name="action_allow">Toestaan</string>
     <string name="action_ignore">Negeren</string>
@@ -349,9 +362,17 @@
 
     <string name="history_network">Netwerkgeschiedenis</string>
     <string name="history_local">Lokale geschiedenis</string>
+
+    <string name="history_empty_local_title">Geen recent bekeken video\'s</string>
+
+    <string name="history_empty_local_subtitle">Blader door je lokale bibliotheek om te beginnen</string>
+
+    <string name="history_empty_network_title">Geen recent bekeken video\'s</string>
+
+    <string name="history_empty_network_subtitle">Blader door je netwerkshares om te beginnen</string>
     <string name="history_label">Geschiedenis</string>
-    <string name="browse_files_network">Netwerkbestanden</string>
-    <string name="browse_files_local">Lokale bestanden</string>
+    <string name="browse_files_network">Bladeren</string>
+    <string name="browse_files_local">Bladeren</string>
     <string name="action_close_favorites">Favorieten sluiten</string>
 
     <plurals name="file_count">
@@ -460,6 +481,12 @@
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_folders">Blaze Gallery</string>
+
+    <string name="gallery_empty_folders">Nog geen mappen — maak er een aan om te beginnen</string>
+
+    <string name="gallery_empty_photos">Deze map is leeg</string>
+
+    <string name="gallery_trash_empty_message">De prullenbak is leeg</string>
     <string name="gallery_type_photo">Foto\'s</string>
     <string name="gallery_type_video">Video\'s</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>

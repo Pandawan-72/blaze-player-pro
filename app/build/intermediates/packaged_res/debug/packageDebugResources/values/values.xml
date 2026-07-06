@@ -131,7 +131,7 @@
         <item quantity="one">%1$d vidéo</item>
         <item quantity="other">%1$d vidéos</item>
     </plurals>
-    <string name="about_dialog_message">Blaze Player\n\nVersion %1$s\n\nDéveloppé par Retro-Spare\n\nVotre lecteur multimédia pour Android</string>
+    <string name="about_dialog_message">Version %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nVotre lecteur multimédia pour Android</string>
     <string name="about_section">À PROPOS</string>
     <string name="action_add_to_favorites">Ajouter aux favoris</string>
     <string name="action_allow">Autoriser</string>
@@ -142,6 +142,7 @@
     <string name="action_close">Fermer</string>
     <string name="action_close_favorites">Fermer les favoris</string>
     <string name="action_confirm_delete">Supprimer</string>
+    <string name="action_continue">Continuer</string>
     <string name="action_custom_thumbnail">Miniature personnalisée</string>
     <string name="action_delete">Supprimer</string>
     <string name="action_delete_thumbnail">Supprimer miniature</string>
@@ -216,8 +217,8 @@ Code : %2$s</string>
     <string name="blaze_party_vote_removed">Vote retiré</string>
     <string name="blaze_party_vote_saved">Vote enregistré</string>
     <string name="breadcrumb_home">Accueil</string>
-    <string name="browse_files_local">Fichiers locaux</string>
-    <string name="browse_files_network">Fichiers réseau</string>
+    <string name="browse_files_local">Parcourir</string>
+    <string name="browse_files_network">Parcourir</string>
     <string name="browse_this_path">Naviguer dans ce chemin</string>
     <string name="browser_files_audio">Mes fichiers audio</string>
     <string name="browser_files_local">Mes fichiers locaux</string>
@@ -285,6 +286,8 @@ Code : %2$s</string>
     <string name="dialog_favorite_folders">Dossiers favoris</string>
     <string name="dialog_network_error_message">La lecture de cette vidéo a échoué (connexion au NAS interrompue, Wi-Fi instable, ou fichier inaccessible).</string>
     <string name="dialog_no_favorite_folders">Aucun dossier favori pour l\'instant.\n\nDans le navigateur, ouvre le menu (⋮) à côté d\'un dossier pour l\'ajouter à tes favoris.</string>
+    <string name="dialog_permission_intro_message">Pour bien fonctionner, Blaze Player va vous demander quelques autorisations, toutes en une fois :\n\n• Photos, musique et vidéos : pour afficher votre bibliothèque et Blaze Gallery\n• Notifications : pour les contrôles de lecture\n• Réseau local : pour découvrir les invités Blaze Party\n• Microphone : uniquement pour l\'égaliseur visuel dynamique — aucun son n\'est enregistré</string>
+    <string name="dialog_permission_intro_title">Autorisations nécessaires</string>
     <string name="dialog_permission_message">Blaze Player a besoin d\'accéder à vos fichiers vidéo pour fonctionner.</string>
     <string name="dialog_permission_needed">Permission nécessaire</string>
     <string name="dialog_playlist_empty_message">Cette playlist est vide.\n\nDepuis le navigateur, sélectionne des fichiers puis utilise \"Ajouter à la playlist\" pour la remplir.</string>
@@ -294,7 +297,9 @@ Code : %2$s</string>
     <string name="dialog_title_network_error">Erreur de lecture réseau</string>
     <string name="dialog_title_subtitles">Sous-titres</string>
     <string name="dialog_track_info_message">Titre : %1$s\nArtiste : %2$s\nAlbum : %3$s</string>
+    <string name="dialog_video_info_audio_codec">Codec audio : %1$s</string>
     <string name="dialog_video_info_message">Chemin : %1$s\n\nConteneur : %2$s\nRésolution : %3$s\nDurée : %4$s\nTaille : %5$s</string>
+    <string name="dialog_video_info_video_codec">Codec vidéo : %1$s</string>
     <string name="dialog_which_playlist">Ajouter à quelle playlist ?</string>
     <string name="email_sent">Email envoyé ! Vérifiez votre boîte mail.</string>
     <string name="enjoy_free_trial">Profitez de 15 jours d\'essai gratuit</string>
@@ -319,6 +324,8 @@ Code : %2$s</string>
     <string name="gallery_delete_all">Supprimer tout</string>
     <string name="gallery_delete_folder">Supprimer dossier</string>
     <string name="gallery_delete_permanently_from_trash">Supprimer définitivement de la corbeille</string>
+    <string name="gallery_empty_folders">Aucun dossier pour l\'instant — crée-en un pour commencer</string>
+    <string name="gallery_empty_photos">Ce dossier est vide</string>
     <string name="gallery_empty_trash">Vider définitivement</string>
     <string name="gallery_folder_button">Dossier</string>
     <string name="gallery_folder_create_error">Impossible de créer le dossier</string>
@@ -341,6 +348,7 @@ Code : %2$s</string>
     <string name="gallery_sort_size">Taille de fichier</string>
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_trash">Corbeille</string>
+    <string name="gallery_trash_empty_message">La corbeille est vide</string>
     <string name="gallery_type_photo">Photos</string>
     <string name="gallery_type_video">Vidéos</string>
     <string name="gallery_unknown_folder">Dossier inconnu</string>
@@ -355,6 +363,10 @@ Code : %2$s</string>
     <string name="hint_shared_folder_example">Dossier partagé (ex: videos)</string>
     <string name="hint_username">Identifiant</string>
     <string name="hint_username_optional">Identifiant (optionnel)</string>
+    <string name="history_empty_local_subtitle">Parcours ta bibliothèque locale pour commencer</string>
+    <string name="history_empty_local_title">Aucune vidéo regardée récemment</string>
+    <string name="history_empty_network_subtitle">Parcours tes partages réseau pour commencer</string>
+    <string name="history_empty_network_title">Aucune vidéo regardée récemment</string>
     <string name="history_label">Historique</string>
     <string name="history_local">Historique local</string>
     <string name="history_network">Historique réseau</string>
@@ -642,6 +654,8 @@ Code : %2$s</string>
         <item name="popupMenuStyle">@style/Widget.BlazePlayer.PopupMenu</item>
         <item name="android:popupMenuStyle">@style/Widget.BlazePlayer.PopupMenu</item>
         <item name="android:windowActionModeOverlay">true</item>
+        
+        <item name="materialButtonStyle">@style/Widget.BlazePlayer.Button</item>
     </style>
     <style name="Theme.BlazePlayer.Fullscreen" parent="Theme.BlazePlayer">
         <item name="android:windowFullscreen">true</item>
@@ -676,10 +690,14 @@ Code : %2$s</string>
         <item name="android:color">@android:color/transparent</item>
         <item name="shapeAppearance">@style/ShapeAppearance.BlazePlayer.BottomNavigationView.ActiveIndicator</item>
     </style>
+    <style name="Widget.BlazePlayer.Button" parent="Widget.Material3.Button">
+        <item name="android:textStyle">bold</item>
+    </style>
     <style name="Widget.BlazePlayer.DialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
         <item name="android:textColor">@color/on_background</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>
+        <item name="android:textStyle">bold</item>
     </style>
     <style name="Widget.BlazePlayer.PopupMenu" parent="Widget.AppCompat.PopupMenu">
         <item name="android:popupBackground">@drawable/bg_modal_video_style</item>

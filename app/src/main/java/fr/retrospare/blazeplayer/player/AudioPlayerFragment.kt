@@ -23,7 +23,14 @@ import androidx.datastore.preferences.core.Preferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Canvas
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RadialGradient
+import android.graphics.RectF
+import android.graphics.Shader
 import android.content.res.ColorStateList
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.media.audiofx.Visualizer
@@ -628,6 +635,10 @@ class AudioPlayerFragment : Fragment() {
         val safeExt = sanitizeAudioExtension(ext)
         if (safeExt.isNotEmpty()) {
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(_binding?.tvCodec, safeExt)
+            // BadgeStyle applique sa propre couleur par format (MP3/FLAC/...) : on la remplace
+            // aussitôt par la couleur d'accent dynamique de la pochette courante, pour que le
+            // badge reste cohérent avec le reste de l'écran plutôt que d'avoir sa propre teinte.
+            _binding?.tvCodec?.setTextColor(currentAccentColor)
             _binding?.tvCodec?.visibility = View.VISIBLE
         } else {
             _binding?.tvCodec?.text = ""
@@ -746,24 +757,30 @@ class AudioPlayerFragment : Fragment() {
     private fun animateDynamicBackground(targetColor: Int, accentColor: Int = currentAccentColor) {
         val binding = _binding ?: return
         val root = binding.playerPanel
-        if (currentDynamicBgColor == targetColor && currentAccentColor == accentColor) return
-        bgAnimator?.cancel()
-        bgAnimator = ValueAnimator.ofObject(ArgbEvaluator(), currentDynamicBgColor, targetColor).apply {
-            duration = 380L
-            addUpdateListener { animator ->
-                val color = animator.animatedValue as Int
-                val gradient = GradientDrawable(
-                    GradientDrawable.Orientation.TOP_BOTTOM,
-                    intArrayOf(
-                        mixColors(Color.rgb(2, 7, 9), color, 0.72f),
-                        mixColors(color, Color.WHITE, 0.05f),
-                        mixColors(Color.rgb(2, 7, 9), color, 0.48f)
+        // Ne saute que l'animation elle-même si rien n'a changé (évite un à-coup visuel inutile) —
+        // mais applique quand même les couleurs dynamiques plus bas : sinon, après une recréation
+        // de vue (rotation, changement d'onglet) où les champs currentDynamicBgColor/currentAccentColor
+        // gardent leur ancienne valeur alors que les nouvelles vues n'ont jamais reçu ces couleurs,
+        // tout restait bloqué sur les valeurs par défaut du layout (halo, contour, teintes...).
+        if (currentDynamicBgColor != targetColor || currentAccentColor != accentColor) {
+            bgAnimator?.cancel()
+            bgAnimator = ValueAnimator.ofObject(ArgbEvaluator(), currentDynamicBgColor, targetColor).apply {
+                duration = 380L
+                addUpdateListener { animator ->
+                    val color = animator.animatedValue as Int
+                    val gradient = GradientDrawable(
+                        GradientDrawable.Orientation.TOP_BOTTOM,
+                        intArrayOf(
+                            mixColors(Color.rgb(2, 7, 9), color, 0.72f),
+                            mixColors(color, Color.WHITE, 0.05f),
+                            mixColors(Color.rgb(2, 7, 9), color, 0.48f)
+                        )
                     )
-                )
-                root.background = gradient
-                currentDynamicBgColor = color
+                    root.background = gradient
+                    currentDynamicBgColor = color
+                }
+                start()
             }
-            start()
         }
         currentAccentColor = accentColor
         val tint = ColorStateList.valueOf(accentColor)
@@ -824,13 +841,12 @@ class AudioPlayerFragment : Fragment() {
     }
 
 
-    private fun restoreStaticAudioControlColors() {
+    private fun restoreStaticAudioControlColors(accentColor: Int = currentAccentColor) {
         val b = _binding ?: return
-        val green = try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.green_accent) } catch (_: Exception) { Color.rgb(63, 215, 143) }
         val yellow = try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.yellow_accent) } catch (_: Exception) { Color.rgb(255, 193, 7) }
         val muted = try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.on_surface_variant) } catch (_: Exception) { Color.rgb(175, 178, 198) }
-        b.tvArtist.setTextColor(green)
-        b.tvCodec.setTextColor(green)
+        b.tvArtist.setTextColor(accentColor)
+        b.tvCodec.setTextColor(accentColor)
         b.tvBitrate.setTextColor(muted)
         b.btnBlazeParty.setIconResource(fr.retrospare.blazeplayer.R.drawable.ic_equalizer)
         b.btnBlazeParty.iconTint = ColorStateList.valueOf(Color.WHITE)
@@ -855,6 +871,85 @@ class AudioPlayerFragment : Fragment() {
             setColor(Color.TRANSPARENT)
             setStroke(dp(1.5f).toInt(), mixColors(accentColor, Color.WHITE, 0.22f))
         }
+    }
+
+    /** Halo lumineux dynamique affiché derrière la pochette (ivArtworkGlow, sous artworkFrame).
+     *  Important : la cover masque le centre du halo. On dessine donc surtout une couronne
+     *  lumineuse vers les bords visibles, sinon le dégradé radial reste caché derrière la pochette. */
+    private fun buildArtworkGlow(accentColor: Int): Drawable {
+        val accentBright = mixColors(accentColor, Color.WHITE, 0.24f)
+        val accentDeep = mixColors(accentColor, Color.BLACK, 0.12f)
+        val secondary = rotateHue(accentColor, 34f)
+        val secondaryBright = mixColors(secondary, Color.WHITE, 0.20f)
+        return ArtworkGlowDrawable(accentBright, secondaryBright, accentDeep)
+    }
+
+    private inner class ArtworkGlowDrawable(
+        private val accentBright: Int,
+        private val secondaryBright: Int,
+        private val accentDeep: Int
+    ) : Drawable() {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { isDither = true }
+        private val rect = RectF()
+
+        override fun draw(canvas: Canvas) {
+            val b = bounds
+            if (b.width() <= 0 || b.height() <= 0) return
+            rect.set(b.left.toFloat(), b.top.toFloat(), b.right.toFloat(), b.bottom.toFloat())
+            val cx = rect.centerX()
+            val cy = rect.centerY()
+            val r = minOf(rect.width(), rect.height()) / 2f
+
+            // Couronne : forte près de la bordure de la cover, pas au centre caché.
+            paint.shader = RadialGradient(
+                cx, cy, r,
+                intArrayOf(
+                    withAlpha(accentBright, 0),
+                    withAlpha(accentBright, 24),
+                    withAlpha(secondaryBright, 120),
+                    withAlpha(accentDeep, 94),
+                    withAlpha(accentDeep, 0)
+                ),
+                floatArrayOf(0f, 0.54f, 0.76f, 0.90f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            canvas.drawOval(rect, paint)
+
+            // Lavis diagonal pour retrouver l'effet dégradé dynamique des autres éléments.
+            paint.shader = LinearGradient(
+                rect.left, rect.top, rect.right, rect.bottom,
+                intArrayOf(
+                    withAlpha(accentBright, 74),
+                    withAlpha(secondaryBright, 50),
+                    withAlpha(accentDeep, 0)
+                ),
+                floatArrayOf(0f, 0.52f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            canvas.drawOval(rect, paint)
+            paint.shader = null
+        }
+
+        override fun setAlpha(alpha: Int) { paint.alpha = alpha.coerceIn(0, 255); invalidateSelf() }
+        override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) { paint.colorFilter = colorFilter; invalidateSelf() }
+        @Deprecated("Deprecated in Java")
+        override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
+    }
+
+    private fun withAlpha(color: Int, alpha: Int): Int = Color.argb(
+        alpha.coerceIn(0, 255),
+        Color.red(color),
+        Color.green(color),
+        Color.blue(color)
+    )
+
+    private fun rotateHue(color: Int, degrees: Float): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        hsv[0] = (hsv[0] + degrees) % 360f
+        hsv[1] = (hsv[1] * 1.08f).coerceIn(0f, 1f)
+        hsv[2] = (hsv[2] * 1.12f).coerceIn(0.35f, 1f)
+        return Color.HSVToColor(hsv)
     }
 
     private fun buildPlayButtonBackground(accentColor: Int): LayerDrawable {
@@ -918,23 +1013,78 @@ class AudioPlayerFragment : Fragment() {
     private var squareArtworkContainer: View? = null
 
     private fun setupSquareArtwork() {
-        val container = binding.artworkFrame.parent as? View ?: return
+        // artworkFrame -> FrameLayout englobant (fixe 342dp, juste là pour superposer le halo) ->
+        // la vraie rangée dont la taille reflète l'espace réellement disponible à l'écran.
+        val container = binding.artworkFrame.parent?.parent as? View ?: return
         val listener = android.view.ViewTreeObserver.OnGlobalLayoutListener {
             val b = _binding ?: return@OnGlobalLayoutListener
             val availableWidth = container.width - container.paddingLeft - container.paddingRight
             val availableHeight = container.height - container.paddingTop - container.paddingBottom
             if (availableWidth <= 0 || availableHeight <= 0) return@OnGlobalLayoutListener
             val size = minOf(availableWidth, availableHeight)
+            // La cover reste strictement carrée et occupe maintenant l'espace libéré
+            // par la barre d'onglets plus compacte. Le halo est supprimé : aucun dessin,
+            // aucun blur et aucune animation derrière la pochette.
             val params = b.artworkFrame.layoutParams
             if (params.width != size || params.height != size) {
                 params.width = size
                 params.height = size
                 b.artworkFrame.layoutParams = params
             }
+
+            // Le FrameLayout parent n'a plus besoin de surface de débordement pour le glow.
+            val artworkContainer = b.artworkFrame.parent as? View
+            artworkContainer?.layoutParams?.let { containerParams ->
+                if (containerParams.width != size || containerParams.height != size) {
+                    containerParams.width = size
+                    containerParams.height = size
+                    artworkContainer.layoutParams = containerParams
+                }
+            }
+
+            val glowParams = b.ivArtworkGlow.layoutParams
+            if (glowParams.width != 0 || glowParams.height != 0) {
+                glowParams.width = 0
+                glowParams.height = 0
+                b.ivArtworkGlow.layoutParams = glowParams
+            }
+            b.ivArtworkGlow.visibility = View.GONE
+            b.ivArtworkGlow.alpha = 0f
         }
         container.viewTreeObserver.addOnGlobalLayoutListener(listener)
         squareArtworkListener = listener
         squareArtworkContainer = container
+    }
+
+    private fun configureSmoothQueueRecycler(
+        recyclerView: androidx.recyclerview.widget.RecyclerView,
+        queueAdapter: androidx.recyclerview.widget.RecyclerView.Adapter<*>,
+        setMetadataLoadsEnabled: (Boolean) -> Unit
+    ) {
+        recyclerView.setHasFixedSize(true)
+        recyclerView.itemAnimator = null
+        recyclerView.setItemViewCacheSize(24)
+        recyclerView.recycledViewPool.setMaxRecycledViews(0, 56)
+        recyclerView.overScrollMode = View.OVER_SCROLL_NEVER
+        recyclerView.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(rv: androidx.recyclerview.widget.RecyclerView, newState: Int) {
+                val idle = newState == androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE
+                setMetadataLoadsEnabled(idle)
+                if (idle) {
+                    // On relance les métadonnées uniquement pour les lignes visibles quand le doigt
+                    // s'arrête, au lieu de déclencher des extractions réseau pendant tout le scroll.
+                    val lm = rv.layoutManager as? androidx.recyclerview.widget.GridLayoutManager ?: return
+                    val first = lm.findFirstVisibleItemPosition().coerceAtLeast(0)
+                    val last = lm.findLastVisibleItemPosition().coerceAtLeast(first)
+                    val count = (last - first + 1).coerceAtLeast(0)
+                    if (count > 0) rv.post {
+                        val safeFirst = first.coerceAtMost((queueAdapter.itemCount - 1).coerceAtLeast(0))
+                        val safeCount = minOf(count, (queueAdapter.itemCount - safeFirst).coerceAtLeast(0))
+                        if (safeCount > 0) queueAdapter.notifyItemRangeChanged(safeFirst, safeCount)
+                    }
+                }
+            }
+        })
     }
 
     private fun initPlaylistUi() {
@@ -950,6 +1100,9 @@ class AudioPlayerFragment : Fragment() {
             // File d'attente plus dense : deux colonnes, lecture naturelle gauche → droite.
             layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2)
             adapter = playlistAdapter
+            configureSmoothQueueRecycler(this, playlistAdapter) { enabled ->
+                playlistAdapter.setMetadataLoadsEnabled(enabled)
+            }
         }
         partyPlaylistAdapter = PartyPlaylistAdapter(
             voteCountProvider = { path -> voteCountFor(path) },
@@ -958,6 +1111,9 @@ class AudioPlayerFragment : Fragment() {
         binding.recyclerPartyPlaylist.apply {
             layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2)
             adapter = partyPlaylistAdapter
+            configureSmoothQueueRecycler(this, partyPlaylistAdapter) { enabled ->
+                partyPlaylistAdapter.setMetadataLoadsEnabled(enabled)
+            }
         }
         binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
         binding.btnAddFolder.setOnClickListener {
@@ -977,6 +1133,7 @@ class AudioPlayerFragment : Fragment() {
         binding.btnBlazeParty.setOnClickListener { showBlazePartyDialog() }
 
         fun openPlaylist() {
+            binding.ivArtworkGlow.visibility = View.GONE
             binding.playlistSheet.visibility = android.view.View.VISIBLE
             binding.playlistSheet.translationY = binding.playlistSheet.height.toFloat().takeIf { it > 0 } ?: resources.displayMetrics.heightPixels.toFloat()
             binding.playlistSheet.animate()
@@ -985,6 +1142,10 @@ class AudioPlayerFragment : Fragment() {
                 .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
             _binding?.btnBack?.visibility = android.view.View.GONE
+            // MiniEqualizerView s'arrête de lui-même quand son ancêtre (ce sheet) passe en GONE à
+            // la fermeture (onVisibilityChanged) ; sans ce refresh, rouvrir le sheet ne relance pas
+            // son animation puisque les ViewHolder déjà liés ne repassent pas par bind().
+            playlistAdapter.refresh()
         }
 
         fun closePlaylist() {
@@ -994,6 +1155,7 @@ class AudioPlayerFragment : Fragment() {
                 .setInterpolator(android.view.animation.AccelerateInterpolator())
                 .withEndAction {
                     _binding?.playlistSheet?.visibility = android.view.View.GONE
+                    _binding?.ivArtworkGlow?.visibility = View.GONE
                 }
                 .start()
             _binding?.btnBack?.visibility = android.view.View.GONE
@@ -1086,6 +1248,7 @@ class AudioPlayerFragment : Fragment() {
     private fun openPartyPlaylistSheet() {
         val b = _binding ?: return
         refreshPartyPlaylistSheet()
+        b.ivArtworkGlow.visibility = View.GONE
         b.partyPlaylistSheet.visibility = android.view.View.VISIBLE
         b.partyPlaylistSheet.translationY = b.partyPlaylistSheet.height.toFloat().takeIf { it > 0 } ?: resources.displayMetrics.heightPixels.toFloat()
         b.partyPlaylistSheet.animate()
@@ -1102,7 +1265,10 @@ class AudioPlayerFragment : Fragment() {
             .translationY(resources.displayMetrics.heightPixels.toFloat())
             .setDuration(200)
             .setInterpolator(android.view.animation.AccelerateInterpolator())
-            .withEndAction { _binding?.partyPlaylistSheet?.visibility = android.view.View.GONE }
+            .withEndAction {
+                _binding?.partyPlaylistSheet?.visibility = android.view.View.GONE
+                _binding?.ivArtworkGlow?.visibility = View.GONE
+            }
             .start()
         b.btnBack.visibility = android.view.View.GONE
     }

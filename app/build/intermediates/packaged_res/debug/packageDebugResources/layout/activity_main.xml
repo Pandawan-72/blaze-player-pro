@@ -20,7 +20,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:layout_marginHorizontal="0dp"
-        android:layout_marginBottom="88dp"
+        android:layout_marginBottom="74dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@drawable/bg_mini_player"

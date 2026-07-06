@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#000000"
+    android:foreground="?attr/selectableItemBackground"
+    android:padding="1dp">
+
+    <fr.retrospare.blazeplayer.ui.PortraitFrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/ivThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop" />
+
+        <ImageView
+            android:id="@+id/ivPlayOverlay"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:alpha="0.85"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_play_small" />
+
+        <!-- Overlay bas : titre, conteneur + qualité + durée, et le menu "...", tout regroupé au
+             même endroit (contrairement au design en liste précédent qui étalait ces infos sur
+             toute la largeur de la ligne). Hauteur en wrap_content : s'adapte d'elle-même plutôt
+             que de figer une hauteur en dur qui casserait si une traduction est plus longue. -->
+        <LinearLayout
+            android:id="@+id/bottomOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@drawable/bg_gallery_photo_bottom_overlay"
+            android:gravity="bottom|center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="7dp"
+            android:paddingEnd="3dp"
+            android:paddingTop="14dp"
+            android:paddingBottom="6dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvFileName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-condensed"
+                    android:maxLines="1"
+                    android:shadowColor="#CC000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <!-- Conteneur + qualité : petits badges colorés, cohérents avec le reste de l'app -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvFormat"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="3dp"
+                        android:paddingHorizontal="5dp"
+                        android:paddingVertical="1dp"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvResolution"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="5dp"
+                        android:paddingVertical="1dp"
+                        android:textSize="9sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvDuration"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:shadowColor="#CC000000"
+                    android:shadowDx="0"
+                    android:shadowDy="1"
+                    android:shadowRadius="2"
+                    android:textColor="#DDFFFFFF"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btnMore"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="bottom"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/content_desc_options"
+                android:padding="6dp"
+                android:src="@drawable/ic_more_vert"
+                android:tint="#FFFFFFFF" />
+        </LinearLayout>
+
+        <!-- Contour vert : mise en évidence de l'élément le plus récemment lu (équivalent, en
+             version tuile, de l'ancien fond bg_media_card_last_played du design en liste). -->
+        <View
+            android:id="@+id/lastPlayedBorder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_history_tile_last_played"
+            android:visibility="gone" />
+    </fr.retrospare.blazeplayer.ui.PortraitFrameLayout>
+</FrameLayout>

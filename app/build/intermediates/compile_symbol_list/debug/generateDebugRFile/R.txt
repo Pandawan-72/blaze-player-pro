@@ -66,6 +66,7 @@ int color yellow_container 0x0
 int drawable animated_eq 0x0
 int drawable bg_artwork 0x0
 int drawable bg_artwork_glow 0x0
+int drawable bg_artwork_glow_default 0x0
 int drawable bg_audio_glass_panel 0x0
 int drawable bg_audio_seek_thumb 0x0
 int drawable bg_audio_seekbar 0x0
@@ -97,6 +98,7 @@ int drawable bg_gallery_tile_overlay 0x0
 int drawable bg_grid_overlay 0x0
 int drawable bg_hero_card 0x0
 int drawable bg_hero_icon_green 0x0
+int drawable bg_history_tile_last_played 0x0
 int drawable bg_icon_blue 0x0
 int drawable bg_icon_gray 0x0
 int drawable bg_icon_green 0x0
@@ -259,6 +261,7 @@ int id audioPlaylistStrip 0x0
 int id audio_pick_container 0x0
 int id bandsContainer 0x0
 int id bottomControlsContainer 0x0
+int id bottomOverlay 0x0
 int id breadcrumbContainer 0x0
 int id browserFragment 0x0
 int id btnAdd 0x0
@@ -295,12 +298,15 @@ int id btnClose 0x0
 int id btnCloseEq 0x0
 int id btnClosePartyPlaylist 0x0
 int id btnClosePlaylist 0x0
+int id btnClosePlaylistSheet 0x0
 int id btnCloseYoutubeFavorites 0x0
 int id btnCloseYoutubeSearch 0x0
 int id btnCloudFiles 0x0
 int id btnConfirm 0x0
 int id btnDeletePlaylist 0x0
 int id btnEdit 0x0
+int id btnEmptyStateBrowseLocal 0x0
+int id btnEmptyStateBrowseNetwork 0x0
 int id btnEq 0x0
 int id btnFavoritesCloud 0x0
 int id btnFavoritesLocal 0x0
@@ -340,6 +346,8 @@ int id btnPlaylistNetwork3 0x0
 int id btnPlaylistNetwork4 0x0
 int id btnPlaylistNetwork5 0x0
 int id btnPlaylistSheet 0x0
+int id btnPlaylistSheetClear 0x0
+int id btnPlaylistSheetPlayAll 0x0
 int id btnPlaylistYoutube1 0x0
 int id btnPlaylistYoutube2 0x0
 int id btnPlaylistYoutube3 0x0
@@ -349,6 +357,7 @@ int id btnPrev 0x0
 int id btnPrevious 0x0
 int id btnRatio 0x0
 int id btnRegister 0x0
+int id btnRemoveTrack 0x0
 int id btnRenamePlaylist 0x0
 int id btnRepeat 0x0
 int id btnRestore 0x0
@@ -390,6 +399,9 @@ int id checkAudio 0x0
 int id checkboxSelect 0x0
 int id controlsDimOverlay 0x0
 int id editYoutubeSearch 0x0
+int id emptyStateCloud 0x0
+int id emptyStateLocal 0x0
+int id emptyStateNetwork 0x0
 int id eqView 0x0
 int id etConfirmPassword 0x0
 int id etEmail 0x0
@@ -408,6 +420,7 @@ int id icLocalUserContext 0x0
 int id icPartyContext 0x0
 int id imgAppIcon 0x0
 int id ivArtwork 0x0
+int id ivArtworkGlow 0x0
 int id ivAudioCover 0x0
 int id ivCheck 0x0
 int id ivChevron 0x0
@@ -427,6 +440,7 @@ int id ivStar 0x0
 int id ivThumbnail 0x0
 int id ivTrackCheck 0x0
 int id ivYoutubeThumbnail 0x0
+int id lastPlayedBorder 0x0
 int id layoutPassword 0x0
 int id layoutShare 0x0
 int id layoutUsername 0x0
@@ -467,6 +481,7 @@ int id recyclerFavorites 0x0
 int id recyclerNetwork 0x0
 int id recyclerPartyPlaylist 0x0
 int id recyclerPlaylist 0x0
+int id recyclerPlaylistTracks 0x0
 int id recyclerSavedPlaylists 0x0
 int id recyclerSearch 0x0
 int id recyclerTracks 0x0
@@ -559,6 +574,7 @@ int id tvDeviceName 0x0
 int id tvDialogTitle 0x0
 int id tvDuration 0x0
 int id tvEmpty 0x0
+int id tvEmptyStateCloud 0x0
 int id tvEqStatus 0x0
 int id tvFavoriteName 0x0
 int id tvFavoriteSubtitle 0x0
@@ -582,6 +598,8 @@ int id tvPlaylistCodec 0x0
 int id tvPlaylistCount 0x0
 int id tvPlaylistFormatBadge 0x0
 int id tvPlaylistName 0x0
+int id tvPlaylistSheetEmpty 0x0
+int id tvPlaylistSheetTitle 0x0
 int id tvPreampValue 0x0
 int id tvRegister 0x0
 int id tvResolution 0x0
@@ -633,6 +651,7 @@ int layout dialog_equalizer 0x0
 int layout dialog_favorites_list 0x0
 int layout dialog_network_connect 0x0
 int layout dialog_playlist_manager 0x0
+int layout dialog_playlist_viewer 0x0
 int layout dialog_settings_choice 0x0
 int layout dialog_track_selector 0x0
 int layout fragment_browser 0x0
@@ -652,6 +671,7 @@ int layout item_folder 0x0
 int layout item_folder_header 0x0
 int layout item_gallery_folder_tile 0x0
 int layout item_gallery_photo 0x0
+int layout item_history_tile 0x0
 int layout item_media_file 0x0
 int layout item_media_file_grid 0x0
 int layout item_network_device 0x0
@@ -659,6 +679,7 @@ int layout item_network_folder 0x0
 int layout item_network_share 0x0
 int layout item_network_video 0x0
 int layout item_playlist 0x0
+int layout item_playlist_track_row 0x0
 int layout item_saved_playlist 0x0
 int layout item_setting 0x0
 int layout item_setting_choice 0x0
@@ -704,6 +725,7 @@ int string action_clear_all 0x0
 int string action_close 0x0
 int string action_close_favorites 0x0
 int string action_confirm_delete 0x0
+int string action_continue 0x0
 int string action_custom_thumbnail 0x0
 int string action_delete 0x0
 int string action_delete_thumbnail 0x0
@@ -846,6 +868,8 @@ int string dialog_edit_path 0x0
 int string dialog_favorite_folders 0x0
 int string dialog_network_error_message 0x0
 int string dialog_no_favorite_folders 0x0
+int string dialog_permission_intro_message 0x0
+int string dialog_permission_intro_title 0x0
 int string dialog_permission_message 0x0
 int string dialog_permission_needed 0x0
 int string dialog_playlist_empty_message 0x0
@@ -855,7 +879,9 @@ int string dialog_title_already_favorite 0x0
 int string dialog_title_network_error 0x0
 int string dialog_title_subtitles 0x0
 int string dialog_track_info_message 0x0
+int string dialog_video_info_audio_codec 0x0
 int string dialog_video_info_message 0x0
+int string dialog_video_info_video_codec 0x0
 int string dialog_which_playlist 0x0
 int string email_sent 0x0
 int string enjoy_free_trial 0x0
@@ -880,6 +906,8 @@ int string gallery_delete 0x0
 int string gallery_delete_all 0x0
 int string gallery_delete_folder 0x0
 int string gallery_delete_permanently_from_trash 0x0
+int string gallery_empty_folders 0x0
+int string gallery_empty_photos 0x0
 int string gallery_empty_trash 0x0
 int string gallery_folder_button 0x0
 int string gallery_folder_create_error 0x0
@@ -902,6 +930,7 @@ int string gallery_sort_name 0x0
 int string gallery_sort_size 0x0
 int string gallery_title 0x0
 int string gallery_trash 0x0
+int string gallery_trash_empty_message 0x0
 int string gallery_type_photo 0x0
 int string gallery_type_video 0x0
 int string gallery_unknown_folder 0x0
@@ -916,6 +945,10 @@ int string hint_shared_folder 0x0
 int string hint_shared_folder_example 0x0
 int string hint_username 0x0
 int string hint_username_optional 0x0
+int string history_empty_local_subtitle 0x0
+int string history_empty_local_title 0x0
+int string history_empty_network_subtitle 0x0
+int string history_empty_network_title 0x0
 int string history_label 0x0
 int string history_local 0x0
 int string history_network 0x0
@@ -1161,6 +1194,7 @@ int style Theme_BlazePlayer 0x0
 int style Theme_BlazePlayer_Fullscreen 0x0
 int style Widget_BlazePlayer_BottomNavigationView 0x0
 int style Widget_BlazePlayer_BottomNavigationView_ActiveIndicator 0x0
+int style Widget_BlazePlayer_Button 0x0
 int style Widget_BlazePlayer_DialogButton 0x0
 int style Widget_BlazePlayer_PopupMenu 0x0
 int xml backup_rules 0x0

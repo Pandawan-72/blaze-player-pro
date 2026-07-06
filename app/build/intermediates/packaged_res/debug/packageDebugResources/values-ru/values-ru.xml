@@ -82,7 +82,7 @@
         <item quantity="many">%1$d видео</item>
         <item quantity="other">%1$d видео</item>
     </plurals>
-    <string name="about_dialog_message">Blaze Player\n\nВерсия %1$s\n\nРазработано Retro-Spare\n\nВаш медиаплеер для Android</string>
+    <string name="about_dialog_message">Версия %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nВаш медиаплеер для Android</string>
     <string name="about_section">О ПРИЛОЖЕНИИ</string>
     <string name="action_add_to_favorites">Добавить в избранное</string>
     <string name="action_allow">Разрешить</string>
@@ -93,6 +93,7 @@
     <string name="action_close">Закрыть</string>
     <string name="action_close_favorites">Закрыть избранное</string>
     <string name="action_confirm_delete">Удалить</string>
+    <string name="action_continue">Продолжить</string>
     <string name="action_custom_thumbnail">Своя миниатюра</string>
     <string name="action_delete">Удалить</string>
     <string name="action_delete_thumbnail">Удалить миниатюру</string>
@@ -165,8 +166,8 @@
     <string name="blaze_party_vote_removed">Голос удалён</string>
     <string name="blaze_party_vote_saved">Голос сохранён</string>
     <string name="breadcrumb_home">Главная</string>
-    <string name="browse_files_local">Локальные файлы</string>
-    <string name="browse_files_network">Сетевые файлы</string>
+    <string name="browse_files_local">Обзор</string>
+    <string name="browse_files_network">Обзор</string>
     <string name="browse_this_path">Просмотреть этот путь</string>
     <string name="browser_files_audio">Мои аудиофайлы</string>
     <string name="browser_files_local">Мои локальные файлы</string>
@@ -234,6 +235,8 @@
     <string name="dialog_favorite_folders">Избранные папки</string>
     <string name="dialog_network_error_message">Не удалось воспроизвести это видео (потеряно соединение с NAS, нестабильный Wi-Fi или файл недоступен).</string>
     <string name="dialog_no_favorite_folders">Пока нет избранных папок.\n\nВ проводнике откройте меню (⋮) рядом с папкой, чтобы добавить её в избранное.</string>
+    <string name="dialog_permission_intro_message">Чтобы Blaze Player работал корректно, приложение запросит несколько разрешений сразу:\n\n• Фото, музыка и видео: для отображения вашей библиотеки и Blaze Gallery\n• Уведомления: для управления воспроизведением\n• Локальная сеть: для поиска участников Blaze Party\n• Микрофон: только для динамического визуального эквалайзера — запись звука никогда не производится</string>
+    <string name="dialog_permission_intro_title">Необходимые разрешения</string>
     <string name="dialog_permission_message">Blaze Player нужен доступ к вашим видеофайлам для работы.</string>
     <string name="dialog_permission_needed">Требуется разрешение</string>
     <string name="dialog_playlist_empty_message">Этот плейлист пуст.\n\nВ проводнике выберите файлы и используйте \"Добавить в плейлист\", чтобы его заполнить.</string>
@@ -243,7 +246,9 @@
     <string name="dialog_title_network_error">Ошибка сетевого воспроизведения</string>
     <string name="dialog_title_subtitles">Субтитры</string>
     <string name="dialog_track_info_message">Название: %1$s\nИсполнитель: %2$s\nАльбом: %3$s</string>
+    <string name="dialog_video_info_audio_codec">Аудиокодек: %1$s</string>
     <string name="dialog_video_info_message">Путь: %1$s\n\nКонтейнер: %2$s\nРазрешение: %3$s\nДлительность: %4$s\nРазмер: %5$s</string>
+    <string name="dialog_video_info_video_codec">Видеокодек: %1$s</string>
     <string name="dialog_which_playlist">В какой плейлист добавить?</string>
     <string name="email_sent">Письмо отправлено! Проверьте почту.</string>
     <string name="enjoy_free_trial">Воспользуйтесь 15-дневной бесплатной пробной версией</string>
@@ -268,6 +273,8 @@
     <string name="gallery_delete_all">Удалить всё</string>
     <string name="gallery_delete_folder">Удалить папку</string>
     <string name="gallery_delete_permanently_from_trash">Удалить из корзины окончательно</string>
+    <string name="gallery_empty_folders">Пока нет папок — создайте одну, чтобы начать</string>
+    <string name="gallery_empty_photos">Эта папка пуста</string>
     <string name="gallery_empty_trash">Очистить окончательно</string>
     <string name="gallery_folder_button">Папка</string>
     <string name="gallery_folder_create_error">Не удалось создать папку</string>
@@ -290,6 +297,7 @@
     <string name="gallery_sort_size">Размер файла</string>
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_trash">Корзина</string>
+    <string name="gallery_trash_empty_message">Корзина пуста</string>
     <string name="gallery_type_photo">Фото</string>
     <string name="gallery_type_video">Видео</string>
     <string name="gallery_unknown_folder">Неизвестная папка</string>
@@ -304,6 +312,10 @@
     <string name="hint_shared_folder_example">Общая папка (напр. videos)</string>
     <string name="hint_username">Имя пользователя</string>
     <string name="hint_username_optional">Имя пользователя (необязательно)</string>
+    <string name="history_empty_local_subtitle">Просмотрите локальную библиотеку, чтобы начать</string>
+    <string name="history_empty_local_title">Нет недавно просмотренных видео</string>
+    <string name="history_empty_network_subtitle">Просмотрите сетевые ресурсы, чтобы начать</string>
+    <string name="history_empty_network_title">Нет недавно просмотренных видео</string>
     <string name="history_label">История</string>
     <string name="history_local">Локальная история</string>
     <string name="history_network">История сети</string>

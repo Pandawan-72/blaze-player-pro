@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_dialog_rounded"
+    android:paddingBottom="16dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="#33FFFFFF" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:id="@+id/tvPlaylistSheetTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-condensed"
+            android:maxLines="1"
+            android:textColor="@color/on_background"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnClosePlaylistSheet"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_close"
+            android:padding="8dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/on_surface_variant" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginBottom="4dp"
+        android:background="#1FFFFFFF" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerPlaylistTracks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:maxHeight="380dp"
+        android:overScrollMode="never" />
+
+    <TextView
+        android:id="@+id/tvPlaylistSheetEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingVertical="28dp"
+        android:paddingHorizontal="24dp"
+        android:text="@string/dialog_playlist_empty_message"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPlaylistSheetClear"
+            android:includeFontPadding="false"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:paddingHorizontal="14dp"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp"
+            app:backgroundTint="@color/surface_variant"
+            app:cornerRadius="22dp"
+            app:strokeColor="@color/outline_variant"
+            app:strokeWidth="1dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPlaylistSheetPlayAll"
+            android:includeFontPadding="false"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:text="@string/action_play_playlist"
+            android:textColor="#FF000000"
+            android:textSize="13sp"
+            app:backgroundTint="@color/green_accent"
+            app:cornerRadius="22dp"
+            app:icon="@drawable/ic_play_small"
+            app:iconGravity="textStart"
+            app:iconTint="#FF000000" />
+    </LinearLayout>
+
+</LinearLayout>

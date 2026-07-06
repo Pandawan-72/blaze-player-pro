@@ -60,7 +60,7 @@
         <item quantity="one">%1$d video</item>
         <item quantity="other">%1$d video\'s</item>
     </plurals>
-    <string name="about_dialog_message">Blaze Player\n\nVersie %1$s\n\nOntwikkeld door Retro-Spare\n\nJouw mediaspeler voor Android</string>
+    <string name="about_dialog_message">Versie %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nJouw mediaspeler voor Android</string>
     <string name="about_section">OVER</string>
     <string name="action_add_to_favorites">Toevoegen aan favorieten</string>
     <string name="action_allow">Toestaan</string>
@@ -71,6 +71,7 @@
     <string name="action_close">Sluiten</string>
     <string name="action_close_favorites">Favorieten sluiten</string>
     <string name="action_confirm_delete">Verwijderen</string>
+    <string name="action_continue">Doorgaan</string>
     <string name="action_custom_thumbnail">Aangepaste miniatuur</string>
     <string name="action_delete">Verwijderen</string>
     <string name="action_delete_thumbnail">Miniatuur verwijderen</string>
@@ -143,8 +144,8 @@ Token: %2$s</string>
     <string name="blaze_party_vote_removed">Stem verwijderd</string>
     <string name="blaze_party_vote_saved">Stem opgeslagen</string>
     <string name="breadcrumb_home">Start</string>
-    <string name="browse_files_local">Lokale bestanden</string>
-    <string name="browse_files_network">Netwerkbestanden</string>
+    <string name="browse_files_local">Bladeren</string>
+    <string name="browse_files_network">Bladeren</string>
     <string name="browse_this_path">Dit pad doorbladeren</string>
     <string name="browser_files_audio">Mijn audiobestanden</string>
     <string name="browser_files_local">Mijn lokale bestanden</string>
@@ -212,6 +213,8 @@ Token: %2$s</string>
     <string name="dialog_favorite_folders">Favoriete mappen</string>
     <string name="dialog_network_error_message">Het afspelen van deze video is mislukt (NAS-verbinding verbroken, onstabiele wifi of bestand niet toegankelijk).</string>
     <string name="dialog_no_favorite_folders">Nog geen favoriete mappen.\n\nOpen in de bestandsverkenner het menu (⋮) naast een map om deze aan je favorieten toe te voegen.</string>
+    <string name="dialog_permission_intro_message">Om goed te werken, vraagt Blaze Player een paar toestemmingen tegelijk:\n\n• Foto\'s, muziek en video\'s: om je bibliotheek en Blaze Gallery te tonen\n• Meldingen: voor de afspeelbediening\n• Lokaal netwerk: om Blaze Party-gasten te vinden\n• Microfoon: alleen voor de dynamische visuele equalizer — er wordt nooit audio opgenomen</string>
+    <string name="dialog_permission_intro_title">Toestemmingen vereist</string>
     <string name="dialog_permission_message">Blaze Player heeft toegang tot je videobestanden nodig om te werken.</string>
     <string name="dialog_permission_needed">Toestemming vereist</string>
     <string name="dialog_playlist_empty_message">Deze afspeellijst is leeg.\n\nSelecteer bestanden in de bestandsverkenner en gebruik \"Toevoegen aan afspeellijst\" om deze te vullen.</string>
@@ -221,7 +224,9 @@ Token: %2$s</string>
     <string name="dialog_title_network_error">Netwerkfout bij afspelen</string>
     <string name="dialog_title_subtitles">Ondertitels</string>
     <string name="dialog_track_info_message">Titel: %1$s\nArtiest: %2$s\nAlbum: %3$s</string>
+    <string name="dialog_video_info_audio_codec">Audiocodec: %1$s</string>
     <string name="dialog_video_info_message">Pad: %1$s\n\nContainer: %2$s\nResolutie: %3$s\nDuur: %4$s\nGrootte: %5$s</string>
+    <string name="dialog_video_info_video_codec">Videocodec: %1$s</string>
     <string name="dialog_which_playlist">Aan welke afspeellijst toevoegen?</string>
     <string name="email_sent">E-mail verzonden! Controleer je inbox.</string>
     <string name="enjoy_free_trial">Profiteer van 15 dagen gratis proefperiode</string>
@@ -246,6 +251,8 @@ Token: %2$s</string>
     <string name="gallery_delete_all">Alles verwijderen</string>
     <string name="gallery_delete_folder">Map verwijderen</string>
     <string name="gallery_delete_permanently_from_trash">Permanent uit prullenbak verwijderen</string>
+    <string name="gallery_empty_folders">Nog geen mappen — maak er een aan om te beginnen</string>
+    <string name="gallery_empty_photos">Deze map is leeg</string>
     <string name="gallery_empty_trash">Permanent legen</string>
     <string name="gallery_folder_button">Map</string>
     <string name="gallery_folder_create_error">Kan map niet maken</string>
@@ -268,6 +275,7 @@ Token: %2$s</string>
     <string name="gallery_sort_size">Bestandsgrootte</string>
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_trash">Prullenbak</string>
+    <string name="gallery_trash_empty_message">De prullenbak is leeg</string>
     <string name="gallery_type_photo">Foto\'s</string>
     <string name="gallery_type_video">Video\'s</string>
     <string name="gallery_unknown_folder">Onbekende map</string>
@@ -282,6 +290,10 @@ Token: %2$s</string>
     <string name="hint_shared_folder_example">Gedeelde map (bijv. videos)</string>
     <string name="hint_username">Gebruikersnaam</string>
     <string name="hint_username_optional">Gebruikersnaam (optioneel)</string>
+    <string name="history_empty_local_subtitle">Blader door je lokale bibliotheek om te beginnen</string>
+    <string name="history_empty_local_title">Geen recent bekeken video\'s</string>
+    <string name="history_empty_network_subtitle">Blader door je netwerkshares om te beginnen</string>
+    <string name="history_empty_network_title">Geen recent bekeken video\'s</string>
     <string name="history_label">Geschiedenis</string>
     <string name="history_local">Lokale geschiedenis</string>
     <string name="history_network">Netwerkgeschiedenis</string>

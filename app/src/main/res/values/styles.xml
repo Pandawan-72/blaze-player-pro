@@ -31,6 +31,7 @@
         <item name="android:textColor">@color/on_background</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>
+        <item name="android:textStyle">bold</item>
     </style>
 
     <style name="TextAppearance.BlazePlayer.DialogTitle" parent="TextAppearance.Material3.TitleLarge">

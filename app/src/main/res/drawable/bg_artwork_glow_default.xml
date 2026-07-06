@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <!-- Halo par défaut (avant extraction de la couleur d'accent, ou si elle échoue) : discret,
+         teinté vert app plutôt que blanc pur pour rester cohérent avec l'identité visuelle. -->
+    <gradient
+        android:type="radial"
+        android:gradientRadius="171dp"
+        android:startColor="#333FD68C"
+        android:centerColor="#1A3FD68C"
+        android:endColor="#003FD68C" />
+</shape>

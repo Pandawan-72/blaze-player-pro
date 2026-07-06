@@ -161,7 +161,7 @@
 
     <string name="settings_about">О приложении</string>
     <string name="settings_about_desc">Что нужно знать о Blaze Player</string>
-    <string name="about_dialog_message">Blaze Player\n\nВерсия %1$s\n\nРазработано Retro-Spare\n\nВаш медиаплеер для Android</string>
+    <string name="about_dialog_message">Версия %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nВаш медиаплеер для Android</string>
     <string name="action_ok">OK</string>
     <string name="settings_language">Язык</string>
     <string name="language_system_auto">Системный (авто)</string>
@@ -319,6 +319,10 @@
     <string name="unknown_size">Неизвестно</string>
     <string name="dialog_video_info_message">Путь: %1$s\n\nКонтейнер: %2$s\nРазрешение: %3$s\nДлительность: %4$s\nРазмер: %5$s</string>
 
+    <string name="dialog_video_info_video_codec">Видеокодек: %1$s</string>
+
+    <string name="dialog_video_info_audio_codec">Аудиокодек: %1$s</string>
+
     <plurals name="video_count">
         <item quantity="one">%1$d видео</item>
         <item quantity="few">%1$d видео</item>
@@ -335,6 +339,15 @@
     <string name="sort_size">Размер</string>
 
     <string name="dialog_permission_needed">Требуется разрешение</string>
+
+
+    <string name="dialog_permission_intro_title">Необходимые разрешения</string>
+
+
+    <string name="dialog_permission_intro_message">Чтобы Blaze Player работал корректно, приложение запросит несколько разрешений сразу:\n\n• Фото, музыка и видео: для отображения вашей библиотеки и Blaze Gallery\n• Уведомления: для управления воспроизведением\n• Локальная сеть: для поиска участников Blaze Party\n• Микрофон: только для динамического визуального эквалайзера — запись звука никогда не производится</string>
+
+
+    <string name="action_continue">Продолжить</string>
     <string name="dialog_permission_message">Blaze Player нужен доступ к вашим видеофайлам для работы.</string>
     <string name="action_allow">Разрешить</string>
     <string name="action_ignore">Игнорировать</string>
@@ -363,9 +376,17 @@
 
     <string name="history_network">История сети</string>
     <string name="history_local">Локальная история</string>
+
+    <string name="history_empty_local_title">Нет недавно просмотренных видео</string>
+
+    <string name="history_empty_local_subtitle">Просмотрите локальную библиотеку, чтобы начать</string>
+
+    <string name="history_empty_network_title">Нет недавно просмотренных видео</string>
+
+    <string name="history_empty_network_subtitle">Просмотрите сетевые ресурсы, чтобы начать</string>
     <string name="history_label">История</string>
-    <string name="browse_files_network">Сетевые файлы</string>
-    <string name="browse_files_local">Локальные файлы</string>
+    <string name="browse_files_network">Обзор</string>
+    <string name="browse_files_local">Обзор</string>
     <string name="action_close_favorites">Закрыть избранное</string>
 
     <plurals name="file_count">
@@ -482,6 +503,12 @@
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_folders">Blaze Gallery</string>
+
+    <string name="gallery_empty_folders">Пока нет папок — создайте одну, чтобы начать</string>
+
+    <string name="gallery_empty_photos">Эта папка пуста</string>
+
+    <string name="gallery_trash_empty_message">Корзина пуста</string>
     <string name="gallery_type_photo">Фото</string>
     <string name="gallery_type_video">Видео</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>

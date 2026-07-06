@@ -294,32 +294,54 @@ class HomeFragment : Fragment() {
         return true
     }
 
+    private fun selectTab(index: Int) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!canOpenTab(index)) {
+                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                return@launch
+            }
+            currentTabIndex = index
+            updateTabStyles(index)
+            if (index == 4) {
+                showAudioTab()
+            } else {
+                hideAudioTab()
+                viewModel.onTabSelected(index)
+                updateSectionTitles(index)
+            }
+        }
+    }
+
     private fun setupTabs() {
         listOf(binding.tabLocal, binding.tabNetwork, binding.tabYoutube, binding.tabAudio).forEachIndexed { i, tab ->
             val index = i + 1
-            tab.setOnClickListener {
-                viewLifecycleOwner.lifecycleScope.launch {
-                    if (!canOpenTab(index)) {
-                        findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
-                        return@launch
-                    }
-                    currentTabIndex = index
-                    updateTabStyles(index)
-                    if (index == 4) {
-                        showAudioTab()
-                    } else {
-                        hideAudioTab()
-                        viewModel.onTabSelected(index)
-                        updateSectionTitles(index)
-                    }
-                }
-            }
+            tab.setOnClickListener { selectTab(index) }
         }
         val activeTab = if (viewModel.currentTabIndex.value == 0) 1 else viewModel.currentTabIndex.value
+        currentTabIndex = activeTab
         updateTabStyles(activeTab)
         updateSectionTitles(activeTab)
         if (activeTab == 4) showAudioTab()
         else { hideAudioTab(); viewModel.onTabSelected(activeTab) }
+    }
+
+    /** Appelé par MainActivity (détecteur de geste au niveau Activity, cf. dispatchTouchEvent)
+     *  quand un swipe gauche/droite franc est détecté pendant que l'accueil est affiché. */
+    fun handleTabSwipe(delta: Int) {
+        if (_binding == null || !isAdded) return
+        swipeToAdjacentTab(delta)
+    }
+
+    /** Change d'onglet (1=Local, 2=Réseau, 3=Blaze Gallery, 4=Audio) sur un swipe, en s'arrêtant
+     *  aux bords (pas de bouclage 4->1) plutôt que de désorienter l'utilisateur. On n'intervient
+     *  pas si l'utilisateur est actuellement dans une sous-navigation (dossier Blaze Gallery
+     *  ouvert, sélection multiple, choix de miniature personnalisée, recherche YouTube en cours) :
+     *  un swipe y a probablement un autre sens (ex. faire défiler des photos), pas changer d'onglet. */
+    private fun swipeToAdjacentTab(delta: Int) {
+        if (currentTabIndex !in 1..4) return
+        if (currentGalleryBucketId != null || gallerySelectionMode || galleryCustomThumbnailMode || youtubeListMode != null) return
+        val next = (currentTabIndex + delta).coerceIn(1, 4)
+        if (next != currentTabIndex) selectTab(next)
     }
 
 
@@ -575,7 +597,19 @@ class HomeFragment : Fragment() {
                 onLongClick = {},
                 onMore = { folder, anchor -> showGalleryFolderMenu(folder, anchor) }
             )
+            updateGalleryEmptyState(folders.isEmpty(), getString(R.string.gallery_empty_folders))
         }
+    }
+
+    /** Bascule l'état vide générique de Blaze Gallery (dossiers/photos/corbeille partagent la même
+     *  grille [listCloud]) — mêmes principes que pour l'historique Local/Réseau : ne pas laisser
+     *  une grille vide sans explication. Pas de bouton d'action ici (contrairement à
+     *  Local/Réseau) car l'action pertinente change trop selon le contexte (créer un dossier,
+     *  ajouter une photo, corbeille naturellement vide...). */
+    private fun updateGalleryEmptyState(isEmpty: Boolean, message: String) {
+        binding.listCloud.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        binding.emptyStateCloud.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        if (isEmpty) binding.tvEmptyStateCloud.text = message
     }
 
     private fun showGalleryPhotos(bucketId: String, bucketName: String) {
@@ -625,6 +659,7 @@ class HomeFragment : Fragment() {
                 onLongClick = { photo -> if (!galleryCustomThumbnailMode) enterGallerySelection(photo) },
                 onMore = { photo, anchor -> showGalleryPhotoMenu(photo, anchor) }
             )
+            updateGalleryEmptyState(photos.isEmpty(), getString(R.string.gallery_empty_photos))
         }
     }
 
@@ -1211,6 +1246,7 @@ class HomeFragment : Fragment() {
                 onLongClick = {},
                 onMore = { photo, anchor -> showGalleryPhotoMenu(photo, anchor) }
             )
+            updateGalleryEmptyState(photos.isEmpty(), getString(R.string.gallery_trash_empty_message))
         }
     }
 
@@ -1829,10 +1865,12 @@ class HomeFragment : Fragment() {
             audioPlayerFragment?.savePlaylistFromController() ?: Unit
             findNavController().navigate(R.id.action_home_to_network)
         }
+        binding.btnEmptyStateBrowseNetwork.setOnClickListener { binding.btnBrowseNetwork.performClick() }
         binding.btnBrowseLocal.setOnClickListener {
             audioPlayerFragment?.savePlaylistFromController() ?: Unit
             findNavController().navigate(R.id.action_home_to_browser)
         }
+        binding.btnEmptyStateBrowseLocal.setOnClickListener { binding.btnBrowseLocal.performClick() }
         binding.btnFavoritesLocal.setOnClickListener {
             fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
                 requireContext(), fr.retrospare.blazeplayer.favorites.FavoriteCategory.LOCAL
@@ -1862,6 +1900,42 @@ class HomeFragment : Fragment() {
         setupPlaylistButtons()
     }
 
+    /** Câble une puce de playlist numérotée : état visuel "non vide" indépendant de "dernière
+     *  lue" (auparavant confondus : seule la dernière lue avait l'air "remplie", les autres
+     *  playlists non vides étaient visuellement identiques à des slots vides), tap pour ouvrir,
+     *  appui long pour un accès rapide à "Vider" sans repasser par le dialogue complet. */
+    private fun bindPlaylistChip(btn: android.widget.TextView?, category: fr.retrospare.blazeplayer.playlist.PlaylistCategory, slot: Int, lastPlayed: Int) {
+        btn ?: return
+        val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager.getPlaylist(requireContext(), category, slot).isNotEmpty()
+        btn.isSelected = hasItems
+        btn.isActivated = hasItems && lastPlayed == slot
+        btn.setOnClickListener { openSavedPlaylist(category, slot) }
+        btn.setOnLongClickListener { showPlaylistQuickMenu(category, slot, btn); true }
+    }
+
+    /** Menu rapide d'une puce de playlist (appui long) : évite d'ouvrir le dialogue complet rien
+     *  que pour vider une playlist, et donne un accès direct à "Ouvrir" même sur un slot vide. */
+    private fun showPlaylistQuickMenu(category: fr.retrospare.blazeplayer.playlist.PlaylistCategory, slot: Int, anchor: View) {
+        val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager.getPlaylist(requireContext(), category, slot).isNotEmpty()
+        val popup = android.widget.PopupMenu(requireContext(), anchor)
+        popup.menu.add(0, 1, 0, getString(R.string.action_open))
+        if (hasItems) popup.menu.add(0, 2, 1, getString(R.string.action_empty_playlist))
+        popup.setOnMenuItemClickListener { mi ->
+            when (mi.itemId) {
+                1 -> { openSavedPlaylist(category, slot); true }
+                2 -> {
+                    fr.retrospare.blazeplayer.playlist.PlaylistManager.clearPlaylist(requireContext(), category, slot)
+                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_playlist_emptied, slot), android.widget.Toast.LENGTH_SHORT).show()
+                    setupPlaylistButtons()
+                    setupCloudPlaylistButtons()
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
     private fun setupPlaylistButtons() {
         val localButtons = listOf(
             binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal1),
@@ -1882,16 +1956,10 @@ class HomeFragment : Fragment() {
         val lastPlayedNetwork = fr.retrospare.blazeplayer.playlist.PlaylistManager
             .getLastPlayed(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO)
         localButtons.forEachIndexed { i, btn ->
-            val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager
-                .getPlaylist(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO, i + 1).isNotEmpty()
-            btn?.isSelected = (lastPlayedLocal == i + 1) && hasItems
-            btn?.setOnClickListener { openSavedPlaylist(fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO, i + 1) }
+            bindPlaylistChip(btn, fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO, i + 1, lastPlayedLocal)
         }
         networkButtons.forEachIndexed { i, btn ->
-            val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager
-                .getPlaylist(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO, i + 1).isNotEmpty()
-            btn?.isSelected = (lastPlayedNetwork == i + 1) && hasItems
-            btn?.setOnClickListener { openSavedPlaylist(fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO, i + 1) }
+            bindPlaylistChip(btn, fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO, i + 1, lastPlayedNetwork)
         }
     }
 
@@ -1906,9 +1974,7 @@ class HomeFragment : Fragment() {
         val category = fr.retrospare.blazeplayer.playlist.PlaylistCategory.CLOUD_VIDEO
         val lastPlayedCloud = fr.retrospare.blazeplayer.playlist.PlaylistManager.getLastPlayed(requireContext(), category)
         cloudButtons.forEachIndexed { i, btn ->
-            val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager.getPlaylist(requireContext(), category, i + 1).isNotEmpty()
-            btn?.isSelected = (lastPlayedCloud == i + 1) && hasItems
-            btn?.setOnClickListener { openSavedPlaylist(category, i + 1) }
+            bindPlaylistChip(btn, category, i + 1, lastPlayedCloud)
         }
     }
 
@@ -1979,48 +2045,35 @@ class HomeFragment : Fragment() {
 
     private fun updateRecycler(recycler: androidx.recyclerview.widget.RecyclerView, items: List<MediaItem>) {
         val historyTabForRecycler = if (recycler.id == R.id.listNetwork) 2 else 1
-        recycler.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+        val emptyState = if (recycler.id == R.id.listNetwork) binding.emptyStateNetwork else binding.emptyStateLocal
+        recycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+        emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
+        if (items.isEmpty()) return
+        // Même design que Blaze Gallery : tuiles portrait, 3 par rangée, overlay bas avec
+        // titre/durée/"..." plutôt que des lignes empilées avec tous les badges à côté.
+        recycler.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
         recycler.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
             override fun getItemCount() = items.size
             override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int) =
                 object : androidx.recyclerview.widget.RecyclerView.ViewHolder(
-                    layoutInflater.inflate(R.layout.item_media_file, parent, false)
+                    layoutInflater.inflate(R.layout.item_history_tile, parent, false)
                 ) {}
             override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
                 val item = items[position]
                 val v = holder.itemView
                 val lastPlayedPath = items.maxByOrNull { it.lastPlayedAt }?.path
-                v.setBackgroundResource(
-                    if (item.path == lastPlayedPath) R.drawable.bg_media_card_last_played
-                    else R.drawable.bg_media_card
-                )
+                v.findViewById<View>(R.id.lastPlayedBorder).visibility =
+                    if (item.path == lastPlayedPath) View.VISIBLE else View.GONE
 
-                // Nom du fichier
+                // Titre + durée, dans l'overlay bas comme sur les tuiles photo de Blaze Gallery.
                 v.findViewById<TextView>(R.id.tvFileName).text = item.name
+                v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
 
-                val tvDur = v.findViewById<TextView>(R.id.tvDuration)
-                val tvRes = v.findViewById<TextView>(R.id.tvResolution)
-                val tvVid = v.findViewById<TextView>(R.id.tvVideoCodec)
-                val tvAud = v.findViewById<TextView>(R.id.tvAudioCodec)
+                // Badges conteneur + qualité en haut à gauche de la tuile (résolution seule sert
+                // désormais de badge "qualité" : le champ MediaItem.resolution est déjà normalisé
+                // en SD/HD/FHD/4K ailleurs dans l'app, pas une valeur brute en pixels).
                 val tvFmt = v.findViewById<TextView>(R.id.tvFormat)
-                val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
-
-                // Affichage direct et synchrone — comme pour le navigateur local/réseau
-                // (BrowserAdapter) : ces champs sont maintenant préchargés (avec mise en cache
-                // pour le réseau) par HomeViewModel avant même l'affichage, plutôt qu'extraits à
-                // chaque ligne visible pendant le défilement. Même rendu partout, plus de risque
-                // d'écrire sur la mauvaise ligne recyclée pendant un chargement.
-                tvDur.text = item.formattedDuration
-                tvRes.text = item.resolution ?: ""
-                tvRes.visibility = if (!item.resolution.isNullOrEmpty()) View.VISIBLE else View.GONE
-                tvVid.text = item.videoCodec ?: ""
-                tvVid.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-                tvAud.text = item.audioCodec ?: ""
-                tvAud.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-
-                // Badge conteneur immédiat depuis l'extension persistée, puis le titre, puis
-                // l'URL réseau. Les URLs UPnP peuvent avoir un titre sans extension ou une query
-                // string; ce fallback garde le même badge MP4/MKV/AVI que les vidéos SMB.
+                val tvRes = v.findViewById<TextView>(R.id.tvResolution)
                 val ext = containerBadgeFrom(item)
                 if (ext.isNotEmpty()) {
                     fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFmt, ext)
@@ -2028,13 +2081,16 @@ class HomeFragment : Fragment() {
                 } else {
                     tvFmt.visibility = View.GONE
                 }
-                fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvRes)
-                fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvVid)
-                fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvAud)
+                if (!item.resolution.isNullOrEmpty()) {
+                    tvRes.text = item.resolution
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvRes)
+                    tvRes.visibility = View.VISIBLE
+                } else {
+                    tvRes.visibility = View.GONE
+                }
 
-                // Historique accueil : on garde les miniatures vidéo locales/réseau avec cache
-                // disque persistant. Seuls les navigateurs sont allégés sans miniatures.
-                (ivThumb.parent as? View)?.visibility = View.VISIBLE
+                // Miniatures vidéo locales/réseau avec cache disque persistant, comme avant.
+                val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
                 ivThumb.setImageDrawable(null)
                 v.findViewById<ImageView>(R.id.ivPlayOverlay)?.visibility = View.VISIBLE
                 viewLifecycleOwner.lifecycleScope.launch {
@@ -2044,7 +2100,7 @@ class HomeFragment : Fragment() {
                 // Click
                 v.setOnClickListener { openHistoryItem(item) }
 
-                // Bouton 3 points
+                // Bouton 3 points, désormais ancré dans l'overlay bas de la tuile
                 val btnMore = v.findViewById<android.view.View>(R.id.btnMore)
                 btnMore?.setOnClickListener { anchor ->
                     val popup = android.widget.PopupMenu(requireContext(), anchor)
@@ -2058,6 +2114,8 @@ class HomeFragment : Fragment() {
                         when (mi.itemId) {
                             1 -> { openHistoryItem(item); true }
                             2 -> {
+                                // Codec audio/vidéo : retirés de la tuile elle-même (surchargeait
+                                // l'overlay), déplacés ici dans le détail "Informations".
                                 fr.retrospare.blazeplayer.ui.VideoInfoDialog.show(
                                     context = requireContext(),
                                     scope = viewLifecycleOwner.lifecycleScope,
@@ -2067,6 +2125,9 @@ class HomeFragment : Fragment() {
                                     extension = item.extension.uppercase(),
                                     itemSizeBytes = item.size,
                                     itemDurationSeconds = item.duration,
+                                    resolution = item.resolution,
+                                    videoCodec = item.videoCodec,
+                                    audioCodec = item.audioCodec,
                                     fullExtract = false
                                 )
                                 true

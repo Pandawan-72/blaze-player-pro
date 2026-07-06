@@ -67,6 +67,7 @@ color yellow_container
 drawable animated_eq
 drawable bg_artwork
 drawable bg_artwork_glow
+drawable bg_artwork_glow_default
 drawable bg_audio_glass_panel
 drawable bg_audio_seek_thumb
 drawable bg_audio_seekbar
@@ -98,6 +99,7 @@ drawable bg_gallery_tile_overlay
 drawable bg_grid_overlay
 drawable bg_hero_card
 drawable bg_hero_icon_green
+drawable bg_history_tile_last_played
 drawable bg_icon_blue
 drawable bg_icon_gray
 drawable bg_icon_green
@@ -260,6 +262,7 @@ id audioPlaylistStrip
 id audio_pick_container
 id bandsContainer
 id bottomControlsContainer
+id bottomOverlay
 id breadcrumbContainer
 id browserFragment
 id btnAdd
@@ -296,12 +299,15 @@ id btnClose
 id btnCloseEq
 id btnClosePartyPlaylist
 id btnClosePlaylist
+id btnClosePlaylistSheet
 id btnCloseYoutubeFavorites
 id btnCloseYoutubeSearch
 id btnCloudFiles
 id btnConfirm
 id btnDeletePlaylist
 id btnEdit
+id btnEmptyStateBrowseLocal
+id btnEmptyStateBrowseNetwork
 id btnEq
 id btnFavoritesCloud
 id btnFavoritesLocal
@@ -341,6 +347,8 @@ id btnPlaylistNetwork3
 id btnPlaylistNetwork4
 id btnPlaylistNetwork5
 id btnPlaylistSheet
+id btnPlaylistSheetClear
+id btnPlaylistSheetPlayAll
 id btnPlaylistYoutube1
 id btnPlaylistYoutube2
 id btnPlaylistYoutube3
@@ -350,6 +358,7 @@ id btnPrev
 id btnPrevious
 id btnRatio
 id btnRegister
+id btnRemoveTrack
 id btnRenamePlaylist
 id btnRepeat
 id btnRestore
@@ -391,6 +400,9 @@ id checkAudio
 id checkboxSelect
 id controlsDimOverlay
 id editYoutubeSearch
+id emptyStateCloud
+id emptyStateLocal
+id emptyStateNetwork
 id eqView
 id etConfirmPassword
 id etEmail
@@ -409,6 +421,7 @@ id icLocalUserContext
 id icPartyContext
 id imgAppIcon
 id ivArtwork
+id ivArtworkGlow
 id ivAudioCover
 id ivCheck
 id ivChevron
@@ -428,6 +441,7 @@ id ivStar
 id ivThumbnail
 id ivTrackCheck
 id ivYoutubeThumbnail
+id lastPlayedBorder
 id layoutPassword
 id layoutShare
 id layoutUsername
@@ -468,6 +482,7 @@ id recyclerFavorites
 id recyclerNetwork
 id recyclerPartyPlaylist
 id recyclerPlaylist
+id recyclerPlaylistTracks
 id recyclerSavedPlaylists
 id recyclerSearch
 id recyclerTracks
@@ -560,6 +575,7 @@ id tvDeviceName
 id tvDialogTitle
 id tvDuration
 id tvEmpty
+id tvEmptyStateCloud
 id tvEqStatus
 id tvFavoriteName
 id tvFavoriteSubtitle
@@ -583,6 +599,8 @@ id tvPlaylistCodec
 id tvPlaylistCount
 id tvPlaylistFormatBadge
 id tvPlaylistName
+id tvPlaylistSheetEmpty
+id tvPlaylistSheetTitle
 id tvPreampValue
 id tvRegister
 id tvResolution
@@ -634,6 +652,7 @@ layout dialog_equalizer
 layout dialog_favorites_list
 layout dialog_network_connect
 layout dialog_playlist_manager
+layout dialog_playlist_viewer
 layout dialog_settings_choice
 layout dialog_track_selector
 layout fragment_browser
@@ -653,6 +672,7 @@ layout item_folder
 layout item_folder_header
 layout item_gallery_folder_tile
 layout item_gallery_photo
+layout item_history_tile
 layout item_media_file
 layout item_media_file_grid
 layout item_network_device
@@ -660,6 +680,7 @@ layout item_network_folder
 layout item_network_share
 layout item_network_video
 layout item_playlist
+layout item_playlist_track_row
 layout item_saved_playlist
 layout item_setting
 layout item_setting_choice
@@ -705,6 +726,7 @@ string action_clear_all
 string action_close
 string action_close_favorites
 string action_confirm_delete
+string action_continue
 string action_custom_thumbnail
 string action_delete
 string action_delete_thumbnail
@@ -847,6 +869,8 @@ string dialog_edit_path
 string dialog_favorite_folders
 string dialog_network_error_message
 string dialog_no_favorite_folders
+string dialog_permission_intro_message
+string dialog_permission_intro_title
 string dialog_permission_message
 string dialog_permission_needed
 string dialog_playlist_empty_message
@@ -856,7 +880,9 @@ string dialog_title_already_favorite
 string dialog_title_network_error
 string dialog_title_subtitles
 string dialog_track_info_message
+string dialog_video_info_audio_codec
 string dialog_video_info_message
+string dialog_video_info_video_codec
 string dialog_which_playlist
 string email_sent
 string enjoy_free_trial
@@ -881,6 +907,8 @@ string gallery_delete
 string gallery_delete_all
 string gallery_delete_folder
 string gallery_delete_permanently_from_trash
+string gallery_empty_folders
+string gallery_empty_photos
 string gallery_empty_trash
 string gallery_folder_button
 string gallery_folder_create_error
@@ -903,6 +931,7 @@ string gallery_sort_name
 string gallery_sort_size
 string gallery_title
 string gallery_trash
+string gallery_trash_empty_message
 string gallery_type_photo
 string gallery_type_video
 string gallery_unknown_folder
@@ -917,6 +946,10 @@ string hint_shared_folder
 string hint_shared_folder_example
 string hint_username
 string hint_username_optional
+string history_empty_local_subtitle
+string history_empty_local_title
+string history_empty_network_subtitle
+string history_empty_network_title
 string history_label
 string history_local
 string history_network
@@ -1162,6 +1195,7 @@ style Theme_BlazePlayer
 style Theme_BlazePlayer_Fullscreen
 style Widget_BlazePlayer_BottomNavigationView
 style Widget_BlazePlayer_BottomNavigationView_ActiveIndicator
+style Widget_BlazePlayer_Button
 style Widget_BlazePlayer_DialogButton
 style Widget_BlazePlayer_PopupMenu
 xml backup_rules

@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- État "playlist non vide" -->
+    <!-- Playlist non vide ET dernière lue : accent plus marqué -->
+    <item android:state_selected="true" android:state_activated="true">
+        <shape android:shape="oval">
+            <solid android:color="#263DD68C" />
+            <stroke android:width="2dp" android:color="@color/green_accent" />
+        </shape>
+    </item>
+    <!-- Playlist non vide (peu importe si elle a été lue récemment ou non) -->
     <item android:state_selected="true">
         <shape android:shape="oval">
             <solid android:color="#263DD68C" />

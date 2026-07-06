@@ -264,6 +264,9 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                                 extension = item.extension.uppercase(),
                                 itemSizeBytes = item.size,
                                 itemDurationSeconds = item.duration,
+                                resolution = item.resolution,
+                                videoCodec = item.videoCodec,
+                                audioCodec = item.audioCodec,
                                 fullExtract = false
                             )
                             true

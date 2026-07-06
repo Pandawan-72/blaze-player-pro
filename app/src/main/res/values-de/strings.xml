@@ -161,7 +161,7 @@
 
     <string name="settings_about">Über</string>
     <string name="settings_about_desc">Was du über Blaze Player wissen solltest</string>
-    <string name="about_dialog_message">Blaze Player\n\nVersion %1$s\n\nEntwickelt von Retro-Spare\n\nDein Media-Player für Android</string>
+    <string name="about_dialog_message">Version %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nDein Media-Player für Android</string>
     <string name="action_ok">OK</string>
     <string name="settings_language">Sprache</string>
     <string name="language_system_auto">System (automatisch)</string>
@@ -307,6 +307,10 @@
     <string name="unknown_size">Unbekannt</string>
     <string name="dialog_video_info_message">Pfad: %1$s\n\nContainer: %2$s\nAuflösung: %3$s\nDauer: %4$s\nGröße: %5$s</string>
 
+    <string name="dialog_video_info_video_codec">Video-Codec: %1$s</string>
+
+    <string name="dialog_video_info_audio_codec">Audio-Codec: %1$s</string>
+
     <plurals name="video_count">
         <item quantity="one">%1$d Video</item>
         <item quantity="other">%1$d Videos</item>
@@ -321,6 +325,15 @@
     <string name="sort_size">Größe</string>
 
     <string name="dialog_permission_needed">Berechtigung erforderlich</string>
+
+
+    <string name="dialog_permission_intro_title">Berechtigungen erforderlich</string>
+
+
+    <string name="dialog_permission_intro_message">Damit Blaze Player einwandfrei funktioniert, werden mehrere Berechtigungen auf einmal angefragt:\n\n• Fotos, Musik und Videos: um deine Bibliothek und Blaze Gallery anzuzeigen\n• Benachrichtigungen: für die Wiedergabesteuerung\n• Lokales Netzwerk: um Blaze-Party-Gäste zu finden\n• Mikrofon: nur für den dynamischen visuellen Equalizer — es wird nie Ton aufgenommen</string>
+
+
+    <string name="action_continue">Weiter</string>
     <string name="dialog_permission_message">Blaze Player benötigt Zugriff auf deine Videodateien, um zu funktionieren.</string>
     <string name="action_allow">Erlauben</string>
     <string name="action_ignore">Ignorieren</string>
@@ -349,9 +362,17 @@
 
     <string name="history_network">Netzwerkverlauf</string>
     <string name="history_local">Lokaler Verlauf</string>
+
+    <string name="history_empty_local_title">Keine kürzlich angesehenen Videos</string>
+
+    <string name="history_empty_local_subtitle">Durchsuche deine lokale Bibliothek, um loszulegen</string>
+
+    <string name="history_empty_network_title">Keine kürzlich angesehenen Videos</string>
+
+    <string name="history_empty_network_subtitle">Durchsuche deine Netzwerkfreigaben, um loszulegen</string>
     <string name="history_label">Verlauf</string>
-    <string name="browse_files_network">Netzwerkdateien</string>
-    <string name="browse_files_local">Lokale Dateien</string>
+    <string name="browse_files_network">Durchsuchen</string>
+    <string name="browse_files_local">Durchsuchen</string>
     <string name="action_close_favorites">Favoriten schließen</string>
 
     <plurals name="file_count">
@@ -460,6 +481,12 @@
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>
     <string name="gallery_folders">Blaze Gallery</string>
+
+    <string name="gallery_empty_folders">Noch keine Ordner — erstelle einen, um loszulegen</string>
+
+    <string name="gallery_empty_photos">Dieser Ordner ist leer</string>
+
+    <string name="gallery_trash_empty_message">Der Papierkorb ist leer</string>
     <string name="gallery_type_photo">Fotos</string>
     <string name="gallery_type_video">Videos</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>

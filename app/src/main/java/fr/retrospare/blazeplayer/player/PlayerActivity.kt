@@ -1274,6 +1274,16 @@ class PlayerActivity : AppCompatActivity() {
         // comme si la lecture était terminée. MainActivity est déjà sous le lecteur dans la pile ;
         // il suffit de finir explicitement le lecteur quand l'utilisateur appuie sur retour.
         closingPlayerExplicitly = true
+        if (isCastingVideo()) {
+            // Pendant un cast, la flèche retour ne doit fermer que cet écran, pas la diffusion sur
+            // le second écran : on ne touche ni à player.stop()/clearMediaItems() (interprété comme
+            // un STOP de session par VideoPlaybackService, cf. loadMedia() plus haut), ni au service,
+            // ni au serveur de streaming local qui relaie le flux vers le Chromecast. Seule la sortie
+            // complète de l'application (VideoPlaybackService.onTaskRemoved) doit couper le cast.
+            try { binding.playerView.player = null } catch (_: Exception) {}
+            finish()
+            return
+        }
         stopVideoPlaybackAndNotification()
         finish()
     }

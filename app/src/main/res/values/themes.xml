@@ -27,6 +27,14 @@
         <item name="popupMenuStyle">@style/Widget.BlazePlayer.PopupMenu</item>
         <item name="android:popupMenuStyle">@style/Widget.BlazePlayer.PopupMenu</item>
         <item name="android:windowActionModeOverlay">true</item>
+        <!-- Texte en gras sur tous les boutons de l'app (visibilité/accessibilité) : un seul
+             endroit à changer puisqu'aucun MaterialButton du projet ne déclare de style="..."
+             explicite — ils héritent tous de ce style par défaut. -->
+        <item name="materialButtonStyle">@style/Widget.BlazePlayer.Button</item>
+    </style>
+
+    <style name="Widget.BlazePlayer.Button" parent="Widget.Material3.Button">
+        <item name="android:textStyle">bold</item>
     </style>
 
     <!-- Thème lecteur vidéo — plein écran total, fond noir -->

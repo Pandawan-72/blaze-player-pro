@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingVertical="10dp"
+    android:background="?attr/selectableItemBackground">
+
+    <ImageView
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginEnd="14dp"
+        android:src="@drawable/ic_play_small"
+        android:tint="@color/on_surface_variant"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/tvTrackName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-condensed"
+        android:maxLines="1"
+        android:textColor="@color/on_surface"
+        android:textSize="13sp" />
+
+    <ImageButton
+        android:id="@+id/btnRemoveTrack"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/action_remove"
+        android:padding="8dp"
+        android:src="@drawable/ic_close"
+        android:tint="@color/on_surface_variant" />
+
+</LinearLayout>
