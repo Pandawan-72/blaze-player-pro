@@ -227,7 +227,7 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="40dp"
-                android:text="@string/youtube_add_to_playlist"
+                android:text="@string/add_to_playlist_short"
                 android:textColor="#000000"
                 android:textSize="12sp"
                 android:textStyle="bold"

@@ -595,7 +595,7 @@ class VideoTrimActivity : AppCompatActivity() {
             // conversion GIF directe sans palette dédiée. Produit un vrai GIF animé (pas une image
             // figée) : chaque frame de la palette est réutilisée pour tout le segment sélectionné.
             val command = "-y -ss $startSec -i \"${input.absolutePath}\" -t $durationSec " +
-                "-vf \"fps=10,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" " +
+                "-vf \"fps=6,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse\" " +
                 "\"${outFile.absolutePath}\""
             val session = FFmpegKit.execute(command)
             val success = ReturnCode.isSuccess(session.returnCode) && outFile.exists() && outFile.length() > 0L

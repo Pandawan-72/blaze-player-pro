@@ -6,7 +6,6 @@
 
     <string name="tab_local">Lokaal</string>
     <string name="tab_network">Netwerk</string>
-    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <!-- Version badge -->
@@ -21,15 +20,6 @@
     <string name="favorites">Favorieten</string>
     <string name="playlists_label">Afspeellijsten</string>
     <string name="my_playlists">MIJN AFSPEELLIJSTEN</string>
-
-    <string name="youtube_search_hint">Zoeken op YouTube…</string>
-    <string name="youtube_no_favorites">Nog geen favorieten</string>
-    <string name="youtube_no_results">Geen resultaten voor \"%1$s\"</string>
-    <string name="youtube_history">Geschiedenis</string>
-    <string name="youtube_close_favorites">Favorieten sluiten</string>
-    <string name="youtube_add_to_playlist">Toevoegen aan afspeellijst</string>
-    <string name="youtube_remove_from_history">Verwijderen uit geschiedenis</string>
-    <string name="youtube_no_api_key">Geen YouTube API-sleutel geconfigureerd</string>
     <string name="cast_screen">Telefoonscherm casten</string>
 
     <string name="add_network_path">Netwerkpad toevoegen</string>
@@ -420,8 +410,6 @@
     <string name="content_desc_repeat">Herhalen</string>
     <string name="content_desc_timer">Timer</string>
     <string name="content_desc_options">Opties</string>
-
-    <string name="notif_channel_youtube">YouTube-weergave</string>
     <string name="action_pause">Pauzeren</string>
     <string name="error_loading_media">Kan het afspelen van video niet starten.</string>
 
@@ -467,16 +455,6 @@
     <string name="movie_actors_label">Acteurs:</string>
     <string name="movie_studio_label">Studio:</string>
     <string name="tmdb_title_not_found">Titel niet gevonden</string>
-    <string name="cloud_history">Cloudgeschiedenis</string>
-    <string name="cloud_files">Cloudbestanden</string>
-    <string name="cloud_providers_hint">Kies een audio- of videobestand uit Google Drive, OneDrive, Dropbox of een andere geïnstalleerde cloudprovider.</string>
-    <string name="cloud_provider_subtitle">Bestanden openen en bekijken</string>
-    <string name="cloud_provider_all_files">Alle cloudbestanden</string>
-    <string name="cloud_provider_all_files_subtitle">Open de Android-kiezer met alle beschikbare providers</string>
-    <string name="cloud_no_known_provider">Geen Drive-, OneDrive- of Dropbox-provider gevonden. Je kunt nog steeds de Android-kiezer gebruiken.</string>
-    <string name="cloud_no_picker">Geen compatibele bestandskiezer gevonden</string>
-    <string name="cloud_media_fallback_name">Cloudmedia</string>
-    <string name="cloud_unsupported_media">Dit cloudbestand is geen compatibel audio- of videobestand.</string>
 
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>

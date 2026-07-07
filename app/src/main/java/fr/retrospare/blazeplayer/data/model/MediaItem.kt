@@ -9,7 +9,6 @@ data class MediaItem(
     val lastPosition: Long = 0L,
     val lastPlayedAt: Long = 0L,
     val isNetwork: Boolean = false,
-    val isCloud: Boolean = false,
     val networkShareId: String? = null,
     val resolution: String? = null,
     val extension: String = "",

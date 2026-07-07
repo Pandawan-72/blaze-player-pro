@@ -14,6 +14,22 @@
         android:background="#000000"
         app:use_controller="false"
         app:resize_mode="fit"
+        app:surface_type="surface_view" />
+
+    <!--
+        TextureView de secours pour les réglages d'image premium.
+        SurfaceView reste le rendu par défaut car il est plus fluide pour les vidéos réseau.
+        Dès qu'un réglage visuel est actif, PlayerActivity bascule temporairement le player ici
+        afin d'appliquer un RenderEffect sans pénaliser le mode neutre.
+    -->
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/filteredPlayerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:visibility="gone"
+        app:use_controller="false"
+        app:resize_mode="fit"
         app:surface_type="texture_view" />
 
     <View

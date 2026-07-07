@@ -129,7 +129,7 @@ object ThumbnailUtils {
             path.startsWith("content://", true) -> {
                 val uri = Uri.parse(path)
                 try {
-                    // Le chemin SAF le plus compatible. Pour Google Drive/OneDrive/Dropbox,
+                    // Le chemin SAF le plus compatible. Pour les fournisseurs SAF distants,
                     // le provider peut streamer derrière ce file descriptor sans exposer de chemin local.
                     val pfd = context.contentResolver.openFileDescriptor(uri, "r")
                     if (pfd != null) {
@@ -463,9 +463,9 @@ object ThumbnailUtils {
                     scaled
                 }
             } else {
-                // Frame vidéo à 10s, y compris pour les Uri SAF content:// Google Drive / OneDrive / Dropbox.
+                // Frame vidéo à 10s, y compris pour les Uri SAF content:// provenant de fournisseurs distants.
                 // On passe par openFileDescriptor en priorité : c'est plus fiable que setDataSource(context, uri)
-                // pour certains conteneurs comme AVI exposés par des providers cloud.
+                // pour certains conteneurs comme AVI exposés par des fournisseurs de fichiers distants.
                 val retriever = MediaMetadataRetriever()
                 var closeable: AutoCloseable? = null
                 try {

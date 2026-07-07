@@ -6,7 +6,6 @@
 
     <string name="tab_local">Локально</string>
     <string name="tab_network">Сеть</string>
-    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <!-- Version badge -->
@@ -21,15 +20,6 @@
     <string name="favorites">Избранное</string>
     <string name="playlists_label">Плейлисты</string>
     <string name="my_playlists">МОИ ПЛЕЙЛИСТЫ</string>
-
-    <string name="youtube_search_hint">Поиск на YouTube…</string>
-    <string name="youtube_no_favorites">Пока нет избранного</string>
-    <string name="youtube_no_results">Нет результатов по запросу \"%1$s\"</string>
-    <string name="youtube_history">История</string>
-    <string name="youtube_close_favorites">Закрыть избранное</string>
-    <string name="youtube_add_to_playlist">Добавить в плейлист</string>
-    <string name="youtube_remove_from_history">Удалить из истории</string>
-    <string name="youtube_no_api_key">Ключ API YouTube не настроен</string>
     <string name="cast_screen">Транслировать экран телефона</string>
 
     <string name="add_network_path">Добавить сетевой путь</string>
@@ -442,8 +432,6 @@
     <string name="content_desc_repeat">Повтор</string>
     <string name="content_desc_timer">Таймер</string>
     <string name="content_desc_options">Параметры</string>
-
-    <string name="notif_channel_youtube">Воспроизведение YouTube</string>
     <string name="action_pause">Пауза</string>
     <string name="error_loading_media">Не удалось начать воспроизведение видео.</string>
 
@@ -489,16 +477,6 @@
     <string name="movie_actors_label">Актёры:</string>
     <string name="movie_studio_label">Студия:</string>
     <string name="tmdb_title_not_found">Название не найдено</string>
-    <string name="cloud_history">История облака</string>
-    <string name="cloud_files">Облачные файлы</string>
-    <string name="cloud_providers_hint">Выберите аудио- или видеофайл из Google Drive, OneDrive, Dropbox или другого установленного облачного провайдера.</string>
-    <string name="cloud_provider_subtitle">Открыть и просмотреть файлы</string>
-    <string name="cloud_provider_all_files">Все облачные файлы</string>
-    <string name="cloud_provider_all_files_subtitle">Открыть выбор Android со всеми доступными провайдерами</string>
-    <string name="cloud_no_known_provider">Провайдер Drive, OneDrive или Dropbox не обнаружен. Вы всё равно можете использовать системный выбор Android.</string>
-    <string name="cloud_no_picker">Совместимый выбор файлов не найден</string>
-    <string name="cloud_media_fallback_name">Облачное медиа</string>
-    <string name="cloud_unsupported_media">Этот облачный файл не является совместимым аудио- или видеофайлом.</string>
 
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>

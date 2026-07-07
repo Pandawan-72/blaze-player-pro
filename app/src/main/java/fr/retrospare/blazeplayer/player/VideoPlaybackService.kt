@@ -169,6 +169,13 @@ class VideoPlaybackService : MediaSessionService() {
                 applyVideoAudioEffects(lastVolumeBoostPercent, lastDialogueModePercent)
             }
         })
+        localPlayer.addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
+            override fun onDroppedVideoFrames(eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime, droppedFrames: Int, elapsedMs: Long) {
+                if (droppedFrames >= 5) {
+                    android.util.Log.w("VideoPlaybackService", "Dropped video frames=$droppedFrames over=${elapsedMs}ms position=${eventTime.currentPlaybackPositionMs}")
+                }
+            }
+        })
 
         // Pattern officiel Media3 1.9.0 : CastPlayer.Builder(local+remote). Le RemoteCastPlayer
         // reçoit un MediaItemConverter dédié qui transforme les SubtitleConfiguration en vrais

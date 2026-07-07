@@ -68,23 +68,45 @@ class HomeFragment : Fragment() {
     private val selectedGalleryPhotos = linkedSetOf<String>()
     private var currentGalleryPhotos: List<MediaItem> = emptyList()
     private var pendingGallerySystemActionRefresh: (() -> Unit)? = null
+    private var pendingPermanentDeleteHistoryCleanup: List<MediaItem> = emptyList()
     private var galleryCustomThumbnailMode: Boolean = false
     private var pendingCustomThumbnailVideo: MediaItem? = null
     private var returnTabAfterCustomThumbnail: Int = 1
 
     /** Empêche onResume() de ramener l'utilisateur sur la liste des dossiers Blaze Gallery au
      *  retour d'un écran qu'on vient nous-mêmes de lancer (éditeur photo, découpe vidéo) — ce
-     *  reset était à l'origine pensé uniquement pour le retour du lecteur YouTube. Positionné
+     *  reset était à l'origine pensé uniquement pour le retour d’un écran externe. Positionné
      *  juste avant de lancer ces écrans, consommé (remis à false) dès la première utilisation. */
     private var suppressGalleryResetOnResume = false
+
+    /** Incrémente à chaque nouvel écran Gallery demandé. Les chargements MediaStore étant
+     *  asynchrones, une ancienne requête peut terminer après une plus récente et réécrire la
+     *  RecyclerView avec l'ancien layout. C'est ce qui pouvait laisser la corbeille avec la grille
+     *  des dossiers (2 colonnes) et le bouton "+ dossier" après une suppression définitive. */
+    private var galleryRenderGeneration: Long = 0L
+
+    private fun nextGalleryRenderGeneration(): Long = ++galleryRenderGeneration
+
+    private fun isCurrentGalleryRender(generation: Long): Boolean {
+        return _binding != null && isAdded && generation == galleryRenderGeneration
+    }
 
     private val galleryPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         showGalleryFolders()
     }
 
-    private val gallerySystemActionLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
-        pendingGallerySystemActionRefresh?.invoke()
+    private val gallerySystemActionLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+        // Les boîtes système MediaStore (mise à la corbeille / restauration / suppression définitive)
+        // font passer l'Activity par onResume(). On neutralise donc le reset de l'onglet Gallery,
+        // puis on rafraîchit explicitement la vue qui était active avant l'action système.
+        suppressGalleryResetOnResume = false
+        if (result.resultCode == android.app.Activity.RESULT_OK && pendingPermanentDeleteHistoryCleanup.isNotEmpty()) {
+            viewModel.removeFromHistory(pendingPermanentDeleteHistoryCleanup)
+        }
+        pendingPermanentDeleteHistoryCleanup = emptyList()
+        val refresh = pendingGallerySystemActionRefresh
         pendingGallerySystemActionRefresh = null
+        refresh?.invoke() ?: refreshCurrentGalleryView()
     }
 
     /** Onglet Gallery : au retour de l'éditeur photo (via la croix, choisie par l'utilisateur —
@@ -187,7 +209,7 @@ class HomeFragment : Fragment() {
         }
         setupTabs()
         setupButtons()
-        setupYoutubeTab()
+        setupGalleryTab()
         observeViewModel()
         updateVersionBadge()
         // Force la réapparition du mini player si nécessaire : recréer cette vue (retour de
@@ -231,16 +253,13 @@ class HomeFragment : Fragment() {
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
         if (suppressGalleryResetOnResume) {
-            // Retour d'un écran qu'on vient nous-mêmes de lancer (éditeur photo, découpe vidéo) :
-            // on ne touche à rien, l'utilisateur doit retrouver exactement le dossier où il était
-            // (ou, pour la découpe vidéo, le launcher dédié a déjà navigué vers le bon dossier).
+            // Retour d'un écran qu'on vient nous-mêmes de lancer ou d'une boîte système MediaStore :
+            // ne surtout pas forcer l'accueil des dossiers, sinon la corbeille peut se transformer
+            // visuellement en vue dossiers (2 colonnes + bouton "+ dossier") avant que le callback
+            // de suppression/restauration n'ait le temps de rafraîchir la bonne vue.
             suppressGalleryResetOnResume = false
         } else if (currentTabIndex == 3) {
-            // Retour systématique sur l'historique par défaut au retour du lecteur YouTube (ou de
-            // tout autre écran non couvert par le cas ci-dessus), quelle que soit la façon dont la
-            // vidéo a été ouverte (recherche, favoris, historique) — l'historique vient d'être mis
-            // à jour par YouTubePlayerActivity à l'ouverture de la vidéo qu'on vient de quitter.
-            showYoutubeDefaultContent()
+            refreshCurrentGalleryView()
         }
     }
 
@@ -272,7 +291,14 @@ class HomeFragment : Fragment() {
 
         fun applyGalleryTab() {
             if (_binding == null) return
-            switchToTab(3)
+            if (currentTabIndex == 3) {
+                // Les rappels retardés du launcher ne doivent pas réinitialiser la navigation interne
+                // de Blaze Gallery si l'utilisateur est déjà entré dans la corbeille ou un dossier.
+                updateTabStyles(3)
+                viewModel.onTabSelected(3)
+            } else {
+                switchToTab(3)
+            }
         }
 
         applyGalleryTab()
@@ -348,7 +374,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupTabs() {
-        listOf(binding.tabLocal, binding.tabNetwork, binding.tabYoutube, binding.tabAudio).forEachIndexed { i, tab ->
+        listOf(binding.tabLocal, binding.tabNetwork, binding.tabGallery, binding.tabAudio).forEachIndexed { i, tab ->
             val index = i + 1
             tab.setOnClickListener { selectTab(index) }
         }
@@ -370,11 +396,11 @@ class HomeFragment : Fragment() {
     /** Change d'onglet (1=Local, 2=Réseau, 3=Blaze Gallery, 4=Audio) sur un swipe, en s'arrêtant
      *  aux bords (pas de bouclage 4->1) plutôt que de désorienter l'utilisateur. On n'intervient
      *  pas si l'utilisateur est actuellement dans une sous-navigation (dossier Blaze Gallery
-     *  ouvert, sélection multiple, choix de miniature personnalisée, recherche YouTube en cours) :
+     *  ouvert, sélection multiple, choix de miniature personnalisée, navigation interne en cours) :
      *  un swipe y a probablement un autre sens (ex. faire défiler des photos), pas changer d'onglet. */
     private fun swipeToAdjacentTab(delta: Int) {
         if (currentTabIndex !in 1..4) return
-        if (currentGalleryBucketId != null || gallerySelectionMode || galleryCustomThumbnailMode || youtubeListMode != null) return
+        if (currentGalleryBucketId != null || gallerySelectionMode || galleryCustomThumbnailMode) return
         val next = (currentTabIndex + delta).coerceIn(1, 4)
         if (next != currentTabIndex) selectTab(next)
     }
@@ -418,29 +444,14 @@ class HomeFragment : Fragment() {
         }
     }
 
-    /** Configure la recherche et les listes de l'onglet Blaze Gallery. Recherche déclenchée par la
-     *  touche "Rechercher" du clavier (pas de recherche à chaque frappe, pour ménager le quota
-     *  gratuit de l'API — ~100 unités par recherche, 10 000/jour). */
-    /** Mode d'affichage courant de la liste réutilisée (listYoutubeSearch) : recherche ou
-     *  favoris. Sert à savoir quoi rafraîchir après un ajout/retrait de favori, et ce que le
-     *  bouton "fermer" doit faire. Null quand le contenu par défaut (historique) est affiché. */
-    private var youtubeListMode: String? = null
-
-    private fun setupYoutubeTab() {
-        // Onglet 3 : Blaze Gallery. Plus aucun accès cloud/SAF ici : la galerie lit
-        // directement les photos locales exposées par MediaStore, comme la galerie Android.
-        binding.youtubeSearchBarRow.visibility = View.GONE
-        binding.youtubeFavoritesHeaderRow.visibility = View.GONE
-        binding.listYoutubeSearch.visibility = View.GONE
-        binding.tvYoutubeError.visibility = View.GONE
-        binding.youtubeDefaultContent.visibility = View.GONE
-        binding.btnCloseYoutubeSearch.visibility = View.GONE
-        binding.btnCloudFiles.text = getString(R.string.gallery_trash)
-        binding.btnCloudFiles.setIconResource(R.drawable.ic_trash)
-        binding.btnCloudFiles.setOnClickListener { showGalleryTrash() }
-        binding.btnFavoritesCloud.text = getString(R.string.action_back)
-        binding.btnFavoritesCloud.setOnClickListener { showGalleryFolders() }
-        binding.btnFavoritesCloud.visibility = View.GONE
+    /** Configure l'onglet Blaze Gallery : il affiche uniquement la galerie locale MediaStore. */
+    private fun setupGalleryTab() {
+        binding.btnGalleryPrimary.text = getString(R.string.gallery_trash)
+        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
+        binding.btnGalleryPrimary.setOnClickListener { showGalleryTrash() }
+        binding.btnGallerySecondary.text = getString(R.string.action_back)
+        binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
+        binding.btnGallerySecondary.visibility = View.GONE
         setupGalleryTypeToggle()
     }
 
@@ -498,6 +509,19 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun refreshCurrentGalleryView() {
+        if (_binding == null || !isAdded || currentTabIndex != 3) return
+        // Ne pas détruire une sélection multiple juste parce qu'un chooser/une boîte système a
+        // temporairement mis l'app en pause. Les actions destructives nettoient déjà la sélection
+        // avant de lancer MediaStore.
+        if (gallerySelectionMode) return
+        when {
+            galleryTrashMode -> showGalleryTrash()
+            currentGalleryBucketId != null -> showGalleryPhotos(currentGalleryBucketId.orEmpty(), currentGalleryBucketName.orEmpty())
+            else -> showGalleryFolders()
+        }
+    }
+
     /** URI MediaStore correspondant au type de média actuellement affiché dans Blaze Gallery. */
     private val galleryContentUri: android.net.Uri
         get() = if (currentGalleryMediaType == GalleryMediaType.VIDEO)
@@ -539,26 +563,26 @@ class HomeFragment : Fragment() {
 
 
     private fun styleGalleryBackButton() {
-        binding.btnFavoritesCloud.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface))
-        binding.btnFavoritesCloud.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.on_surface))
-        binding.btnFavoritesCloud.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
-        binding.btnFavoritesCloud.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#B8C0CC"))
-        binding.btnFavoritesCloud.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+        binding.btnGallerySecondary.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface))
+        binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.on_surface))
+        binding.btnGallerySecondary.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
+        binding.btnGallerySecondary.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#B8C0CC"))
+        binding.btnGallerySecondary.strokeWidth = (1 * resources.displayMetrics.density).toInt()
     }
 
     private fun styleGalleryTrashButton(emptyAction: Boolean = false) {
         if (emptyAction) {
-            binding.btnCloudFiles.setTextColor(android.graphics.Color.WHITE)
-            binding.btnCloudFiles.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
-            binding.btnCloudFiles.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#2A2F3A"))
-            binding.btnCloudFiles.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#E05151"))
-            binding.btnCloudFiles.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+            binding.btnGalleryPrimary.setTextColor(android.graphics.Color.WHITE)
+            binding.btnGalleryPrimary.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+            binding.btnGalleryPrimary.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#2A2F3A"))
+            binding.btnGalleryPrimary.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#E05151"))
+            binding.btnGalleryPrimary.strokeWidth = (1 * resources.displayMetrics.density).toInt()
         } else {
-            binding.btnCloudFiles.setTextColor(android.graphics.Color.WHITE)
-            binding.btnCloudFiles.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
-            binding.btnCloudFiles.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
-            binding.btnCloudFiles.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#B8C0CC"))
-            binding.btnCloudFiles.strokeWidth = (1 * resources.displayMetrics.density).toInt()
+            binding.btnGalleryPrimary.setTextColor(android.graphics.Color.WHITE)
+            binding.btnGalleryPrimary.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+            binding.btnGalleryPrimary.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
+            binding.btnGalleryPrimary.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#B8C0CC"))
+            binding.btnGalleryPrimary.strokeWidth = (1 * resources.displayMetrics.density).toInt()
         }
     }
 
@@ -572,7 +596,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun showGallerySortMenu() {
-        val popup = android.widget.PopupMenu(requireContext(), binding.btnCloudFiles)
+        val popup = android.widget.PopupMenu(requireContext(), binding.btnGalleryPrimary)
         popup.menu.add(0, 1, 0, getString(R.string.gallery_sort_date_desc))
         popup.menu.add(0, 2, 1, getString(R.string.gallery_sort_date_asc))
         popup.menu.add(0, 3, 2, getString(R.string.gallery_sort_name))
@@ -592,21 +616,22 @@ class HomeFragment : Fragment() {
 
     private fun showGalleryFolders() {
         if (!isAdded || !requestGalleryPermissionIfNeeded()) return
+        val renderGeneration = nextGalleryRenderGeneration()
         currentGalleryBucketId = null
         currentGalleryBucketName = null
         galleryTrashMode = false
         clearGallerySelection()
-        binding.btnFavoritesCloud.visibility = View.VISIBLE
-        binding.btnFavoritesCloud.text = getString(R.string.gallery_folder_button)
-        binding.btnFavoritesCloud.setIconResource(R.drawable.ic_add)
-        binding.btnFavoritesCloud.setOnClickListener { showCreateGalleryFolderDialog() }
+        binding.btnGallerySecondary.visibility = View.VISIBLE
+        binding.btnGallerySecondary.text = getString(R.string.gallery_folder_button)
+        binding.btnGallerySecondary.setIconResource(R.drawable.ic_add)
+        binding.btnGallerySecondary.setOnClickListener { showCreateGalleryFolderDialog() }
         styleGalleryBackButton()
-        binding.btnCloudFiles.visibility = View.VISIBLE
-        binding.btnCloudFiles.text = getString(R.string.gallery_trash)
-        binding.btnCloudFiles.setIconResource(R.drawable.ic_trash)
-        binding.btnCloudFiles.setOnClickListener { showGalleryTrash() }
+        binding.btnGalleryPrimary.visibility = View.VISIBLE
+        binding.btnGalleryPrimary.text = getString(R.string.gallery_trash)
+        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
+        binding.btnGalleryPrimary.setOnClickListener { showGalleryTrash() }
         styleGalleryTrashButton(false)
-        binding.tvSectionCloud.text = if (galleryCustomThumbnailMode) {
+        binding.tvSectionGallery.text = if (galleryCustomThumbnailMode) {
             getString(R.string.custom_thumbnail_pick_folder)
         } else {
             getString(R.string.gallery_folders)
@@ -614,8 +639,8 @@ class HomeFragment : Fragment() {
         // Le sélecteur Photo/Vidéo n'a de sens qu'à l'accueil de la galerie ; en mode sélection
         // de miniature personnalisée, on reste forcé sur Photo (voir startCustomThumbnailSelection).
         updateGalleryTypeToggle(visible = !galleryCustomThumbnailMode)
-        binding.listCloud.visibility = View.VISIBLE
-        binding.listCloud.apply {
+        binding.listGallery.visibility = View.VISIBLE
+        binding.listGallery.apply {
             setHasFixedSize(true)
             setItemViewCacheSize(12)
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
@@ -624,7 +649,8 @@ class HomeFragment : Fragment() {
         }
         viewLifecycleOwner.lifecycleScope.launch {
             val folders = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadGalleryFoldersFromMediaStore() }
-            binding.listCloud.adapter = GalleryAdapter(
+            if (!isCurrentGalleryRender(renderGeneration) || galleryTrashMode || currentGalleryBucketId != null) return@launch
+            binding.listGallery.adapter = GalleryAdapter(
                 items = folders,
                 grid = false,
                 trashMode = false,
@@ -637,40 +663,41 @@ class HomeFragment : Fragment() {
     }
 
     /** Bascule l'état vide générique de Blaze Gallery (dossiers/photos/corbeille partagent la même
-     *  grille [listCloud]) — mêmes principes que pour l'historique Local/Réseau : ne pas laisser
+     *  grille [listGallery]) — mêmes principes que pour l'historique Local/Réseau : ne pas laisser
      *  une grille vide sans explication. Pas de bouton d'action ici (contrairement à
      *  Local/Réseau) car l'action pertinente change trop selon le contexte (créer un dossier,
      *  ajouter une photo, corbeille naturellement vide...). */
     private fun updateGalleryEmptyState(isEmpty: Boolean, message: String) {
-        binding.listCloud.visibility = if (isEmpty) View.GONE else View.VISIBLE
-        binding.emptyStateCloud.visibility = if (isEmpty) View.VISIBLE else View.GONE
-        if (isEmpty) binding.tvEmptyStateCloud.text = message
+        binding.listGallery.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        binding.emptyStateGallery.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        if (isEmpty) binding.tvEmptyStateGallery.text = message
     }
 
     private fun showGalleryPhotos(bucketId: String, bucketName: String) {
         if (!isAdded || !requestGalleryPermissionIfNeeded()) return
+        val renderGeneration = nextGalleryRenderGeneration()
         currentGalleryBucketId = bucketId
         currentGalleryBucketName = bucketName
         galleryTrashMode = false
         clearGallerySelection()
         updateGalleryTypeToggle(visible = false)
-        binding.btnFavoritesCloud.visibility = View.VISIBLE
-        binding.btnFavoritesCloud.text = getString(R.string.action_back)
-        binding.btnFavoritesCloud.setIconResource(R.drawable.ic_arrow_back)
-        binding.btnFavoritesCloud.setOnClickListener { showGalleryFolders() }
+        binding.btnGallerySecondary.visibility = View.VISIBLE
+        binding.btnGallerySecondary.text = getString(R.string.action_back)
+        binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
+        binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
         styleGalleryBackButton()
-        binding.btnCloudFiles.visibility = View.VISIBLE
-        binding.btnCloudFiles.text = getString(R.string.gallery_sort)
-        binding.btnCloudFiles.setIconResource(R.drawable.ic_sort)
-        binding.btnCloudFiles.setOnClickListener { showGallerySortMenu() }
+        binding.btnGalleryPrimary.visibility = View.VISIBLE
+        binding.btnGalleryPrimary.text = getString(R.string.gallery_sort)
+        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_sort)
+        binding.btnGalleryPrimary.setOnClickListener { showGallerySortMenu() }
         styleGalleryTrashButton(false)
-        binding.tvSectionCloud.text = if (galleryCustomThumbnailMode) {
+        binding.tvSectionGallery.text = if (galleryCustomThumbnailMode) {
             getString(R.string.custom_thumbnail_pick_image)
         } else {
             getString(R.string.gallery_folder_title, bucketName)
         }
-        binding.listCloud.visibility = View.VISIBLE
-        binding.listCloud.apply {
+        binding.listGallery.visibility = View.VISIBLE
+        binding.listGallery.apply {
             setHasFixedSize(true)
             setItemViewCacheSize(24)
             setBackgroundColor(android.graphics.Color.BLACK)
@@ -679,8 +706,9 @@ class HomeFragment : Fragment() {
         }
         viewLifecycleOwner.lifecycleScope.launch {
             val photos = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadGalleryPhotosFromMediaStore(bucketId) }
+            if (!isCurrentGalleryRender(renderGeneration) || galleryTrashMode || currentGalleryBucketId != bucketId) return@launch
             currentGalleryPhotos = photos
-            binding.listCloud.adapter = GalleryAdapter(
+            binding.listGallery.adapter = GalleryAdapter(
                 items = photos,
                 grid = true,
                 trashMode = false,
@@ -1308,6 +1336,7 @@ class HomeFragment : Fragment() {
         val uris = photos.mapNotNull { it.path.toUriOrNull() }
         if (uris.isEmpty()) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            suppressGalleryResetOnResume = true
             pendingGallerySystemActionRefresh = refresh
             val request = MediaStore.createTrashRequest(requireContext().contentResolver, uris, true)
             gallerySystemActionLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
@@ -1324,6 +1353,7 @@ class HomeFragment : Fragment() {
         val uris = photos.mapNotNull { it.path.toUriOrNull() }
         if (uris.isEmpty()) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            suppressGalleryResetOnResume = true
             pendingGallerySystemActionRefresh = refresh
             val request = MediaStore.createTrashRequest(requireContext().contentResolver, uris, false)
             gallerySystemActionLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
@@ -1339,13 +1369,20 @@ class HomeFragment : Fragment() {
         val uris = photos.mapNotNull { it.path.toUriOrNull() }
         if (uris.isEmpty()) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            suppressGalleryResetOnResume = true
+            pendingPermanentDeleteHistoryCleanup = photos
             pendingGallerySystemActionRefresh = refresh
             val request = MediaStore.createDeleteRequest(requireContext().contentResolver, uris)
             gallerySystemActionLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
         } else {
-            uris.forEach { uri -> try { requireContext().contentResolver.delete(uri, null, null) } catch (_: Exception) {} }
+            val deletedItems = photos.filter { item ->
+                item.path.toUriOrNull()?.let { uri ->
+                    try { requireContext().contentResolver.delete(uri, null, null) > 0 } catch (_: Exception) { false }
+                } ?: false
+            }
+            if (deletedItems.isNotEmpty()) viewModel.removeFromHistory(deletedItems)
             val trash = getGalleryTrashSet()
-            uris.forEach { trash.remove(it.toString()) }
+            deletedItems.forEach { trash.remove(it.path) }
             saveGalleryTrashSet(trash)
             refresh()
         }
@@ -1355,24 +1392,25 @@ class HomeFragment : Fragment() {
 
     private fun showGalleryTrash() {
         if (!isAdded || !requestGalleryPermissionIfNeeded()) return
+        val renderGeneration = nextGalleryRenderGeneration()
         galleryTrashMode = true
         clearGallerySelection()
         currentGalleryBucketId = null
         currentGalleryBucketName = null
         updateGalleryTypeToggle(visible = false)
-        binding.tvSectionCloud.text = getString(R.string.gallery_trash)
-        binding.btnFavoritesCloud.visibility = View.VISIBLE
-        binding.btnFavoritesCloud.text = getString(R.string.action_back)
-        binding.btnFavoritesCloud.setIconResource(R.drawable.ic_arrow_back)
-        binding.btnFavoritesCloud.setOnClickListener { showGalleryFolders() }
-        binding.btnCloudFiles.visibility = View.VISIBLE
-        binding.btnCloudFiles.text = getString(R.string.gallery_empty_trash)
-        binding.btnCloudFiles.setIconResource(R.drawable.ic_trash)
-        binding.btnCloudFiles.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_empty_trash_message)) { emptyGalleryTrashPermanently() } }
+        binding.tvSectionGallery.text = getString(R.string.gallery_trash)
+        binding.btnGallerySecondary.visibility = View.VISIBLE
+        binding.btnGallerySecondary.text = getString(R.string.action_back)
+        binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
+        binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
+        binding.btnGalleryPrimary.visibility = View.VISIBLE
+        binding.btnGalleryPrimary.text = getString(R.string.gallery_empty_trash)
+        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
+        binding.btnGalleryPrimary.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_empty_trash_message)) { emptyGalleryTrashPermanently() } }
         styleGalleryBackButton()
         styleGalleryTrashButton(true)
-        binding.listCloud.visibility = View.VISIBLE
-        binding.listCloud.apply {
+        binding.listGallery.visibility = View.VISIBLE
+        binding.listGallery.apply {
             setHasFixedSize(true)
             setItemViewCacheSize(24)
             setBackgroundColor(android.graphics.Color.BLACK)
@@ -1381,8 +1419,9 @@ class HomeFragment : Fragment() {
         }
         viewLifecycleOwner.lifecycleScope.launch {
             val photos = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadTrashedGalleryPhotosFromMediaStore() }
+            if (!isCurrentGalleryRender(renderGeneration) || !galleryTrashMode) return@launch
             currentGalleryPhotos = photos
-            binding.listCloud.adapter = GalleryAdapter(
+            binding.listGallery.adapter = GalleryAdapter(
                 items = photos,
                 grid = true,
                 trashMode = true,
@@ -1457,14 +1496,14 @@ class HomeFragment : Fragment() {
         selectedGalleryPhotos.clear()
         selectedGalleryPhotos.add(photo.path)
         updateGallerySelectionToolbar()
-        binding.listCloud.adapter?.notifyDataSetChanged()
+        binding.listGallery.adapter?.notifyDataSetChanged()
     }
 
     private fun toggleGallerySelection(photo: MediaItem) {
         if (!gallerySelectionMode) return
         if (!selectedGalleryPhotos.add(photo.path)) selectedGalleryPhotos.remove(photo.path)
         if (selectedGalleryPhotos.isEmpty()) clearGallerySelection() else updateGallerySelectionToolbar()
-        binding.listCloud.adapter?.notifyDataSetChanged()
+        binding.listGallery.adapter?.notifyDataSetChanged()
     }
 
     private fun clearGallerySelection() {
@@ -1473,17 +1512,17 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateGallerySelectionToolbar() {
-        binding.btnFavoritesCloud.visibility = View.VISIBLE
-        binding.btnFavoritesCloud.text = getString(R.string.gallery_delete_all)
-        binding.btnFavoritesCloud.setIconResource(R.drawable.ic_trash)
-        binding.btnFavoritesCloud.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_delete_selected_message)) { deleteSelectedGalleryPhotos() } }
-        binding.btnCloudFiles.visibility = View.VISIBLE
-        binding.btnCloudFiles.text = getString(R.string.gallery_share_all)
-        binding.btnCloudFiles.setIconResource(R.drawable.ic_share)
-        binding.btnCloudFiles.setOnClickListener { shareSelectedGalleryPhotosAsZip() }
+        binding.btnGallerySecondary.visibility = View.VISIBLE
+        binding.btnGallerySecondary.text = getString(R.string.gallery_delete_all)
+        binding.btnGallerySecondary.setIconResource(R.drawable.ic_trash)
+        binding.btnGallerySecondary.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_delete_selected_message)) { deleteSelectedGalleryPhotos() } }
+        binding.btnGalleryPrimary.visibility = View.VISIBLE
+        binding.btnGalleryPrimary.text = getString(R.string.gallery_share_all)
+        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_share)
+        binding.btnGalleryPrimary.setOnClickListener { shareSelectedGalleryPhotosAsZip() }
         styleGalleryBackButton()
         styleGalleryTrashButton(false)
-        binding.tvSectionCloud.text = getString(R.string.gallery_selected_count, selectedGalleryPhotos.size)
+        binding.tvSectionGallery.text = getString(R.string.gallery_selected_count, selectedGalleryPhotos.size)
     }
 
     private fun deleteSelectedGalleryPhotos() {
@@ -1620,231 +1659,8 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun showYoutubeDefaultContent() {
-        youtubeListMode = null
-        binding.listYoutubeSearch.visibility = View.GONE
-        binding.youtubeDefaultContent.visibility = View.GONE
-        binding.tvYoutubeError.visibility = View.GONE
-        binding.btnCloseYoutubeSearch.visibility = View.GONE
-        binding.youtubeSearchBarRow.visibility = View.GONE
-        binding.youtubeFavoritesHeaderRow.visibility = View.GONE
-        binding.listYoutubeHistory.visibility = View.GONE
+    private fun refreshGalleryDefaultContent() {
         showGalleryFolders()
-    }
-
-    private fun performYoutubeSearch(query: String) {
-        youtubeListMode = "search"
-        binding.youtubeDefaultContent.visibility = View.GONE
-        binding.listYoutubeSearch.visibility = View.VISIBLE
-        binding.tvYoutubeError.visibility = View.GONE
-        binding.btnCloseYoutubeSearch.visibility = View.VISIBLE
-        binding.youtubeSearchBarRow.visibility = View.VISIBLE
-        binding.youtubeFavoritesHeaderRow.visibility = View.GONE
-        binding.listYoutubeSearch.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
-        binding.listYoutubeSearch.adapter = fr.retrospare.blazeplayer.youtube.YouTubeVideoAdapter(
-            requireContext(), emptyList(), compact = false,
-            onClick = { openYoutubeVideo(it) },
-            onFavoriteToggle = { item, holder -> toggleYoutubeFavorite(item) },
-            onMoreClick = { item, anchor -> showYoutubeItemMenu(item, anchor) }
-        )
-        viewLifecycleOwner.lifecycleScope.launch {
-            when (val result = fr.retrospare.blazeplayer.youtube.YouTubeSearchApi.search(requireContext(), query)) {
-                is fr.retrospare.blazeplayer.youtube.YouTubeSearchApi.Result.Success -> {
-                    (binding.listYoutubeSearch.adapter as? fr.retrospare.blazeplayer.youtube.YouTubeVideoAdapter)
-                        ?.updateItems(result.items)
-                    if (result.items.isEmpty()) {
-                        binding.tvYoutubeError.text = getString(R.string.youtube_no_results, query)
-                        binding.tvYoutubeError.visibility = View.VISIBLE
-                    }
-                }
-                is fr.retrospare.blazeplayer.youtube.YouTubeSearchApi.Result.Error -> {
-                    binding.tvYoutubeError.text = result.message
-                    binding.tvYoutubeError.visibility = View.VISIBLE
-                }
-            }
-        }
-    }
-
-    /** Affiche les favoris dans la même liste que la recherche — un bouton dédié positionné
-     *  comme "Fichiers réseau/local" dans les autres onglets, plutôt qu'une bande de miniatures
-     *  toujours visible qui prenait trop de place. Écran dédié : pas de barre de recherche,
-     *  juste un en-tête "Favoris" avec un bouton pour fermer. */
-    private fun showYoutubeFavorites() {
-        youtubeListMode = "favorites"
-        binding.editYoutubeSearch.setText("")
-        binding.youtubeDefaultContent.visibility = View.GONE
-        binding.listYoutubeSearch.visibility = View.VISIBLE
-        binding.tvYoutubeError.visibility = View.GONE
-        binding.youtubeSearchBarRow.visibility = View.GONE
-        binding.youtubeFavoritesHeaderRow.visibility = View.VISIBLE
-        val favorites = fr.retrospare.blazeplayer.youtube.YouTubeLibrary.getFavorites(requireContext())
-        binding.listYoutubeSearch.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
-        binding.listYoutubeSearch.adapter = fr.retrospare.blazeplayer.youtube.YouTubeVideoAdapter(
-            requireContext(), favorites, compact = false,
-            onClick = { openYoutubeVideo(it) },
-            onFavoriteToggle = { item, holder -> toggleYoutubeFavorite(item) },
-            onMoreClick = { item, anchor -> showYoutubeItemMenu(item, anchor) }
-        )
-        if (favorites.isEmpty()) {
-            binding.tvYoutubeError.text = getString(R.string.youtube_no_favorites)
-            binding.tvYoutubeError.visibility = View.VISIBLE
-        }
-    }
-
-    private fun refreshYoutubeHistory() {
-        if (!isAdded) return
-        val history = fr.retrospare.blazeplayer.youtube.YouTubeLibrary.getHistory(requireContext())
-        binding.listYoutubeHistory.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
-        binding.listYoutubeHistory.adapter = fr.retrospare.blazeplayer.youtube.YouTubeVideoAdapter(
-            requireContext(), history, compact = false,
-            onClick = { openYoutubeVideo(it) },
-            onFavoriteToggle = { item, holder -> toggleYoutubeFavorite(item) },
-            onMoreClick = { item, anchor -> showYoutubeItemMenu(item, anchor) },
-            highlightedVideoId = history.firstOrNull()?.videoId
-        )
-    }
-
-    /** Ajoute une vidéo YouTube à une playlist (1/2/3) — réutilise le système de playlists déjà
-     *  existant pour Local/Réseau/Audio (PlaylistManager/PlaylistDialogs), avec l'id de la vidéo
-     *  comme "chemin" et son titre comme nom. */
-    /** Menu "..." en bout de ligne : ajouter à une playlist, ou retirer de l'historique (utile
-     *  uniquement si la ligne vient de l'historique — le retrait est silencieux/sans effet sinon,
-     *  puisque removeFromHistory ne fait rien si l'entrée n'y est pas). */
-    private fun showYoutubeItemMenu(item: fr.retrospare.blazeplayer.youtube.YouTubeVideoItem, anchor: View) {
-        val popup = android.widget.PopupMenu(requireContext(), anchor)
-        popup.menu.add(0, 1, 0, getString(R.string.youtube_add_to_playlist))
-        popup.menu.add(0, 2, 1, getString(R.string.youtube_remove_from_history))
-        popup.setOnMenuItemClickListener { mi ->
-            when (mi.itemId) {
-                1 -> { showYoutubeAddToPlaylist(item); true }
-                2 -> {
-                    fr.retrospare.blazeplayer.youtube.YouTubeLibrary.removeFromHistory(requireContext(), item.videoId)
-                    if (youtubeListMode == null) refreshYoutubeHistory()
-                    true
-                }
-                else -> false
-            }
-        }
-        popup.show()
-    }
-
-    private fun showYoutubeAddToPlaylist(item: fr.retrospare.blazeplayer.youtube.YouTubeVideoItem) {
-        fr.retrospare.blazeplayer.youtube.YouTubeLibrary.cacheMetadata(requireContext(), item)
-        fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
-            requireContext(),
-            fr.retrospare.blazeplayer.playlist.PlaylistCategory.YOUTUBE,
-            listOf(fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(item.videoId, item.title)),
-            onAdded = { setupYoutubePlaylistButtons() }
-        )
-    }
-
-    private fun setupYoutubePlaylistButtons() {
-        val buttons = listOf(
-            binding.btnPlaylistYoutube1, binding.btnPlaylistYoutube2, binding.btnPlaylistYoutube3,
-            binding.btnPlaylistYoutube4, binding.btnPlaylistYoutube5
-        )
-        val lastPlayed = fr.retrospare.blazeplayer.playlist.PlaylistManager
-            .getLastPlayed(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.YOUTUBE)
-        buttons.forEachIndexed { i, btn ->
-            val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager
-                .getPlaylist(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.YOUTUBE, i + 1).isNotEmpty()
-            btn.isSelected = (lastPlayed == i + 1) && hasItems
-            btn.setOnClickListener { openYoutubeSavedPlaylist(i + 1) }
-        }
-    }
-
-    private fun openYoutubeSavedPlaylist(slot: Int) {
-        fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showPlaylistViewer(
-            requireContext(),
-            fr.retrospare.blazeplayer.playlist.PlaylistCategory.YOUTUBE,
-            slot,
-            onPlayAll = { tracks ->
-                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayed(
-                    requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.YOUTUBE, slot
-                )
-                setupYoutubePlaylistButtons()
-                tracks.firstOrNull()?.let { first ->
-                    // Récupère les vraies métadonnées (titre/chaîne/miniature) de TOUTE la
-                    // playlist avant de lancer la lecture — un simple cache local ne suffit pas,
-                    // certaines vidéos de la playlist n'ont peut-être jamais été vues
-                    // individuellement (recherche/favoris) et n'auraient donc rien en cache.
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        val metadata = fr.retrospare.blazeplayer.youtube.YouTubeSearchApi.fetchVideosMetadata(
-                            requireContext(), tracks.map { it.path }
-                        )
-                        metadata.values.forEach { fr.retrospare.blazeplayer.youtube.YouTubeLibrary.cacheMetadata(requireContext(), it) }
-                        openYoutubeVideo(
-                            metadata[first.path] ?: fr.retrospare.blazeplayer.youtube.YouTubeVideoItem(videoId = first.path, title = first.name, channelTitle = "", thumbnailUrl = ""),
-                            playlistIds = tracks.map { t -> t.path },
-                            playlistTitles = tracks.map { t -> t.name },
-                            playlistIndex = 0
-                        )
-                    }
-                }
-            },
-            onPlayOne = { track ->
-                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayed(
-                    requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.YOUTUBE, slot
-                )
-                setupYoutubePlaylistButtons()
-                // onPlayOne ne reçoit que l'élément tapé, pas son index : on récupère la
-                // playlist complète pour connaître sa position exacte, nécessaire pour le
-                // suivant/précédent dans le lecteur.
-                val allTracks = fr.retrospare.blazeplayer.playlist.PlaylistManager.getPlaylist(
-                    requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.YOUTUBE, slot
-                )
-                val index = allTracks.indexOfFirst { it.path == track.path }.coerceAtLeast(0)
-                viewLifecycleOwner.lifecycleScope.launch {
-                    val metadata = fr.retrospare.blazeplayer.youtube.YouTubeSearchApi.fetchVideosMetadata(
-                        requireContext(), allTracks.map { it.path }
-                    )
-                    metadata.values.forEach { fr.retrospare.blazeplayer.youtube.YouTubeLibrary.cacheMetadata(requireContext(), it) }
-                    openYoutubeVideo(
-                        metadata[track.path] ?: fr.retrospare.blazeplayer.youtube.YouTubeVideoItem(videoId = track.path, title = track.name, channelTitle = "", thumbnailUrl = ""),
-                        playlistIds = allTracks.map { it.path },
-                        playlistTitles = allTracks.map { it.name },
-                        playlistIndex = index
-                    )
-                }
-            }
-        )
-    }
-
-    /** Ancien nom conservé pour l'appel depuis updateSectionTitles/onResume. */
-    private fun refreshYoutubeDefaultContent() {
-        showYoutubeDefaultContent()
-    }
-
-    private fun toggleYoutubeFavorite(item: fr.retrospare.blazeplayer.youtube.YouTubeVideoItem) {
-        fr.retrospare.blazeplayer.youtube.YouTubeLibrary.toggleFavorite(requireContext(), item)
-        // La couleur de l'étoile se met déjà à jour instantanément dans l'adapter lui-même ; si on
-        // est justement en train de regarder la liste des favoris, il faut par contre bien
-        // retirer/ajouter l'élément à la liste elle-même.
-        if (youtubeListMode == "favorites") {
-            showYoutubeFavorites()
-        }
-    }
-
-    private fun openYoutubeVideo(
-        item: fr.retrospare.blazeplayer.youtube.YouTubeVideoItem,
-        playlistIds: List<String>? = null,
-        playlistTitles: List<String>? = null,
-        playlistIndex: Int = -1
-    ) {
-        fr.retrospare.blazeplayer.youtube.YouTubeLibrary.cacheMetadata(requireContext(), item)
-        val enriched = fr.retrospare.blazeplayer.youtube.YouTubeLibrary.enrichFromCache(requireContext(), item)
-        val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity::class.java).apply {
-            putExtra(fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity.EXTRA_VIDEO_ID, enriched.videoId)
-            putExtra(fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity.EXTRA_TITLE, enriched.title)
-            putExtra(fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity.EXTRA_CHANNEL, enriched.channelTitle)
-            putExtra(fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity.EXTRA_THUMBNAIL, enriched.thumbnailUrl)
-            if (playlistIds != null && playlistTitles != null && playlistIndex >= 0) {
-                putExtra(fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity.EXTRA_PLAYLIST_IDS, playlistIds.toTypedArray())
-                putExtra(fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity.EXTRA_PLAYLIST_TITLES, playlistTitles.toTypedArray())
-                putExtra(fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity.EXTRA_PLAYLIST_INDEX, playlistIndex)
-            }
-        }
-        startActivity(intent)
     }
 
     private fun showAudioTab() {
@@ -1869,7 +1685,6 @@ class HomeFragment : Fragment() {
     }
 
     fun switchToAudioTab() {
-        val tabs = listOf(binding.tabAll as? android.widget.TextView, binding.tabLocal, binding.tabNetwork, binding.tabYoutube, binding.tabAudio)
         currentTabIndex = 4
         updateTabStyles(4)
         showAudioTab()
@@ -1962,26 +1777,26 @@ class HomeFragment : Fragment() {
             1 -> {
                 binding.sectionLocal.visibility = View.VISIBLE
                 binding.sectionNetwork.visibility = View.GONE
-                binding.sectionYoutube.visibility = View.GONE
+                binding.sectionGallery.visibility = View.GONE
                 viewModel.onTabSelected(1)
             }
             2 -> {
                 binding.sectionNetwork.visibility = View.VISIBLE
                 binding.sectionLocal.visibility = View.GONE
-                binding.sectionYoutube.visibility = View.GONE
+                binding.sectionGallery.visibility = View.GONE
                 viewModel.onTabSelected(2)
             }
             3 -> {
                 binding.sectionLocal.visibility = View.GONE
                 binding.sectionNetwork.visibility = View.GONE
-                binding.sectionYoutube.visibility = View.VISIBLE
+                binding.sectionGallery.visibility = View.VISIBLE
                 viewModel.onTabSelected(3)
-                refreshYoutubeDefaultContent()
+                refreshGalleryDefaultContent()
             }
             else -> {
                 binding.sectionLocal.visibility = View.VISIBLE
                 binding.sectionNetwork.visibility = View.GONE
-                binding.sectionYoutube.visibility = View.GONE
+                binding.sectionGallery.visibility = View.GONE
                 viewModel.onTabSelected(1)
             }
         }
@@ -1989,9 +1804,9 @@ class HomeFragment : Fragment() {
 
     private fun updateTabStyles(selectedIndex: Int) {
         // selectedIndex: 1=Local, 2=Réseau, 3=Blaze Gallery, 4=Audio
-        val tabViews = listOf(binding.tabLocal, binding.tabNetwork, binding.tabYoutube, binding.tabAudio)
-        val tabIcons = listOf(binding.tabLocalIcon, binding.tabNetworkIcon, binding.tabYoutubeIcon, binding.tabAudioIcon)
-        val tabTexts = listOf(binding.tabLocalText, binding.tabNetworkText, binding.tabYoutubeText, binding.tabAudioText)
+        val tabViews = listOf(binding.tabLocal, binding.tabNetwork, binding.tabGallery, binding.tabAudio)
+        val tabIcons = listOf(binding.tabLocalIcon, binding.tabNetworkIcon, binding.tabGalleryIcon, binding.tabAudioIcon)
+        val tabTexts = listOf(binding.tabLocalText, binding.tabNetworkText, binding.tabGalleryText, binding.tabAudioText)
 
         tabViews.forEachIndexed { i, tab ->
             val isActive = (i + 1) == selectedIndex
@@ -2071,7 +1886,6 @@ class HomeFragment : Fragment() {
                     fr.retrospare.blazeplayer.playlist.PlaylistManager.clearPlaylist(requireContext(), category, slot)
                     android.widget.Toast.makeText(requireContext(), getString(R.string.toast_playlist_emptied, slot), android.widget.Toast.LENGTH_SHORT).show()
                     setupPlaylistButtons()
-                    setupCloudPlaylistButtons()
                     true
                 }
                 else -> false
@@ -2104,21 +1918,6 @@ class HomeFragment : Fragment() {
         }
         networkButtons.forEachIndexed { i, btn ->
             bindPlaylistChip(btn, fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO, i + 1, lastPlayedNetwork)
-        }
-    }
-
-    private fun setupCloudPlaylistButtons() {
-        val cloudButtons = listOf(
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud1),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud2),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud3),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud4),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistCloud5)
-        )
-        val category = fr.retrospare.blazeplayer.playlist.PlaylistCategory.CLOUD_VIDEO
-        val lastPlayedCloud = fr.retrospare.blazeplayer.playlist.PlaylistManager.getLastPlayed(requireContext(), category)
-        cloudButtons.forEachIndexed { i, btn ->
-            bindPlaylistChip(btn, category, i + 1, lastPlayedCloud)
         }
     }
 
@@ -2169,22 +1968,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun openHistoryItem(item: MediaItem) {
-        if (item.isCloud) {
-            val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.PlayerActivity::class.java).apply {
-                putExtra("mediaPath", item.path)
-                putExtra("mediaName", item.name)
-                putExtra("isCloudMedia", true)
-                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                try {
-                    val uri = android.net.Uri.parse(item.path)
-                    data = uri
-                    clipData = android.content.ClipData.newUri(requireContext().contentResolver, item.name, uri)
-                } catch (_: Exception) { }
-            }
-            startActivity(intent)
-        } else {
-            PlayerRouter.open(requireContext(), item.path, item.name)
-        }
+        PlayerRouter.open(requireContext(), item.path, item.name)
     }
 
     private fun updateRecycler(recycler: androidx.recyclerview.widget.RecyclerView, items: List<MediaItem>) {
@@ -2250,7 +2034,7 @@ class HomeFragment : Fragment() {
                     val popup = android.widget.PopupMenu(requireContext(), anchor)
                     popup.menu.add(0, 1, 0, getString(R.string.action_play))
                     popup.menu.add(0, 2, 1, getString(R.string.action_information))
-                    popup.menu.add(0, 3, 2, getString(R.string.youtube_add_to_playlist))
+                    popup.menu.add(0, 3, 2, getString(R.string.add_to_playlist_short))
                     popup.menu.add(0, 5, 3, getString(R.string.action_custom_thumbnail))
                     popup.menu.add(0, 6, 4, getString(R.string.action_delete_thumbnail))
                     popup.menu.add(0, 4, 5, getString(R.string.action_remove_from_history))
@@ -2277,10 +2061,10 @@ class HomeFragment : Fragment() {
                                 true
                             }
                             3 -> {
-                                val category = when {
-                                    item.isCloud -> fr.retrospare.blazeplayer.playlist.PlaylistCategory.CLOUD_VIDEO
-                                    item.isNetwork -> fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
-                                    else -> fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
+                                val category = if (item.isNetwork) {
+                                    fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
+                                } else {
+                                    fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
                                 }
                                 fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
                                     requireContext(), category,

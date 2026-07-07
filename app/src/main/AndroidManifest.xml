@@ -53,7 +53,6 @@
     <application
         android:name=".BlazePlayerApp"
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:localeConfig="@xml/locales_config"
         android:icon="@mipmap/ic_launcher"
@@ -258,14 +257,6 @@ android:name=".player.BlazePlayerService"
         android:name=".gallery.edit.VideoTrimActivity"
         android:exported="false"
         android:screenOrientation="portrait"
-        android:theme="@style/Theme.BlazePlayer" />
-
-    <activity
-        android:name=".youtube.YouTubePlayerActivity"
-        android:exported="false"
-        android:screenOrientation="fullSensor"
-        android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
-        android:supportsPictureInPicture="true"
         android:theme="@style/Theme.BlazePlayer" />
 
         <provider

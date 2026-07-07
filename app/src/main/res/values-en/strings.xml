@@ -6,7 +6,6 @@
 
     <string name="tab_local">Local</string>
     <string name="tab_network">Network</string>
-    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <!-- Version badge -->
@@ -21,15 +20,6 @@
     <string name="favorites">Favorites</string>
     <string name="playlists_label">Playlists</string>
     <string name="my_playlists">MY PLAYLISTS</string>
-
-    <string name="youtube_search_hint">Search YouTube…</string>
-    <string name="youtube_no_favorites">No favorites yet</string>
-    <string name="youtube_no_results">No results for \"%1$s\"</string>
-    <string name="youtube_history">History</string>
-    <string name="youtube_close_favorites">Close favorites</string>
-    <string name="youtube_add_to_playlist">Add to playlist</string>
-    <string name="youtube_remove_from_history">Remove from history</string>
-    <string name="youtube_no_api_key">No YouTube API key configured</string>
     <string name="cast_screen">Cast phone screen</string>
 
     <string name="add_network_path">Add network path</string>
@@ -420,8 +410,6 @@
     <string name="content_desc_repeat">Repeat</string>
     <string name="content_desc_timer">Timer</string>
     <string name="content_desc_options">Options</string>
-
-    <string name="notif_channel_youtube">YouTube playback</string>
     <string name="action_pause">Pause</string>
     <string name="error_loading_media">Could not start video playback.</string>
 
@@ -467,16 +455,6 @@
     <string name="movie_actors_label">Actors:</string>
     <string name="movie_studio_label">Studio:</string>
     <string name="tmdb_title_not_found">Title not found</string>
-    <string name="cloud_history">Cloud history</string>
-    <string name="cloud_files">Cloud files</string>
-    <string name="cloud_providers_hint">Choose an audio or video file from Google Drive, OneDrive, Dropbox, or another installed cloud provider.</string>
-    <string name="cloud_provider_subtitle">Open and browse files</string>
-    <string name="cloud_provider_all_files">All cloud files</string>
-    <string name="cloud_provider_all_files_subtitle">Open the Android picker with all available providers</string>
-    <string name="cloud_no_known_provider">No Drive, OneDrive, or Dropbox provider detected. You can still use the Android picker.</string>
-    <string name="cloud_no_picker">No compatible file picker found</string>
-    <string name="cloud_media_fallback_name">Cloud media</string>
-    <string name="cloud_unsupported_media">This cloud file is not a compatible audio or video media file.</string>
 
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>

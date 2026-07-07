@@ -55,8 +55,7 @@ class MediaRepository @Inject constructor(
                 size = if (item.size > 0L) item.size else (previous?.size ?: 0L),
                 resolution = item.resolution?.takeIf { it.isNotBlank() } ?: previous?.resolution,
                 videoCodec = item.videoCodec?.takeIf { it.isNotBlank() } ?: previous?.videoCodec,
-                audioCodec = item.audioCodec?.takeIf { it.isNotBlank() } ?: previous?.audioCodec,
-                isCloud = item.isCloud || (previous?.isCloud == true)
+                audioCodec = item.audioCodec?.takeIf { it.isNotBlank() } ?: previous?.audioCodec
             )
             current.add(0, merged)
             val trimmed = current.take(50)
@@ -82,10 +81,19 @@ class MediaRepository @Inject constructor(
     }
 
     suspend fun removeRecentItem(id: String) {
+        removeRecentItems(setOf(id))
+    }
+
+    suspend fun removeRecentItems(idsOrPaths: Set<String>) {
+        if (idsOrPaths.isEmpty()) return
         dataStore.edit { prefs ->
             val json = prefs[RECENT_ITEMS_KEY] ?: return@edit
-            val list = gson.fromJson(json, Array<MediaItem>::class.java).toMutableList()
-            list.removeAll { it.id == id || it.path == id }
+            val list = try {
+                gson.fromJson(json, Array<MediaItem>::class.java).toMutableList()
+            } catch (_: Exception) {
+                mutableListOf()
+            }
+            list.removeAll { item -> item.id in idsOrPaths || item.path in idsOrPaths }
             prefs[RECENT_ITEMS_KEY] = gson.toJson(list)
         }
     }

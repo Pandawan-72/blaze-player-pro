@@ -6,7 +6,6 @@
 
     <string name="tab_local">Local</string>
     <string name="tab_network">Red</string>
-    <string name="tab_youtube">Blaze Gallery</string>
     <string name="tab_audio">Blaze Audio</string>
 
     <!-- Version badge -->
@@ -21,15 +20,6 @@
     <string name="favorites">Favoritos</string>
     <string name="playlists_label">Listas de reproducción</string>
     <string name="my_playlists">MIS LISTAS</string>
-
-    <string name="youtube_search_hint">Buscar en YouTube…</string>
-    <string name="youtube_no_favorites">Sin favoritos por ahora</string>
-    <string name="youtube_no_results">Sin resultados para \"%1$s\"</string>
-    <string name="youtube_history">Historial</string>
-    <string name="youtube_close_favorites">Cerrar favoritos</string>
-    <string name="youtube_add_to_playlist">Añadir a la lista</string>
-    <string name="youtube_remove_from_history">Eliminar del historial</string>
-    <string name="youtube_no_api_key">No hay clave API de YouTube configurada</string>
     <string name="cast_screen">Transmitir pantalla del teléfono</string>
 
     <string name="add_network_path">Añadir ruta de red</string>
@@ -420,8 +410,6 @@
     <string name="content_desc_repeat">Repetir</string>
     <string name="content_desc_timer">Temporizador</string>
     <string name="content_desc_options">Opciones</string>
-
-    <string name="notif_channel_youtube">Reproducción de YouTube</string>
     <string name="action_pause">Pausa</string>
     <string name="error_loading_media">No se pudo iniciar la reproducción de vídeo.</string>
 
@@ -467,16 +455,6 @@
     <string name="movie_actors_label">Actores:</string>
     <string name="movie_studio_label">Estudio:</string>
     <string name="tmdb_title_not_found">Título no encontrado</string>
-    <string name="cloud_history">Historial en la nube</string>
-    <string name="cloud_files">Archivos en la nube</string>
-    <string name="cloud_providers_hint">Elige un archivo de audio o vídeo desde Google Drive, OneDrive, Dropbox u otro proveedor en la nube instalado.</string>
-    <string name="cloud_provider_subtitle">Abrir y explorar archivos</string>
-    <string name="cloud_provider_all_files">Todos los archivos en la nube</string>
-    <string name="cloud_provider_all_files_subtitle">Abrir el selector de Android con todos los proveedores disponibles</string>
-    <string name="cloud_no_known_provider">No se ha detectado ningún proveedor de Drive, OneDrive o Dropbox. Aun así puedes usar el selector de Android.</string>
-    <string name="cloud_no_picker">No se ha encontrado un selector de archivos compatible</string>
-    <string name="cloud_media_fallback_name">Medio en la nube</string>
-    <string name="cloud_unsupported_media">Este archivo en la nube no es un medio de audio o vídeo compatible.</string>
 
     <!-- Blaze Gallery -->
     <string name="gallery_title">Blaze Gallery</string>

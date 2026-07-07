@@ -123,7 +123,7 @@ object AudioRepository {
             return ext.takeIf { it.length in 2..5 && it.all { ch -> ch.isLetterOrDigit() } }.orEmpty()
         }
         cleanExt(fileName).takeIf { it.isNotBlank() }?.let { return it }
-        // Les URI SAF / cloud contiennent souvent des segments encodés avec des points dans
+        // Les URI SAF contiennent souvent des segments encodés avec des points dans
         // l'adresse mail ou le provider. Ne jamais les transformer en badge conteneur.
         if (path.startsWith("content://", ignoreCase = true)) return ""
         return cleanExt(path)

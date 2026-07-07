@@ -474,7 +474,7 @@ class MainActivity : AppCompatActivity() {
         val requestedTab = intent.getIntExtra("requestedTab", -1)
         if (requestedTab in 1..4) {
             // Navigation explicite depuis les navigateurs : revenir à l'accueil et activer
-            // l'onglet demandé (1=Local, 2=Réseau, 3=Blaze Tube, 4=Audio). Le délai laisse le
+            // l'onglet demandé (1=Local, 2=Réseau, 3=Blaze Gallery, 4=Audio). Le délai laisse le
             // NavHost recréer HomeFragment si l'Activity vient d'être remise au premier plan.
             handler.postDelayed({ switchToTab(requestedTab) }, 300)
             intent.removeExtra("requestedTab")
@@ -588,7 +588,7 @@ class MainActivity : AppCompatActivity() {
         when (external.kind) {
             fr.retrospare.blazeplayer.player.ExternalMediaIntentUtils.ExternalMedia.Kind.AUDIO -> {
                 // Les fichiers audio externes doivent s'ouvrir dans l'interface principale afin de
-                // conserver la barre d'onglets (Local / Réseau / Blaze Tube / Blaze Audio). On ne
+                // conserver la barre d'onglets (Local / Réseau / Blaze Gallery / Blaze Audio). On ne
                 // passe plus par AudioPlayerActivity plein écran : MainActivity démarre le
                 // MediaSessionService stable, qui remplace strictement la file par le fichier cliqué,
                 // puis affiche l'onglet Blaze Audio.

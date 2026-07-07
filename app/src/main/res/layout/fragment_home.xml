@@ -544,7 +544,7 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/sectionYoutube"
+                android:id="@+id/sectionGallery"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -568,11 +568,11 @@
                         android:contentDescription="@null" />
 
                     <TextView
-                        android:id="@+id/tvSectionCloud"
+                        android:id="@+id/tvSectionGallery"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/cloud_history"
+                        android:text="@string/gallery_folders"
                         android:textColor="@color/on_surface_variant"
                         android:textSize="13sp"
                         android:fontFamily="sans-serif-condensed" />
@@ -601,7 +601,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:includeFontPadding="false"
-                        android:id="@+id/btnFavoritesCloud"
+                        android:id="@+id/btnGallerySecondary"
                         android:layout_width="wrap_content"
                         android:layout_height="44dp"
                         android:layout_marginEnd="8dp"
@@ -620,10 +620,10 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:includeFontPadding="false"
-                        android:id="@+id/btnCloudFiles"
+                        android:id="@+id/btnGalleryPrimary"
                         android:layout_width="wrap_content"
                         android:layout_height="44dp"
-                        android:text="@string/cloud_files"
+                        android:text="@string/gallery_trash"
                         android:textSize="12sp"
                         android:textColor="#FF000000"
                         android:paddingHorizontal="14dp"
@@ -636,44 +636,7 @@
 
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="16dp"
-                    android:paddingBottom="12dp"
-                    android:gravity="center_vertical"
-                    android:visibility="gone">
 
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:src="@drawable/ic_layout_list"
-                        android:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="6dp"
-                        android:contentDescription="@null" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/playlists_label"
-                        android:textColor="@color/on_surface_variant"
-                        android:textSize="12sp"
-                        android:fontFamily="sans-serif-condensed"
-                        android:layout_marginEnd="10dp" />
-
-                    <TextView android:id="@+id/btnPlaylistCloud1" android:layout_width="34dp" android:layout_height="34dp" android:layout_marginEnd="8dp" android:gravity="center" android:text="1" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold"
- android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
-                    <TextView android:id="@+id/btnPlaylistCloud2" android:layout_width="34dp" android:layout_height="34dp" android:layout_marginEnd="8dp" android:gravity="center" android:text="2" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold"
- android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
-                    <TextView android:id="@+id/btnPlaylistCloud3" android:layout_width="34dp" android:layout_height="34dp" android:layout_marginEnd="8dp" android:gravity="center" android:text="3" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold"
- android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
-                    <TextView android:id="@+id/btnPlaylistCloud4" android:layout_width="34dp" android:layout_height="34dp" android:layout_marginEnd="8dp" android:gravity="center" android:text="4" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold"
- android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
-                    <TextView android:id="@+id/btnPlaylistCloud5" android:layout_width="34dp" android:layout_height="34dp" android:gravity="center" android:text="5" android:textColor="@color/on_surface" android:textSize="13sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold"
- android:background="@drawable/bg_playlist_chip" android:clickable="true" android:focusable="true" />
-
-                </LinearLayout>
 
                 <FrameLayout
                     android:layout_width="match_parent"
@@ -681,14 +644,14 @@
                     android:layout_weight="1">
 
                     <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/listCloud"
+                        android:id="@+id/listGallery"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                                                 android:paddingBottom="24dp"
                         android:clipToPadding="false" />
 
                     <LinearLayout
-                        android:id="@+id/emptyStateCloud"
+                        android:id="@+id/emptyStateGallery"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
@@ -706,7 +669,7 @@
                             android:contentDescription="@null" />
 
                         <TextView
-                            android:id="@+id/tvEmptyStateCloud"
+                            android:id="@+id/tvEmptyStateGallery"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
@@ -716,23 +679,6 @@
                             android:fontFamily="sans-serif-condensed" />
                     </LinearLayout>
                 </FrameLayout>
-
-                <!-- Vues conservées invisibles pour compatibilité avec les anciens appels YouTube. -->
-                <LinearLayout android:id="@+id/youtubeSearchBarRow" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <LinearLayout android:id="@+id/youtubeFavoritesHeaderRow" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/listYoutubeSearch" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <TextView android:id="@+id/tvYoutubeError" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <LinearLayout android:id="@+id/youtubeDefaultContent" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <ImageView android:id="@+id/btnCloseYoutubeSearch" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <EditText android:id="@+id/editYoutubeSearch" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <com.google.android.material.button.MaterialButton android:id="@+id/btnCloseYoutubeFavorites" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <com.google.android.material.button.MaterialButton android:id="@+id/btnYoutubeFavorites" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <TextView android:id="@+id/btnPlaylistYoutube1" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <TextView android:id="@+id/btnPlaylistYoutube2" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <TextView android:id="@+id/btnPlaylistYoutube3" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <TextView android:id="@+id/btnPlaylistYoutube4" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <TextView android:id="@+id/btnPlaylistYoutube5" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-                <androidx.recyclerview.widget.RecyclerView android:id="@+id/listYoutubeHistory" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
 
             </LinearLayout>
 
@@ -836,7 +782,7 @@
 
         <!-- Tab Blaze Gallery -->
         <LinearLayout
-            android:id="@+id/tabYoutube"
+            android:id="@+id/tabGallery"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -849,7 +795,7 @@
             android:focusable="true">
 
             <ImageView
-                android:id="@+id/tabYoutubeIcon"
+                android:id="@+id/tabGalleryIcon"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:src="@drawable/ic_gallery"
@@ -858,10 +804,10 @@
                 android:contentDescription="@null" />
 
             <TextView
-                android:id="@+id/tabYoutubeText"
+                android:id="@+id/tabGalleryText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/tab_youtube"
+                android:text="@string/app_name_gallery"
                 android:textColor="@color/on_surface_variant"
                 android:textSize="12sp"
                 android:fontFamily="sans-serif-condensed"

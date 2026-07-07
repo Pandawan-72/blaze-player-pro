@@ -323,7 +323,7 @@ class AudioPlayerFragment : Fragment() {
                 .distinctUntilChanged()
                 .collect { enabled ->
                     audioSpectrumEnabled = enabled
-                    binding.audioEqualizerView.visibility = if (enabled) View.VISIBLE else View.GONE
+                    setAudioSpectrumOverlayVisible(enabled)
                     if (enabled) {
                         if (controller?.isPlaying == true) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
                     } else {
@@ -333,6 +333,13 @@ class AudioPlayerFragment : Fragment() {
                 }
         }
     }
+
+    private fun setAudioSpectrumOverlayVisible(enabled: Boolean) {
+        val visibility = if (enabled) View.VISIBLE else View.GONE
+        _binding?.artworkMetadataOverlay?.visibility = visibility
+        _binding?.audioEqualizerView?.visibility = visibility
+    }
+
 
     private fun connectMediaController() {
         val token = SessionToken(requireContext(), ComponentName(requireContext(), BlazePlayerService::class.java))
@@ -616,7 +623,7 @@ class AudioPlayerFragment : Fragment() {
             cachedMeta?.album?.ifEmpty { null } ?: meta.albumTitle?.toString()
         )
         _binding?.tvAlbum?.text = safeAlbum
-        // Évite l'ancien badge/chemin SAF résiduel issu des essais Cloud : le lecteur ne doit
+        // Évite l'ancien badge/chemin SAF résiduel : le lecteur ne doit
         // jamais afficher un content:// ou STORAGE/DOCUMENT sous le titre.
         _binding?.tvAlbum?.visibility = if (safeAlbum.isBlank()) View.GONE else View.GONE
 

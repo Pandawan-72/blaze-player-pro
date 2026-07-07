@@ -9,12 +9,16 @@ import android.os.Build
 import android.graphics.ColorMatrix
 import android.content.ContentValues
 import android.graphics.Bitmap
+import android.graphics.Paint
 import android.provider.MediaStore
 import android.os.Environment
 import android.view.TextureView
+import android.view.SurfaceView
+import android.view.PixelCopy
 import android.graphics.RenderEffect
 import android.content.res.Configuration
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.view.MotionEvent
 import android.view.View
@@ -41,6 +45,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.media3.session.SessionCommand
+import androidx.media3.ui.PlayerView
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
@@ -146,6 +151,7 @@ class PlayerActivity : AppCompatActivity() {
     private var videoSaturation = 0f       // -100..100
     private var videoVolumeBoost = 0f      // 0..20
     private var videoDialogueMode = 0f      // 0..100, clarifie les voix et calme les effets forts
+    private var usingFilteredTextureView = false
     private var maxVolume = 0
     private var networkErrorDialogShown = false
     private var compatWarningShown = false
@@ -400,9 +406,10 @@ class PlayerActivity : AppCompatActivity() {
             startProgressLoop()
         }
 
-        // Extrait miniature vidéo en arrière-plan, bornée dans le temps. Sur SMB, le retriever
-        // natif peut rester coincé longtemps : on ne doit jamais laisser ce job concurrencer la lecture.
-        lifecycleScope.launch(Dispatchers.IO) {
+        // Ne lance plus d'extraction de miniature en parallèle pendant une lecture réseau :
+        // MediaMetadataRetriever ouvre un second flux/décodeur et peut provoquer exactement le
+        // type de retard de rendu vidéo observé alors que l'audio reste fluide.
+        if (!isNetworkPlayback()) lifecycleScope.launch(Dispatchers.IO) {
             withTimeoutOrNull(2_000) {
                 var smbDataSourceThumb: SmbMediaDataSource? = null
                 val r = android.media.MediaMetadataRetriever()
@@ -674,58 +681,49 @@ class PlayerActivity : AppCompatActivity() {
         )
     }
 
-    /** Récupère la miniature (locale ou réseau, via le même cache que le reste de l'app) et
-     *  l'ajoute aux métadonnées du média déjà en lecture — sans bloquer le lancement de la
-     *  vidéo, qui doit rester instantané. `replaceMediaItem` met à jour les métadonnées sans
-     *  interrompre la lecture en cours ; c'est ce que lit `DefaultMediaNotificationProvider`
-     *  pour afficher l'image dans la notification Android. */
+    /** Récupère la miniature déjà en cache et l'ajoute aux métadonnées du média.
+     *
+     * Pour les vidéos réseau, on évite volontairement toute extraction MediaMetadataRetriever
+     * pendant la lecture : cela ouvre un second flux/décodeur en parallèle du player et peut
+     * créer des retards de rendu vidéo alors que l'audio continue normalement. */
     private fun loadNotificationArtwork(path: String) {
         lifecycleScope.launch(Dispatchers.IO) {
-            // Miniature notification vidéo réseau : on tente d'abord le cache/ThumbnailUtils
-            // habituel, puis un fallback via l'URL HTTP locale déjà servie au player. Sans ce
-            // fallback, une extraction SMB directe lente ou refusée laissait souvent la notification
-            // Android sans artwork pour les vidéos réseau.
-            val bitmap = try {
-                withTimeoutOrNull(3_500) {
-                    fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(applicationContext, path, if (path.startsWith("smb://", true) || path.startsWith("http://", true) || path.startsWith("https://", true)) 10_000_000L else 5_000_000L)
-                }
-            } catch (e: Exception) {
-                fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail primary extraction failed", e)
-                null
-            } ?: try {
-                val streamUrl = fr.retrospare.blazeplayer.cast.VideoStreamServerManager.getStreamUrl()
-                if (streamUrl != null && (path.startsWith("smb://") || path.startsWith("ftp://") || path.startsWith("http://") || path.startsWith("https://"))) {
-                    android.media.MediaMetadataRetriever().use { retriever ->
-                        retriever.setDataSource(applicationContext, android.net.Uri.parse(streamUrl))
-                        retriever.getFrameAtTime(10_000_000L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-                            ?: retriever.frameAtTime
-                    }
-                } else null
-            } catch (e: Exception) {
-                fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail HTTP fallback failed", e)
-                null
-            } ?: return@launch
+            val networkPath = path.startsWith("smb://", true) || path.startsWith("ftp://", true) ||
+                path.startsWith("http://", true) || path.startsWith("https://", true)
 
-            val artworkData = try {
-                val scaled = if (bitmap.width > 512 || bitmap.height > 512) {
-                    val ratio = 512f / maxOf(bitmap.width, bitmap.height)
-                    android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * ratio).toInt(), (bitmap.height * ratio).toInt(), true)
-                } else bitmap
-                val stream = java.io.ByteArrayOutputStream()
-                scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 86, stream)
-                stream.toByteArray()
-            } catch (e: Exception) {
-                fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail encoding failed", e)
-                null
+            val artworkData = fr.retrospare.blazeplayer.ui.ThumbnailUtils
+                .getCachedThumbnailJpegBytes(applicationContext, path) ?: run {
+                if (networkPath) {
+                    android.util.Log.i("PlayerActivity", "Skip live network thumbnail extraction during playback for $path")
+                    return@launch
+                }
+
+                val bitmap = try {
+                    withTimeoutOrNull(2_000) {
+                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(applicationContext, path, 5_000_000L)
+                    }
+                } catch (e: Exception) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail extraction failed", e)
+                    null
+                } ?: return@launch
+
+                try {
+                    val scaled = if (bitmap.width > 512 || bitmap.height > 512) {
+                        val ratio = 512f / maxOf(bitmap.width, bitmap.height)
+                        android.graphics.Bitmap.createScaledBitmap(bitmap, (bitmap.width * ratio).toInt(), (bitmap.height * ratio).toInt(), true)
+                    } else bitmap
+                    val stream = java.io.ByteArrayOutputStream()
+                    scaled.compress(android.graphics.Bitmap.CompressFormat.JPEG, 86, stream)
+                    stream.toByteArray()
+                } catch (e: Exception) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Video notification thumbnail encoding failed", e)
+                    null
+                }
             } ?: return@launch
 
             withContext(Dispatchers.Main) {
-                // Le média en cours a pu changer entre-temps (suivant/précédent rapide) : ne
-                // met à jour que si on est toujours sur le même fichier.
                 val current = player.currentMediaItem ?: return@withContext
                 if (current.mediaId != path) return@withContext
-                // Envoyée au service (qui détient l'instance réelle du player) plutôt que
-                // d'appeler replaceMediaItem() directement ici sur le MediaController.
                 val args = android.os.Bundle().apply {
                     putString(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_MEDIA_ID, path)
                     putByteArray(fr.retrospare.blazeplayer.player.VideoPlaybackService.EXTRA_ARTWORK_DATA, artworkData)
@@ -764,13 +762,71 @@ class PlayerActivity : AppCompatActivity() {
     private fun isCastingVideo(): Boolean =
         ::player.isInitialized && player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE
 
+    private fun hasVisualVideoAdjustments(): Boolean =
+        videoSaturation.toInt() != 0 || videoContrast.toInt() != 0 || videoHue.toInt() != 0
+
+    private fun desiredFilteredTextureView(): Boolean =
+        hasVisualVideoAdjustments() && !isCastingVideo()
+
+    private fun activePlayerView(): PlayerView =
+        if (usingFilteredTextureView) binding.filteredPlayerView else binding.playerView
+
+    private fun currentResizeMode(): Int = when (currentRatioIndex) {
+        0 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+        1 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+        else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+    }
+
+    private fun applyResizeModeToPlayerViews() {
+        val mode = currentResizeMode()
+        binding.playerView.resizeMode = mode
+        binding.filteredPlayerView.resizeMode = mode
+    }
+
+    private fun attachPlayerToPreferredView() {
+        val useFiltered = desiredFilteredTextureView()
+        val target = if (useFiltered) binding.filteredPlayerView else binding.playerView
+        val other = if (useFiltered) binding.playerView else binding.filteredPlayerView
+
+        applyResizeModeToPlayerViews()
+        if (usingFilteredTextureView != useFiltered) {
+            other.player = null
+            other.setRenderEffect(null)
+            other.setLayerType(View.LAYER_TYPE_NONE, null)
+            other.visibility = View.GONE
+            target.visibility = View.VISIBLE
+            usingFilteredTextureView = useFiltered
+            android.util.Log.i(
+                "PlayerActivity",
+                if (useFiltered) "Video renderer switched to TextureView for visual adjustments"
+                else "Video renderer switched to SurfaceView for smooth neutral playback"
+            )
+        } else {
+            target.visibility = View.VISIBLE
+            other.visibility = View.GONE
+        }
+
+        if (::player.isInitialized && target.player !== player) target.player = player
+        if (other.player != null) other.player = null
+        target.setShutterBackgroundColor(android.graphics.Color.BLACK)
+        target.setBackgroundColor(android.graphics.Color.BLACK)
+    }
+
+    private fun detachPlayerViews() {
+        // Détache les deux PlayerView sans rappel récursif.
+        // La v13 appelait accidentellement detachPlayerViews() depuis elle-même,
+        // ce qui provoquait un StackOverflowError au stop/retour/destruction du lecteur.
+        try { binding.playerView.player = null } catch (_: Exception) {}
+        try { binding.filteredPlayerView.player = null } catch (_: Exception) {}
+        try { binding.playerView.setRenderEffect(null) } catch (_: Exception) {}
+        try { binding.filteredPlayerView.setRenderEffect(null) } catch (_: Exception) {}
+        try { binding.playerView.setLayerType(View.LAYER_TYPE_NONE, null) } catch (_: Exception) {}
+        try { binding.filteredPlayerView.setLayerType(View.LAYER_TYPE_NONE, null) } catch (_: Exception) {}
+    }
+
     private fun cycleAspectRatio() {
         currentRatioIndex = (currentRatioIndex + 1) % ratioLabels.size
-        binding.playerView.resizeMode = when (currentRatioIndex) {
-            0 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-            1 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-            else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
-        }
+        applyResizeModeToPlayerViews()
         binding.seekIndicator.text = ratioLabels[currentRatioIndex]
         binding.seekIndicator.visibility = View.VISIBLE
         uiHandler.removeCallbacksAndMessages(null)
@@ -877,7 +933,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         if (::player.isInitialized) {
-            binding.playerView.player = player
+            attachPlayerToPreferredView()
         }
     }
 
@@ -902,18 +958,18 @@ class PlayerActivity : AppCompatActivity() {
         }
         saveCurrentVideoPosition()
         if (closingPlayerExplicitly) {
-            binding.playerView.player = null
+            detachPlayerViews()
             return
         }
         // Home / app switch : on détache uniquement la surface pour éviter les leaks UI.
         // La lecture continue dans VideoPlaybackService ; si le PiP est activé, Android garde
         // la surface PiP. L'arrêt réel se fait dans VideoPlaybackService.onTaskRemoved() lors
         // du swipe depuis les tâches récentes.
-        binding.playerView.player = null
+        detachPlayerViews()
     }
 
     override fun onDestroy() {
-        try { binding.playerView.player = null } catch (_: Exception) {}
+        detachPlayerViews()
         super.onDestroy()
         uiHandler.removeCallbacksAndMessages(null)
         controllerFuture?.let { MediaController.releaseFuture(it) }
@@ -995,7 +1051,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun onPlayerReady() {
-        binding.playerView.player = player
+        attachPlayerToPreferredView()
         applyVideoAdjustments()
 
         player.addListener(object : Player.Listener {
@@ -1099,6 +1155,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (isRemote != lastKnownIsRemote) {
                     lastKnownIsRemote = isRemote
                     android.util.Log.i("CAST", "Transition ${if (isRemote) "vers" else "depuis"} Cast détectée")
+                    applyVideoAdjustments(applyVolumeBoost = false)
                     applySubtitleTrackSelection()
                 }
 
@@ -1259,7 +1316,7 @@ class PlayerActivity : AppCompatActivity() {
         } catch (e: Exception) {
             CrashReporter.log(this, "Failed to stop video playback on back", e)
         }
-        try { binding.playerView.player = null } catch (_: Exception) {}
+        detachPlayerViews()
         try { stopService(android.content.Intent(this, VideoPlaybackService::class.java)) } catch (e: Exception) {
             CrashReporter.log(this, "Failed to stop VideoPlaybackService on back", e)
         }
@@ -1280,7 +1337,7 @@ class PlayerActivity : AppCompatActivity() {
             // un STOP de session par VideoPlaybackService, cf. loadMedia() plus haut), ni au service,
             // ni au serveur de streaming local qui relaie le flux vers le Chromecast. Seule la sortie
             // complète de l'application (VideoPlaybackService.onTaskRemoved) doit couper le cast.
-            try { binding.playerView.player = null } catch (_: Exception) {}
+            detachPlayerViews()
             finish()
             return
         }
@@ -1446,6 +1503,7 @@ class PlayerActivity : AppCompatActivity() {
         binding.btnSpeed.setOnClickListener { scheduleHide(); cyclePlaybackSpeed() }
         binding.uiOverlay.setOnClickListener { if (uiVisible) hideUI() else showUI() }
         binding.playerView.setOnClickListener { if (uiVisible) hideUI() else showUI() }
+        binding.filteredPlayerView.setOnClickListener { if (uiVisible) hideUI() else showUI() }
 
         // Stop réel : coupe la session vidéo, remet l'écran du lecteur au noir et laisse
         // VideoPlaybackService se détruire pour retirer immédiatement la notification Android.
@@ -1460,30 +1518,62 @@ class PlayerActivity : AppCompatActivity() {
 
 
 
-    /** Capture uniquement la surface vidéo (TextureView) : l'overlay des contrôles n'est donc jamais
-     * inclus dans l'image. Le fichier est enregistré dans Images/Blaze Screenshots. */
+    /** Capture uniquement la surface vidéo. Le lecteur principal utilise maintenant SurfaceView
+     * pour un rendu vidéo plus fluide ; la capture passe donc par PixelCopy quand nécessaire. */
     private fun captureCurrentVideoFrame() {
         if (!::player.isInitialized) return
         if (player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) {
             InfoDialog.show(this, getString(R.string.info_dialog_title_unavailable), getString(R.string.toast_capture_unavailable_cast), R.drawable.ic_camera)
             return
         }
-        val textureView = binding.playerView.videoSurfaceView as? TextureView
-        if (textureView == null || !textureView.isAvailable) {
-            InfoDialog.show(this, getString(R.string.info_dialog_title_unavailable), getString(R.string.toast_capture_unavailable), R.drawable.ic_camera)
+
+        val activeView = activePlayerView()
+        val textureView = activeView.videoSurfaceView as? TextureView
+        if (textureView != null && textureView.isAvailable) {
+            val bitmap = try {
+                textureView.bitmap ?: textureView.getBitmap(textureView.width, textureView.height)
+            } catch (e: Exception) {
+                CrashReporter.log(this, "Video screenshot TextureView capture failed for $mediaPath", e)
+                null
+            }
+            handleCapturedVideoBitmap(bitmap)
             return
         }
-        val bitmap = try {
-            textureView.bitmap ?: textureView.getBitmap(textureView.width, textureView.height)
-        } catch (e: Exception) {
-            CrashReporter.log(this, "Video screenshot capture failed for $mediaPath", e)
-            null
+
+        val surfaceView = activeView.videoSurfaceView as? SurfaceView
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && surfaceView != null &&
+            surfaceView.width > 0 && surfaceView.height > 0 && surfaceView.holder.surface.isValid) {
+            val bitmap = Bitmap.createBitmap(surfaceView.width, surfaceView.height, Bitmap.Config.ARGB_8888)
+            val thread = HandlerThread("BlazeVideoPixelCopy").apply { start() }
+            try {
+                PixelCopy.request(surfaceView, bitmap, { result ->
+                    try { thread.quitSafely() } catch (_: Exception) {}
+                    runOnUiThread {
+                        if (result == PixelCopy.SUCCESS) {
+                            handleCapturedVideoBitmap(bitmap)
+                        } else {
+                            try { bitmap.recycle() } catch (_: Exception) {}
+                            InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.toast_capture_failed), R.drawable.ic_camera)
+                        }
+                    }
+                }, Handler(thread.looper))
+            } catch (e: Exception) {
+                try { thread.quitSafely() } catch (_: Exception) {}
+                try { bitmap.recycle() } catch (_: Exception) {}
+                CrashReporter.log(this, "Video screenshot SurfaceView PixelCopy failed for $mediaPath", e)
+                InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.toast_capture_failed), R.drawable.ic_camera)
+            }
+            return
         }
+
+        InfoDialog.show(this, getString(R.string.info_dialog_title_unavailable), getString(R.string.toast_capture_unavailable), R.drawable.ic_camera)
+    }
+
+    private fun handleCapturedVideoBitmap(bitmap: Bitmap?) {
         if (bitmap == null || bitmap.width <= 0 || bitmap.height <= 0) {
             InfoDialog.show(this, getString(R.string.info_dialog_title_error), getString(R.string.toast_capture_failed), R.drawable.ic_camera)
             return
         }
-
         val currentName = mediaName.ifBlank { File(mediaPath).name }.substringBeforeLast('.', mediaName.ifBlank { "video" })
         val filename = "${sanitizeScreenshotPart(currentName)}_${formatScreenshotTimecode(player.currentPosition)}_screenshot.jpg"
         lifecycleScope.launch(Dispatchers.IO) {
@@ -1569,9 +1659,11 @@ class PlayerActivity : AppCompatActivity() {
         cancelHide()
         videoStoppedByUser = true
         try {
-            binding.playerView.player = null
+            detachPlayerViews()
             binding.playerView.setShutterBackgroundColor(android.graphics.Color.BLACK)
+            binding.filteredPlayerView.setShutterBackgroundColor(android.graphics.Color.BLACK)
             binding.playerView.setBackgroundColor(android.graphics.Color.BLACK)
+            binding.filteredPlayerView.setBackgroundColor(android.graphics.Color.BLACK)
             binding.tvCurrentTime.text = "0:00:00"
             binding.tvTotalTime.text = "0:00:00"
             binding.progressFill.layoutParams.width = 0
@@ -1718,9 +1810,11 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         player = controller
-        binding.playerView.player = player
+        attachPlayerToPreferredView()
         binding.playerView.setShutterBackgroundColor(android.graphics.Color.BLACK)
+        binding.filteredPlayerView.setShutterBackgroundColor(android.graphics.Color.BLACK)
         binding.playerView.setBackgroundColor(android.graphics.Color.BLACK)
+        binding.filteredPlayerView.setBackgroundColor(android.graphics.Color.BLACK)
         playNextCalled = false
         // Après STOP puis PLAY, on relance le média comme une nouvelle ouverture :
         // le mode "demander" doit donc afficher le modal de reprise si une position existe,
@@ -1914,23 +2008,56 @@ class PlayerActivity : AppCompatActivity() {
         // native Android de la fenêtre, comme le réglage système de l'écran.
         applyNativeScreenBrightness()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val saturation = (1f + videoSaturation / 100f).coerceIn(0f, 2f)
-            val contrast = (1f + videoContrast / 100f).coerceIn(0f, 2f)
-            val hueDegrees = (videoHue / 100f * 180f).coerceIn(-180f, 180f)
-
-            val matrix = ColorMatrix()
-            matrix.setSaturation(saturation)
-            val contrastMatrix = ColorMatrix(floatArrayOf(
-                contrast, 0f, 0f, 0f, 0f,
-                0f, contrast, 0f, 0f, 0f,
-                0f, 0f, contrast, 0f, 0f,
-                0f, 0f, 0f, 1f, 0f
-            ))
-            matrix.postConcat(contrastMatrix)
-            matrix.postConcat(hueColorMatrix(hueDegrees))
-            binding.playerView.setRenderEffect(RenderEffect.createColorFilterEffect(android.graphics.ColorMatrixColorFilter(matrix)))
+        val hasVisualAdjustment = hasVisualVideoAdjustments()
+        if (::binding.isInitialized) {
+            attachPlayerToPreferredView()
         }
+
+        // Mode neutre : aucun filtre, SurfaceView actif, zéro composition GPU supplémentaire.
+        if (!hasVisualAdjustment || !usingFilteredTextureView) {
+            binding.playerView.setRenderEffect(null)
+            binding.filteredPlayerView.setRenderEffect(null)
+            binding.playerView.setLayerType(View.LAYER_TYPE_NONE, null)
+            binding.filteredPlayerView.setLayerType(View.LAYER_TYPE_NONE, null)
+            if (applyVolumeBoost) applyVideoVolumeBoost()
+            return
+        }
+
+        val saturation = (1f + videoSaturation / 100f).coerceIn(0f, 2f)
+        val contrast = (1f + videoContrast / 100f).coerceIn(0f, 2f)
+        val hueDegrees = (videoHue / 100f * 180f).coerceIn(-180f, 180f)
+
+        val matrix = ColorMatrix()
+        matrix.setSaturation(saturation)
+        // Contraste centré autour de 128, sinon l'image s'assombrit trop quand on augmente
+        // le contraste. Ce rendu est plus proche des lecteurs vidéo premium.
+        val contrastTranslate = 128f * (1f - contrast)
+        val contrastMatrix = ColorMatrix(floatArrayOf(
+            contrast, 0f, 0f, 0f, contrastTranslate,
+            0f, contrast, 0f, 0f, contrastTranslate,
+            0f, 0f, contrast, 0f, contrastTranslate,
+            0f, 0f, 0f, 1f, 0f
+        ))
+        matrix.postConcat(contrastMatrix)
+        matrix.postConcat(hueColorMatrix(hueDegrees))
+
+        // Le filtre s'applique uniquement au PlayerView TextureView. Le PlayerView SurfaceView
+        // reste totalement propre pour la lecture réseau fluide quand les réglages sont neutres.
+        binding.playerView.setRenderEffect(null)
+        binding.playerView.setLayerType(View.LAYER_TYPE_NONE, null)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            binding.filteredPlayerView.setLayerType(View.LAYER_TYPE_NONE, null)
+            binding.filteredPlayerView.setRenderEffect(
+                RenderEffect.createColorFilterEffect(android.graphics.ColorMatrixColorFilter(matrix))
+            )
+        } else {
+            binding.filteredPlayerView.setRenderEffect(null)
+            binding.filteredPlayerView.setLayerType(
+                View.LAYER_TYPE_HARDWARE,
+                Paint().apply { colorFilter = android.graphics.ColorMatrixColorFilter(matrix) }
+            )
+        }
+
         if (applyVolumeBoost) applyVideoVolumeBoost()
     }
 
@@ -2211,8 +2338,7 @@ class PlayerActivity : AppCompatActivity() {
         val pathSnapshot = mediaPath
         val nameSnapshot = mediaName
         val networkShareIdSnapshot = intent.getStringExtra("networkShareId")
-        val isCloud = intent.getBooleanExtra("isCloudMedia", false)
-        val isNetwork = !isCloud && (isNetworkMedia || pathSnapshot.startsWith("smb://", true) || pathSnapshot.startsWith("ftp://", true) || pathSnapshot.startsWith("http://", true) || pathSnapshot.startsWith("https://", true))
+        val isNetwork = isNetworkMedia || pathSnapshot.startsWith("smb://", true) || pathSnapshot.startsWith("ftp://", true) || pathSnapshot.startsWith("http://", true) || pathSnapshot.startsWith("https://", true)
         lifecycleScope.launch(Dispatchers.IO) {
             // Pour les vidéos ouvertes depuis un explorateur Android, l'intent content:// ne donne
             // pas toujours le vrai nom dans lastPathSegment. Contrairement au décodage initial
@@ -2233,7 +2359,6 @@ class PlayerActivity : AppCompatActivity() {
                 id = pathSnapshot, name = historyName, path = pathSnapshot,
                 extension = ext, mimeType = if (ext.isNotBlank()) "video/$ext" else "video/*",
                 isNetwork = isNetwork,
-                isCloud = isCloud,
                 networkShareId = networkShareIdSnapshot,
                 lastPlayedAt = System.currentTimeMillis()
             ))
@@ -2253,8 +2378,7 @@ class PlayerActivity : AppCompatActivity() {
                     videoCodec = info.videoCodec,
                     audioCodec = info.audioCodec,
                     isNetwork = isNetwork,
-                    isCloud = isCloud,
-                    networkShareId = networkShareIdSnapshot,
+                        networkShareId = networkShareIdSnapshot,
                     lastPlayedAt = System.currentTimeMillis()
                 ))
             }

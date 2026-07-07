@@ -12,7 +12,7 @@ import dagger.hilt.android.AndroidEntryPoint
  *
  * Depuis la demande d'afficher la barre d'onglets dans Blaze Audio, cette Activity ne doit plus
  * rester en plein écran pour les fichiers audio : elle sert de trampoline léger vers MainActivity,
- * qui conserve les onglets Local / Réseau / Blaze Tube / Blaze Audio et délègue la lecture au
+ * qui conserve les onglets Local / Réseau / Blaze Gallery / Blaze Audio et délègue la lecture au
  * MediaSessionService stable. Le fragment plein écran reste uniquement en repli si l'Activity est
  * appelée sans média exploitable.
  */
