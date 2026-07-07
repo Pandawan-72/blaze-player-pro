@@ -249,6 +249,18 @@ android:name=".player.BlazePlayerService"
         android:theme="@style/Theme.BlazePlayer" />
 
     <activity
+        android:name=".gallery.edit.PhotoEditorActivity"
+        android:exported="false"
+        android:screenOrientation="portrait"
+        android:theme="@style/Theme.BlazePlayer" />
+
+    <activity
+        android:name=".gallery.edit.VideoTrimActivity"
+        android:exported="false"
+        android:screenOrientation="portrait"
+        android:theme="@style/Theme.BlazePlayer" />
+
+    <activity
         android:name=".youtube.YouTubePlayerActivity"
         android:exported="false"
         android:screenOrientation="fullSensor"

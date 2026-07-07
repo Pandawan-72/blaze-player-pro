@@ -118,11 +118,12 @@ dependencies {
     implementation(libs.media3.cast)
     implementation("androidx.media3:media3-database:1.9.0")
     implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.9.0+1")
-    // Fork maintenu de FFmpegKit (l'original d'arthenica a été retiré de Maven Central en avril
-    // 2025). Utilisé UNIQUEMENT pour l'extraction fiable des sous-titres intégrés en WebVTT — un
-    // démuxeur FFmpeg est bien plus robuste face aux variations de muxage réelles qu'un parseur
-    // EBML maison.
-    implementation("com.moizhassan.ffmpeg:ffmpeg-kit-16kb:6.1.1")
+    // Fork maintenu de FFmpegKit avec build complet compatible pages 16 KB arm64-v8a.
+    // Le package précédent `ffmpeg-kit-16kb` était trop minimal pour l'export MP3 : selon le
+    // binaire embarqué, `libmp3lame`/`libshine` pouvaient être absents, ce qui faisait échouer
+    // systématiquement la conversion audio. Le package full inclut les bibliothèques audio
+    // nécessaires, dont LAME et Shine.
+    implementation("com.mrljdx:ffmpeg-kit-full:6.1.4")
     implementation("com.google.android.gms:play-services-cast-framework:22.1.0")
     // Bibliothèque éprouvée pour la lecture YouTube embarquée — gère en interne la configuration
     // WebView/referrer que trois tentatives maison n'ont pas réussi à reproduire fiablement

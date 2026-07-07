@@ -72,6 +72,12 @@ class HomeFragment : Fragment() {
     private var pendingCustomThumbnailVideo: MediaItem? = null
     private var returnTabAfterCustomThumbnail: Int = 1
 
+    /** Empêche onResume() de ramener l'utilisateur sur la liste des dossiers Blaze Gallery au
+     *  retour d'un écran qu'on vient nous-mêmes de lancer (éditeur photo, découpe vidéo) — ce
+     *  reset était à l'origine pensé uniquement pour le retour du lecteur YouTube. Positionné
+     *  juste avant de lancer ces écrans, consommé (remis à false) dès la première utilisation. */
+    private var suppressGalleryResetOnResume = false
+
     private val galleryPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         showGalleryFolders()
     }
@@ -79,6 +85,30 @@ class HomeFragment : Fragment() {
     private val gallerySystemActionLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
         pendingGallerySystemActionRefresh?.invoke()
         pendingGallerySystemActionRefresh = null
+    }
+
+    /** Onglet Gallery : au retour de l'éditeur photo (via la croix, choisie par l'utilisateur —
+     *  jamais de fermeture automatique après un enregistrement), on ne fait rien de spécial :
+     *  c'est justement le but de [suppressGalleryResetOnResume], qui empêche onResume() de nous
+     *  ramener sur la liste des dossiers alors qu'on était dans un dossier précis. */
+    private val photoEditorLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { }
+
+    /** Au retour de la découpe vidéo/export GIF, on navigue explicitement vers le dossier "Blaze
+     *  Gallery" où le résultat vient d'être enregistré — contrairement à l'éditeur photo, ici
+     *  l'utilisateur doit voir immédiatement ce qu'il vient de produire. */
+    private val videoTrimLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            val bucketId = data?.getStringExtra(fr.retrospare.blazeplayer.gallery.edit.VideoTrimActivity.EXTRA_RESULT_BUCKET_ID)
+            val bucketName = data?.getStringExtra(fr.retrospare.blazeplayer.gallery.edit.VideoTrimActivity.EXTRA_RESULT_BUCKET_NAME)
+            val isGif = data?.getBooleanExtra(fr.retrospare.blazeplayer.gallery.edit.VideoTrimActivity.EXTRA_RESULT_IS_GIF, false) ?: false
+            if (bucketId != null && bucketName != null) {
+                currentGalleryMediaType = if (isGif) GalleryMediaType.PHOTO else GalleryMediaType.VIDEO
+                refreshGalleryTypeToggleColors()
+                galleryTrashMode = false
+                showGalleryPhotos(bucketId, bucketName)
+            }
+        }
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -200,11 +230,16 @@ class HomeFragment : Fragment() {
         updateVersionBadge()
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
-        // Retour systématique sur l'historique par défaut au retour du lecteur YouTube (ou de
-        // tout autre écran), quelle que soit la façon dont la vidéo a été ouverte (recherche,
-        // favoris, historique) — l'historique vient d'être mis à jour par YouTubePlayerActivity
-        // à l'ouverture de la vidéo qu'on vient de quitter.
-        if (currentTabIndex == 3) {
+        if (suppressGalleryResetOnResume) {
+            // Retour d'un écran qu'on vient nous-mêmes de lancer (éditeur photo, découpe vidéo) :
+            // on ne touche à rien, l'utilisateur doit retrouver exactement le dossier où il était
+            // (ou, pour la découpe vidéo, le launcher dédié a déjà navigué vers le bon dossier).
+            suppressGalleryResetOnResume = false
+        } else if (currentTabIndex == 3) {
+            // Retour systématique sur l'historique par défaut au retour du lecteur YouTube (ou de
+            // tout autre écran non couvert par le cas ci-dessus), quelle que soit la façon dont la
+            // vidéo a été ouverte (recherche, favoris, historique) — l'historique vient d'être mis
+            // à jour par YouTubePlayerActivity à l'ouverture de la vidéo qu'on vient de quitter.
             showYoutubeDefaultContent()
         }
     }
@@ -845,6 +880,37 @@ class HomeFragment : Fragment() {
         }
         root.addView(image)
         root.addView(close)
+        // Bouton "Modifier" en overlay, accès direct à l'éditeur sans repasser par le menu "...".
+        // Masqué pour les GIF : l'éditeur travaille sur une image statique et aplatirait
+        // silencieusement l'animation sur sa première frame, ce qui surprendrait l'utilisateur.
+        if (!isGifUri(photo.path)) {
+            val editButton = com.google.android.material.button.MaterialButton(requireContext()).apply {
+                text = getString(R.string.gallery_menu_edit)
+                textSize = 13f
+                isAllCaps = false
+                includeFontPadding = false
+                setTextColor(android.graphics.Color.WHITE)
+                iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+                icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_tune)
+                iconSize = (16 * resources.displayMetrics.density).toInt()
+                iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
+                backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#66000000"))
+                cornerRadius = (18 * resources.displayMetrics.density).toInt()
+                setPadding(
+                    (14 * resources.displayMetrics.density).toInt(), 0,
+                    (14 * resources.displayMetrics.density).toInt(), 0
+                )
+                setOnClickListener { dialog.dismiss(); openPhotoEditor(photo) }
+                val margin = (18 * resources.displayMetrics.density).toInt()
+                val height = (36 * resources.displayMetrics.density).toInt()
+                layoutParams = android.widget.FrameLayout.LayoutParams(
+                    android.widget.FrameLayout.LayoutParams.WRAP_CONTENT, height, android.view.Gravity.TOP or android.view.Gravity.START
+                ).apply {
+                    setMargins(margin, margin, margin, margin)
+                }
+            }
+            root.addView(editButton)
+        }
         dialog.setContentView(root)
         dialog.setOnDismissListener {
             if (isAdded) requireActivity().requestedOrientation = previousOrientation
@@ -866,6 +932,49 @@ class HomeFragment : Fragment() {
             }
             return
         }
+        if (requestSize == Size.ORIGINAL) {
+            // Plein écran uniquement (pas les vignettes de grille, où animer N GIF à la fois en
+            // RecyclerView coûterait cher) : si c'est un GIF, on le décode nous-mêmes en
+            // AnimatedImageDrawable pour une vraie lecture animée — Coil n'affiche que la première
+            // frame sans la dépendance coil-gif, absente du projet. ImageDecoder est natif Android
+            // (API 28+, exactement le minSdk de l'app), aucune dépendance supplémentaire requise.
+            viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val isGif = isGifUri(uriString)
+                if (isGif && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    try {
+                        val source = android.graphics.ImageDecoder.createSource(requireContext().contentResolver, android.net.Uri.parse(uriString))
+                        val drawable = android.graphics.ImageDecoder.decodeDrawable(source)
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            if (!isAdded) return@withContext
+                            imageView.setImageDrawable(drawable)
+                            (drawable as? android.graphics.drawable.AnimatedImageDrawable)?.start()
+                        }
+                        return@launch
+                    } catch (_: Exception) {
+                        // Décodage animé impossible (format non supporté, etc.) : repli statique.
+                    }
+                }
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    if (isAdded) loadStaticGalleryImage(imageView, uriString, requestSize)
+                }
+            }
+            return
+        }
+        loadStaticGalleryImage(imageView, uriString, requestSize)
+    }
+
+    private fun isGifUri(uriString: String): Boolean {
+        if (uriString.endsWith(".gif", ignoreCase = true)) return true
+        return try {
+            if (uriString.startsWith("content://")) {
+                requireContext().contentResolver.getType(android.net.Uri.parse(uriString)) == "image/gif"
+            } else false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun loadStaticGalleryImage(imageView: ImageView, uriString: String, requestSize: Size) {
         val request = ImageRequest.Builder(requireContext())
             .data(android.net.Uri.parse(uriString))
             .target(imageView)
@@ -1089,9 +1198,15 @@ class HomeFragment : Fragment() {
             popup.menu.add(0, 2, 1, getString(R.string.gallery_delete_permanently_from_trash))
         } else {
             popup.menu.add(0, 1, 0, getString(R.string.action_open))
-            popup.menu.add(0, 2, 1, getString(R.string.action_share))
-            popup.menu.add(0, 4, 2, getString(R.string.gallery_move_to_folder))
-            popup.menu.add(0, 3, 3, getString(R.string.gallery_delete))
+            if (currentGalleryMediaType == GalleryMediaType.VIDEO) {
+                popup.menu.add(0, 5, 1, getString(R.string.gallery_menu_cut))
+            } else {
+                popup.menu.add(0, 5, 1, getString(R.string.gallery_menu_edit))
+                popup.menu.add(0, 6, 2, getString(R.string.action_information))
+            }
+            popup.menu.add(0, 2, 3, getString(R.string.action_share))
+            popup.menu.add(0, 4, 4, getString(R.string.gallery_move_to_folder))
+            popup.menu.add(0, 3, 5, getString(R.string.gallery_delete))
         }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -1105,10 +1220,39 @@ class HomeFragment : Fragment() {
                 }
                 3 -> { confirmGalleryDeletion(getString(R.string.confirm_delete_photo_message)) { moveGalleryPhotoToTrash(photo) }; true }
                 4 -> { showMoveGalleryPhotoDialog(photo); true }
+                5 -> {
+                    if (currentGalleryMediaType == GalleryMediaType.VIDEO) openVideoTrimEditor(photo) else openPhotoEditor(photo)
+                    true
+                }
+                6 -> { fr.retrospare.blazeplayer.gallery.PhotoDetailsDialog.show(requireContext(), photo.path); true }
                 else -> false
             }
         }
         popup.show()
+    }
+
+    /** Ouvre l'éditeur photo (filtres/recadrage/rotation) façon Google Photos sur la photo
+     *  sélectionnée. Le résultat est toujours enregistré comme un nouveau fichier — jamais
+     *  d'écrasement de l'original. L'utilisateur choisit lui-même quand quitter (croix), et reste
+     *  ensuite dans le même dossier qu'avant l'édition — d'où [suppressGalleryResetOnResume]. */
+    private fun openPhotoEditor(photo: MediaItem) {
+        val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.gallery.edit.PhotoEditorActivity::class.java).apply {
+            putExtra(fr.retrospare.blazeplayer.gallery.edit.PhotoEditorActivity.EXTRA_PHOTO_PATH, photo.path)
+            putExtra(fr.retrospare.blazeplayer.gallery.edit.PhotoEditorActivity.EXTRA_PHOTO_NAME, photo.name)
+        }
+        suppressGalleryResetOnResume = true
+        photoEditorLauncher.launch(intent)
+    }
+
+    /** Ouvre l'écran de découpe vidéo (barre de sélection + export rapide/précis/GIF). Au retour,
+     *  [videoTrimLauncher] navigue explicitement vers le dossier où le résultat a été enregistré. */
+    private fun openVideoTrimEditor(video: MediaItem) {
+        val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.gallery.edit.VideoTrimActivity::class.java).apply {
+            putExtra(fr.retrospare.blazeplayer.gallery.edit.VideoTrimActivity.EXTRA_VIDEO_PATH, video.path)
+            putExtra(fr.retrospare.blazeplayer.gallery.edit.VideoTrimActivity.EXTRA_VIDEO_NAME, video.name)
+        }
+        suppressGalleryResetOnResume = true
+        videoTrimLauncher.launch(intent)
     }
 
     private fun shareGalleryPhoto(photo: MediaItem) {

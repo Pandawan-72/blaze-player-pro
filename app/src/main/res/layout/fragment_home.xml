@@ -253,8 +253,7 @@
                         android:id="@+id/listNetwork"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:paddingHorizontal="8dp"
-                        android:clipToPadding="false" />
+                                                android:clipToPadding="false" />
 
                     <LinearLayout
                         android:id="@+id/emptyStateNetwork"
@@ -481,8 +480,7 @@
                         android:id="@+id/listLocal"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:paddingHorizontal="8dp"
-                        android:paddingBottom="24dp"
+                                                android:paddingBottom="24dp"
                         android:clipToPadding="false" />
 
                     <LinearLayout
@@ -686,8 +684,7 @@
                         android:id="@+id/listCloud"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:paddingHorizontal="8dp"
-                        android:paddingBottom="24dp"
+                                                android:paddingBottom="24dp"
                         android:clipToPadding="false" />
 
                     <LinearLayout

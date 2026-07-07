@@ -301,6 +301,16 @@
             android:exported="false"
             android:theme="@style/Theme.BlazePlayer" />
         <activity
+            android:name="fr.retrospare.blazeplayer.gallery.edit.PhotoEditorActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
+        <activity
+            android:name="fr.retrospare.blazeplayer.gallery.edit.VideoTrimActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
+        <activity
             android:name="fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
             android:exported="false"

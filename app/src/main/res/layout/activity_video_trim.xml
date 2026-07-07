@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#000000"
+    android:fitsSystemWindows="true">
+
+    <!-- Barre du haut -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+
+        <ImageButton
+            android:id="@+id/btnTrimClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_close"
+            android:src="@drawable/ic_close"
+            android:tint="#FFFFFF" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/video_trim_title"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="40dp" />
+    </LinearLayout>
+
+    <!-- Prévisualisation -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#000000">
+
+        <androidx.media3.ui.PlayerView
+            android:id="@+id/trimPlayerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:use_controller="false"
+            app:resize_mode="fit" />
+
+        <ImageButton
+            android:id="@+id/btnTrimPlayPause"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_circle_translucent"
+            android:contentDescription="@string/action_play"
+            android:src="@drawable/ic_play_small"
+            android:tint="#FFFFFF" />
+
+        <ProgressBar
+            android:id="@+id/trimProgress"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/green_accent"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- Durée sélectionnée -->
+    <TextView
+        android:id="@+id/tvTrimDuration"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingTop="10dp"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-condensed" />
+
+    <!-- Barre de découpe -->
+    <fr.retrospare.blazeplayer.gallery.edit.RangeSeekBarView
+        android:id="@+id/rangeSeekBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginHorizontal="8dp"
+        android:layout_marginTop="4dp" />
+
+    <!-- Actions d'export -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="12dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportGif"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:includeFontPadding="false"
+            android:text="@string/action_export_gif"
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            android:textColor="@color/on_surface"
+            android:paddingHorizontal="12dp"
+            app:backgroundTint="@color/surface_variant"
+            app:strokeColor="@color/outline_variant"
+            app:strokeWidth="1dp"
+            app:cornerRadius="22dp"
+            app:icon="@drawable/ic_gif"
+            app:iconSize="16dp"
+            app:iconTint="@color/on_surface"
+            app:iconGravity="textStart" />
+
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportMp3"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:includeFontPadding="false"
+            android:text="@string/action_export_mp3"
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            android:textColor="@color/on_surface"
+            android:paddingHorizontal="12dp"
+            app:backgroundTint="@color/surface_variant"
+            app:strokeColor="@color/outline_variant"
+            app:strokeWidth="1dp"
+            app:cornerRadius="22dp"
+            app:icon="@drawable/ic_audio"
+            app:iconSize="16dp"
+            app:iconTint="@color/on_surface"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportFast"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:includeFontPadding="false"
+            android:text="@string/action_export_fast"
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            android:textColor="@color/on_surface"
+            app:backgroundTint="@color/surface_variant"
+            app:strokeColor="@color/outline_variant"
+            app:strokeWidth="1dp"
+            app:cornerRadius="22dp"
+            app:icon="@drawable/ic_content_cut"
+            app:iconSize="16dp"
+            app:iconTint="@color/on_surface"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnExportPrecise"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:includeFontPadding="false"
+            android:text="@string/action_export_precise"
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            android:textColor="#FF000000"
+            app:backgroundTint="@color/green_accent"
+            app:cornerRadius="22dp"
+            app:icon="@drawable/ic_content_cut"
+            app:iconSize="16dp"
+            app:iconTint="#FF000000"
+            app:iconGravity="textStart" />
+    </LinearLayout>
+
+</LinearLayout>
