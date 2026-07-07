@@ -38,6 +38,13 @@ class PartyHostServer(
         response.addHeader("Access-Control-Allow-Origin", "*")
         response.addHeader("Access-Control-Allow-Headers", "Content-Type")
         response.addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        // Force la fermeture HTTP après chaque requête. Les clients Android/HttpURLConnection
+        // réutilisent parfois une socket LAN devenue invalide après un changement Wi-Fi, une veille
+        // courte ou un recyclage NanoHTTPD ; en Blaze Party cela se traduisait par plusieurs /state
+        // en échec puis un faux "connexion à l'hôte perdue". Une socket fraîche à chaque poll est
+        // plus fiable pour ce petit protocole local.
+        response.addHeader("Connection", "close")
+        response.addHeader("Cache-Control", "no-store")
         return response
     }
 
@@ -49,9 +56,10 @@ class PartyHostServer(
             when {
                 session.method == Method.OPTIONS ->
                     cors(newFixedLengthResponse(Response.Status.OK, "text/plain", ""))
+                session.method == Method.GET && session.uri == "/ping" -> handlePing(session)
                 session.method == Method.GET && session.uri == "/state" -> handleState(session)
-                session.method == Method.POST && session.uri == "/join" -> handleJoin(session)
-                session.method == Method.POST && session.uri == "/vote" -> handleVote(session)
+                (session.method == Method.POST || session.method == Method.GET) && session.uri == "/join" -> handleJoin(session)
+                (session.method == Method.POST || session.method == Method.GET) && session.uri == "/vote" -> handleVote(session)
                 else -> json(Response.Status.NOT_FOUND, JSONObject().put("error", "not_found"))
             }
         } catch (e: Exception) {
@@ -68,6 +76,14 @@ class PartyHostServer(
         return if (raw.isBlank()) JSONObject() else JSONObject(raw)
     }
 
+    private fun handlePing(session: IHTTPSession): Response {
+        val requestToken = session.parameters["token"]?.firstOrNull()
+        if (requestToken != token) {
+            return json(Response.Status.FORBIDDEN, JSONObject().put("error", "invalid_token"))
+        }
+        return json(Response.Status.OK, JSONObject().put("ok", true))
+    }
+
     private fun handleState(session: IHTTPSession): Response {
         val requestToken = session.parameters["token"]?.firstOrNull()
         if (requestToken != token) {
@@ -76,25 +92,29 @@ class PartyHostServer(
         return json(Response.Status.OK, stateProvider().toJson())
     }
 
+    private fun requestValue(session: IHTTPSession, body: JSONObject, key: String): String =
+        body.optString(key).takeIf { it.isNotBlank() }
+            ?: session.parameters[key]?.firstOrNull().orEmpty()
+
     private fun handleJoin(session: IHTTPSession): Response {
-        val body = readBody(session)
-        if (body.optString("token") != token) {
+        val body = if (session.method == Method.POST) readBody(session) else JSONObject()
+        if (requestValue(session, body, "token") != token) {
             return json(Response.Status.FORBIDDEN, JSONObject().put("error", "invalid_token"))
         }
-        val nickname = body.optString("nickname").ifBlank { "Invité" }
+        val nickname = requestValue(session, body, "nickname").ifBlank { "Invité" }
         onGuestJoined(nickname)
         return json(Response.Status.OK, JSONObject().put("ok", true).put("state", stateProvider().toJson()))
     }
 
     private fun handleVote(session: IHTTPSession): Response {
-        val body = readBody(session)
-        if (body.optString("token") != token) {
+        val body = if (session.method == Method.POST) readBody(session) else JSONObject()
+        if (requestValue(session, body, "token") != token) {
             return json(Response.Status.FORBIDDEN, JSONObject().put("error", "invalid_token"))
         }
-        val path = body.optString("path").takeIf { it.isNotBlank() }
+        val path = requestValue(session, body, "path").takeIf { it.isNotBlank() }
             ?: return json(Response.Status.BAD_REQUEST, JSONObject().put("error", "missing_path"))
-        val nickname = body.optString("nickname").ifBlank { "Invité" }
-        val add = body.optString("action", "add") != "remove"
+        val nickname = requestValue(session, body, "nickname").ifBlank { "Invité" }
+        val add = requestValue(session, body, "action").ifBlank { "add" } != "remove"
         onVoteReceived(path, nickname, add)
         return json(Response.Status.OK, JSONObject().put("ok", true).put("state", stateProvider().toJson()))
     }

@@ -4,17 +4,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="@drawable/bg_audio_glass_panel">
 
     <!-- CONTENU PRINCIPAL -->
     <LinearLayout
         android:id="@+id/playerPanel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginHorizontal="@dimen/audio_player_horizontal_margin"
         android:orientation="vertical"
         android:background="@drawable/bg_audio_glass_panel"
-        android:paddingTop="0dp"
-        android:paddingBottom="60dp"
+        android:paddingTop="@dimen/audio_player_top_padding"
+        android:paddingBottom="@dimen/audio_player_bottom_padding"
         android:clipChildren="false"
         android:clipToPadding="false">
 
@@ -134,6 +135,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="388dp"
+            android:layout_marginTop="@dimen/audio_player_artwork_top_gap"
             android:gravity="center"
             android:paddingHorizontal="24dp"
             android:paddingTop="0dp"
@@ -262,34 +264,41 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center"
-            android:paddingHorizontal="34dp"
+            android:paddingHorizontal="24dp"
             android:paddingTop="6dp"
             android:paddingBottom="8dp">
 
+            <!-- Combiné "Titre - Artiste" en un seul TextView : un texte enrichi (gras + couleur
+                 d'accent uniquement sur la partie artiste) se centre naturellement selon la largeur
+                 réelle du texte et s'ellipse comme un tout — impossible à obtenir avec deux
+                 TextView à largeur fixe 50/50, qui centraient chaque moitié indépendamment plutôt
+                 que l'ensemble selon la taille effective du titre et de l'artiste. -->
             <TextView
-                android:id="@+id/tvTitle"
+                android:id="@+id/tvTitleArtist"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/unknown_title"
-                android:textColor="@color/on_surface"
-                android:textSize="21sp"
+                android:textSize="@dimen/audio_player_title_text_size"
                 android:fontFamily="sans-serif-condensed"
                 android:ellipsize="end"
                 android:singleLine="true"
                 android:gravity="center" />
 
+            <!-- Conservés invisibles : simples porteurs de données (titre/artiste bruts), lus par
+                 updateCombinedTitleArtist() pour construire le texte enrichi ci-dessus. Évite de
+                 devoir modifier tous les points du code qui leur assignent déjà .text. -->
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:text="@string/unknown_title"
+                android:visibility="gone" />
+
             <TextView
                 android:id="@+id/tvArtist"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
                 android:text="@string/unknown_artist"
-                android:textColor="@color/green_accent"
-                android:textSize="14sp"
-                android:fontFamily="sans-serif-condensed"
-                android:layout_marginTop="2dp"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:gravity="center" />
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvAlbum"

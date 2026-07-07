@@ -3,6 +3,9 @@ package fr.retrospare.blazeplayer.player
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.net.wifi.WifiManager
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -18,6 +21,7 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -59,6 +63,10 @@ class BlazePlayerService : MediaSessionService() {
          *  l'écran audio tant que la lecture — donc ce service — reste active en arrière-plan. */
         const val COMMAND_PARTY_START_HOST = "fr.retrospare.blazeplayer.PARTY_START_HOST"
         const val COMMAND_PARTY_STOP_HOST = "fr.retrospare.blazeplayer.PARTY_STOP_HOST"
+        // Actions de service en secours : elles garantissent que NanoHTTPD démarre même si le
+        // MediaController n'est pas encore prêt au moment où l'hôte affiche le QR.
+        const val ACTION_PARTY_START_HOST = "fr.retrospare.blazeplayer.action.PARTY_START_HOST"
+        const val ACTION_PARTY_STOP_HOST = "fr.retrospare.blazeplayer.action.PARTY_STOP_HOST"
         const val EXTRA_PARTY_TOKEN = "partyToken"
 
         // ID de notification et channel dédiés : Media3 utilise le même ID par défaut pour tous
@@ -73,11 +81,22 @@ class BlazePlayerService : MediaSessionService() {
     private var sessionPlayer: Player? = null
     private var eqManager: EqualizerManager? = null
     private val eqApplyHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val partyStateHandler = Handler(Looper.getMainLooper())
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     // Serveur HTTP local Blaze Party : vit ici (et non dans AudioPlayerFragment) précisément pour
     // continuer à répondre aux invités même quand l'utilisateur quitte l'écran audio, tant que la
     // lecture — donc ce service — tourne toujours en arrière-plan.
     private var partyHostServer: PartyHostServer? = null
+    private var partyWifiLock: WifiManager.WifiLock? = null
+    @Volatile private var partyStateSnapshot: PartyState? = null
+    private val partyStateRefreshRunnable = object : Runnable {
+        override fun run() {
+            refreshPartyStateSnapshotNow()
+            if (partyHostServer != null) {
+                partyStateHandler.postDelayed(this, 1000L)
+            }
+        }
+    }
 
 
     override fun onCreate() {
@@ -203,24 +222,38 @@ class BlazePlayerService : MediaSessionService() {
 
     /** Démarre (ou redémarre) le serveur HTTP local Blaze Party. Vit dans ce service — et non dans
      *  AudioPlayerFragment — précisément pour continuer à répondre aux invités quand l'utilisateur
-     *  quitte l'écran audio, tant que la lecture (donc ce service) tourne en arrière-plan. Le
-     *  stateProvider lit toujours les données persistées ([BlazePartyQueue]) : aucune duplication
-     *  d'état, juste un canal réseau en plus autour de la même source de vérité. */
+     *  quitte l'écran audio, tant que la lecture (donc ce service) reste active.
+     *
+     *  Point important : NanoHTTPD traite les requêtes sur ses propres threads, alors que Media3
+     *  impose de lire ExoPlayer depuis son thread applicatif principal. Les versions précédentes
+     *  construisaient l'état Party directement dans le callback HTTP, ce qui pouvait générer des
+     *  erreurs intermittentes sur /state après un join pourtant réussi. On maintient désormais un
+     *  snapshot rafraîchi côté main thread et le serveur ne fait que le sérialiser. */
     private fun startPartyHostServer(token: String) {
         stopPartyHostServer()
+        // Démarre avec un snapshot sûr (sans accès au Player hors thread), puis le runnable main
+        // ci-dessous injecte l'état complet dès que le serveur est lancé.
+        partyStateSnapshot = BlazePartyQueue.buildState(applicationContext, null)
         try {
             partyHostServer = PartyHostServer(
                 token = token,
-                stateProvider = { BlazePartyQueue.buildState(applicationContext, sessionPlayer) },
+                stateProvider = { currentPartyStateSnapshot() },
                 onVoteReceived = { path, nickname, add ->
                     if (add) {
                         BlazePartyVoteManager.addVote(applicationContext, path, nickname)
                     } else {
                         BlazePartyVoteManager.removeVote(applicationContext, path, nickname)
                     }
+                    refreshPartyStateSnapshotAsync()
                 },
-                onGuestJoined = { BlazePartyVoteManager.markGuestConnected(applicationContext) }
-            ).apply { start() }
+                onGuestJoined = {
+                    BlazePartyVoteManager.markGuestConnected(applicationContext)
+                    refreshPartyStateSnapshotAsync()
+                }
+            ).apply { start(NanoHTTPD.SOCKET_READ_TIMEOUT, false) }
+            acquirePartyWifiLock()
+            partyStateHandler.removeCallbacks(partyStateRefreshRunnable)
+            partyStateHandler.post(partyStateRefreshRunnable)
         } catch (e: Exception) {
             fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Impossible de démarrer PartyHostServer", e)
             partyHostServer = null
@@ -228,18 +261,124 @@ class BlazePlayerService : MediaSessionService() {
     }
 
     private fun stopPartyHostServer() {
+        partyStateHandler.removeCallbacks(partyStateRefreshRunnable)
+        releasePartyWifiLock()
         try { partyHostServer?.stop() } catch (_: Exception) {}
         partyHostServer = null
+        partyStateSnapshot = null
+    }
+
+    private fun acquirePartyWifiLock() {
+        try {
+            if (partyWifiLock?.isHeld == true) return
+            val wifi = applicationContext.getSystemService(WifiManager::class.java) ?: return
+            partyWifiLock = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "BlazePartyHostLock").apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Blaze Party Wi-Fi lock failed", e)
+            partyWifiLock = null
+        }
+    }
+
+    private fun releasePartyWifiLock() {
+        try { if (partyWifiLock?.isHeld == true) partyWifiLock?.release() } catch (_: Exception) {}
+        partyWifiLock = null
+    }
+
+    private fun refreshPartyStateSnapshotAsync() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            refreshPartyStateSnapshotNow()
+        } else {
+            partyStateHandler.post { refreshPartyStateSnapshotNow() }
+        }
+    }
+
+    private fun refreshPartyStateSnapshotNow() {
+        try {
+            partyStateSnapshot = BlazePartyQueue.buildState(applicationContext, sessionPlayer)
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Blaze Party state snapshot failed", e)
+            // On garde le dernier snapshot valide plutôt que de faire échouer /state : côté client,
+            // une réponse vide/invalide était interprétée comme une perte définitive de l'hôte.
+            if (partyStateSnapshot == null) {
+                partyStateSnapshot = BlazePartyQueue.buildState(applicationContext, null)
+            }
+        }
+    }
+
+    private fun currentPartyStateSnapshot(): PartyState {
+        // Si la playlist Party dédiée est disponible, elle peut être reconstruite sans toucher
+        // ExoPlayer et reflète immédiatement les votes écrits par /vote.
+        val safeState = BlazePartyQueue.buildState(applicationContext, null)
+        if (safeState.tracks.isNotEmpty()) {
+            // buildState(..., null) est sûr depuis le thread HTTP mais ne peut pas lire le morceau
+            // courant du Player. On réinjecte donc le currentPath du dernier snapshot pris sur le
+            // thread principal, indispensable côté client pour afficher le contour et le mini-EQ.
+            // On fusionne aussi les métadonnées éventuellement présentes dans ce snapshot main
+            // thread, pour ne pas perdre artiste/conteneur/durée si le cache persistant n'était
+            // pas encore complet au moment du /state.
+            val snapshotByPath = partyStateSnapshot?.tracks?.associateBy { it.path }.orEmpty()
+            val mergedTracks = safeState.tracks.map { track ->
+                val snap = snapshotByPath[track.path]
+                if (snap == null) track else track.copy(
+                    artist = track.artist.ifBlank { snap.artist },
+                    title = track.title.ifBlank { snap.title },
+                    extension = track.extension.ifBlank { snap.extension },
+                    bitrate = if (track.bitrate > 0L) track.bitrate else snap.bitrate,
+                    isLossless = track.isLossless || snap.isLossless,
+                    durationMs = if (track.durationMs > 0L) track.durationMs else snap.durationMs
+                )
+            }
+            val liveSnapshot = partyStateSnapshot
+            return safeState.copy(
+                tracks = mergedTracks,
+                currentPath = safeState.currentPath ?: liveSnapshot?.currentPath,
+                currentPositionMs = liveSnapshot?.currentPositionMs ?: safeState.currentPositionMs,
+                currentDurationMs = liveSnapshot?.currentDurationMs ?: safeState.currentDurationMs,
+                isPlaying = liveSnapshot?.isPlaying ?: safeState.isPlaying
+            )
+        }
+
+        // Sinon, on sert le dernier snapshot pris sur le thread principal du player, en recalculant
+        // seulement les votes depuis les SharedPreferences pour ne pas exposer une liste figée.
+        return partyStateSnapshot?.let { state ->
+            state.copy(
+                tracks = state.tracks.map { track ->
+                    track.copy(
+                        votes = BlazePartyVoteManager.voteCount(applicationContext, track.path),
+                        voters = BlazePartyVoteManager.votersFor(applicationContext, track.path)
+                    )
+                }.sortedWith(
+                    compareBy<PartyTrack> { if (it.playedOrder > 0) 1 else 0 }
+                        .thenByDescending { if (it.playedOrder == 0) it.votes else 0 }
+                        .thenBy { it.playedOrder }
+                ),
+                hostNickname = BlazePartyVoteManager.getNickname(applicationContext)
+            )
+        } ?: PartyState(emptyList(), null, BlazePartyVoteManager.getNickname(applicationContext))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_PLAY_EXTERNAL_AUDIO) {
-            val path = intent.getStringExtra(EXTRA_EXTERNAL_AUDIO_PATH).orEmpty()
-            val name = intent.getStringExtra(EXTRA_EXTERNAL_AUDIO_NAME).orEmpty().ifBlank {
-                android.net.Uri.parse(path).lastPathSegment?.substringAfterLast('/') ?: "Audio"
+        when (intent?.action) {
+            ACTION_PLAY_EXTERNAL_AUDIO -> {
+                val path = intent.getStringExtra(EXTRA_EXTERNAL_AUDIO_PATH).orEmpty()
+                val name = intent.getStringExtra(EXTRA_EXTERNAL_AUDIO_NAME).orEmpty().ifBlank {
+                    android.net.Uri.parse(path).lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                }
+                replaceWithExternalAudio(path, name)
+                return START_STICKY
             }
-            replaceWithExternalAudio(path, name)
-            return START_STICKY
+            ACTION_PARTY_START_HOST -> {
+                val token = intent.getStringExtra(EXTRA_PARTY_TOKEN).orEmpty()
+                if (token.isNotBlank()) startPartyHostServer(token)
+                return START_STICKY
+            }
+            ACTION_PARTY_STOP_HOST -> {
+                stopPartyHostServer()
+                return START_STICKY
+            }
         }
         return super.onStartCommand(intent, flags, startId)
     }

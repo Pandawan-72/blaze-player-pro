@@ -36,6 +36,8 @@ class AudioBrowserActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_PATHS = "extra_paths"
         const val EXTRA_NAMES = "extra_names"
+        /** Résultat renvoyé quand le navigateur a servi uniquement à alimenter la file Blaze Party. */
+        const val EXTRA_BLAZE_PARTY_CHANGED = "extra_blaze_party_changed"
         /** Chemin d'un dossier favori (local ou réseau) sur lequel démarrer directement,
          *  au lieu de la racine locale par défaut. */
         const val EXTRA_FAVORITE_PATH = "extra_favorite_path"
@@ -136,11 +138,8 @@ class AudioBrowserActivity : AppCompatActivity() {
                 getString(fr.retrospare.blazeplayer.R.string.blaze_party_items_already_present)
             }
             android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
-            selectedItems.clear()
-            (binding.recyclerAudio.adapter as? AudioBrowserAdapter)?.clearSelection()
-            (binding.recyclerAudio.adapter as? CombinedAudioAdapter)?.clearSelection()
-            (binding.recyclerAudio.adapter as? MixedAudioAdapter)?.clearSelection()
-            updateCounter()
+            setResult(android.app.Activity.RESULT_OK, Intent().putExtra(EXTRA_BLAZE_PARTY_CHANGED, true))
+            finish()
         }
 
         // Chargement initial : soit un dossier favori précis (local ou réseau), soit la

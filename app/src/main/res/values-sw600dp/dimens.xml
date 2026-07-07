@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sur tablette, l'écran plein écran du lecteur audio ne doit pas s'étirer d'un bord à
+         l'autre : ça donnerait des boutons/textes disproportionnés sur un écran 10". On plafonne
+         la largeur utile via une marge horizontale généreuse, qui centre le contenu dans une
+         colonne de largeur raisonnable — même principe que Spotify/Apple Music sur tablette. -->
+    <dimen name="audio_player_horizontal_margin">96dp</dimen>
+
+    <dimen name="audio_player_title_text_size">28sp</dimen>
+
+    <!-- Décale légèrement le bloc cover + commandes vers le bas pour aérer l'espace entre
+         la barre Party/file d'attente du haut et la pochette, en récupérant l'espace libre sous
+         les boutons EQ/minuteur/infos. -->
+    <dimen name="audio_player_top_padding">10dp</dimen>
+    <dimen name="audio_player_artwork_top_gap">26dp</dimen>
+    <dimen name="audio_player_bottom_padding">24dp</dimen>
+</resources>

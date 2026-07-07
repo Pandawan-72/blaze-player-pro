@@ -5,8 +5,6 @@ import android.animation.ValueAnimator
 import android.Manifest
 import android.app.Activity
 import android.app.Dialog
-import android.content.ActivityNotFoundException
-import android.provider.MediaStore
 import android.text.InputType
 import android.view.Gravity
 import android.widget.EditText
@@ -14,6 +12,9 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.google.android.material.button.MaterialButton
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import java.net.Inet4Address
 import java.net.NetworkInterface
 import kotlin.random.Random
@@ -38,6 +39,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -113,16 +115,23 @@ class AudioPlayerFragment : Fragment() {
     // (la playlist Party locale de l'invité est vide : ses fichiers ne sont pas ceux de l'hôte).
     private var guestPartyState: PartyState? = null
     private var guestPartyPollingActive = false
+    // Après plusieurs échecs consécutifs (hôte injoignable : party terminée côté hôte, changement
+    // de réseau...), on abandonne et on repasse en file locale automatiquement — sans ce compteur,
+    // un invité dont l'hôte a disparu restait bloqué "connecté" indéfiniment (même après avoir
+    // relancé l'app, puisque l'état vient des SharedPreferences), et ses propres ajouts à Blaze
+    // Party via le navigateur audio devenaient invisibles : refreshPartyPlaylistSheet() continuait
+    // de choisir la file distante (vide/injoignable) plutôt que la file locale qui venait d'être
+    // modifiée. C'était la cause du bug "la file d'attente n'affiche plus les fichiers ajoutés".
+    private var guestPartyConsecutiveFailures = 0
+    private var guestPartyHasReceivedState = false
+    private var guestPartyStateReceivedAtMs = 0L
     private val guestPartyPollRunnable: Runnable = object : Runnable {
         override fun run() {
             if (!guestPartyPollingActive) return
             partyClient?.fetchState { state ->
                 if (!guestPartyPollingActive) return@fetchState
-                if (state != null) {
-                    guestPartyState = state
-                    if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
-                }
-                if (guestPartyPollingActive) handler.postDelayed(this, 3000L)
+                handleGuestPartyFetchResult(state)
+                if (guestPartyPollingActive) handler.postDelayed(this, 1500L)
             }
         }
     }
@@ -162,6 +171,10 @@ class AudioPlayerFragment : Fragment() {
     // ── Ajout de fichiers depuis le navigateur ─────────────────────────────────
     private val pickAudio = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
+            if (result.data?.getBooleanExtra(AudioBrowserActivity.EXTRA_BLAZE_PARTY_CHANGED, false) == true) {
+                refreshBlazePartyUiAfterPlaylistChange(openSheet = true)
+                return@registerForActivityResult
+            }
             val paths = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_PATHS) ?: return@registerForActivityResult
             val names = result.data?.getStringArrayListExtra(AudioBrowserActivity.EXTRA_NAMES) ?: return@registerForActivityResult
             val ctrl = controller ?: return@registerForActivityResult
@@ -274,6 +287,7 @@ class AudioPlayerFragment : Fragment() {
         playlistAdapter.refresh()
         if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
         maybeResumeGuestPartySync()
+        maybeOpenPendingBlazePartySheet()
         setupSavedPlaylistDrawers()
         syncSelection()
         syncMetadata()
@@ -285,6 +299,8 @@ class AudioPlayerFragment : Fragment() {
         if (!hidden) {
             (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
             playlistAdapter.refresh()
+            if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
+            setupSavedPlaylistDrawers()
             syncSelection()
             syncMetadata()
             syncButtons()
@@ -619,6 +635,7 @@ class AudioPlayerFragment : Fragment() {
         _binding?.tvArtist?.text = cachedMeta?.artist?.ifEmpty { null }
             ?: metaArtist
             ?: unknownArtist
+        updateCombinedTitleArtist()
         val safeAlbum = sanitizeAudioSecondaryText(
             cachedMeta?.album?.ifEmpty { null } ?: meta.albumTitle?.toString()
         )
@@ -679,6 +696,7 @@ class AudioPlayerFragment : Fragment() {
                 if (originalPathOf(controller?.currentMediaItem ?: return@launch) == path) {
                     if (info.title.isNotEmpty()) _binding?.tvTitle?.text = info.title
                     if (info.artist.isNotEmpty()) _binding?.tvArtist?.text = info.artist
+                    updateCombinedTitleArtist()
                     sanitizeAudioSecondaryText(info.album).takeIf { it.isNotBlank() }?.let { _binding?.tvAlbum?.text = it }
                     // Le badge doit lui aussi rester derrière cette garde : sans elle, une
                     // extraction encore en vol pour la piste PRÉCÉDENTE (après un skip rapide)
@@ -738,6 +756,36 @@ class AudioPlayerFragment : Fragment() {
         }
     }
 
+    /** Combine tvTitle + " - " + tvArtist (lus depuis les porteurs de données invisibles) en un
+     *  seul texte enrichi sur [tvTitleArtist] : gras + couleur d'accent uniquement sur la partie
+     *  artiste. Un unique TextView se centre naturellement selon la largeur RÉELLE du texte
+     *  combiné et s'ellipse comme un tout — deux TextView à largeur fixe 50/50 centraient chaque
+     *  moitié indépendamment de la taille effective du titre et de l'artiste, ce qui déséquilibrait
+     *  visuellement l'ensemble dès que l'un était bien plus court que l'autre. */
+    private fun updateCombinedTitleArtist() {
+        val b = _binding ?: return
+        val title = b.tvTitle.text?.toString().orEmpty()
+        val artist = b.tvArtist.text?.toString().orEmpty()
+        val separator = " - "
+        val combined = android.text.SpannableStringBuilder()
+        combined.append(title)
+        if (title.isNotEmpty() && artist.isNotEmpty()) combined.append(separator)
+        val artistStart = combined.length
+        combined.append(artist)
+        val artistEnd = combined.length
+        if (artistEnd > artistStart) {
+            combined.setSpan(
+                android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                artistStart, artistEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            combined.setSpan(
+                android.text.style.ForegroundColorSpan(currentAccentColor),
+                artistStart, artistEnd, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        b.tvTitleArtist.text = combined
+    }
+
 
     /**
      * Fond dynamique plus visible, inspiré des lecteurs audio modernes : on extrait une couleur
@@ -761,9 +809,26 @@ class AudioPlayerFragment : Fragment() {
         animateDynamicBackground(Color.rgb(6, 47, 48), Color.rgb(64, 238, 213))
     }
 
+    private fun buildAudioPlayerBackground(color: Int): GradientDrawable = GradientDrawable(
+        GradientDrawable.Orientation.TOP_BOTTOM,
+        intArrayOf(
+            mixColors(Color.rgb(2, 7, 9), color, 0.72f),
+            mixColors(color, Color.WHITE, 0.05f),
+            mixColors(Color.rgb(2, 7, 9), color, 0.48f)
+        )
+    )
+
+    private fun applyAudioPlayerBackground(color: Int) {
+        val b = _binding ?: return
+        // Sur tablette, playerPanel est volontairement centré dans une colonne via une marge
+        // horizontale. Le dégradé doit donc être posé aussi sur le root plein écran, sinon les
+        // marges restent noires et donnent deux bandes de chaque côté du lecteur.
+        b.root.background = buildAudioPlayerBackground(color)
+        b.playerPanel.background = buildAudioPlayerBackground(color)
+    }
+
     private fun animateDynamicBackground(targetColor: Int, accentColor: Int = currentAccentColor) {
-        val binding = _binding ?: return
-        val root = binding.playerPanel
+        _binding ?: return
         // Ne saute que l'animation elle-même si rien n'a changé (évite un à-coup visuel inutile) —
         // mais applique quand même les couleurs dynamiques plus bas : sinon, après une recréation
         // de vue (rotation, changement d'onglet) où les champs currentDynamicBgColor/currentAccentColor
@@ -775,19 +840,13 @@ class AudioPlayerFragment : Fragment() {
                 duration = 380L
                 addUpdateListener { animator ->
                     val color = animator.animatedValue as Int
-                    val gradient = GradientDrawable(
-                        GradientDrawable.Orientation.TOP_BOTTOM,
-                        intArrayOf(
-                            mixColors(Color.rgb(2, 7, 9), color, 0.72f),
-                            mixColors(color, Color.WHITE, 0.05f),
-                            mixColors(Color.rgb(2, 7, 9), color, 0.48f)
-                        )
-                    )
-                    root.background = gradient
+                    applyAudioPlayerBackground(color)
                     currentDynamicBgColor = color
                 }
                 start()
             }
+        } else {
+            applyAudioPlayerBackground(targetColor)
         }
         currentAccentColor = accentColor
         val tint = ColorStateList.valueOf(accentColor)
@@ -809,16 +868,7 @@ class AudioPlayerFragment : Fragment() {
         val accent = prefs.getInt(KEY_DYNAMIC_ACCENT, Color.rgb(64, 238, 213))
         currentDynamicBgColor = bg
         currentAccentColor = accent
-        val gradient = GradientDrawable(
-            GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(
-                mixColors(Color.rgb(2, 7, 9), bg, 0.72f),
-                mixColors(bg, Color.WHITE, 0.05f),
-                mixColors(Color.rgb(2, 7, 9), bg, 0.48f)
-            )
-        )
-        _binding?.playerPanel?.background = gradient
-        _binding?.root?.setBackgroundColor(Color.rgb(8, 9, 13))
+        applyAudioPlayerBackground(bg)
         val tint = ColorStateList.valueOf(accent)
         _binding?.seekBar?.progressTintList = tint
         _binding?.seekBar?.thumbTintList = tint
@@ -852,9 +902,9 @@ class AudioPlayerFragment : Fragment() {
         val b = _binding ?: return
         val yellow = try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.yellow_accent) } catch (_: Exception) { Color.rgb(255, 193, 7) }
         val muted = try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.on_surface_variant) } catch (_: Exception) { Color.rgb(175, 178, 198) }
-        b.tvArtist.setTextColor(accentColor)
         b.tvCodec.setTextColor(accentColor)
         b.tvBitrate.setTextColor(muted)
+        updateCombinedTitleArtist()
         b.btnBlazeParty.setIconResource(fr.retrospare.blazeplayer.R.drawable.ic_equalizer)
         b.btnBlazeParty.iconTint = ColorStateList.valueOf(Color.WHITE)
         b.btnBlazeParty.strokeColor = ColorStateList.valueOf(yellow)
@@ -1215,17 +1265,42 @@ class AudioPlayerFragment : Fragment() {
         openPartyPlaylistSheet()
     }
 
+    private fun refreshBlazePartyUiAfterPlaylistChange(openSheet: Boolean = false) {
+        val ctx = context ?: return
+        if (::partyPlaylistAdapter.isInitialized) {
+            refreshPartyPlaylistSheet()
+        }
+        setupSavedPlaylistDrawers()
+        if (usesLocalBlazePartyQueue(ctx)) {
+            startHostPartyRefresh()
+            reorderBlazePartyPlaybackIfActive()
+        }
+        if (openSheet && ::partyPlaylistAdapter.isInitialized) {
+            openPartyPlaylistSheet()
+        }
+    }
+
+    private fun usesLocalBlazePartyQueue(ctx: android.content.Context): Boolean {
+        if (BlazePartyVoteManager.isHost(ctx)) return true
+        // Quand l'appareil n'est pas connecté comme invité, la file Blaze Party affichée doit être
+        // la file locale de ce téléphone. Sinon, après un ajout depuis le navigateur audio, l'écran
+        // utilisait par erreur l'état invité réseau (vide) et l'hôte ne voyait plus ses ajouts.
+        return !BlazePartyVoteManager.isActive(ctx) || BlazePartyVoteManager.getConnection(ctx) == null
+    }
+
     private fun refreshPartyPlaylistSheet() {
         val ctx = context ?: return
-        val isHost = BlazePartyVoteManager.isHost(ctx)
-        val tracks = if (isHost) sortedBlazePartyTracks(ctx) else sortedGuestPartyTracks()
+        val useLocalQueue = usesLocalBlazePartyQueue(ctx)
+        val tracks = if (useLocalQueue) sortedBlazePartyTracks(ctx) else sortedGuestPartyTracks()
         partyPlaylistAdapter.submitList(tracks)
-        // Boutons Lancer/Vider : uniquement pertinents côté hôte, puisque c'est son appareil qui
-        // joue réellement les fichiers. Côté invité, seul le vote a un sens.
-        _binding?.btnLaunchPartyPlaylist?.visibility = if (isHost) android.view.View.VISIBLE else android.view.View.GONE
-        _binding?.btnClearPartyPlaylist?.visibility = if (isHost) android.view.View.VISIBLE else android.view.View.GONE
+        val sharedCurrentPath = if (useLocalQueue) currentBlazePartyPath else guestPartyState?.currentPath
+        partyPlaylistAdapter.setCurrentPath(sharedCurrentPath)
+        // Boutons Lancer/Vider : visibles pour la file locale de ce téléphone. Côté invité réseau,
+        // seul le vote a un sens puisque les fichiers appartiennent à l'hôte.
+        _binding?.btnLaunchPartyPlaylist?.visibility = if (useLocalQueue) android.view.View.VISIBLE else android.view.View.GONE
+        _binding?.btnClearPartyPlaylist?.visibility = if (useLocalQueue) android.view.View.VISIBLE else android.view.View.GONE
         val partyBtn = binding.root.findViewById<android.widget.ImageButton>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylistParty)
-        partyBtn?.isSelected = if (isHost) {
+        partyBtn?.isSelected = if (useLocalQueue) {
             fr.retrospare.blazeplayer.playlist.PlaylistManager.getBlazePartyPlaylist(ctx).isNotEmpty()
         } else {
             tracks.isNotEmpty()
@@ -1237,15 +1312,28 @@ class AudioPlayerFragment : Fragment() {
      *  décroissants, pour réutiliser tel quel [PartyPlaylistAdapter]. */
     private fun sortedGuestPartyTracks(): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> =
         guestPartyState?.tracks
-            ?.sortedByDescending { it.votes }
-            ?.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.path, it.name) }
+            // L'hôte envoie déjà l'ordre canonique : votes décroissants, puis morceaux joués en bas.
+            // Ne pas retrier ici, sinon on casse le placement “piste jouée tout en bas”.
+            ?.map {
+                fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(
+                    path = it.path,
+                    name = it.name,
+                    artist = it.artist,
+                    title = it.title,
+                    extension = it.extension,
+                    bitrate = it.bitrate,
+                    isLossless = it.isLossless,
+                    durationMs = it.durationMs,
+                    playedOrder = it.playedOrder
+                )
+            }
             ?: emptyList()
 
     /** Nombre de votes pour un morceau, quelle que soit la source (locale côté hôte, ou dernier
      *  état réseau reçu côté invité). */
     private fun voteCountFor(path: String): Int {
         val ctx = context ?: return 0
-        return if (BlazePartyVoteManager.isHost(ctx)) {
+        return if (usesLocalBlazePartyQueue(ctx)) {
             BlazePartyVoteManager.voteCount(ctx, path)
         } else {
             guestPartyState?.tracks?.firstOrNull { it.path == path }?.votes ?: 0
@@ -1301,7 +1389,7 @@ class AudioPlayerFragment : Fragment() {
 
     private fun launchBlazePartyQueue() {
         val ctx = context ?: return
-        if (!BlazePartyVoteManager.isHost(ctx)) {
+        if (!usesLocalBlazePartyQueue(ctx)) {
             android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_not_host_queue), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
@@ -1334,6 +1422,7 @@ class AudioPlayerFragment : Fragment() {
         ctrl.play()
         isPlayingBlazePartyQueue = true
         playedBlazePartyPaths.clear()
+        BlazePartyVoteManager.clearPlayedOrder(ctx)
         currentBlazePartyPath = tracks.firstOrNull()?.path
         playlistAdapter.refresh()
         syncSelection()
@@ -1346,7 +1435,7 @@ class AudioPlayerFragment : Fragment() {
 
     private fun clearBlazePartyQueue() {
         val ctx = context ?: return
-        if (!BlazePartyVoteManager.isHost(ctx)) {
+        if (!usesLocalBlazePartyQueue(ctx)) {
             android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_not_host_queue), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
@@ -1375,14 +1464,16 @@ class AudioPlayerFragment : Fragment() {
     private fun sortedBlazePartyTracks(ctx: android.content.Context): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> =
         fr.retrospare.blazeplayer.playlist.PlaylistManager.getBlazePartyPlaylist(ctx)
             .withIndex()
+            .map { indexed ->
+                val rank = playedBlazePartyPaths.indexOf(indexed.value.path).let { if (it >= 0) it + 1 else BlazePartyVoteManager.playedRank(ctx, indexed.value.path) }
+                indexed.copy(value = indexed.value.copy(playedOrder = rank))
+            }
             .sortedWith(
-                compareByDescending<IndexedValue<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef>> {
-                    BlazePartyVoteManager.voteCount(ctx, it.value.path)
-                }
+                compareBy<IndexedValue<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef>> { if (it.value.playedOrder > 0) 1 else 0 }
+                    .thenByDescending { if (it.value.playedOrder == 0) BlazePartyVoteManager.voteCount(ctx, it.value.path) else 0 }
                     // Les morceaux déjà joués dans la session courante retombent en bas
                     // après remise à zéro des votes, sans disparaître de la file Party.
-                    .thenBy { if (playedBlazePartyPaths.contains(it.value.path)) 1 else 0 }
-                    .thenBy { it.index }
+                    .thenBy { if (it.value.playedOrder > 0) it.value.playedOrder else it.index }
             )
             .map { it.value }
 
@@ -1392,6 +1483,7 @@ class AudioPlayerFragment : Fragment() {
 
         resetPlayedPath?.let { playedPath ->
             playedBlazePartyPaths.add(playedPath)
+            BlazePartyVoteManager.markPlayed(ctx, playedPath)
             BlazePartyVoteManager.clearVotesForTrack(ctx, playedPath)
         }
 
@@ -1429,9 +1521,9 @@ class AudioPlayerFragment : Fragment() {
 
     private fun showBlazePartyTrackVotes(track: fr.retrospare.blazeplayer.playlist.PlaylistTrackRef) {
         val ctx = requireContext()
-        val isHost = BlazePartyVoteManager.isHost(ctx)
+        val useLocalQueue = usesLocalBlazePartyQueue(ctx)
         val nickname = BlazePartyVoteManager.getNickname(ctx)
-        val voters = if (isHost) {
+        val voters = if (useLocalQueue) {
             BlazePartyVoteManager.votersFor(ctx, track.path)
         } else {
             guestPartyState?.tracks?.firstOrNull { it.path == track.path }?.voters.orEmpty()
@@ -1479,7 +1571,7 @@ class AudioPlayerFragment : Fragment() {
     private fun castPartyVote(path: String, nickname: String, add: Boolean) {
         val ctx = context ?: return
         val savedMsg = if (add) fr.retrospare.blazeplayer.R.string.blaze_party_vote_saved else fr.retrospare.blazeplayer.R.string.blaze_party_vote_removed
-        if (BlazePartyVoteManager.isHost(ctx)) {
+        if (usesLocalBlazePartyQueue(ctx)) {
             if (add) BlazePartyVoteManager.addVote(ctx, path, nickname) else BlazePartyVoteManager.removeVote(ctx, path, nickname)
             refreshPartyPlaylistSheet()
             reorderBlazePartyPlaybackIfActive()
@@ -1491,13 +1583,13 @@ class AudioPlayerFragment : Fragment() {
             android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_network_error), android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-        client.sendVote(path, nickname, add) { success ->
-            if (!isAdded) return@sendVote
-            if (success) {
-                client.fetchState { state ->
-                    if (state != null) guestPartyState = state
-                    if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
-                }
+        client.sendVoteAndFetch(path, nickname, add) { state ->
+            if (!isAdded) return@sendVoteAndFetch
+            if (state != null) {
+                guestPartyState = state
+                guestPartyHasReceivedState = true
+                guestPartyConsecutiveFailures = 0
+                if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
                 android.widget.Toast.makeText(ctx, getString(savedMsg), android.widget.Toast.LENGTH_SHORT).show()
             } else {
                 android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_network_error), android.widget.Toast.LENGTH_SHORT).show()
@@ -1519,8 +1611,7 @@ class AudioPlayerFragment : Fragment() {
             onPlayOne = { track -> addTrack(track.path, track.name) },
             onAddToParty = { tracks ->
                 val added = fr.retrospare.blazeplayer.playlist.PlaylistManager.addToBlazePartyPlaylist(ctx, tracks)
-                refreshPartyPlaylistSheet()
-                setupSavedPlaylistDrawers()
+                refreshBlazePartyUiAfterPlaylistChange(openSheet = true)
                 val msg = if (added > 0) resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.blaze_party_items_added, added, added) else getString(fr.retrospare.blazeplayer.R.string.blaze_party_items_already_present)
                 android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
             }
@@ -1836,13 +1927,20 @@ class AudioPlayerFragment : Fragment() {
             override fun run() {
                 val ctrl = controller
                 val dur = ctrl?.duration ?: 0L
+                val ctx = context
+                val useRemotePartyClock = ctx != null && !usesLocalBlazePartyQueue(ctx)
+                if (useRemotePartyClock) {
+                    updateGuestPartyProgressFromHostClock()
+                }
                 if (!isSeekBarTracking && dur > 0 && ctrl != null) {
                     _binding?.seekBar?.progress = ((ctrl.currentPosition * 100) / dur).toInt()
                     _binding?.tvCurrentTime?.text = formatTime(ctrl.currentPosition)
                     _binding?.tvTotalTime?.text = formatTime(dur)
                     playlistAdapter.updateCurrentProgress(ctrl.currentMediaItemIndex, ctrl.currentPosition, dur)
-                    val currentPath = if (ctrl.currentMediaItemIndex in 0 until ctrl.mediaItemCount) originalPathOf(ctrl.getMediaItemAt(ctrl.currentMediaItemIndex)) else null
-                    partyPlaylistAdapter.updateCurrentProgress(currentPath, ctrl.currentPosition, dur)
+                    if (!useRemotePartyClock) {
+                        val currentPath = if (ctrl.currentMediaItemIndex in 0 until ctrl.mediaItemCount) originalPathOf(ctrl.getMediaItemAt(ctrl.currentMediaItemIndex)) else null
+                        partyPlaylistAdapter.updateCurrentProgress(currentPath, ctrl.currentPosition, dur)
+                    }
                 }
                 handler.postDelayed(this, 500)
             }
@@ -1929,9 +2027,10 @@ class AudioPlayerFragment : Fragment() {
 
     private fun showBlazePartyHostDialog() {
         BlazePartyVoteManager.setHost(requireContext(), true)
-        val ip = getLocalIpv4Address() ?: "0.0.0.0"
+        val hostIps = getLocalIpv4Addresses()
+        val ip = hostIps.firstOrNull() ?: "0.0.0.0"
         val token = Random.nextInt(100000, 999999).toString()
-        val payload = PartyProtocol.buildPayload(ip, token)
+        val payload = PartyProtocol.buildPayload(ip, token, alternateHosts = hostIps.drop(1))
         BlazePartyVoteManager.saveSessionPayload(requireContext(), payload)
         BlazePartyVoteManager.saveHostToken(requireContext(), token)
         sendStartPartyHostCommand(token)
@@ -1986,28 +2085,42 @@ class AudioPlayerFragment : Fragment() {
     }
 
     private fun scanBlazePartyQr() {
-        // Ouvre directement l'appareil photo local du téléphone. Les QR Blaze Party sont
-        // des liens profonds blazeparty://join?... ; l'app caméra détecte le QR et propose
-        // d'ouvrir Blaze sans afficher de saisie manuelle intermédiaire.
-        try {
-            val cameraIntent = android.content.Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)
-            blazePartyCamera.launch(cameraIntent)
-        } catch (_: ActivityNotFoundException) {
-            try {
-                val scannerIntent = android.content.Intent("com.google.zxing.client.android.SCAN").apply {
-                    putExtra("SCAN_MODE", "QR_CODE_MODE")
+        // Scan intégré côté Blaze Player : on ne délègue plus à l'appareil photo Android, car
+        // certains scanners système ouvrent la feuille native de partage au lieu de transmettre le
+        // lien profond à Blaze. Ici, Blaze lit le QR, parse le payload et rejoint la session lui-même.
+        val scanner = GmsBarcodeScanning.getClient(
+            requireContext(),
+            GmsBarcodeScannerOptions.Builder()
+                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                .build()
+        )
+        scanner.startScan()
+            .addOnSuccessListener { barcode ->
+                val payload = barcode.rawValue.orEmpty()
+                if (payload.isBlank()) {
+                    android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.blaze_party_scan_unavailable), android.widget.Toast.LENGTH_LONG).show()
+                } else {
+                    showBlazePartyJoined(payload)
                 }
-                blazePartyScan.launch(scannerIntent)
-            } catch (_: Exception) {
-                android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.blaze_party_scan_unavailable), android.widget.Toast.LENGTH_LONG).show()
             }
+            .addOnCanceledListener { /* Annulation utilisateur : rien à faire. */ }
+            .addOnFailureListener { error ->
+                CrashReporter.log(requireContext(), "Blaze Party integrated QR scan failed", error)
+                startLegacyBlazePartyScanner()
+            }
+    }
+
+    private fun startLegacyBlazePartyScanner() {
+        // Dernier recours : ZXing externe renvoie le contenu du QR à notre ActivityResult. On évite
+        // volontairement l'intent caméra générique, qui était la source de la feuille de partage.
+        try {
+            val scannerIntent = android.content.Intent("com.google.zxing.client.android.SCAN").apply {
+                putExtra("SCAN_MODE", "QR_CODE_MODE")
+            }
+            blazePartyScan.launch(scannerIntent)
         } catch (_: Exception) {
             android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.blaze_party_scan_unavailable), android.widget.Toast.LENGTH_LONG).show()
         }
-    }
-
-    private val blazePartyCamera = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        // Aucun modal au retour : soit l'app caméra a ouvert Blaze via le QR, soit l'utilisateur revient simplement au player.
     }
 
     private val blazePartyScan = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -2026,9 +2139,9 @@ class AudioPlayerFragment : Fragment() {
         BlazePartyVoteManager.setHost(requireContext(), false)
         BlazePartyVoteManager.saveSessionPayload(requireContext(), payload)
         BlazePartyVoteManager.saveConnection(requireContext(), connection)
-        android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.blaze_party_joined), android.widget.Toast.LENGTH_LONG).show()
+        requestOpenBlazePartySheet()
         showBlazePartyNicknameDialog()
-        startGuestPartySync(connection)
+        startGuestPartySync(connection, showJoinedToastAfterNetworkJoin = true)
     }
 
     // ── Blaze Party réseau : hôte ────────────────────────────────────────────
@@ -2038,12 +2151,27 @@ class AudioPlayerFragment : Fragment() {
     // piloter via le MediaController, au même titre que play/pause/seek.
 
     private fun sendStartPartyHostCommand(token: String) {
+        // Secours direct vers le service : évite que le QR soit affiché alors que le serveur
+        // NanoHTTPD n'a pas démarré parce que le MediaController n'était pas encore disponible.
+        try {
+            requireContext().startService(android.content.Intent(requireContext(), BlazePlayerService::class.java).apply {
+                action = BlazePlayerService.ACTION_PARTY_START_HOST
+                putExtra(BlazePlayerService.EXTRA_PARTY_TOKEN, token)
+            })
+        } catch (e: Exception) {
+            CrashReporter.log(requireContext(), "Blaze Party service start fallback failed", e)
+        }
         val ctrl = controller ?: return
         val args = android.os.Bundle().apply { putString(BlazePlayerService.EXTRA_PARTY_TOKEN, token) }
         ctrl.sendCustomCommand(SessionCommand(BlazePlayerService.COMMAND_PARTY_START_HOST, android.os.Bundle.EMPTY), args)
     }
 
     private fun sendStopPartyHostCommand() {
+        try {
+            requireContext().startService(android.content.Intent(requireContext(), BlazePlayerService::class.java).apply {
+                action = BlazePlayerService.ACTION_PARTY_STOP_HOST
+            })
+        } catch (_: Exception) {}
         val ctrl = controller ?: return
         ctrl.sendCustomCommand(SessionCommand(BlazePlayerService.COMMAND_PARTY_STOP_HOST, android.os.Bundle.EMPTY), android.os.Bundle.EMPTY)
     }
@@ -2062,17 +2190,126 @@ class AudioPlayerFragment : Fragment() {
 
     // ── Blaze Party réseau : invité ──────────────────────────────────────────
 
-    private fun startGuestPartySync(connection: PartyConnection) {
-        partyClient = PartyClient(connection)
-        partyClient?.join(BlazePartyVoteManager.getNickname(requireContext())) { }
-        startGuestPartyPolling()
+
+    private fun applyGuestPartyState(state: PartyState?) {
+        if (state == null) return
+        guestPartyState = state
+        guestPartyStateReceivedAtMs = SystemClock.elapsedRealtime()
+        if (::partyPlaylistAdapter.isInitialized) {
+            refreshPartyPlaylistSheet()
+            updateGuestPartyProgressFromHostClock()
+        }
+        maybeOpenPendingBlazePartySheet()
     }
 
-    private fun startGuestPartyPolling() {
+    private fun updateGuestPartyProgressFromHostClock() {
+        val state = guestPartyState ?: return
+        if (!::partyPlaylistAdapter.isInitialized) return
+        val currentPath = state.currentPath
+        val duration = state.currentDurationMs.takeIf { it > 0L }
+            ?: state.tracks.firstOrNull { it.path == currentPath }?.durationMs
+            ?: 0L
+        if (currentPath.isNullOrBlank() || duration <= 0L) {
+            partyPlaylistAdapter.updateCurrentProgress(currentPath, 0L, duration)
+            return
+        }
+        val elapsed = if (state.isPlaying) {
+            (SystemClock.elapsedRealtime() - guestPartyStateReceivedAtMs).coerceAtLeast(0L)
+        } else 0L
+        val position = (state.currentPositionMs + elapsed).coerceAtLeast(0L).coerceAtMost(duration)
+        partyPlaylistAdapter.updateCurrentProgress(currentPath, position, duration)
+    }
+
+    /** Point d'entrée unique pour tout résultat réseau côté invité (join initial ET polling).
+     *
+     *  Après un premier snapshot valide, on ne bascule plus automatiquement en file locale sur
+     *  quelques /state ratés : Android peut interrompre brièvement le Wi‑Fi, recycler une socket ou
+     *  retarder NanoHTTPD alors que la session est toujours correcte. L'ancien comportement affichait
+     *  donc à tort "connexion à l'hôte perdue" après une connexion réussie. On conserve le dernier
+     *  état reçu, on garde la file partagée affichée et on continue à réessayer jusqu'à déconnexion
+     *  manuelle. Avant le tout premier état, on garde seulement un garde-fou pour les QR vraiment
+     *  invalides/injoignables. */
+    private fun handleGuestPartyFetchResult(state: PartyState?) {
+        if (state != null) {
+            guestPartyConsecutiveFailures = 0
+            guestPartyHasReceivedState = true
+            applyGuestPartyState(state)
+            return
+        }
+
+        guestPartyConsecutiveFailures++
+        if (guestPartyHasReceivedState) {
+            // Connexion déjà établie : ne détruis pas la session sur un incident de polling. Le
+            // prochain /state remettra l'UI à jour ; les votes restent envoyés via PartyClient.
+            android.util.Log.w("AudioPlayerFragment", "Blaze Party /state temporairement indisponible ($guestPartyConsecutiveFailures échecs consécutifs)")
+            return
+        }
+
+        // Aucun état n'a jamais été reçu : là seulement on considère que le QR/l'hôte est injoignable.
+        val maxFailuresBeforeFirstState = 10
+        if (guestPartyConsecutiveFailures >= maxFailuresBeforeFirstState) {
+            val ctx = context
+            stopGuestPartyPolling()
+            partyClient = null
+            guestPartyState = null
+            guestPartyHasReceivedState = false
+            guestPartyConsecutiveFailures = 0
+            if (ctx != null) {
+                BlazePartyVoteManager.disconnect(ctx)
+                android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.blaze_party_connection_lost), android.widget.Toast.LENGTH_LONG).show()
+                if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
+            }
+        }
+    }
+
+    private fun startGuestPartySync(connection: PartyConnection, showJoinedToastAfterNetworkJoin: Boolean = false) {
+        partyClient = PartyClient(requireContext().applicationContext, connection)
+        guestPartyConsecutiveFailures = 0
+        guestPartyHasReceivedState = false
+        partyClient?.joinAndFetch(BlazePartyVoteManager.getNickname(requireContext())) { state ->
+            val joined = state != null
+            handleGuestPartyFetchResult(state)
+            if (joined && showJoinedToastAfterNetworkJoin && isAdded) {
+                android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.blaze_party_joined), android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+        startGuestPartyPolling(initialDelayMs = 1800L)
+    }
+
+    private fun startGuestPartyPolling(initialDelayMs: Long = 0L) {
         if (guestPartyPollingActive) return
         guestPartyPollingActive = true
         handler.removeCallbacks(guestPartyPollRunnable)
-        handler.post(guestPartyPollRunnable)
+        if (initialDelayMs > 0L) handler.postDelayed(guestPartyPollRunnable, initialDelayMs) else handler.post(guestPartyPollRunnable)
+    }
+
+    private fun requestOpenBlazePartySheet() {
+        context?.getSharedPreferences("launcher_requests", android.content.Context.MODE_PRIVATE)
+            ?.edit()
+            ?.putBoolean("pendingOpenBlazePartySheet", true)
+            ?.putLong("pendingOpenBlazePartySheetAt", System.currentTimeMillis())
+            ?.apply()
+    }
+
+    private fun maybeOpenPendingBlazePartySheet() {
+        val ctx = context ?: return
+        if (!isAdded || _binding == null || !::partyPlaylistAdapter.isInitialized) return
+        if (BlazePartyVoteManager.isHost(ctx) || !BlazePartyVoteManager.isActive(ctx)) return
+        val prefs = ctx.getSharedPreferences("launcher_requests", android.content.Context.MODE_PRIVATE)
+        val pending = prefs.getBoolean("pendingOpenBlazePartySheet", false) ||
+            prefs.getLong("pendingOpenBlazePartySheetAt", 0L) > 0L
+        if (!pending) return
+
+        // On attend d'avoir reçu un état réel de l'hôte avant d'ouvrir la feuille. Ne pas bloquer sur
+        // tracks.isEmpty() : une session valide peut démarrer vide ou être alimentée juste après le
+        // scan, et l'ancien test donnait l'impression que rien ne s'était connecté.
+        if (guestPartyState == null) return
+
+        openPartyPlaylistSheet()
+        prefs.edit()
+            .putBoolean("pendingOpenBlazePartySheet", false)
+            .remove("pendingOpenBlazePartySheetAt")
+            .apply()
     }
 
     private fun stopGuestPartyPolling() {
@@ -2087,11 +2324,14 @@ class AudioPlayerFragment : Fragment() {
         if (BlazePartyVoteManager.isHost(ctx) || !BlazePartyVoteManager.isActive(ctx)) return
         val connection = BlazePartyVoteManager.getConnection(ctx) ?: return
         if (partyClient == null) {
-            val client = PartyClient(connection)
+            val client = PartyClient(ctx.applicationContext, connection)
             partyClient = client
-            client.join(BlazePartyVoteManager.getNickname(ctx)) { }
+            guestPartyConsecutiveFailures = 0
+            client.joinAndFetch(BlazePartyVoteManager.getNickname(ctx)) { state ->
+                handleGuestPartyFetchResult(state)
+            }
         }
-        startGuestPartyPolling()
+        startGuestPartyPolling(initialDelayMs = 1800L)
     }
 
     private fun showBlazePartyNicknameDialog() {
@@ -2114,12 +2354,85 @@ class AudioPlayerFragment : Fragment() {
             .show()
     }
 
-    private fun getLocalIpv4Address(): String? = try {
-        NetworkInterface.getNetworkInterfaces().toList()
-            .flatMap { it.inetAddresses.toList() }
-            .firstOrNull { !it.isLoopbackAddress && it is Inet4Address }
-            ?.hostAddress
-    } catch (_: Exception) { null }
+    private fun getLocalIpv4Address(): String? = getLocalIpv4Addresses().firstOrNull()
+
+    private fun getLocalIpv4Addresses(): List<String> {
+        // Blaze Party doit annoncer une adresse réellement joignable par les invités sur le LAN.
+        // On privilégie explicitement Wi‑Fi/ethernet/hotspot et on évite les interfaces mobile/VPN :
+        // si l'IP mobile est encodée dans le QR, le client ouvre bien Blaze Player mais ne peut pas
+        // joindre NanoHTTPD, ce qui provoque aussitôt "connexion à l'hôte perdue".
+        fun valid(address: java.net.InetAddress): Boolean =
+            address is Inet4Address &&
+                !address.isLoopbackAddress &&
+                !address.isLinkLocalAddress &&
+                !address.isAnyLocalAddress
+
+        val result = linkedSetOf<String>()
+        fun addAddress(address: java.net.InetAddress?) {
+            if (address != null && valid(address)) address.hostAddress?.takeIf { it.isNotBlank() }?.let(result::add)
+        }
+
+        try {
+            val wifi = requireContext().applicationContext.getSystemService(android.net.wifi.WifiManager::class.java)
+            val rawIp = wifi?.connectionInfo?.ipAddress ?: 0
+            if (rawIp != 0) {
+                val ip = listOf(
+                    rawIp and 0xff,
+                    rawIp shr 8 and 0xff,
+                    rawIp shr 16 and 0xff,
+                    rawIp shr 24 and 0xff
+                ).joinToString(".")
+                addAddress(java.net.InetAddress.getByName(ip))
+            }
+        } catch (_: Exception) { }
+
+        try {
+            val cm = requireContext().applicationContext
+                .getSystemService(android.net.ConnectivityManager::class.java)
+            cm?.allNetworks
+                ?.mapNotNull { network ->
+                    val caps = cm.getNetworkCapabilities(network) ?: return@mapNotNull null
+                    val props = cm.getLinkProperties(network) ?: return@mapNotNull null
+                    caps to props
+                }
+                ?.filter { (caps, _) ->
+                    (caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ||
+                        caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)) &&
+                        !caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                        !caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)
+                }
+                ?.forEach { (_, props) -> props.linkAddresses.forEach { addAddress(it.address) } }
+
+            val active = cm?.activeNetwork
+            val activeCaps = active?.let { cm.getNetworkCapabilities(it) }
+            if (active != null && activeCaps != null &&
+                !activeCaps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                !activeCaps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) {
+                cm.getLinkProperties(active)?.linkAddresses?.forEach { addAddress(it.address) }
+            }
+        } catch (_: Exception) { }
+
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces().toList()
+                .filter { iface ->
+                    try { iface.isUp && !iface.isLoopback } catch (_: Exception) { false }
+                }
+                .mapNotNull { iface ->
+                    val n = iface.name.lowercase()
+                    val rank = when {
+                        n.startsWith("wlan") || n.contains("wifi") -> 0
+                        n.startsWith("eth") -> 1
+                        n.startsWith("ap") || n.contains("softap") || n.contains("p2p") -> 2
+                        else -> 99
+                    }
+                    if (rank < 99) rank to iface else null
+                }
+                .sortedBy { it.first }
+            interfaces.forEach { (_, iface) -> iface.inetAddresses.toList().forEach { addAddress(it) } }
+        } catch (_: Exception) { }
+
+        return result.toList()
+    }
 
     private fun restoreBlazePartyRuntimeIfNeeded(ctrl: MediaController) {
         val ctx = context ?: return

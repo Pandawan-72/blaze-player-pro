@@ -61,11 +61,13 @@ class PartyPlaylistAdapter(
     }
 
     private fun resortItems() {
-        // Le nombre de votes remplace le numero de piste et determine automatiquement l'ordre.
+        // Le nombre de votes remplace le numéro de piste, mais l'hôte peut aussi indiquer
+        // qu'un morceau a déjà été joué : il doit alors rester en bas de la file partagée.
         items = rawItems.withIndex()
             .sortedWith(
-                compareByDescending<IndexedValue<PlaylistTrackRef>> { voteCountProvider(it.value.path) }
-                    .thenBy { it.index }
+                compareBy<IndexedValue<PlaylistTrackRef>> { if (it.value.playedOrder > 0) 1 else 0 }
+                    .thenByDescending { if (it.value.playedOrder == 0) voteCountProvider(it.value.path) else 0 }
+                    .thenBy { if (it.value.playedOrder > 0) it.value.playedOrder else it.index }
             )
             .map { it.value }
     }
@@ -114,7 +116,7 @@ class PartyPlaylistAdapter(
 
         fun bind(track: PlaylistTrackRef, isCurrent: Boolean) {
             val path = track.path
-            val title = track.name.substringBeforeLast(".")
+            val title = track.title.ifBlank { track.name.substringBeforeLast(".") }
             val voteCount = voteCountProvider(path)
             tvIndex.text = voteCount.toString()
             tvIndex.setTextColor(itemView.context.getColor(R.color.yellow_accent))
@@ -125,11 +127,14 @@ class PartyPlaylistAdapter(
             queueCard.setBackgroundResource(if (isCurrent) R.drawable.bg_queue_card_party_current else R.drawable.bg_surface_card)
 
             val cached = if (metadataLoadsEnabled) AudioMetadataExtractor.getCached(itemView.context, path) else AudioMetadataExtractor.getCached(path)
+            val provided = trackProvidedMeta(track)
             if (cached != null) {
                 applyMeta(cached, title, fallbackExt(track), isCurrent)
+            } else if (provided != null) {
+                applyMeta(provided, title, fallbackExt(track), isCurrent)
             } else {
                 boundDurationMs = 0L
-                tvArtist?.text = itemView.context.getString(R.string.unknown_artist)
+                tvArtist?.text = track.artist.ifBlank { itemView.context.getString(R.string.unknown_artist) }
                 tvArtist?.visibility = View.VISIBLE
                 val ext = fallbackExt(track)
                 if (ext.isNotBlank()) {
@@ -161,7 +166,21 @@ class PartyPlaylistAdapter(
         }
 
         private fun fallbackExt(track: PlaylistTrackRef): String =
-            track.name.substringAfterLast('.', "").ifBlank { track.path.substringBefore('?').substringAfterLast('.', "") }
+            track.extension.ifBlank { track.name.substringAfterLast('.', "").ifBlank { track.path.substringBefore('?').substringAfterLast('.', "") } }
+
+        private fun trackProvidedMeta(track: PlaylistTrackRef): AudioTechnicalInfo? {
+            val hasAny = track.artist.isNotBlank() || track.title.isNotBlank() || track.extension.isNotBlank() ||
+                track.bitrate > 0L || track.isLossless || track.durationMs > 0L
+            if (!hasAny) return null
+            return AudioTechnicalInfo(
+                artist = track.artist,
+                title = track.title,
+                extension = track.extension,
+                bitrate = track.bitrate,
+                isLossless = track.isLossless,
+                duration = (track.durationMs / 1000L).coerceAtLeast(0L)
+            )
+        }
 
         private fun applyMeta(meta: AudioTechnicalInfo, fallbackTitle: String, fallbackExt: String, isCurrent: Boolean) {
             tvName.text = meta.title.ifEmpty { fallbackTitle }

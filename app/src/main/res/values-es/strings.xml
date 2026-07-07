@@ -513,6 +513,7 @@
     <string name="blaze_party_join">Unirse a Blaze Party</string>
     <string name="blaze_party_disconnect">Desconectar</string>
     <string name="blaze_party_disconnected">Desconectado de Blaze Party</string>
+    <string name="blaze_party_connection_lost">Conexión con el anfitrión perdida: volviendo a tu lista local</string>
     <string name="blaze_party_host_title">Anfitrión de Blaze Party</string>
     <string name="blaze_party_qr_desc">QR code Blaze Party</string>
     <string name="blaze_party_share_code">Dirección: %1$s

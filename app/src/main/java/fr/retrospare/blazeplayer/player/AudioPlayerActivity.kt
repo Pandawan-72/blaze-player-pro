@@ -48,6 +48,21 @@ class AudioPlayerActivity : AppCompatActivity() {
     }
 
     private fun forwardExternalAudioToMain(intent: Intent?): Boolean {
+        val partyPayload = intent?.data?.toString()
+        if (PartyProtocol.parse(partyPayload) != null) {
+            startActivity(Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                data = intent?.data
+                putExtra("openBlazeAudio", true)
+                putExtra("blazePartyInvite", true)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            })
+            consumeIntent(intent)
+            finish()
+            overridePendingTransition(0, 0)
+            return true
+        }
+
         val external = ExternalMediaIntentUtils.fromExternalIntent(this, intent)
         if (external?.kind == ExternalMediaIntentUtils.ExternalMedia.Kind.VIDEO) {
             startActivity(Intent(this, PlayerActivity::class.java).apply {

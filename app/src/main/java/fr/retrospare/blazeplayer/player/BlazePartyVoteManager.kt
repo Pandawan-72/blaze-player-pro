@@ -14,6 +14,7 @@ object BlazePartyVoteManager {
     private const val KEY_ACTIVE = "active"
     private const val KEY_CONNECTION = "connection"
     private const val KEY_HOST_TOKEN = "host_token"
+    private const val KEY_PLAYED_ORDER = "played_order"
 
     fun getNickname(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -104,6 +105,47 @@ object BlazePartyVoteManager {
     fun getHostToken(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_HOST_TOKEN, null)
 
+
+    /** Historique léger des morceaux déjà joués pendant la session Party. Il est persisté côté
+     *  hôte pour que le service NanoHTTPD puisse exposer le même ordre que l'écran hôte : une
+     *  piste jouée retombe tout en bas de la file partagée au lieu de remonter parmi les titres à
+     *  zéro vote. */
+    fun markPlayed(context: Context, path: String) {
+        val clean = path.trim()
+        if (clean.isBlank()) return
+        val current = playedOrder(context).toMutableList()
+        current.remove(clean)
+        current.add(clean)
+        writePlayedOrder(context, current)
+    }
+
+    fun clearPlayedOrder(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .remove(KEY_PLAYED_ORDER)
+            .apply()
+    }
+
+    fun playedRank(context: Context, path: String): Int =
+        playedOrder(context).indexOf(path).let { if (it >= 0) it + 1 else 0 }
+
+    fun playedOrder(context: Context): List<String> {
+        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_PLAYED_ORDER, null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).mapNotNull { arr.optString(it).takeIf { value -> value.isNotBlank() } }
+        } catch (_: Exception) { emptyList() }
+    }
+
+    private fun writePlayedOrder(context: Context, paths: List<String>) {
+        val arr = JSONArray()
+        paths.distinct().forEach { arr.put(it) }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_PLAYED_ORDER, arr.toString())
+            .apply()
+    }
+
     fun disconnect(context: Context) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
@@ -154,6 +196,7 @@ object BlazePartyVoteManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .remove(KEY_VOTES)
+            .remove(KEY_PLAYED_ORDER)
             .apply()
     }
 

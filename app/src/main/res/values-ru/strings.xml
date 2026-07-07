@@ -535,6 +535,7 @@
     <string name="blaze_party_join">Присоединиться к Blaze Party</string>
     <string name="blaze_party_disconnect">Отключиться</string>
     <string name="blaze_party_disconnected">Отключено от Blaze Party</string>
+    <string name="blaze_party_connection_lost">Соединение с хостом потеряно — возврат к локальной очереди</string>
     <string name="blaze_party_host_title">Хост Blaze Party</string>
     <string name="blaze_party_qr_desc">QR code Blaze Party</string>
     <string name="blaze_party_share_code">Адрес: %1$s
