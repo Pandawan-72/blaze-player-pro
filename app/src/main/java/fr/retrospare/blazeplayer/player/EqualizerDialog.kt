@@ -189,6 +189,16 @@ class EqualizerDialog(
     }
 
     private fun setupEffects() {
+        val bassBoostAvailable = eqManager.isBassBoostAvailable()
+        binding.seekBassBoost.isEnabled = bassBoostAvailable
+        binding.seekBassBoost.alpha = if (bassBoostAvailable) 1f else 0.45f
+        binding.tvBassValue.alpha = if (bassBoostAvailable) 1f else 0.45f
+
+        val virtualizerAvailable = eqManager.isVirtualizerAvailable()
+        binding.seekVirtualizer.isEnabled = virtualizerAvailable
+        binding.seekVirtualizer.alpha = if (virtualizerAvailable) 1f else 0.45f
+        binding.tvVirtValue.alpha = if (virtualizerAvailable) 1f else 0.45f
+
         binding.seekBassBoost.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {

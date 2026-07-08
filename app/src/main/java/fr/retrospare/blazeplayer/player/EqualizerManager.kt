@@ -2,6 +2,7 @@ package fr.retrospare.blazeplayer.player
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.media.audiofx.AudioEffect
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
@@ -24,7 +25,7 @@ import kotlin.math.roundToInt
  * peak-taming curve applied before projection: the stronger it is, the more positive boosts are
  * compressed to avoid clipping/rebuffer artefacts on the native engine.
  */
-class EqualizerManager(audioSessionId: Int, context: Context) {
+class EqualizerManager(private val audioSessionId: Int, context: Context) {
 
     companion object {
         const val SOFTWARE_BAND_COUNT = 10
@@ -53,13 +54,52 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
         null
     }
 
-    val bassBoost: BassBoost? = try {
-        BassBoost(0, audioSessionId).apply { enabled = true }
-    } catch (_: Exception) { null }
+    // BassBoost and Virtualizer are optional Android audio effects. Some devices/routes (notably
+    // Bluetooth outputs) do not expose them; constructing them unconditionally makes AudioFlinger
+    // print initCheck errors at startup. Keep them lazy and only instantiate them when the platform
+    // advertises support and the user actually has a non-zero saved strength / changes a slider.
+    private var bassBoost: BassBoost? = null
+    private var virtualizer: Virtualizer? = null
 
-    val virtualizer: Virtualizer? = try {
-        Virtualizer(0, audioSessionId).apply { enabled = true }
-    } catch (_: Exception) { null }
+    private val availableEffectTypes: Set<java.util.UUID> by lazy {
+        try {
+            AudioEffect.queryEffects()
+                ?.mapNotNull { descriptor -> descriptor.type }
+                ?.toSet()
+                .orEmpty()
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    fun isBassBoostAvailable(): Boolean = AudioEffect.EFFECT_TYPE_BASS_BOOST in availableEffectTypes
+    fun isVirtualizerAvailable(): Boolean = AudioEffect.EFFECT_TYPE_VIRTUALIZER in availableEffectTypes
+
+    private fun ensureBassBoost(): BassBoost? {
+        bassBoost?.let { return it }
+        if (!isBassBoostAvailable()) return null
+        return try {
+            BassBoost(0, audioSessionId).also { bassBoost = it }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(appContext, "Bass boost unavailable for audio session $audioSessionId", e)
+            null
+        }
+    }
+
+    private fun ensureVirtualizer(): Virtualizer? {
+        virtualizer?.let { return it }
+        if (!isVirtualizerAvailable()) return null
+        return try {
+            Virtualizer(0, audioSessionId).also { virtualizer = it }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(appContext, "Virtualizer unavailable for audio session $audioSessionId", e)
+            null
+        }
+    }
+
+    private fun safeSetEnabled(effect: AudioEffect?, enabled: Boolean) {
+        try { effect?.enabled = enabled } catch (_: Exception) {}
+    }
 
     val nativeBandCount: Int get() = equalizer?.numberOfBands?.toInt() ?: 0
     val numBands: Int get() = SOFTWARE_BAND_COUNT
@@ -139,22 +179,43 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
     fun isEnabled(): Boolean = prefs.getBoolean("eq_enabled", true)
 
     fun setEnabled(enabled: Boolean) {
-        equalizer?.enabled = enabled
-        bassBoost?.enabled = enabled
-        virtualizer?.enabled = enabled
         prefs.edit().putBoolean("eq_enabled", enabled).commit()
+        safeSetEnabled(equalizer, enabled)
+        if (enabled) {
+            setBassBoost(getSavedBassBoost())
+            setVirtualizer(getSavedVirtualizer())
+        } else {
+            safeSetEnabled(bassBoost, false)
+            safeSetEnabled(virtualizer, false)
+        }
     }
 
     fun setBassBoost(strength: Int) {
         val safe = strength.coerceIn(0, 1000)
-        bassBoost?.setStrength(safe.toShort())
         prefs.edit().putInt("bass_boost", safe).commit()
+        val effect = if (safe > 0 && isEnabled()) ensureBassBoost() else bassBoost
+        try {
+            effect?.let {
+                if (safe > 0 && isEnabled()) it.setStrength(safe.toShort())
+                it.enabled = safe > 0 && isEnabled()
+            }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(appContext, "Apply bass boost failed", e)
+        }
     }
 
     fun setVirtualizer(strength: Int) {
         val safe = strength.coerceIn(0, 1000)
-        virtualizer?.setStrength(safe.toShort())
         prefs.edit().putInt("virtualizer", safe).commit()
+        val effect = if (safe > 0 && isEnabled()) ensureVirtualizer() else virtualizer
+        try {
+            effect?.let {
+                if (safe > 0 && isEnabled()) it.setStrength(safe.toShort())
+                it.enabled = safe > 0 && isEnabled()
+            }
+        } catch (e: Exception) {
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(appContext, "Apply virtualizer failed", e)
+        }
     }
 
     fun setPreamp(level: Int) {
@@ -261,15 +322,18 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
     fun restoreLastSession() {
         migrateIfNeeded()
         val enabled = isEnabled()
-        equalizer?.enabled = enabled
-        bassBoost?.enabled = enabled
-        virtualizer?.enabled = enabled
-        setBassBoost(getSavedBassBoost())
-        setVirtualizer(getSavedVirtualizer())
+        safeSetEnabled(equalizer, enabled)
+        if (enabled) {
+            setBassBoost(getSavedBassBoost())
+            setVirtualizer(getSavedVirtualizer())
+        } else {
+            safeSetEnabled(bassBoost, false)
+            safeSetEnabled(virtualizer, false)
+        }
         applyCustomToNative()
-        equalizer?.enabled = enabled
-        bassBoost?.enabled = enabled
-        virtualizer?.enabled = enabled
+        safeSetEnabled(equalizer, enabled)
+        safeSetEnabled(bassBoost, enabled && getSavedBassBoost() > 0)
+        safeSetEnabled(virtualizer, enabled && getSavedVirtualizer() > 0)
     }
 
     fun applyCustom() {
@@ -390,5 +454,7 @@ class EqualizerManager(audioSessionId: Int, context: Context) {
         try { equalizer?.release() } catch (_: Exception) {}
         try { bassBoost?.release() } catch (_: Exception) {}
         try { virtualizer?.release() } catch (_: Exception) {}
+        bassBoost = null
+        virtualizer = null
     }
 }

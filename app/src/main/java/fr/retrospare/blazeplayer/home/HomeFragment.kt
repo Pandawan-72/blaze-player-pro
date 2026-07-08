@@ -936,12 +936,27 @@ class HomeFragment : Fragment() {
             if (isAdded) requireActivity().requestedOrientation = previousOrientation
         }
         dialog.setOnShowListener {
-            loadGalleryImage(image, photo.path, Size.ORIGINAL)
+            loadGalleryImage(image, photo.path, fullScreenPhotoSize(), isFullScreen = true)
         }
         dialog.show()
     }
 
-    private fun loadGalleryImage(imageView: ImageView, uriString: String, requestSize: Size = Size(360, 360)) {
+    /** Taille sûre pour l'affichage plein écran d'une photo : plafonnée à la résolution réelle de
+     *  l'écran (carrée, en prenant le plus grand des deux côtés, pour rester valable après une
+     *  rotation puisque le visionneur autorise le FULL_SENSOR). Remplace Size.ORIGINAL, qui
+     *  demandait à Coil de décoder la photo à sa résolution native — avec les capteurs 48/108MP
+     *  courants aujourd'hui, ça produisait un bitmap plus grand que la taille de texture max du
+     *  GPU, provoquant un crash immédiat ("Canvas: trying to draw too large bitmap") à l'ouverture
+     *  de la moindre photo un peu grande. L'écran ne peut de toute façon jamais afficher plus de
+     *  détail que son propre nombre de pixels, donc ce plafond ne coûte aucune netteté visible.
+     */
+    private fun fullScreenPhotoSize(): Size {
+        val metrics = resources.displayMetrics
+        val maxDim = maxOf(metrics.widthPixels, metrics.heightPixels).coerceAtLeast(1080)
+        return Size(maxDim, maxDim)
+    }
+
+    private fun loadGalleryImage(imageView: ImageView, uriString: String, requestSize: Size = Size(360, 360), isFullScreen: Boolean = false) {
         imageView.setImageDrawable(null)
         if (currentGalleryMediaType == GalleryMediaType.VIDEO) {
             // Les vignettes vidéo passent par le même extracteur de frame (+ cache mémoire/disque)
@@ -952,7 +967,7 @@ class HomeFragment : Fragment() {
             }
             return
         }
-        if (requestSize == Size.ORIGINAL) {
+        if (isFullScreen) {
             // Plein écran uniquement (pas les vignettes de grille, où animer N GIF à la fois en
             // RecyclerView coûterait cher) : si c'est un GIF, on le décode nous-mêmes en
             // AnimatedImageDrawable pour une vraie lecture animée — Coil n'affiche que la première
@@ -963,7 +978,17 @@ class HomeFragment : Fragment() {
                 if (isGif && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     try {
                         val source = android.graphics.ImageDecoder.createSource(requireContext().contentResolver, android.net.Uri.parse(uriString))
-                        val drawable = android.graphics.ImageDecoder.decodeDrawable(source)
+                        val maxDim = maxOf(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
+                        val drawable = android.graphics.ImageDecoder.decodeDrawable(source) { decoder, info, _ ->
+                            // Même précaution que pour les photos statiques : un GIF plus grand
+                            // que l'écran (rare mais possible) pourrait sinon dépasser la taille de
+                            // texture max du GPU au rendu.
+                            val srcW = info.size.width; val srcH = info.size.height
+                            if (srcW > maxDim || srcH > maxDim) {
+                                val sample = maxOf(srcW / maxDim, srcH / maxDim).coerceAtLeast(1)
+                                decoder.setTargetSampleSize(sample)
+                            }
+                        }
                         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                             if (!isAdded) return@withContext
                             imageView.setImageDrawable(drawable)
@@ -975,7 +1000,7 @@ class HomeFragment : Fragment() {
                     }
                 }
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    if (isAdded) loadStaticGalleryImage(imageView, uriString, requestSize)
+                    if (isAdded) loadStaticGalleryImage(imageView, uriString, requestSize, allowHardware = true)
                 }
             }
             return
@@ -994,13 +1019,18 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun loadStaticGalleryImage(imageView: ImageView, uriString: String, requestSize: Size) {
+    /** [allowHardware] doit rester à false pour les vignettes de grille (nécessaire ailleurs dans
+     *  le code pour la génération de palette/traitement pixel), mais peut passer à true pour la
+     *  visionneuse plein écran : là, l'image ne sert qu'à être affichée/zoomée, jamais lue pixel
+     *  par pixel. Un bitmap matériel (GPU) évite le ré-upload CPU->GPU à chaque frame pendant un
+     *  pincement de zoom sur une grande image, ce qui est précisément ce qui causait les saccades. */
+    private fun loadStaticGalleryImage(imageView: ImageView, uriString: String, requestSize: Size, allowHardware: Boolean = false) {
         val request = ImageRequest.Builder(requireContext())
             .data(android.net.Uri.parse(uriString))
             .target(imageView)
             .size(requestSize)
             .scale(Scale.FILL)
-            .allowHardware(false)
+            .allowHardware(allowHardware)
             .crossfade(false)
             .build()
         requireContext().imageLoader.enqueue(request)
