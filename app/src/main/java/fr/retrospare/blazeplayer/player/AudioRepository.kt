@@ -212,6 +212,11 @@ object AudioRepository {
                 ?: fileName.substringBeforeLast(".")
             val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)?.ifEmpty { null } ?: ""
             val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)?.ifEmpty { null } ?: ""
+            val trackNumber = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
+                ?.substringBefore("/")
+                ?.filter { it.isDigit() }
+                ?.toIntOrNull()
+                ?: 0
             val artworkData = retriever.embeddedPicture
                 ?: fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, path)
             fr.retrospare.blazeplayer.ui.ThumbnailUtils.cacheAudioArtworkData(context, path, artworkData)
@@ -222,6 +227,7 @@ object AudioRepository {
                     artist = artist,
                     title = title,
                     album = album,
+                    trackNumber = trackNumber,
                     extension = fileName.substringAfterLast(".", "").uppercase()
                 )
             )

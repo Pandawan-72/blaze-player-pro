@@ -36,7 +36,7 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSaveCurrentPlaylist"
         android:layout_width="wrap_content"
-        android:layout_height="40dp"
+        android:layout_height="44dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="16dp"
         android:text="@string/save_current_list"
@@ -46,7 +46,7 @@
         android:includeFontPadding="false"
             android:gravity="center"
             app:backgroundTint="@color/green_accent"
-        app:cornerRadius="20dp"
+        app:cornerRadius="22dp"
         app:icon="@drawable/ic_add_circle"
         app:iconSize="16dp"
         app:iconTint="#FF000000"

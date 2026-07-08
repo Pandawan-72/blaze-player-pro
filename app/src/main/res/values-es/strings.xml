@@ -268,6 +268,12 @@
     <string name="dialog_which_playlist">¿Añadir a qué lista?</string>
     <string name="playlist_slot_name">Lista %1$d</string>
     <string name="playlist_empty">(vacía)</string>
+    <string name="action_to_playlist">Cola a playlist</string>
+    <string name="content_desc_queue_to_playlist">Guardar la cola en una playlist</string>
+    <string name="playlist_existing_with_count">(existente — %1$s)</string>
+    <string name="dialog_playlist_not_empty_title">Playlist existente</string>
+    <string name="dialog_playlist_not_empty_message">La playlist %1$d ya contiene %2$s. ¿Añadir igualmente los elementos seleccionados a esta playlist?</string>
+    <string name="action_confirm_add_to_existing_playlist">Añadir igualmente</string>
     <string name="playlist_added_to_slot">%1$s a la lista %2$d</string>
     <string name="playlist_added_partial">%1$s (%2$s)</string>
     <string name="dialog_playlist_empty_message">Esta lista está vacía.\n\nEn el explorador, selecciona archivos y usa \"Añadir a la lista\" para rellenarla.</string>

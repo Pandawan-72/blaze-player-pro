@@ -59,7 +59,7 @@ class AudioBrowserActivity : AppCompatActivity() {
     private val audioExtensions = setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")
     private val folderHistory = mutableListOf<String>()
 
-    data class AudioFile(val name: String, val path: String, val duration: Long, val artist: String, val bitrate: Int = 0)
+    data class AudioFile(val name: String, val path: String, val duration: Long, val artist: String, val bitrate: Int = 0, val album: String = "", val trackNumber: Int = 0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -114,7 +114,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                 android.widget.Toast.makeText(this, getString(R.string.toast_select_tracks_first), android.widget.Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val tracks = selectedItems.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.first, it.second) }
+            val tracks = selectedPlaylistRefs()
             fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
                 this, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, tracks
             ) {
@@ -130,7 +130,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                 android.widget.Toast.makeText(this, getString(R.string.toast_select_tracks_first), android.widget.Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val tracks = selectedItems.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.first, it.second) }
+            val tracks = selectedPlaylistRefs()
             val added = fr.retrospare.blazeplayer.playlist.PlaylistManager.addToBlazePartyPlaylist(this, tracks)
             val msg = if (added > 0) {
                 resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.blaze_party_items_added, added, added)
@@ -376,7 +376,9 @@ class AudioBrowserActivity : AppCompatActivity() {
                             name = meta.title.takeIf { it.isNotBlank() } ?: fileItems[idx].name,
                             artist = meta.artist.takeIf { it.isNotBlank() } ?: fileItems[idx].artist,
                             duration = if (meta.duration > 0L) meta.duration else fileItems[idx].duration,
-                            bitrate = if (meta.bitrate > 0L) meta.bitrate.toInt() else fileItems[idx].bitrate
+                            bitrate = if (meta.bitrate > 0L) meta.bitrate.toInt() else fileItems[idx].bitrate,
+                            album = meta.album.takeIf { it.isNotBlank() } ?: fileItems[idx].album,
+                            trackNumber = if (meta.trackNumber > 0) meta.trackNumber else fileItems[idx].trackNumber
                         )
                         if (updated != fileItems[idx]) {
                             fileItems[idx] = updated
@@ -417,7 +419,9 @@ class AudioBrowserActivity : AppCompatActivity() {
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.BITRATE,
             MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.TITLE
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.TRACK
         )
         contentResolver.query(collection, projection, null, null, MediaStore.Audio.Media.TITLE)?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
@@ -427,6 +431,8 @@ class AudioBrowserActivity : AppCompatActivity() {
             val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val bitrateCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.BITRATE) } catch (_: Exception) { -1 }
             val sizeCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE) } catch (_: Exception) { -1 }
+            val albumCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM) } catch (_: Exception) { -1 }
+            val trackCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK) } catch (_: Exception) { -1 }
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
                 val name = cursor.getString(nameCol) ?: continue
@@ -435,6 +441,8 @@ class AudioBrowserActivity : AppCompatActivity() {
                 val artist = cursor.getString(artistCol) ?: ""
                 val title = cursor.getString(titleCol) ?: name
                 val rawBitrate = if (bitrateCol >= 0) cursor.getInt(bitrateCol) else 0
+                val album = if (albumCol >= 0) cursor.getString(albumCol).orEmpty() else ""
+                val trackNumber = if (trackCol >= 0) cursor.getInt(trackCol) % 1000 else 0
                 // La colonne BITRATE de MediaStore est très souvent vide pour l'audio (fiable
                 // surtout pour la vidéo) : on calcule un débit moyen de repli à partir de la
                 // taille et de la durée plutôt que de ne jamais afficher de badge.
@@ -445,7 +453,7 @@ class AudioBrowserActivity : AppCompatActivity() {
                     if (sizeBytes > 0L) ((sizeBytes * 8_000L) / durationMs).toInt() else 0
                 } else 0
                 val uri = ContentUris.withAppendedId(collection, id).toString()
-                items.add(AudioFile(title.takeIf { it.isNotBlank() } ?: name, uri, duration, artist, bitrate))
+                items.add(AudioFile(title.takeIf { it.isNotBlank() } ?: name, uri, duration, artist, bitrate, album, trackNumber))
             }
         }
         return items
@@ -454,6 +462,24 @@ class AudioBrowserActivity : AppCompatActivity() {
     private fun updateCounter() {
         val n = selectedItems.size
         binding.tvSelected.text = resources.getQuantityString(R.plurals.selected_tracks_count, n, n)
+    }
+
+    private fun selectedPlaylistRefs(): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> {
+        val currentByPath = currentItems.associateBy { it.path }
+        return selectedItems.map { (path, fallbackName) ->
+            val item = currentByPath[path]
+            val title = item?.name?.takeIf { it.isNotBlank() } ?: fallbackName
+            fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(
+                path = path,
+                name = title,
+                artist = item?.artist.orEmpty(),
+                title = title,
+                bitrate = (item?.bitrate ?: 0).toLong(),
+                durationMs = (item?.duration ?: 0L).let { if (it > 0L) it * 1000L else 0L },
+                album = item?.album.orEmpty(),
+                trackNumber = item?.trackNumber ?: 0
+            )
+        }
     }
 
     private fun selectAllCurrentFolderTracks() {
@@ -536,7 +562,9 @@ class AudioBrowserActivity : AppCompatActivity() {
                     path = file.absolutePath,
                     duration = info.duration.takeIf { it > 0L } ?: 0L,
                     artist = info.artist,
-                    bitrate = info.bitrate.toInt()
+                    bitrate = info.bitrate.toInt(),
+                    album = info.album,
+                    trackNumber = info.trackNumber
                 )
             }
             ?: emptyList()

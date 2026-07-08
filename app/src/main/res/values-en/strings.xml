@@ -268,6 +268,12 @@
     <string name="dialog_which_playlist">Add to which playlist?</string>
     <string name="playlist_slot_name">Playlist %1$d</string>
     <string name="playlist_empty">(empty)</string>
+    <string name="action_to_playlist">Queue to playlist</string>
+    <string name="content_desc_queue_to_playlist">Save the queue to a playlist</string>
+    <string name="playlist_existing_with_count">(existing — %1$s)</string>
+    <string name="dialog_playlist_not_empty_title">Existing playlist</string>
+    <string name="dialog_playlist_not_empty_message">Playlist %1$d already contains %2$s. Add the selected items to this playlist anyway?</string>
+    <string name="action_confirm_add_to_existing_playlist">Add anyway</string>
     <string name="playlist_added_to_slot">%1$s to playlist %2$d</string>
     <string name="playlist_added_partial">%1$s (%2$s)</string>
     <string name="dialog_playlist_empty_message">This playlist is empty.\n\nIn the browser, select files then use \"Add to playlist\" to fill it.</string>

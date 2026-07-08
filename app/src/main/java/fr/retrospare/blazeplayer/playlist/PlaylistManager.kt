@@ -13,6 +13,8 @@ data class PlaylistTrackRef(
     val name: String,
     val artist: String = "",
     val title: String = "",
+    val album: String = "",
+    val trackNumber: Int = 0,
     val extension: String = "",
     val bitrate: Long = 0L,
     val isLossless: Boolean = false,
@@ -86,6 +88,8 @@ object PlaylistManager {
                 put("name", ref.name)
                 if (ref.artist.isNotBlank()) put("artist", ref.artist)
                 if (ref.title.isNotBlank()) put("title", ref.title)
+                if (ref.album.isNotBlank()) put("album", ref.album)
+                if (ref.trackNumber > 0) put("trackNumber", ref.trackNumber)
                 if (ref.extension.isNotBlank()) put("extension", ref.extension)
                 if (ref.bitrate > 0L) put("bitrate", ref.bitrate)
                 if (ref.isLossless) put("isLossless", true)
@@ -112,6 +116,8 @@ object PlaylistManager {
                 name = o.getString("name"),
                 artist = o.optString("artist"),
                 title = o.optString("title"),
+                album = o.optString("album"),
+                trackNumber = o.optInt("trackNumber", 0),
                 extension = o.optString("extension"),
                 bitrate = o.optLong("bitrate", 0L),
                 isLossless = o.optBoolean("isLossless", false),
@@ -165,6 +171,8 @@ object PlaylistManager {
                 put("name", ref.name)
                 if (ref.artist.isNotBlank()) put("artist", ref.artist)
                 if (ref.title.isNotBlank()) put("title", ref.title)
+                if (ref.album.isNotBlank()) put("album", ref.album)
+                if (ref.trackNumber > 0) put("trackNumber", ref.trackNumber)
                 if (ref.extension.isNotBlank()) put("extension", ref.extension)
                 if (ref.bitrate > 0L) put("bitrate", ref.bitrate)
                 if (ref.isLossless) put("isLossless", true)

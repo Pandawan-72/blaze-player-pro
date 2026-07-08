@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Playlist non vide ET dernière lue : accent plus marqué -->
+    <!-- Playlist non vide ET dernière lue : même fond gris foncé, contour vert renforcé. -->
     <item android:state_selected="true" android:state_activated="true">
         <shape android:shape="oval">
-            <solid android:color="#263DD68C" />
+            <solid android:color="@color/surface_variant" />
             <stroke android:width="2dp" android:color="@color/green_accent" />
         </shape>
     </item>
-    <!-- Playlist non vide (peu importe si elle a été lue récemment ou non) -->
+    <!-- Playlist non vide : fond gris foncé + contour vert. -->
     <item android:state_selected="true">
         <shape android:shape="oval">
-            <solid android:color="#263DD68C" />
-            <stroke android:width="1.5dp" android:color="#AEB6C2" />
+            <solid android:color="@color/surface_variant" />
+            <stroke android:width="1.5dp" android:color="@color/green_accent" />
         </shape>
     </item>
-    <!-- État "playlist vide" -->
+    <!-- Playlist vide : fond gris foncé + contour gris. -->
     <item>
         <shape android:shape="oval">
             <solid android:color="@color/surface_variant" />

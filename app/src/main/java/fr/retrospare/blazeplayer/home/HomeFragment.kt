@@ -1871,6 +1871,12 @@ class HomeFragment : Fragment() {
         val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager.getPlaylist(requireContext(), category, slot).isNotEmpty()
         btn.isSelected = hasItems
         btn.isActivated = hasItems && lastPlayed == slot
+        btn.setTextColor(
+            ContextCompat.getColor(
+                requireContext(),
+                if (hasItems) R.color.green_accent else R.color.on_surface_variant
+            )
+        )
         btn.setOnClickListener { openSavedPlaylist(category, slot) }
         btn.setOnLongClickListener { showPlaylistQuickMenu(category, slot, btn); true }
     }
@@ -1942,8 +1948,9 @@ class HomeFragment : Fragment() {
             requireContext(), category, slot,
             onPlayAll = { tracks ->
                 val ctx = requireContext()
-                val added = fr.retrospare.blazeplayer.player.VideoQueueManager.addToQueue(ctx, category, tracks)
-                val already = (tracks.size - added).coerceAtLeast(0)
+                val orderedTracks = fr.retrospare.blazeplayer.playlist.PlaylistPlayOrder.sortedForPlayback(category, tracks)
+                val added = fr.retrospare.blazeplayer.player.VideoQueueManager.addToQueue(ctx, category, orderedTracks)
+                val already = (orderedTracks.size - added).coerceAtLeast(0)
                 val msg = if (already == 0) {
                     getString(fr.retrospare.blazeplayer.R.string.toast_video_queue_added, added)
                 } else {
@@ -1955,7 +1962,11 @@ class HomeFragment : Fragment() {
                 setupVideoQueueButtons()
                 fr.retrospare.blazeplayer.player.VideoQueueSheet.show(ctx, category)
             },
-            onPlayOne = { track -> fr.retrospare.blazeplayer.player.PlayerRouter.open(requireContext(), track.path, track.name) }
+            onPlayOne = { track -> fr.retrospare.blazeplayer.player.PlayerRouter.open(requireContext(), track.path, track.name) },
+            onChanged = {
+                setupPlaylistButtons()
+                setupVideoQueueButtons()
+            }
         )
     }
 

@@ -16,7 +16,8 @@ data class AudioTechnicalInfo(
     val extension: String = "",
     val isLossless: Boolean = false,
     val title: String = "",
-    val album: String = ""
+    val album: String = "",
+    val trackNumber: Int = 0
 )
 
 /** Extraction + cache (mémoire et disque) des métadonnées texte des fichiers audio — artiste,
@@ -31,7 +32,7 @@ object AudioMetadataExtractor {
 
     private val cache = ConcurrentHashMap<String, AudioTechnicalInfo>()
     private const val DISK_CACHE_PREFS = "blaze_audio_metadata_cache"
-    private const val CACHE_VERSION = 2
+    private const val CACHE_VERSION = 3
     private val LOSSLESS_EXTENSIONS = setOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
     private val inFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<AudioTechnicalInfo>>()
 
@@ -57,7 +58,8 @@ object AudioMetadataExtractor {
             extension = fresh.extension.ifBlank { previous.extension },
             isLossless = fresh.isLossless || previous.isLossless,
             title = fresh.title.ifBlank { previous.title },
-            album = fresh.album.ifBlank { previous.album }
+            album = fresh.album.ifBlank { previous.album },
+            trackNumber = if (fresh.trackNumber > 0) fresh.trackNumber else previous.trackNumber
         )
     }
 
@@ -108,7 +110,8 @@ object AudioMetadataExtractor {
             extension = info.extension.ifBlank { previous?.extension.orEmpty() },
             isLossless = info.isLossless || previous?.isLossless == true,
             title = info.title.ifBlank { previous?.title.orEmpty() },
-            album = info.album.ifBlank { previous?.album.orEmpty() }
+            album = info.album.ifBlank { previous?.album.orEmpty() },
+            trackNumber = if (info.trackNumber > 0) info.trackNumber else previous?.trackNumber ?: 0
         )
         cache[path] = merged
         saveToDisk(context, path, merged)
@@ -138,7 +141,8 @@ object AudioMetadataExtractor {
         val raw = prefs.getString(diskKey(path), null) ?: return null
         return try {
             val parts = raw.split("|")
-            if (parts.firstOrNull()?.toIntOrNull() == CACHE_VERSION) {
+            val version = parts.firstOrNull()?.toIntOrNull()
+            if (version != null && version in 2..CACHE_VERSION) {
                 AudioTechnicalInfo(
                     artist = dec(parts.getOrNull(1).orEmpty()),
                     duration = parts.getOrNull(2)?.toLongOrNull() ?: 0L,
@@ -146,7 +150,8 @@ object AudioMetadataExtractor {
                     extension = parts.getOrNull(4).orEmpty(),
                     isLossless = parts.getOrNull(5)?.toBoolean() ?: false,
                     title = dec(parts.getOrNull(6).orEmpty()),
-                    album = dec(parts.getOrNull(7).orEmpty())
+                    album = dec(parts.getOrNull(7).orEmpty()),
+                    trackNumber = parts.getOrNull(8)?.toIntOrNull() ?: 0
                 )
             } else {
                 // Compat ancien cache v1 : artist|duration|bitrate|extension|lossless
@@ -170,10 +175,20 @@ object AudioMetadataExtractor {
         if (info.duration <= 0L && info.artist.isEmpty() && info.title.isEmpty() && info.album.isEmpty() && info.bitrate <= 0L) return
         val raw = listOf(
             CACHE_VERSION.toString(), enc(info.artist), info.duration.toString(), info.bitrate.toString(),
-            info.extension, info.isLossless.toString(), enc(info.title), enc(info.album)
+            info.extension, info.isLossless.toString(), enc(info.title), enc(info.album), info.trackNumber.toString()
         ).joinToString("|")
         context.getSharedPreferences(DISK_CACHE_PREFS, Context.MODE_PRIVATE)
             .edit().putString(diskKey(path), raw).apply()
+    }
+
+    private fun parseTrackNumber(raw: String?): Int {
+        val value = raw?.trim().orEmpty()
+        if (value.isBlank()) return 0
+        return value.substringBefore("/")
+            .filter { it.isDigit() }
+            .toIntOrNull()
+            ?.takeIf { it > 0 }
+            ?: 0
     }
 
     private fun extractInternal(context: Context, path: String, name: String): AudioTechnicalInfo {
@@ -192,6 +207,7 @@ object AudioMetadataExtractor {
                 val title = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)?.trim() ?: ""
                 val artist = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)?.trim() ?: ""
                 val album = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM)?.trim() ?: ""
+                val trackNumber = parseTrackNumber(retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER))
                 val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
 
                 // METADATA_KEY_BITRATE n'est fiable que pour la vidéo : pour l'audio (MP3 notamment),
@@ -217,7 +233,8 @@ object AudioMetadataExtractor {
                     extension = ext,
                     isLossless = lossless,
                     title = title,
-                    album = album
+                    album = album,
+                    trackNumber = trackNumber
                 )
             } finally {
                 retriever.release()

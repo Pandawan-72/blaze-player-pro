@@ -30,6 +30,7 @@ class PlaylistAdapter(
     private var currentPositionMs = 0L
     private var currentDurationMs = 0L
     private var overrideItems: List<MediaItem>? = null
+    private var queueDragInProgress = false
     @Volatile private var metadataLoadsEnabled = true
     private val metadataLoadGeneration = java.util.concurrent.atomic.AtomicInteger(0)
 
@@ -54,7 +55,22 @@ class PlaylistAdapter(
     fun setOverrideItems(items: List<MediaItem>?) {
         overrideItems = items
         currentIndex = currentIndex.coerceAtMost((items?.size ?: (player()?.mediaItemCount ?: 1)) - 1).coerceAtLeast(0)
-        notifyDataSetChanged()
+        if (!queueDragInProgress) notifyDataSetChanged()
+    }
+
+    /**
+     * Active une copie locale de la file pour le drag & drop sans notifier toute la liste au
+     * moment où le doigt commence à bouger. Un notifyDataSetChanged() ici invaliderait le
+     * ViewHolder pris en charge par ItemTouchHelper et faisait échouer certains déplacements
+     * (notamment quand on remontait le 3e élément).
+     */
+    fun beginDragOverrideItems(items: List<MediaItem>, selectedIndex: Int) {
+        overrideItems = items
+        currentIndex = selectedIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
+    }
+
+    fun setQueueDragInProgress(active: Boolean) {
+        queueDragInProgress = active
     }
 
     fun hasOverrideItems(): Boolean = overrideItems != null
@@ -81,6 +97,7 @@ class PlaylistAdapter(
     fun setPlayingIndex(index: Int) {
         val old = currentPlayingIndex
         currentPlayingIndex = index
+        if (queueDragInProgress) return
         val count = itemCount
         if (old != -1 && old < count) notifyItemChanged(old)
         if (index != -1 && index < count) notifyItemChanged(index)
@@ -89,6 +106,7 @@ class PlaylistAdapter(
     fun setCurrentIndex(index: Int) {
         val old = currentIndex
         currentIndex = index
+        if (queueDragInProgress) return
         val count = itemCount
         if (old in 0 until count) notifyItemChanged(old)
         if (index in 0 until count) notifyItemChanged(index)
@@ -99,6 +117,7 @@ class PlaylistAdapter(
         currentIndex = index
         currentPositionMs = positionMs.coerceAtLeast(0L)
         currentDurationMs = durationMs.coerceAtLeast(0L)
+        if (queueDragInProgress) return
         val count = itemCount
         if (oldIndex != index && oldIndex in 0 until count) notifyItemChanged(oldIndex)
         if (index in 0 until count) notifyItemChanged(index, PAYLOAD_TIME)
@@ -106,7 +125,7 @@ class PlaylistAdapter(
 
     /** A appeler a chaque changement de timeline (ajout/suppression/reorder) du Player. */
     fun refresh() {
-        notifyDataSetChanged()
+        if (!queueDragInProgress) notifyDataSetChanged()
     }
 
     private fun itemAt(position: Int): MediaItem? {

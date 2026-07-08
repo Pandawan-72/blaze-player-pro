@@ -11,6 +11,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.button.MaterialButton
 import fr.retrospare.blazeplayer.R
 
@@ -31,26 +32,42 @@ object PlaylistDialogs {
         val counts = PlaylistManager.getAllSlotCounts(context, category)
         val labels = (1..PlaylistManager.SLOT_COUNT).map { slot ->
             val count = counts[slot - 1]
+            val countText = context.resources.getQuantityString(R.plurals.playlist_item_count, count, count)
             context.getString(R.string.playlist_slot_name, slot) + " " +
-                (if (count > 0) "(" + context.resources.getQuantityString(R.plurals.playlist_item_count, count, count) + ")"
+                (if (count > 0) context.getString(R.string.playlist_existing_with_count, countText)
                  else context.getString(R.string.playlist_empty))
         }.toTypedArray()
+
+        fun addToSlot(slot: Int) {
+            val added = PlaylistManager.addToPlaylist(context, category, slot, tracks)
+            val addedText = context.resources.getQuantityString(R.plurals.playlist_items_added, added, added)
+            val msg = if (added == tracks.size) {
+                context.getString(R.string.playlist_added_to_slot, addedText, slot)
+            } else {
+                val remaining = tracks.size - added
+                val remainingText = context.resources.getQuantityString(R.plurals.playlist_items_already_present, remaining, remaining)
+                context.getString(R.string.playlist_added_partial, addedText, remainingText)
+            }
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            onAdded?.invoke(slot)
+        }
 
         AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.dialog_which_playlist))
             .setItems(labels) { _, which ->
                 val slot = which + 1
-                val added = PlaylistManager.addToPlaylist(context, category, slot, tracks)
-                val addedText = context.resources.getQuantityString(R.plurals.playlist_items_added, added, added)
-                val msg = if (added == tracks.size) {
-                    context.getString(R.string.playlist_added_to_slot, addedText, slot)
+                val existingCount = counts.getOrNull(which) ?: 0
+                if (existingCount > 0) {
+                    val countText = context.resources.getQuantityString(R.plurals.playlist_item_count, existingCount, existingCount)
+                    AlertDialog.Builder(context)
+                        .setTitle(context.getString(R.string.dialog_playlist_not_empty_title))
+                        .setMessage(context.getString(R.string.dialog_playlist_not_empty_message, slot, countText))
+                        .setPositiveButton(context.getString(R.string.action_confirm_add_to_existing_playlist)) { _, _ -> addToSlot(slot) }
+                        .setNegativeButton(context.getString(R.string.action_cancel), null)
+                        .show()
                 } else {
-                    val remaining = tracks.size - added
-                    val remainingText = context.resources.getQuantityString(R.plurals.playlist_items_already_present, remaining, remaining)
-                    context.getString(R.string.playlist_added_partial, addedText, remainingText)
+                    addToSlot(slot)
                 }
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                onAdded?.invoke(slot)
             }
             .setNegativeButton(context.getString(R.string.action_cancel), null)
             .show()
@@ -66,22 +83,30 @@ object PlaylistDialogs {
         slot: Int,
         onPlayAll: (List<PlaylistTrackRef>) -> Unit,
         onPlayOne: (PlaylistTrackRef) -> Unit,
-        onAddToParty: ((List<PlaylistTrackRef>) -> Unit)? = null
+        onAddToParty: ((List<PlaylistTrackRef>) -> Unit)? = null,
+        onChanged: (() -> Unit)? = null
     ) {
         showTrackListSheet(
             context = context,
             title = context.getString(R.string.playlist_slot_name, slot) + " — " + category.displayLabel(context),
+            category = category,
             loadTracks = { PlaylistManager.getPlaylist(context, category, slot) },
             onPlayAll = onPlayAll,
             onPlayOne = onPlayOne,
-            onRemoveTrack = { track -> PlaylistManager.removeFromPlaylist(context, category, slot, track.path) },
-            clearLabel = if (onAddToParty != null) context.getString(R.string.add_to_blaze_party) else context.getString(R.string.action_empty_playlist),
+            onRemoveTrack = { track ->
+                PlaylistManager.removeFromPlaylist(context, category, slot, track.path)
+                onChanged?.invoke()
+            },
+            clearLabel = context.getString(R.string.action_empty_playlist),
             onClear = {
-                if (onAddToParty != null) {
-                    onAddToParty.invoke(PlaylistManager.getPlaylist(context, category, slot))
-                } else {
-                    PlaylistManager.clearPlaylist(context, category, slot)
-                    Toast.makeText(context, context.getString(R.string.toast_playlist_emptied, slot), Toast.LENGTH_SHORT).show()
+                PlaylistManager.clearPlaylist(context, category, slot)
+                Toast.makeText(context, context.getString(R.string.toast_playlist_emptied, slot), Toast.LENGTH_SHORT).show()
+                onChanged?.invoke()
+            },
+            secondaryLabel = onAddToParty?.let { context.getString(R.string.add_to_blaze_party) },
+            onSecondary = onAddToParty?.let { addToParty ->
+                {
+                    addToParty.invoke(PlaylistManager.getPlaylist(context, category, slot))
                 }
             }
         )
@@ -95,6 +120,7 @@ object PlaylistDialogs {
         showTrackListSheet(
             context = context,
             title = context.getString(R.string.blaze_party_playlist_title),
+            category = PlaylistCategory.AUDIO,
             loadTracks = { PlaylistManager.getBlazePartyPlaylist(context) },
             onPlayAll = onPlayAll,
             onPlayOne = onPlayOne,
@@ -116,12 +142,15 @@ object PlaylistDialogs {
     private fun showTrackListSheet(
         context: Context,
         title: String,
+        category: PlaylistCategory?,
         loadTracks: () -> List<PlaylistTrackRef>,
         onPlayAll: (List<PlaylistTrackRef>) -> Unit,
         onPlayOne: (PlaylistTrackRef) -> Unit,
         onRemoveTrack: (PlaylistTrackRef) -> Unit,
         clearLabel: String,
-        onClear: () -> Unit
+        onClear: () -> Unit,
+        secondaryLabel: String? = null,
+        onSecondary: (() -> Unit)? = null
     ) {
         var tracks = loadTracks()
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_playlist_viewer, null)
@@ -130,10 +159,21 @@ object PlaylistDialogs {
         val tvEmpty = view.findViewById<TextView>(R.id.tvPlaylistSheetEmpty)
         val btnClose = view.findViewById<ImageButton>(R.id.btnClosePlaylistSheet)
         val btnClear = view.findViewById<MaterialButton>(R.id.btnPlaylistSheetClear)
+        val btnSecondary = view.findViewById<MaterialButton>(R.id.btnPlaylistSheetSecondary)
         val btnPlayAll = view.findViewById<MaterialButton>(R.id.btnPlaylistSheetPlayAll)
 
         val dialog = BottomSheetDialog(context)
         dialog.setContentView(view)
+        dialog.setOnShowListener {
+            val bottomSheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                ?: return@setOnShowListener
+            val maxHeight = (context.resources.displayMetrics.heightPixels * 0.88f).toInt()
+            bottomSheet.layoutParams = bottomSheet.layoutParams.apply { height = maxHeight }
+            BottomSheetBehavior.from(bottomSheet).apply {
+                skipCollapsed = true
+                state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
 
         fun refreshHeader() {
             tvTitle.text = "$title (${tracks.size})"
@@ -144,6 +184,17 @@ object PlaylistDialogs {
             btnPlayAll.alpha = if (empty) 0.5f else 1f
             btnClear.isEnabled = !empty
             btnClear.alpha = if (empty) 0.5f else 1f
+            btnSecondary.isEnabled = !empty
+            btnSecondary.alpha = if (empty) 0.5f else 1f
+        }
+
+        fun displayTrackName(track: PlaylistTrackRef): String {
+            if (category != PlaylistCategory.AUDIO) return track.name
+            val artist = track.artist.trim()
+            val title = track.title.trim()
+                .ifBlank { track.name.substringBeforeLast('.', track.name).trim() }
+                .ifBlank { track.name }
+            return if (artist.isNotBlank()) "$artist - $title" else title
         }
 
         recycler.layoutManager = LinearLayoutManager(context)
@@ -156,7 +207,7 @@ object PlaylistDialogs {
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
                 val track = tracks[position]
                 val v = holder.itemView
-                v.findViewById<TextView>(R.id.tvTrackName).text = track.name
+                v.findViewById<TextView>(R.id.tvTrackName).text = displayTrackName(track)
                 v.setOnClickListener { onPlayOne(track); dialog.dismiss() }
                 v.findViewById<View>(R.id.btnRemoveTrack).setOnClickListener {
                     onRemoveTrack(track)
@@ -170,11 +221,21 @@ object PlaylistDialogs {
         refreshHeader()
 
         btnClose.setOnClickListener { dialog.dismiss() }
-        btnPlayAll.setOnClickListener { if (tracks.isNotEmpty()) { onPlayAll(tracks); dialog.dismiss() } }
+        btnPlayAll.setOnClickListener { if (tracks.isNotEmpty()) { onPlayAll(PlaylistPlayOrder.sortedForPlayback(category, tracks)); dialog.dismiss() } }
         btnClear.text = clearLabel
         btnClear.setOnClickListener {
             onClear()
             dialog.dismiss()
+        }
+        if (secondaryLabel != null && onSecondary != null) {
+            btnSecondary.visibility = View.VISIBLE
+            btnSecondary.text = secondaryLabel
+            btnSecondary.setOnClickListener {
+                onSecondary.invoke()
+                dialog.dismiss()
+            }
+        } else {
+            btnSecondary.visibility = View.GONE
         }
 
         dialog.show()

@@ -274,6 +274,12 @@
     <string name="dialog_which_playlist">В какой плейлист добавить?</string>
     <string name="playlist_slot_name">Плейлист %1$d</string>
     <string name="playlist_empty">(пусто)</string>
+    <string name="action_to_playlist">Очередь в плейлист</string>
+    <string name="content_desc_queue_to_playlist">Сохранить очередь в плейлист</string>
+    <string name="playlist_existing_with_count">(существующий — %1$s)</string>
+    <string name="dialog_playlist_not_empty_title">Существующий плейлист</string>
+    <string name="dialog_playlist_not_empty_message">Плейлист %1$d уже содержит %2$s. Всё равно добавить выбранные элементы в этот плейлист?</string>
+    <string name="action_confirm_add_to_existing_playlist">Всё равно добавить</string>
     <string name="playlist_added_to_slot">%1$s в плейлист %2$d</string>
     <string name="playlist_added_partial">%1$s (%2$s)</string>
     <string name="dialog_playlist_empty_message">Этот плейлист пуст.\n\nВ проводнике выберите файлы и используйте \"Добавить в плейлист\", чтобы его заполнить.</string>

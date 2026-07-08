@@ -151,7 +151,7 @@
             app:iconTint="@color/green_accent"
             app:iconGravity="textStart"
             app:backgroundTint="@color/surface_variant"
-            app:cornerRadius="20dp"
+            app:cornerRadius="22dp"
             app:strokeColor="@color/green_accent"
             app:strokeWidth="1dp" />
 
@@ -175,7 +175,7 @@
             app:iconTint="@color/black"
             app:iconGravity="textStart"
             app:backgroundTint="@color/green_accent"
-            app:cornerRadius="20dp" />
+            app:cornerRadius="22dp" />
 
     </LinearLayout>
 

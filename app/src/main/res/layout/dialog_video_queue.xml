@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -19,8 +20,8 @@
 
         <ImageButton
             android:id="@+id/btnCloseVideoQueue"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_down"
             android:tint="@color/on_surface"
@@ -38,10 +39,34 @@
             android:fontFamily="sans-serif-condensed"
             android:letterSpacing="0.1" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVideoQueueToPlaylist"
+            android:includeFontPadding="false"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="6dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingHorizontal="10dp"
+            android:text="@string/action_to_playlist"
+            android:textColor="@color/on_surface"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed"
+            app:icon="@drawable/ic_layout_list"
+            app:iconSize="14dp"
+            app:iconTint="@color/green_accent"
+            app:iconGravity="textStart"
+            app:backgroundTint="@color/surface_variant"
+            app:strokeColor="@color/green_accent"
+            app:strokeWidth="1dp"
+            app:cornerRadius="22dp"
+            android:contentDescription="@string/content_desc_queue_to_playlist" />
+
         <TextView
             android:id="@+id/btnClearVideoQueue"
             android:layout_width="56dp"
-            android:layout_height="36dp"
+            android:layout_height="44dp"
             android:layout_marginStart="6dp"
             android:minWidth="0dp"
             android:minHeight="0dp"

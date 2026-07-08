@@ -195,18 +195,18 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBuyPro"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="44dp"
                 android:text="@string/paywall_buy_pro"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:textColor="@color/background_auth"
                 app:backgroundTint="@color/green_accent"
-                app:cornerRadius="13dp" />
+                app:cornerRadius="20dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBuyProPlus"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="44dp"
                 android:layout_marginTop="10dp"
                 android:text="@string/paywall_buy_pro_plus"
                 android:textSize="15sp"
@@ -215,19 +215,19 @@
                 app:backgroundTint="@color/surface"
                 app:strokeColor="@color/yellow_accent"
                 app:strokeWidth="1.5dp"
-                app:cornerRadius="13dp" />
+                app:cornerRadius="20dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRestore"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="44dp"
                 android:layout_marginTop="10dp"
                 android:text="@string/paywall_restore"
                 android:textSize="13sp"
                 android:textColor="@color/on_surface_variant"
                 app:strokeColor="@color/outline_variant"
-                app:cornerRadius="13dp" />
+                app:cornerRadius="20dp" />
         </LinearLayout>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

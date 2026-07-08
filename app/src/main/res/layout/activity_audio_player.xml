@@ -32,7 +32,7 @@
             <ImageView
                 android:id="@+id/icPartyContext"
                 android:layout_width="32dp"
-                android:layout_height="42dp"
+                android:layout_height="44dp"
                 android:padding="6dp"
                 android:src="@drawable/ic_group_people"
                 android:tint="@color/on_surface_variant"
@@ -42,7 +42,7 @@
             <ImageButton
                 android:id="@+id/btnAudioPlaylistParty"
                 android:layout_width="42dp"
-                android:layout_height="42dp"
+                android:layout_height="44dp"
                 android:layout_marginStart="2dp"
                 android:minWidth="42dp"
                 android:minHeight="42dp"
@@ -60,7 +60,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBlazeParty"
                 android:layout_width="wrap_content"
-                android:layout_height="42dp"
+                android:layout_height="44dp"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:minWidth="0dp"
@@ -96,7 +96,7 @@
             <ImageButton
                 android:id="@+id/btnPlaylistSheet"
                 android:layout_width="42dp"
-                android:layout_height="42dp"
+                android:layout_height="44dp"
                 android:minWidth="42dp"
                 android:minHeight="42dp"
                 android:padding="6dp"
@@ -109,7 +109,7 @@
             <ImageView
                 android:id="@+id/icLocalUserContext"
                 android:layout_width="32dp"
-                android:layout_height="42dp"
+                android:layout_height="44dp"
                 android:layout_marginStart="2dp"
                 android:padding="7dp"
                 android:src="@drawable/ic_person_single"
@@ -566,8 +566,8 @@
 
             <ImageButton
                 android:id="@+id/btnClosePlaylist"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_chevron_down"
                 android:tint="@color/on_surface"
@@ -597,7 +597,7 @@
                 app:backgroundTint="@color/surface_variant"
                 app:strokeColor="@color/green_accent"
                 app:strokeWidth="1.5dp"
-                app:cornerRadius="20dp"
+                app:cornerRadius="22dp"
                 app:icon="@drawable/ic_folder"
                 app:iconSize="14dp"
                 app:iconTint="@color/green_accent"
@@ -606,7 +606,7 @@
             <ImageButton
                 android:id="@+id/btnAddFolder"
                 android:layout_width="56dp"
-                android:layout_height="36dp"
+                android:layout_height="44dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
                 android:padding="7dp"
@@ -619,7 +619,7 @@
             <TextView
                 android:id="@+id/btnCleanPlaylist"
                 android:layout_width="56dp"
-                android:layout_height="36dp"
+                android:layout_height="44dp"
                 android:layout_marginStart="6dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
@@ -645,10 +645,10 @@
         <LinearLayout
             android:id="@+id/audioPlaylistStrip"
             android:layout_width="match_parent"
-            android:layout_height="42dp"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:paddingHorizontal="28dp"
+            android:paddingHorizontal="16dp"
             android:paddingTop="2dp"
             android:paddingBottom="6dp">
 
@@ -656,7 +656,7 @@
                 android:id="@+id/btnAudioPlaylist1"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:text="1"
                 android:textColor="@color/on_surface"
@@ -671,7 +671,7 @@
                 android:id="@+id/btnAudioPlaylist2"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:text="2"
                 android:textColor="@color/on_surface"
@@ -686,7 +686,7 @@
                 android:id="@+id/btnAudioPlaylist3"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:text="3"
                 android:textColor="@color/on_surface"
@@ -701,7 +701,7 @@
                 android:id="@+id/btnAudioPlaylist4"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="6dp"
                 android:gravity="center"
                 android:text="4"
                 android:textColor="@color/on_surface"
@@ -716,6 +716,7 @@
                 android:id="@+id/btnAudioPlaylist5"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
+                android:layout_marginEnd="10dp"
                 android:gravity="center"
                 android:text="5"
                 android:textColor="@color/on_surface"
@@ -725,6 +726,29 @@
                 android:background="@drawable/bg_playlist_chip"
                 android:clickable="true"
                 android:focusable="true" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnQueueToPlaylist"
+                android:includeFontPadding="false"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="10dp"
+                android:text="@string/action_to_playlist"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_surface"
+                android:fontFamily="sans-serif-condensed"
+                app:icon="@drawable/ic_layout_list"
+                app:iconSize="14dp"
+                app:iconTint="@color/green_accent"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/surface_variant"
+                app:strokeColor="@color/green_accent"
+                app:strokeWidth="1dp"
+                app:cornerRadius="22dp"
+                android:contentDescription="@string/content_desc_queue_to_playlist" />
 
         </LinearLayout>
 
@@ -771,7 +795,7 @@
             <ImageButton
                 android:id="@+id/btnClosePartyPlaylist"
                 android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_height="44dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_chevron_down"
                 android:tint="@color/on_surface"
@@ -791,7 +815,7 @@
             <TextView
                 android:id="@+id/btnLaunchPartyPlaylist"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="44dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
                 android:gravity="center"
@@ -807,7 +831,7 @@
             <TextView
                 android:id="@+id/btnVotePartyPlaylist"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="44dp"
                 android:layout_marginStart="6dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
@@ -824,7 +848,7 @@
             <TextView
                 android:id="@+id/btnClearPartyPlaylist"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="44dp"
                 android:layout_marginStart="6dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"

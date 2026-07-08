@@ -268,6 +268,12 @@
     <string name="dialog_which_playlist">Aan welke afspeellijst toevoegen?</string>
     <string name="playlist_slot_name">Afspeellijst %1$d</string>
     <string name="playlist_empty">(leeg)</string>
+    <string name="action_to_playlist">Wachtrij naar afspeellijst</string>
+    <string name="content_desc_queue_to_playlist">Wachtrij opslaan in een afspeellijst</string>
+    <string name="playlist_existing_with_count">(bestaand — %1$s)</string>
+    <string name="dialog_playlist_not_empty_title">Bestaande afspeellijst</string>
+    <string name="dialog_playlist_not_empty_message">Afspeellijst %1$d bevat al %2$s. Geselecteerde items toch aan deze afspeellijst toevoegen?</string>
+    <string name="action_confirm_add_to_existing_playlist">Toch toevoegen</string>
     <string name="playlist_added_to_slot">%1$s aan afspeellijst %2$d</string>
     <string name="playlist_added_partial">%1$s (%2$s)</string>
     <string name="dialog_playlist_empty_message">Deze afspeellijst is leeg.\n\nSelecteer bestanden in de bestandsverkenner en gebruik \"Toevoegen aan afspeellijst\" om deze te vullen.</string>

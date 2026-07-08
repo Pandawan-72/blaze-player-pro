@@ -35,6 +35,7 @@ object VideoQueueSheet {
         val empty = view.findViewById<TextView>(R.id.tvVideoQueueEmpty)
         val recycler = view.findViewById<RecyclerView>(R.id.recyclerVideoQueue)
         val btnClose = view.findViewById<ImageButton>(R.id.btnCloseVideoQueue)
+        val btnToPlaylist = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnVideoQueueToPlaylist)
         val btnClear = view.findViewById<TextView>(R.id.btnClearVideoQueue)
 
         recycler.layoutManager = GridLayoutManager(context, 2)
@@ -47,6 +48,8 @@ object VideoQueueSheet {
             empty.visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
             btnClear.isEnabled = tracks.isNotEmpty()
             btnClear.alpha = if (tracks.isNotEmpty()) 1f else 0.4f
+            btnToPlaylist.isEnabled = tracks.isNotEmpty()
+            btnToPlaylist.alpha = if (tracks.isNotEmpty()) 1f else 0.4f
             adapter?.submit(tracks)
             onChanged?.invoke()
         }
@@ -157,6 +160,18 @@ object VideoQueueSheet {
         refreshHeader(adapter)
 
         btnClose.setOnClickListener { dialog.dismiss() }
+        btnToPlaylist.setOnClickListener {
+            val queue = VideoQueueManager.getQueue(context, category)
+            if (queue.isEmpty()) {
+                Toast.makeText(context, context.getString(R.string.toast_list_already_empty), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
+                context = context,
+                category = category,
+                tracks = queue
+            )
+        }
         btnClear.setOnClickListener { showRemoveDialog() }
         dialog.show()
         dialog.window?.setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT)

@@ -1212,8 +1212,8 @@ class AudioPlayerFragment : Fragment() {
                         val ctrl = controller ?: return
                         if (ctrl.mediaItemCount <= 1) return
                         val snapshot = (0 until ctrl.mediaItemCount).map { ctrl.getMediaItemAt(it) }
-                        playlistAdapter.setOverrideItems(snapshot)
-                        playlistAdapter.setCurrentIndex(ctrl.currentMediaItemIndex)
+                        playlistAdapter.beginDragOverrideItems(snapshot, ctrl.currentMediaItemIndex)
+                        playlistAdapter.setQueueDragInProgress(true)
                         dragOverrideActive = true
                         viewHolder?.itemView?.alpha = 0.92f
                         viewHolder?.itemView?.elevation = 10f
@@ -1233,6 +1233,7 @@ class AudioPlayerFragment : Fragment() {
                         if (movedDuringDrag && ctrl != null) {
                             commitDraggedAudioOrder(ctrl, finalOrder)
                         }
+                        playlistAdapter.setQueueDragInProgress(false)
                         playlistAdapter.setOverrideItems(null)
                         playlistAdapter.refresh()
                         syncSelection()
@@ -1278,6 +1279,18 @@ class AudioPlayerFragment : Fragment() {
         binding.btnCleanPlaylist.setOnClickListener { showCleanDialog() }
         binding.btnAddFolder.setOnClickListener {
             pickAudio.launch(android.content.Intent(requireContext(), AudioBrowserActivity::class.java))
+        }
+        binding.btnQueueToPlaylist.setOnClickListener {
+            val tracks = currentAudioQueuePlaylistRefs()
+            if (tracks.isEmpty()) {
+                android.widget.Toast.makeText(requireContext(), getString(fr.retrospare.blazeplayer.R.string.toast_list_already_empty), android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
+                requireContext(),
+                fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO,
+                tracks
+            )
         }
         binding.btnAudioFavoriteFolders.setOnClickListener {
             fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
@@ -1352,7 +1365,17 @@ class AudioPlayerFragment : Fragment() {
             if (ctx != null) {
                 val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager
                     .getPlaylist(ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, i + 1).isNotEmpty()
-                btn?.isSelected = (lastPlayed == i + 1) && hasItems
+                btn?.isSelected = hasItems
+                btn?.isActivated = hasItems && (lastPlayed == i + 1)
+                btn?.setTextColor(
+                    ContextCompat.getColor(
+                        ctx,
+                        if (hasItems) fr.retrospare.blazeplayer.R.color.green_accent else fr.retrospare.blazeplayer.R.color.on_surface_variant
+                    )
+                )
+            } else {
+                btn?.isSelected = false
+                btn?.isActivated = false
             }
             btn?.setOnClickListener { openSavedAudioPlaylist(i + 1) }
         }
@@ -1705,9 +1728,7 @@ class AudioPlayerFragment : Fragment() {
         fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showPlaylistViewer(
             ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, slot,
             onPlayAll = { tracks ->
-                val ctrl = controller
-                ctrl?.clearMediaItems()
-                tracks.forEach { addTrack(it.path, it.name) }
+                playSavedAudioPlaylistFromStart(tracks)
                 fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayed(ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, slot)
                 setupSavedPlaylistDrawers()
             },
@@ -1717,8 +1738,89 @@ class AudioPlayerFragment : Fragment() {
                 refreshBlazePartyUiAfterPlaylistChange(openSheet = true)
                 val msg = if (added > 0) resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.blaze_party_items_added, added, added) else getString(fr.retrospare.blazeplayer.R.string.blaze_party_items_already_present)
                 android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
-            }
+            },
+            onChanged = { setupSavedPlaylistDrawers() }
         )
+    }
+
+    private fun playSavedAudioPlaylistFromStart(tracks: List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef>) {
+        val ctx = context ?: return
+        val ordered = fr.retrospare.blazeplayer.playlist.PlaylistPlayOrder
+            .sortedForPlayback(fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, tracks)
+        if (ordered.isEmpty()) return
+
+        val ctrl = controller
+        if (ctrl == null) {
+            // Fallback rare : contrôleur pas encore connecté. On garde l'ordre trié dans la file
+            // partagée, sans utiliser addTrack() qui lancerait successivement chaque morceau.
+            ordered.forEach { sharedVm.addToPlaylist(it.path, it.name) }
+            return
+        }
+
+        ctrl.clearMediaItems()
+        ordered.forEach { track ->
+            ctrl.addMediaItem(AudioRepository.buildSimpleMediaItem(ctx, track.path, track.name))
+        }
+
+        // Important : addTrack() lance chaque ajout immédiatement. Pour "Jouer la playlist",
+        // on reconstruit donc la file puis on force explicitement le départ au premier élément.
+        ctrl.seekTo(0, 0L)
+        ctrl.prepare()
+        ctrl.play()
+
+        playlistAdapter.refresh()
+        syncSelection()
+        syncMetadata()
+        syncButtons()
+        savePlaylistFromController()
+
+        ordered.forEach { track ->
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val enriched = AudioRepository.buildMediaItemWithMetadata(ctx, track.path, track.name)
+                    launch(Dispatchers.Main) {
+                        val c = controller ?: return@launch
+                        val idx = (0 until c.mediaItemCount).firstOrNull {
+                            originalPathOf(c.getMediaItemAt(it)) == track.path
+                        } ?: return@launch
+                        c.replaceMediaItem(idx, enriched)
+                        playlistAdapter.notifyItemChanged(idx)
+                    }
+                } catch (_: Exception) { }
+            }
+        }
+    }
+
+
+    private fun currentAudioQueuePlaylistRefs(): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> {
+        val ctrl = controller
+        val visibleItems = when {
+            ::playlistAdapter.isInitialized && playlistAdapter.hasOverrideItems() -> playlistAdapter.overrideItemsSnapshot()
+            ctrl != null -> (0 until ctrl.mediaItemCount).map { ctrl.getMediaItemAt(it) }
+            else -> emptyList()
+        }
+        return visibleItems.mapNotNull { mediaItem ->
+            val path = originalPathOf(mediaItem)
+            if (path.isBlank() || !AudioRepository.isAudioExtension(path)) return@mapNotNull null
+            val cachedMeta = runCatching { fr.retrospare.blazeplayer.player.AudioMetadataExtractor.getCached(requireContext(), path) }.getOrNull()
+            val meta = mediaItem.mediaMetadata
+            val name = meta.title?.toString()?.takeIf { it.isNotBlank() }
+                ?: mediaItem.localConfiguration?.uri?.lastPathSegment?.takeIf { it.isNotBlank() }
+                ?: path.substringAfterLast('/').ifBlank { path }
+            val extension = meta.extras?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)?.takeIf { it.isNotBlank() }
+                ?: cachedMeta?.extension?.takeIf { it.isNotBlank() }
+                ?: path.substringBefore('?').substringBefore('#').substringAfterLast('.', "")
+            fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(
+                path = path,
+                name = name,
+                artist = cachedMeta?.artist?.takeIf { it.isNotBlank() } ?: meta.artist?.toString().orEmpty(),
+                title = cachedMeta?.title?.takeIf { it.isNotBlank() } ?: meta.title?.toString().orEmpty(),
+                album = cachedMeta?.album.orEmpty(),
+                trackNumber = cachedMeta?.trackNumber ?: 0,
+                extension = extension.uppercase(),
+                durationMs = if (ctrl != null && mediaItem == ctrl.currentMediaItem) ctrl.duration.takeIf { it > 0L } ?: 0L else 0L
+            )
+        }
     }
 
     /** Sauvegarde sur disque l'etat courant du Player (seule source de verite). */

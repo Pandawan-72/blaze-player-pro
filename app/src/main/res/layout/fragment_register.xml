@@ -106,14 +106,14 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRegister"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="44dp"
             android:layout_marginTop="32dp"
             android:text="@string/create_my_account"
             android:textSize="16sp"
             android:includeFontPadding="false"
             android:gravity="center"
             app:backgroundTint="@color/green_accent"
-            app:cornerRadius="12dp" />
+            app:cornerRadius="20dp" />
 
         <!-- Progress -->
         <com.google.android.material.progressindicator.LinearProgressIndicator
