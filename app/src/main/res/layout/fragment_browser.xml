@@ -154,87 +154,64 @@
 
     </LinearLayout>
 
-    <!-- TOOLBAR SÉLECTION MULTIPLE -->
+    <!-- ACTIONS VIDÉO FIXES -->
     <LinearLayout
-        android:id="@+id/toolbarSelection"
+        android:id="@+id/videoSelectionActions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp"
-        android:background="@color/green_accent"
-        android:visibility="gone">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="10dp"
+        android:background="@color/background">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddToPlaylist"
+            android:includeFontPadding="false"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingHorizontal="12dp"
+            android:fontFamily="sans-serif-condensed"
+            android:gravity="center"
+            android:text="@string/add_to_playlist_fixed_short"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:icon="@drawable/ic_add_circle"
+            app:iconSize="16dp"
+            app:iconTint="@color/green_accent"
+            app:iconGravity="textStart"
+            app:backgroundTint="@color/surface_variant"
+            app:cornerRadius="20dp"
+            app:strokeColor="@color/green_accent"
+            app:strokeWidth="1dp" />
 
-            <ImageButton
-                android:id="@+id/btnCancelSelection"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_close"
-                android:tint="#000000"
-                android:contentDescription="Annuler" />
-
-            <TextView
-                android:id="@+id/tvSelectionCount"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="#000000"
-                android:textSize="14sp"
-                android:fontFamily="sans-serif-condensed"
-                android:paddingStart="8dp" />
-
-            <ImageButton
-                android:id="@+id/btnSelectAll"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_add_circle"
-                android:tint="#000000"
-                android:contentDescription="Tout sélectionner" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="6dp">
-
-            <Button
-                android:id="@+id/btnAddSelected"
-                android:includeFontPadding="false"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="40dp"
-                android:text="@string/play_selection"
-                android:textColor="#000000"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:textAllCaps="false"
-                android:backgroundTint="#33000000"
-                android:layout_marginEnd="8dp" />
-
-            <Button
-                android:id="@+id/btnAddToPlaylist"
-                android:includeFontPadding="false"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="40dp"
-                android:text="@string/add_to_playlist_short"
-                android:textColor="#000000"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:textAllCaps="false"
-                android:backgroundTint="#33000000" />
-
-        </LinearLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAddToQueue"
+            android:includeFontPadding="false"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="44dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingHorizontal="12dp"
+            android:fontFamily="sans-serif-condensed"
+            android:gravity="center"
+            android:text="@string/add_to_video_queue_short"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            app:icon="@drawable/ic_add_circle"
+            app:iconSize="16dp"
+            app:iconTint="@color/black"
+            app:iconGravity="textStart"
+            app:backgroundTint="@color/green_accent"
+            app:cornerRadius="20dp" />
 
     </LinearLayout>
 

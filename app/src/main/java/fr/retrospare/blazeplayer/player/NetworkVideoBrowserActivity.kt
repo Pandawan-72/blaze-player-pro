@@ -123,14 +123,19 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
     private var currentVideos: List<MediaItem> = emptyList()
 
     private fun updateSelectionToolbar() {
-        val toolbar = findViewById<View>(R.id.toolbarSelection) ?: return
-        val tvSelectionCount = findViewById<TextView>(R.id.tvSelectionCount)
-        if (selectedVideos.isEmpty()) {
-            toolbar.visibility = View.GONE
-        } else {
-            toolbar.visibility = View.VISIBLE
-            tvSelectionCount.text = resources.getQuantityString(R.plurals.items_selected_count, selectedVideos.size, selectedVideos.size)
-        }
+        // Les boutons "+ playlist" et "+ file d’attente" restent fixes en haut du
+        // navigateur. Les cases à cocher indiquent seules la sélection courante : aucun
+        // bandeau contextuel ne doit apparaître quand on coche des vidéos.
+    }
+
+    private fun selectedVideoRefs(): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> =
+        currentVideos.filter { it.path in selectedVideos }
+            .map { VideoQueueManager.fromMediaItem(it.copy(isNetwork = true, networkShareId = if (::share.isInitialized) share.id else it.networkShareId)) }
+
+    private fun clearSelectionAndRefresh() {
+        selectedVideos.clear()
+        updateSelectionToolbar()
+        recyclerNetwork.adapter?.notifyDataSetChanged()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -164,21 +169,30 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<View>(R.id.btnCancelSelection)?.setOnClickListener {
-            selectedVideos.clear()
-            updateSelectionToolbar()
-            recyclerNetwork.adapter?.notifyDataSetChanged()
-        }
         findViewById<View>(R.id.btnAddToPlaylist)?.setOnClickListener {
-            val tracks = currentVideos.filter { it.path in selectedVideos }
-                .map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.path, it.name) }
+            val tracks = selectedVideoRefs()
+            if (tracks.isEmpty()) {
+                android.widget.Toast.makeText(this, getString(R.string.toast_video_queue_no_video_selected), android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
                 this, fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO, tracks
             ) {
-                selectedVideos.clear()
-                updateSelectionToolbar()
-                recyclerNetwork.adapter?.notifyDataSetChanged()
+                clearSelectionAndRefresh()
             }
+        }
+        findViewById<View>(R.id.btnAddToQueue)?.setOnClickListener {
+            val tracks = selectedVideoRefs()
+            if (tracks.isEmpty()) {
+                android.widget.Toast.makeText(this, getString(R.string.toast_video_queue_no_video_selected), android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val added = VideoQueueManager.addToQueue(this, fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO, tracks)
+            val already = tracks.size - added
+            val msg = if (already > 0) getString(R.string.toast_video_queue_added_partial, added, already)
+            else getString(R.string.toast_video_queue_added, added)
+            android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
+            clearSelectionAndRefresh()
         }
 
         val shareId = intent.getStringExtra("shareId")

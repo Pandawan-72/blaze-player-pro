@@ -232,6 +232,7 @@
                         android:id="@+id/btnPlaylistNetwork5"
                         android:layout_width="34dp"
                         android:layout_height="34dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:text="5"
                         android:textColor="@color/on_surface"
@@ -241,6 +242,16 @@
                         android:background="@drawable/bg_playlist_chip"
                         android:clickable="true"
                         android:focusable="true" />
+
+                    <ImageButton
+                        android:id="@+id/btnVideoQueueNetwork"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_playlist_chip"
+                        android:src="@drawable/ic_layout_list"
+                        android:tint="@color/green_accent"
+                        android:padding="8dp"
+                        android:contentDescription="@string/content_desc_video_queue" />
 
                 </LinearLayout>
 
@@ -459,6 +470,7 @@
                         android:id="@+id/btnPlaylistLocal5"
                         android:layout_width="34dp"
                         android:layout_height="34dp"
+                        android:layout_marginEnd="8dp"
                         android:gravity="center"
                         android:text="5"
                         android:textColor="@color/on_surface"
@@ -468,6 +480,16 @@
                         android:background="@drawable/bg_playlist_chip"
                         android:clickable="true"
                         android:focusable="true" />
+
+                    <ImageButton
+                        android:id="@+id/btnVideoQueueLocal"
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_playlist_chip"
+                        android:src="@drawable/ic_layout_list"
+                        android:tint="@color/green_accent"
+                        android:padding="8dp"
+                        android:contentDescription="@string/content_desc_video_queue" />
 
                 </LinearLayout>
 

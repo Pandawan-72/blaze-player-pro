@@ -603,24 +603,16 @@
                 app:iconTint="@color/green_accent"
                 app:iconGravity="textStart" />
 
-            <TextView
+            <ImageButton
                 android:id="@+id/btnAddFolder"
                 android:layout_width="56dp"
                 android:layout_height="36dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
-                android:paddingLeft="0dp"
-                android:paddingRight="0dp"
-                android:paddingTop="0dp"
-                android:paddingBottom="0dp"
-                android:includeFontPadding="false"
-                android:gravity="center"
-                android:textAlignment="center"
-                android:text="+"
-                android:textSize="21sp"
-                android:textStyle="bold"
-                android:fontFamily="sans-serif"
-                android:textColor="@color/green_accent"
+                android:padding="7dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_add_circle"
+                android:tint="@color/green_accent"
                 android:background="@drawable/bg_queue_action_add_pill"
                 android:contentDescription="@string/add" />
 

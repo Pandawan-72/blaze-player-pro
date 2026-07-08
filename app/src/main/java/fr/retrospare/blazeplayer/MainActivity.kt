@@ -42,119 +42,6 @@ class MainActivity : AppCompatActivity() {
     private var miniBgAnimator: android.animation.ValueAnimator? = null
     private var currentMiniBgColor: Int = fr.retrospare.blazeplayer.player.AudioDynamicColor.DEFAULT_BACKGROUND
 
-    /** Détecte un swipe gauche/droite pour changer d'onglet sur l'accueil.
-     *
-     * Ancienne version : GestureDetector.onFling uniquement. Sur certains gestes réels il était
-     * capricieux, surtout quand le doigt partait d'une RecyclerView/ScrollView ou quand le swipe
-     * était plus lent qu'un fling Android pur. Ici on suit le geste nous-mêmes dans
-     * dispatchTouchEvent(), sans consommer l'évènement : les listes continuent donc de scroller,
-     * mais un vrai déplacement horizontal déclenche toujours le changement d'onglet au relâché. */
-    private var homeSwipeDownX = 0f
-    private var homeSwipeDownY = 0f
-    private var homeSwipeActivePointerId = android.view.MotionEvent.INVALID_POINTER_ID
-    private var homeSwipeVelocityTracker: android.view.VelocityTracker? = null
-    private var homeSwipeRejected = false
-    private var lastHomeSwipeHandledAt = 0L
-
-    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
-        if (isHomeFragmentCurrentDestination()) {
-            trackHomeTabSwipe(ev)
-        } else {
-            resetHomeTabSwipeTracking()
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
-    private fun trackHomeTabSwipe(ev: android.view.MotionEvent) {
-        when (ev.actionMasked) {
-            android.view.MotionEvent.ACTION_DOWN -> {
-                homeSwipeDownX = ev.x
-                homeSwipeDownY = ev.y
-                homeSwipeActivePointerId = ev.getPointerId(0)
-                homeSwipeRejected = false
-                homeSwipeVelocityTracker?.recycle()
-                homeSwipeVelocityTracker = android.view.VelocityTracker.obtain().also { it.addMovement(ev) }
-            }
-            android.view.MotionEvent.ACTION_POINTER_DOWN -> {
-                // Pas de changement d'onglet pendant un geste multitouch/pinch.
-                homeSwipeRejected = true
-                homeSwipeVelocityTracker?.addMovement(ev)
-            }
-            android.view.MotionEvent.ACTION_MOVE -> {
-                if (homeSwipeActivePointerId == android.view.MotionEvent.INVALID_POINTER_ID) return
-                homeSwipeVelocityTracker?.addMovement(ev)
-                val pointerIndex = ev.findPointerIndex(homeSwipeActivePointerId)
-                if (pointerIndex < 0) {
-                    resetHomeTabSwipeTracking()
-                    return
-                }
-                // Pas de rejet anticipé basé sur un échantillon de déplacement intermédiaire ici :
-                // un swipe réel démarre très souvent avec un peu de bruit vertical avant que le
-                // geste horizontal ne devienne net, et rejeter dès ce moment-là tuait
-                // définitivement des swipes par ailleurs parfaitement valides (c'était la cause
-                // principale du comportement capricieux rapporté). La décision finale se base
-                // uniquement sur le déplacement NET (down -> up) dans handleHomeSwipeRelease,
-                // qui filtre déjà correctement les gestes majoritairement verticaux.
-            }
-            android.view.MotionEvent.ACTION_UP -> {
-                handleHomeSwipeRelease(ev)
-                resetHomeTabSwipeTracking()
-            }
-            android.view.MotionEvent.ACTION_CANCEL -> resetHomeTabSwipeTracking()
-        }
-    }
-
-    private fun handleHomeSwipeRelease(ev: android.view.MotionEvent) {
-        if (homeSwipeRejected || homeSwipeActivePointerId == android.view.MotionEvent.INVALID_POINTER_ID) return
-        val pointerIndex = ev.findPointerIndex(homeSwipeActivePointerId).takeIf { it >= 0 } ?: 0
-        val dx = ev.getX(pointerIndex) - homeSwipeDownX
-        val dy = ev.getY(pointerIndex) - homeSwipeDownY
-        val absDx = kotlin.math.abs(dx)
-        val absDy = kotlin.math.abs(dy)
-        val density = resources.displayMetrics.density
-        val viewConfig = android.view.ViewConfiguration.get(this)
-        val minDistance = 48f * density
-        val quickSwipeDistance = 30f * density
-        val minVelocity = kotlin.math.max(viewConfig.scaledMinimumFlingVelocity.toFloat() * 1.6f, 420f * density)
-
-        homeSwipeVelocityTracker?.apply {
-            addMovement(ev)
-            computeCurrentVelocity(1000, viewConfig.scaledMaximumFlingVelocity.toFloat())
-        }
-        val velocityX = homeSwipeVelocityTracker?.xVelocity ?: 0f
-        val isMostlyHorizontal = absDx > absDy * 1.25f
-        val hasEnoughDistance = absDx >= minDistance
-        val hasEnoughFastIntent = absDx >= quickSwipeDistance && kotlin.math.abs(velocityX) >= minVelocity
-        val now = android.os.SystemClock.uptimeMillis()
-
-        if (isMostlyHorizontal && (hasEnoughDistance || hasEnoughFastIntent) && now - lastHomeSwipeHandledAt > 260L) {
-            lastHomeSwipeHandledAt = now
-            dispatchHomeTabSwipe(if (dx < 0) 1 else -1)
-        }
-    }
-
-    private fun resetHomeTabSwipeTracking() {
-        homeSwipeActivePointerId = android.view.MotionEvent.INVALID_POINTER_ID
-        homeSwipeRejected = false
-        homeSwipeVelocityTracker?.recycle()
-        homeSwipeVelocityTracker = null
-    }
-
-    /** Le geste n'est actif que sur l'écran d'accueil : ailleurs (lecteur, réglages, navigateur
-     *  réseau...) un swipe n'a pas vocation à changer d'onglet à l'accueil en arrière-plan. */
-    private fun isHomeFragmentCurrentDestination(): Boolean {
-        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
-        return navHost?.navController?.currentDestination?.id == R.id.homeFragment
-    }
-
-    private fun dispatchHomeTabSwipe(delta: Int) {
-        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-        navHost?.childFragmentManager?.fragments
-            ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()
-            ?.firstOrNull()
-            ?.handleTabSwipe(delta)
-    }
-
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -484,11 +371,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleBlazePartyInvite(intent: Intent): Boolean {
         val data = intent.data ?: return false
-        val isLongInvite = data.scheme == "blazeparty" && data.host == "join"
-        val isCompactInvite = data.scheme == "bp"
-        if (!isLongInvite && !isCompactInvite) return false
         val connection = fr.retrospare.blazeplayer.player.PartyProtocol.parse(data.toString())
         if (connection == null) {
+            val scheme = data.scheme.orEmpty()
+            val looksLikePartyLink = scheme == "bp" || scheme == "blazeparty" || scheme == "intent" ||
+                data.host == "blazeparty.local"
+            if (!looksLikePartyLink) return false
             android.util.Log.w("MainActivity", "Lien Blaze Party invalide/incomplet : $data")
             android.widget.Toast.makeText(this, getString(fr.retrospare.blazeplayer.R.string.blaze_party_scan_unavailable), android.widget.Toast.LENGTH_LONG).show()
             intent.data = null
@@ -498,11 +386,17 @@ class MainActivity : AppCompatActivity() {
         fr.retrospare.blazeplayer.player.BlazePartyVoteManager.setHost(this, false)
         fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveConnection(this, connection)
         fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveSessionPayload(this, data.toString())
-        android.widget.Toast.makeText(
-            this,
-            getString(fr.retrospare.blazeplayer.R.string.blaze_party_joined),
-            android.widget.Toast.LENGTH_LONG
-        ).show()
+        getSharedPreferences("launcher_requests", MODE_PRIVATE)
+            .edit()
+            .putBoolean("pendingOpenBlazeAudio", true)
+            .putLong("pendingOpenBlazeAudioAt", System.currentTimeMillis())
+            .putBoolean("pendingOpenBlazePartySheet", true)
+            .putLong("pendingOpenBlazePartySheetAt", System.currentTimeMillis())
+            .apply()
+        // Ne pas afficher "Blaze Party rejoint" ici : à ce stade le QR est seulement parsé et
+        // mémorisé. La vraie confirmation arrive depuis AudioPlayerFragment uniquement après un
+        // /join + snapshot /state valides ; sinon l'utilisateur voit une connexion fantôme puis
+        // "connexion à l'hôte perdue" sans avoir jamais reçu la file partagée.
         handler.postDelayed({
             openBlazeAudio()
             showBlazePartyNicknameDialogFromInvite()

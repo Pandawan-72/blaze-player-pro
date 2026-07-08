@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class BrowserFragment : Fragment() {
     private var audioPickMode = false
+    private var videoActionsEnabled = true
 
     private val viewModel: BrowserViewModel by viewModels()
     private var _binding: FragmentBrowserBinding? = null
@@ -40,6 +41,8 @@ class BrowserFragment : Fragment() {
         audioPickMode = arguments?.getBoolean("audioPickMode") ?: false
         val audioOnlyMode = arguments?.getBoolean("audioOnlyMode") ?: false
         val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
+        videoActionsEnabled = !audioOnlyMode && !audioPickMode
+        binding.videoSelectionActions.visibility = if (videoActionsEnabled) View.VISIBLE else View.GONE
         if (audioOnlyMode) {
             viewModel.setAudioOnlyMode(true)
             // Titre correct selon le type de navigateur
@@ -60,54 +63,56 @@ class BrowserFragment : Fragment() {
         }
     }
 
+    private fun isVideoItem(item: MediaItem): Boolean {
+        if (item.mimeType == "folder" || item.mimeType == "share" || item.mimeType == "network") return false
+        val ext = item.extension.lowercase().ifBlank { item.name.substringAfterLast('.', "").lowercase() }
+        return item.mimeType.startsWith("video/") || ext in setOf("mp4", "mkv", "avi", "mov", "flv", "wmv", "webm", "m4v", "ts", "m2ts", "mts", "3gp", "3g2")
+    }
+
+    private fun selectedVideoRefs(): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> =
+        adapter.getSelectedItems()
+            .filter { isVideoItem(it) }
+            .map { fr.retrospare.blazeplayer.player.VideoQueueManager.fromMediaItem(it) }
+
+    private fun currentVideoCategory(): fr.retrospare.blazeplayer.playlist.PlaylistCategory {
+        val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
+        return if (isNetwork) fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
+        else fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
+    }
+
+    private fun clearVideoSelection() {
+        adapter.clearSelection()
+    }
+
     private fun setupSelectionToolbar() {
-        binding.root.findViewById<android.widget.ImageButton>(R.id.btnCancelSelection)
+        binding.root.findViewById<android.widget.TextView>(R.id.btnAddToPlaylist)
             ?.setOnClickListener {
-                adapter.clearSelection()
-                binding.toolbarSelection.visibility = android.view.View.GONE
-            }
-        binding.root.findViewById<android.widget.ImageButton>(R.id.btnSelectAll)
-            ?.setOnClickListener {
-                adapter.selectAll()
-                val count = adapter.itemCount
-                binding.tvSelectionCount.text = resources.getQuantityString(R.plurals.items_selected_count, count, count)
-                adapter.onSelectionChanged?.invoke(adapter.getSelectedItems().map { it.id }.toSet())
-            }
-        binding.root.findViewById<android.widget.Button>(R.id.btnAddSelected)
-            ?.setOnClickListener {
-                val selected = adapter.getSelectedItems()
-                if (selected.isNotEmpty()) {
-                    selected.forEach { item ->
-                        PlayerRouter.open(requireContext(), item.path, item.name)
-                    }
-                    adapter.clearSelection()
-                    binding.toolbarSelection.visibility = android.view.View.GONE
+                val tracks = selectedVideoRefs()
+                if (tracks.isEmpty()) {
+                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_video_queue_no_video_selected), android.widget.Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(requireContext(), currentVideoCategory(), tracks) {
+                    clearVideoSelection()
                 }
             }
-        binding.root.findViewById<android.widget.Button>(R.id.btnAddToPlaylist)
+        binding.root.findViewById<android.widget.TextView>(R.id.btnAddToQueue)
             ?.setOnClickListener {
-                val selected = adapter.getSelectedItems()
-                val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
-                val category = if (isNetwork)
-                    fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
-                else
-                    fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
-                val tracks = selected.map { fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(it.path, it.name) }
-                fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(requireContext(), category, tracks) {
-                    adapter.clearSelection()
-                    binding.toolbarSelection.visibility = android.view.View.GONE
+                val tracks = selectedVideoRefs()
+                if (tracks.isEmpty()) {
+                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_video_queue_no_video_selected), android.widget.Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
                 }
+                val added = fr.retrospare.blazeplayer.player.VideoQueueManager.addToQueue(requireContext(), currentVideoCategory(), tracks)
+                val already = tracks.size - added
+                val msg = if (already > 0) getString(R.string.toast_video_queue_added_partial, added, already)
+                else getString(R.string.toast_video_queue_added, added)
+                android.widget.Toast.makeText(requireContext(), msg, android.widget.Toast.LENGTH_SHORT).show()
+                clearVideoSelection()
             }
-        // Sans ça, le mode sélection s'activait (case à cocher visible) mais la barre d'actions
-        // en haut ne s'affichait jamais : onSelectionChanged n'était jamais branché.
-        adapter.onSelectionChanged = { selected ->
-            if (selected.isEmpty()) {
-                binding.toolbarSelection.visibility = android.view.View.GONE
-            } else {
-                binding.toolbarSelection.visibility = android.view.View.VISIBLE
-                binding.tvSelectionCount.text = resources.getQuantityString(R.plurals.items_selected_count, selected.size, selected.size)
-            }
-        }
+        // Les boutons restent fixes en haut du navigateur. La sélection se fait uniquement via
+        // les cases à cocher ; aucun bandeau contextuel ne doit apparaître/disparaître.
+        adapter.onSelectionChanged = { }
     }
 
 

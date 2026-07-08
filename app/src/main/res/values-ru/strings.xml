@@ -58,6 +58,7 @@
     <string name="sort_name_az">Имя А–Я</string>
     <string name="now_playing">СЕЙЧАС ИГРАЕТ</string>
     <string name="queue">ОЧЕРЕДЬ</string>
+    <string name="queue_short">Очередь</string>
     <string name="add">Добавить</string>
     <string name="info">Инфо</string>
     <string name="folder">Папка</string>
@@ -106,7 +107,7 @@
     <string name="resume_ask">Спрашивать</string>
     <string name="resume_never">Никогда</string>
     <string name="settings_autoplay_next">Автовоспроизведение следующего</string>
-    <string name="settings_autoplay_next_desc">Автоматически воспроизводить следующий файл</string>
+    <string name="settings_autoplay_next_desc">Автоматически воспроизводить следующий файл, включая очереди</string>
     <string name="settings_playback_speed">Скорость воспроизведения</string>
     <string name="speed_normal">1x (обычная)</string>
     <string name="settings_seek_duration">Длительность перемотки</string>
@@ -669,4 +670,19 @@
     <string name="exporting_progress">Экспорт…</string>
     <string name="export_fast_hint">Быстро: почти мгновенно, обрезка по ближайшему ключевому кадру</string>
     <string name="export_precise_hint">Точно: перекодирует видео для точной обрезки, медленнее</string>
+    <!-- Video queue additions -->
+    <string name="add_to_playlist_fixed_short">В плейлист</string>
+    <string name="add_to_video_queue_short">очередь</string>
+    <string name="app_name_audio">Blaze Audio</string>
+    <string name="blaze_party_network_error">Не удалось подключиться к хосту. Убедитесь, что вы подключены к той же сети Wi‑Fi.</string>
+    <string name="video_queue_title">ОЧЕРЕДЬ ВИДЕО</string>
+    <string name="video_queue_title_with_category">ОЧЕРЕДЬ ВИДЕО — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">В этой очереди нет видео. Выберите видео в браузере и используйте «+ очередь».</string>
+    <string name="toast_video_queue_added">%1$d видео добавлено в очередь</string>
+    <string name="toast_video_queue_added_partial">%1$d видео добавлено, %2$d уже есть в очереди</string>
+    <string name="toast_video_queue_no_video_selected">Выберите хотя бы одно видео</string>
+    <string name="toast_video_queue_cleared">Очередь видео очищена</string>
+    <string name="toast_video_queue_item_removed">Видео удалено из очереди</string>
+    <string name="content_desc_video_queue">Очередь видео</string>
+    <string name="content_desc_close_video_queue">Закрыть очередь видео</string>
 </resources>

@@ -1144,6 +1144,108 @@ class AudioPlayerFragment : Fragment() {
         })
     }
 
+    private fun attachStandardAudioQueueDragAndDrop(recyclerView: androidx.recyclerview.widget.RecyclerView) {
+        var movedDuringDrag = false
+        var dragOverrideActive = false
+
+        fun mediaItemKey(item: MediaItem): String = originalPathOf(item).ifBlank {
+            item.localConfiguration?.uri?.toString().orEmpty()
+        }
+
+        fun commitDraggedAudioOrder(ctrl: Player, desiredOrder: List<MediaItem>) {
+            if (desiredOrder.isEmpty() || ctrl.mediaItemCount <= 1) return
+            val working = (0 until ctrl.mediaItemCount).map { ctrl.getMediaItemAt(it) }.toMutableList()
+            desiredOrder.forEachIndexed { desiredIndex, desiredItem ->
+                val key = mediaItemKey(desiredItem)
+                val currentIndex = working.indexOfFirst { mediaItemKey(it) == key }
+                if (currentIndex != -1 && currentIndex != desiredIndex && desiredIndex in working.indices) {
+                    ctrl.moveMediaItem(currentIndex, desiredIndex)
+                    val moved = working.removeAt(currentIndex)
+                    working.add(desiredIndex, moved)
+                }
+            }
+        }
+
+        val helper = androidx.recyclerview.widget.ItemTouchHelper(
+            object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
+                androidx.recyclerview.widget.ItemTouchHelper.UP or
+                    androidx.recyclerview.widget.ItemTouchHelper.DOWN or
+                    androidx.recyclerview.widget.ItemTouchHelper.LEFT or
+                    androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
+                0
+            ) {
+                override fun isLongPressDragEnabled(): Boolean = true
+                override fun isItemViewSwipeEnabled(): Boolean = false
+
+                override fun canDropOver(
+                    recyclerView: androidx.recyclerview.widget.RecyclerView,
+                    current: androidx.recyclerview.widget.RecyclerView.ViewHolder,
+                    target: androidx.recyclerview.widget.RecyclerView.ViewHolder
+                ): Boolean = !isPlayingBlazePartyQueue && (dragOverrideActive || !playlistAdapter.hasOverrideItems())
+
+                override fun onMove(
+                    recyclerView: androidx.recyclerview.widget.RecyclerView,
+                    viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder,
+                    target: androidx.recyclerview.widget.RecyclerView.ViewHolder
+                ): Boolean {
+                    if (isPlayingBlazePartyQueue || !dragOverrideActive) return false
+                    val from = viewHolder.adapterPosition
+                    val to = target.adapterPosition
+                    if (from == androidx.recyclerview.widget.RecyclerView.NO_POSITION ||
+                        to == androidx.recyclerview.widget.RecyclerView.NO_POSITION ||
+                        from == to
+                    ) return false
+
+                    val moved = playlistAdapter.moveOverrideItem(from, to)
+                    if (moved) movedDuringDrag = true
+                    return moved
+                }
+
+                override fun onSwiped(viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, direction: Int) = Unit
+
+                override fun onSelectedChanged(viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder?, actionState: Int) {
+                    super.onSelectedChanged(viewHolder, actionState)
+                    if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
+                        movedDuringDrag = false
+                        dragOverrideActive = false
+                        if (isPlayingBlazePartyQueue || playlistAdapter.hasOverrideItems()) return
+                        val ctrl = controller ?: return
+                        if (ctrl.mediaItemCount <= 1) return
+                        val snapshot = (0 until ctrl.mediaItemCount).map { ctrl.getMediaItemAt(it) }
+                        playlistAdapter.setOverrideItems(snapshot)
+                        playlistAdapter.setCurrentIndex(ctrl.currentMediaItemIndex)
+                        dragOverrideActive = true
+                        viewHolder?.itemView?.alpha = 0.92f
+                        viewHolder?.itemView?.elevation = 10f
+                    }
+                }
+
+                override fun clearView(
+                    recyclerView: androidx.recyclerview.widget.RecyclerView,
+                    viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder
+                ) {
+                    super.clearView(recyclerView, viewHolder)
+                    viewHolder.itemView.alpha = 1f
+                    viewHolder.itemView.elevation = 0f
+                    if (dragOverrideActive) {
+                        val finalOrder = playlistAdapter.overrideItemsSnapshot()
+                        val ctrl = controller
+                        if (movedDuringDrag && ctrl != null) {
+                            commitDraggedAudioOrder(ctrl, finalOrder)
+                        }
+                        playlistAdapter.setOverrideItems(null)
+                        playlistAdapter.refresh()
+                        syncSelection()
+                        if (movedDuringDrag) savePlaylistFromController()
+                        movedDuringDrag = false
+                        dragOverrideActive = false
+                    }
+                }
+            }
+        )
+        helper.attachToRecyclerView(recyclerView)
+    }
+
     private fun initPlaylistUi() {
         playlistAdapter = PlaylistAdapter({ controller }) { index ->
             if (isPlayingBlazePartyQueue && playlistAdapter.hasOverrideItems()) {
@@ -1160,6 +1262,7 @@ class AudioPlayerFragment : Fragment() {
             configureSmoothQueueRecycler(this, playlistAdapter) { enabled ->
                 playlistAdapter.setMetadataLoadsEnabled(enabled)
             }
+            attachStandardAudioQueueDragAndDrop(this)
         }
         partyPlaylistAdapter = PartyPlaylistAdapter(
             voteCountProvider = { path -> voteCountFor(path) },

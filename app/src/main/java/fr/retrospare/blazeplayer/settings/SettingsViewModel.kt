@@ -143,7 +143,7 @@ class SettingsViewModel @Inject constructor(
 
     fun getResumeMode() = getInt(KEY_RESUME_MODE, 1)
     fun setResumeMode(v: Int) = setInt(KEY_RESUME_MODE, v)
-    fun getAutoPlay() = getBool(KEY_AUTO_PLAY, false)
+    fun getAutoPlay() = getBool(KEY_AUTO_PLAY, true)
     fun setAutoPlay(v: Boolean) = setBool(KEY_AUTO_PLAY, v)
     fun getSpeedIndex() = getInt(KEY_SPEED_INDEX, 3)
     fun setSpeedIndex(v: Int) = setInt(KEY_SPEED_INDEX, v)

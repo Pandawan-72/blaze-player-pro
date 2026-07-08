@@ -4,8 +4,25 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Référence légère vers un fichier (chemin + nom), suffisante pour retrouver/relire le média. */
-data class PlaylistTrackRef(val path: String, val name: String)
+/** Référence légère vers un fichier (chemin + nom), enrichie si besoin par les métadonnées
+ *  audio déjà connues. Les champs optionnels servent surtout à Blaze Party côté invité : le
+ *  téléphone client ne peut pas relire le fichier local/SMB de l’hôte, donc l’hôte doit lui
+ *  transmettre artiste, conteneur, débit, lossless et durée avec la file partagée. */
+data class PlaylistTrackRef(
+    val path: String,
+    val name: String,
+    val artist: String = "",
+    val title: String = "",
+    val extension: String = "",
+    val bitrate: Long = 0L,
+    val isLossless: Boolean = false,
+    val durationMs: Long = 0L,
+    val playedOrder: Int = 0,
+    val videoQuality: String = "",
+    val videoCodec: String = "",
+    val audioCodec: String = "",
+    val sizeBytes: Long = 0L
+)
 
 /** Les contextes qui ont chacun leurs 5 playlists indépendantes (1/2/3/4/5). */
 enum class PlaylistCategory(val prefKey: String, val label: String) {
@@ -67,6 +84,17 @@ object PlaylistManager {
             arr.put(JSONObject().apply {
                 put("path", ref.path)
                 put("name", ref.name)
+                if (ref.artist.isNotBlank()) put("artist", ref.artist)
+                if (ref.title.isNotBlank()) put("title", ref.title)
+                if (ref.extension.isNotBlank()) put("extension", ref.extension)
+                if (ref.bitrate > 0L) put("bitrate", ref.bitrate)
+                if (ref.isLossless) put("isLossless", true)
+                if (ref.durationMs > 0L) put("durationMs", ref.durationMs)
+                if (ref.playedOrder > 0) put("playedOrder", ref.playedOrder)
+                if (ref.videoQuality.isNotBlank()) put("videoQuality", ref.videoQuality)
+                if (ref.videoCodec.isNotBlank()) put("videoCodec", ref.videoCodec)
+                if (ref.audioCodec.isNotBlank()) put("audioCodec", ref.audioCodec)
+                if (ref.sizeBytes > 0L) put("sizeBytes", ref.sizeBytes)
             })
         }
         context.getSharedPreferences(BLAZE_PARTY_PREFS, Context.MODE_PRIVATE)
@@ -79,7 +107,21 @@ object PlaylistManager {
         val arr = JSONArray(json)
         (0 until arr.length()).map {
             val o = arr.getJSONObject(it)
-            PlaylistTrackRef(o.getString("path"), o.getString("name"))
+            PlaylistTrackRef(
+                path = o.getString("path"),
+                name = o.getString("name"),
+                artist = o.optString("artist"),
+                title = o.optString("title"),
+                extension = o.optString("extension"),
+                bitrate = o.optLong("bitrate", 0L),
+                isLossless = o.optBoolean("isLossless", false),
+                durationMs = o.optLong("durationMs", 0L),
+                playedOrder = o.optInt("playedOrder", 0),
+                videoQuality = o.optString("videoQuality"),
+                videoCodec = o.optString("videoCodec"),
+                audioCodec = o.optString("audioCodec"),
+                sizeBytes = o.optLong("sizeBytes", 0L)
+            )
         }
     } catch (_: Exception) {
         emptyList()
@@ -117,7 +159,23 @@ object PlaylistManager {
 
     fun savePlaylist(context: Context, category: PlaylistCategory, slot: Int, tracks: List<PlaylistTrackRef>) {
         val arr = JSONArray()
-        tracks.forEach { arr.put(JSONObject().put("path", it.path).put("name", it.name)) }
+        tracks.forEach { ref ->
+            arr.put(JSONObject().apply {
+                put("path", ref.path)
+                put("name", ref.name)
+                if (ref.artist.isNotBlank()) put("artist", ref.artist)
+                if (ref.title.isNotBlank()) put("title", ref.title)
+                if (ref.extension.isNotBlank()) put("extension", ref.extension)
+                if (ref.bitrate > 0L) put("bitrate", ref.bitrate)
+                if (ref.isLossless) put("isLossless", true)
+                if (ref.durationMs > 0L) put("durationMs", ref.durationMs)
+                if (ref.playedOrder > 0) put("playedOrder", ref.playedOrder)
+                if (ref.videoQuality.isNotBlank()) put("videoQuality", ref.videoQuality)
+                if (ref.videoCodec.isNotBlank()) put("videoCodec", ref.videoCodec)
+                if (ref.audioCodec.isNotBlank()) put("audioCodec", ref.audioCodec)
+                if (ref.sizeBytes > 0L) put("sizeBytes", ref.sizeBytes)
+            })
+        }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(key(category, slot), arr.toString())

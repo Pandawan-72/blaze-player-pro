@@ -58,6 +58,7 @@
     <string name="sort_name_az">Name A–Z</string>
     <string name="now_playing">NOW PLAYING</string>
     <string name="queue">QUEUE</string>
+    <string name="queue_short">Queue</string>
     <string name="add">Add</string>
     <string name="info">Info</string>
     <string name="folder">Folder</string>
@@ -106,7 +107,7 @@
     <string name="resume_ask">Ask</string>
     <string name="resume_never">Never</string>
     <string name="settings_autoplay_next">Autoplay next</string>
-    <string name="settings_autoplay_next_desc">Automatically play the next file</string>
+    <string name="settings_autoplay_next_desc">Automatically play the next file, including in queues</string>
     <string name="settings_playback_speed">Playback speed</string>
     <string name="speed_normal">1x (normal)</string>
     <string name="settings_seek_duration">Seek duration</string>
@@ -647,4 +648,21 @@ Token: %2$s</string>
     <string name="exporting_progress">Exporting…</string>
     <string name="export_fast_hint">Fast: near-instant, cuts at the nearest keyframe</string>
     <string name="export_precise_hint">Precise: re-encodes the video for an exact cut, slower</string>
+    <!-- Video queue -->
+    <string name="add_to_video_queue_short">queue</string>
+    <string name="video_queue_title">VIDEO QUEUE</string>
+    <string name="video_queue_title_with_category">VIDEO QUEUE — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">No video in this queue. Select videos in the browser, then use “+ queue”.</string>
+    <string name="toast_video_queue_added">%1$d video(s) added to the queue</string>
+    <string name="toast_video_queue_added_partial">%1$d video(s) added, %2$d already present</string>
+    <string name="toast_video_queue_no_video_selected">Select at least one video</string>
+    <string name="toast_video_queue_cleared">Video queue cleared</string>
+    <string name="toast_video_queue_item_removed">Video removed from the queue</string>
+    <string name="content_desc_video_queue">Video queue</string>
+    <string name="content_desc_close_video_queue">Close video queue</string>
+
+    <!-- Video queue additions -->
+    <string name="add_to_playlist_fixed_short">Add to playlist</string>
+    <string name="app_name_audio">Blaze Audio</string>
+    <string name="blaze_party_network_error">Unable to connect to the host. Make sure you are on the same Wi‑Fi.</string>
 </resources>

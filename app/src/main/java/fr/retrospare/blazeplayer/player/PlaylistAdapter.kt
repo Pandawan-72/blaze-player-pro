@@ -59,6 +59,21 @@ class PlaylistAdapter(
 
     fun hasOverrideItems(): Boolean = overrideItems != null
 
+    fun overrideItemsSnapshot(): List<MediaItem> = overrideItems.orEmpty()
+
+    fun moveOverrideItem(fromPosition: Int, toPosition: Int): Boolean {
+        val current = overrideItems?.toMutableList() ?: return false
+        if (fromPosition !in current.indices || toPosition !in current.indices || fromPosition == toPosition) return false
+        if (fromPosition < toPosition) {
+            for (i in fromPosition until toPosition) java.util.Collections.swap(current, i, i + 1)
+        } else {
+            for (i in fromPosition downTo toPosition + 1) java.util.Collections.swap(current, i, i - 1)
+        }
+        overrideItems = current
+        notifyItemMoved(fromPosition, toPosition)
+        return true
+    }
+
     fun overrideItemAt(position: Int): MediaItem? = overrideItems?.let {
         if (position in it.indices) it[position] else null
     }

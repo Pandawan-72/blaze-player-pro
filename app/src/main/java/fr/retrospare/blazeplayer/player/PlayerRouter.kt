@@ -47,18 +47,28 @@ object PlayerRouter {
         context.startActivity(intent)
     }
 
-    /** Lance une playlist vidéo (locale ou réseau) : la première piste démarre immédiatement, les
-     *  suivantes s'enchaînent automatiquement en fin de lecture (voir PlayerActivity.playNext()). */
+    /** Lance une playlist vidéo (locale ou réseau) : la première piste démarre immédiatement.
+     *  Les suivantes s'enchaînent seulement si le réglage "Lecture automatique suivante" est actif. */
     fun openPlaylist(context: Context, tracks: List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef>, startIndex: Int = 0) {
         if (tracks.isEmpty()) return
         val safeIndex = startIndex.coerceIn(0, tracks.size - 1)
         val first = tracks[safeIndex]
+        val isNetworkQueue = tracks.any { track ->
+            track.path.startsWith("smb://", true) || track.path.startsWith("ftp://", true) ||
+                track.path.startsWith("http://", true) || track.path.startsWith("https://", true)
+        }
         val intent = Intent(context, PlayerActivity::class.java).apply {
             putExtra("mediaPath", first.path)
             putExtra("mediaName", first.name)
             putStringArrayListExtra("queuePaths", ArrayList(tracks.map { it.path }))
             putStringArrayListExtra("queueNames", ArrayList(tracks.map { it.name }))
             putExtra("queueIndex", safeIndex)
+            putExtra("isNetworkMedia", isNetworkQueue)
+            if (first.path.startsWith("content://", ignoreCase = true)) {
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                data = android.net.Uri.parse(first.path)
+                clipData = android.content.ClipData.newUri(context.contentResolver, first.name, android.net.Uri.parse(first.path))
+            }
         }
         context.startActivity(intent)
     }

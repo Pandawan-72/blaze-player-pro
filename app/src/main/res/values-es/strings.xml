@@ -58,6 +58,7 @@
     <string name="sort_name_az">Nombre A–Z</string>
     <string name="now_playing">REPRODUCIENDO</string>
     <string name="queue">COLA</string>
+    <string name="queue_short">Cola</string>
     <string name="add">Añadir</string>
     <string name="info">Información</string>
     <string name="folder">Carpeta</string>
@@ -106,7 +107,7 @@
     <string name="resume_ask">Preguntar</string>
     <string name="resume_never">Nunca</string>
     <string name="settings_autoplay_next">Reproducción automática siguiente</string>
-    <string name="settings_autoplay_next_desc">Reproducir automáticamente el siguiente archivo</string>
+    <string name="settings_autoplay_next_desc">Reproducir automáticamente el siguiente archivo, incluso en las colas</string>
     <string name="settings_playback_speed">Velocidad de reproducción</string>
     <string name="speed_normal">1x (normal)</string>
     <string name="settings_seek_duration">Duración del avance rápido</string>
@@ -647,4 +648,19 @@ Token: %2$s</string>
     <string name="exporting_progress">Exportando…</string>
     <string name="export_fast_hint">Rápido: casi instantáneo, corta en el fotograma clave más cercano</string>
     <string name="export_precise_hint">Preciso: recodifica el vídeo para un corte exacto, más lento</string>
+    <!-- Video queue additions -->
+    <string name="add_to_playlist_fixed_short">Añadir a playlist</string>
+    <string name="add_to_video_queue_short">cola</string>
+    <string name="app_name_audio">Blaze Audio</string>
+    <string name="blaze_party_network_error">No se puede conectar con el anfitrión. Comprueba que estás en la misma red Wi‑Fi.</string>
+    <string name="video_queue_title">COLA DE VIDEO</string>
+    <string name="video_queue_title_with_category">COLA DE VIDEO — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">No hay videos en esta cola. Selecciona videos en el explorador y usa «+ cola».</string>
+    <string name="toast_video_queue_added">%1$d video(s) añadidos a la cola</string>
+    <string name="toast_video_queue_added_partial">%1$d video(s) añadidos, %2$d ya presentes</string>
+    <string name="toast_video_queue_no_video_selected">Selecciona al menos un video</string>
+    <string name="toast_video_queue_cleared">Cola de video vaciada</string>
+    <string name="toast_video_queue_item_removed">Video eliminado de la cola</string>
+    <string name="content_desc_video_queue">Cola de video</string>
+    <string name="content_desc_close_video_queue">Cerrar la cola de video</string>
 </resources>

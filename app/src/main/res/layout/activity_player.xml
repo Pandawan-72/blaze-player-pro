@@ -210,6 +210,24 @@
                         android:src="@drawable/ic_play"
                         android:tint="#FFFFFF" />
                 </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/btnVideoQueue"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_top_icon_btn"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/video_queue_title"
+                        android:src="@drawable/ic_layout_list"
+                        android:tint="#FFFFFF" />
+                </FrameLayout>
             </LinearLayout>
 
             <LinearLayout

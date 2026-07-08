@@ -58,6 +58,7 @@
     <string name="sort_name_az">Naam A–Z</string>
     <string name="now_playing">NU AAN HET SPELEN</string>
     <string name="queue">WACHTRIJ</string>
+    <string name="queue_short">Wachtrij</string>
     <string name="add">Toevoegen</string>
     <string name="info">Info</string>
     <string name="folder">Map</string>
@@ -106,7 +107,7 @@
     <string name="resume_ask">Vragen</string>
     <string name="resume_never">Nooit</string>
     <string name="settings_autoplay_next">Volgende automatisch afspelen</string>
-    <string name="settings_autoplay_next_desc">Volgend bestand automatisch afspelen</string>
+    <string name="settings_autoplay_next_desc">Volgend bestand automatisch afspelen, ook in wachtrijen</string>
     <string name="settings_playback_speed">Afspeelsnelheid</string>
     <string name="speed_normal">1x (normaal)</string>
     <string name="settings_seek_duration">Duur van snel vooruit-/terugspoelen</string>
@@ -645,4 +646,19 @@ Token: %2$s</string>
     <string name="exporting_progress">Bezig met exporteren…</string>
     <string name="export_fast_hint">Snel: bijna direct, knipt bij het dichtstbijzijnde keyframe</string>
     <string name="export_precise_hint">Precies: codeert de video opnieuw voor een exacte knip, trager</string>
+    <!-- Video queue additions -->
+    <string name="add_to_playlist_fixed_short">Naar afspeellijst</string>
+    <string name="add_to_video_queue_short">wachtrij</string>
+    <string name="app_name_audio">Blaze Audio</string>
+    <string name="blaze_party_network_error">Kan geen verbinding maken met de host. Controleer of je op hetzelfde wifi-netwerk zit.</string>
+    <string name="video_queue_title">VIDEOWACHTRIJ</string>
+    <string name="video_queue_title_with_category">VIDEOWACHTRIJ — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">Geen video’s in deze wachtrij. Selecteer video’s in de browser en gebruik “+ wachtrij”.</string>
+    <string name="toast_video_queue_added">%1$d video(s) toegevoegd aan de wachtrij</string>
+    <string name="toast_video_queue_added_partial">%1$d video(s) toegevoegd, %2$d al aanwezig</string>
+    <string name="toast_video_queue_no_video_selected">Selecteer minstens één video</string>
+    <string name="toast_video_queue_cleared">Videowachtrij geleegd</string>
+    <string name="toast_video_queue_item_removed">Video uit de wachtrij verwijderd</string>
+    <string name="content_desc_video_queue">Videowachtrij</string>
+    <string name="content_desc_close_video_queue">Videowachtrij sluiten</string>
 </resources>

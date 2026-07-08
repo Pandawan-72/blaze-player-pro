@@ -58,6 +58,7 @@
     <string name="sort_name_az">Nome A–Z</string>
     <string name="now_playing">IN RIPRODUZIONE</string>
     <string name="queue">CODA</string>
+    <string name="queue_short">Coda</string>
     <string name="add">Aggiungi</string>
     <string name="info">Informazioni</string>
     <string name="folder">Cartella</string>
@@ -106,7 +107,7 @@
     <string name="resume_ask">Chiedi</string>
     <string name="resume_never">Mai</string>
     <string name="settings_autoplay_next">Riproduzione automatica successiva</string>
-    <string name="settings_autoplay_next_desc">Riproduci automaticamente il file successivo</string>
+    <string name="settings_autoplay_next_desc">Riproduci automaticamente il file successivo, anche nelle code</string>
     <string name="settings_playback_speed">Velocità di riproduzione</string>
     <string name="speed_normal">1x (normale)</string>
     <string name="settings_seek_duration">Durata dell\'avanzamento rapido</string>
@@ -647,4 +648,19 @@ Token: %2$s</string>
     <string name="exporting_progress">Esportazione in corso…</string>
     <string name="export_fast_hint">Veloce: quasi istantaneo, taglia al fotogramma chiave più vicino</string>
     <string name="export_precise_hint">Preciso: ricodifica il video per un taglio esatto, più lento</string>
+    <!-- Video queue additions -->
+    <string name="add_to_playlist_fixed_short">Aggiungi a playlist</string>
+    <string name="add_to_video_queue_short">coda</string>
+    <string name="app_name_audio">Blaze Audio</string>
+    <string name="blaze_party_network_error">Impossibile connettersi all\'host. Verifica di essere sulla stessa rete Wi‑Fi.</string>
+    <string name="video_queue_title">CODA VIDEO</string>
+    <string name="video_queue_title_with_category">CODA VIDEO — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">Nessun video in questa coda. Seleziona i video nel browser e usa «+ coda».</string>
+    <string name="toast_video_queue_added">%1$d video aggiunto/i alla coda</string>
+    <string name="toast_video_queue_added_partial">%1$d video aggiunto/i, %2$d già presenti</string>
+    <string name="toast_video_queue_no_video_selected">Seleziona almeno un video</string>
+    <string name="toast_video_queue_cleared">Coda video svuotata</string>
+    <string name="toast_video_queue_item_removed">Video rimosso dalla coda</string>
+    <string name="content_desc_video_queue">Coda video</string>
+    <string name="content_desc_close_video_queue">Chiudi la coda video</string>
 </resources>

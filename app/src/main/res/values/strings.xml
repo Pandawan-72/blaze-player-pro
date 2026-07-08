@@ -56,6 +56,7 @@
     <string name="add_tracks">Ajouter des pistes</string>
     <string name="add_selection_to_playlist">Ajouter la sélection à une playlist</string>
     <string name="add_to_playlist_short">Ajouter à playlist</string>
+    <string name="add_to_playlist_fixed_short">Ajouter à playlist</string>
     <string name="add_to_party_short">Ajouter à Party</string>
     <string name="play_selection">Lire la sélection</string>
     <string name="add_all">Tout ajouter</string>
@@ -63,6 +64,7 @@
     <string name="sort_name_az">Nom A–Z</string>
     <string name="now_playing">EN LECTURE</string>
     <string name="queue">FILE D\'ATTENTE</string>
+    <string name="queue_short">File d’attente</string>
     <string name="add">Ajouter</string>
     <string name="info">Infos</string>
     <string name="folder">Dossier</string>
@@ -113,7 +115,7 @@
     <string name="resume_ask">Demander</string>
     <string name="resume_never">Jamais</string>
     <string name="settings_autoplay_next">Lecture automatique suivante</string>
-    <string name="settings_autoplay_next_desc">Lire automatiquement le fichier suivant</string>
+    <string name="settings_autoplay_next_desc">Lire automatiquement le fichier suivant, y compris dans les files d’attente</string>
     <string name="settings_playback_speed">Vitesse de lecture</string>
     <string name="speed_normal">1x (normal)</string>
     <string name="settings_seek_duration">Durée de l\'avance rapide</string>
@@ -670,4 +672,17 @@ Code : %2$s</string>
     <string name="exporting_progress">Export en cours…</string>
     <string name="export_fast_hint">Rapide : quasi instantané, coupe au photogramme clé le plus proche</string>
     <string name="export_precise_hint">Précis : ré-encode la vidéo pour une coupe exacte, plus lent</string>
+    <!-- File d'attente vidéo -->
+    <string name="add_to_video_queue_short">file d’attente</string>
+    <string name="video_queue_title">FILE D’ATTENTE VIDÉO</string>
+    <string name="video_queue_title_with_category">FILE D’ATTENTE VIDÉO — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">Aucune vidéo dans cette file d’attente. Sélectionne des vidéos dans le navigateur, puis utilise « + file d’attente ».</string>
+    <string name="toast_video_queue_added">%1$d vidéo(s) ajoutée(s) à la file d’attente</string>
+    <string name="toast_video_queue_added_partial">%1$d vidéo(s) ajoutée(s), %2$d déjà présente(s)</string>
+    <string name="toast_video_queue_no_video_selected">Sélectionne au moins une vidéo</string>
+    <string name="toast_video_queue_cleared">File d’attente vidéo vidée</string>
+    <string name="toast_video_queue_item_removed">Vidéo retirée de la file d’attente</string>
+    <string name="content_desc_video_queue">File d’attente vidéo</string>
+    <string name="content_desc_close_video_queue">Fermer la file d’attente vidéo</string>
+
 </resources>

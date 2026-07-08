@@ -58,6 +58,7 @@
     <string name="sort_name_az">Nome A–Z</string>
     <string name="now_playing">TOCANDO AGORA</string>
     <string name="queue">FILA</string>
+    <string name="queue_short">Fila</string>
     <string name="add">Adicionar</string>
     <string name="info">Informações</string>
     <string name="folder">Pasta</string>
@@ -106,7 +107,7 @@
     <string name="resume_ask">Perguntar</string>
     <string name="resume_never">Nunca</string>
     <string name="settings_autoplay_next">Reprodução automática do próximo</string>
-    <string name="settings_autoplay_next_desc">Reproduzir automaticamente o próximo arquivo</string>
+    <string name="settings_autoplay_next_desc">Reproduzir automaticamente o próximo arquivo, incluindo nas filas</string>
     <string name="settings_playback_speed">Velocidade de reprodução</string>
     <string name="speed_normal">1x (normal)</string>
     <string name="settings_seek_duration">Duração do avanço rápido</string>
@@ -647,4 +648,19 @@ Token: %2$s</string>
     <string name="exporting_progress">Exportando…</string>
     <string name="export_fast_hint">Rápido: quase instantâneo, corta no quadro-chave mais próximo</string>
     <string name="export_precise_hint">Preciso: recodifica o vídeo para um corte exato, mais lento</string>
+    <!-- Video queue additions -->
+    <string name="add_to_playlist_fixed_short">Adicionar à playlist</string>
+    <string name="add_to_video_queue_short">fila</string>
+    <string name="app_name_audio">Blaze Audio</string>
+    <string name="blaze_party_network_error">Não foi possível ligar ao anfitrião. Verifique se está na mesma rede Wi‑Fi.</string>
+    <string name="video_queue_title">FILA DE VÍDEO</string>
+    <string name="video_queue_title_with_category">FILA DE VÍDEO — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">Nenhum vídeo nesta fila. Selecione vídeos no explorador e use «+ fila».</string>
+    <string name="toast_video_queue_added">%1$d vídeo(s) adicionado(s) à fila</string>
+    <string name="toast_video_queue_added_partial">%1$d vídeo(s) adicionado(s), %2$d já existente(s)</string>
+    <string name="toast_video_queue_no_video_selected">Selecione pelo menos um vídeo</string>
+    <string name="toast_video_queue_cleared">Fila de vídeo esvaziada</string>
+    <string name="toast_video_queue_item_removed">Vídeo removido da fila</string>
+    <string name="content_desc_video_queue">Fila de vídeo</string>
+    <string name="content_desc_close_video_queue">Fechar a fila de vídeo</string>
 </resources>

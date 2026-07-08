@@ -55,6 +55,7 @@ import fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.debug.CrashReporter
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
+import fr.retrospare.blazeplayer.playlist.PlaylistCategory
 import fr.retrospare.blazeplayer.ui.InfoDialog
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -193,7 +194,21 @@ class PlayerActivity : AppCompatActivity() {
 
         val newPath = intent.getStringExtra("mediaPath") ?: externalMedia?.path ?: return
         val newName = intent.getStringExtra("mediaName") ?: externalMedia?.name ?: File(newPath).name
+        val incomingQueuePaths = intent.getStringArrayListExtra("queuePaths")
+        val incomingQueueNames = intent.getStringArrayListExtra("queueNames")
+        if (incomingQueuePaths != null) {
+            videoQueuePaths = incomingQueuePaths
+            videoQueueNames = incomingQueueNames ?: arrayListOf()
+            videoQueueIndex = intent.getIntExtra("queueIndex", incomingQueuePaths.indexOf(newPath).coerceAtLeast(0))
+        } else {
+            videoQueuePaths.clear()
+            videoQueueNames.clear()
+            videoQueueIndex = 0
+        }
         if (newPath.isBlank() || newPath == mediaPath) {
+            isNetworkMedia = intent.getBooleanExtra("isNetworkMedia", false) ||
+                newPath.startsWith("smb://", true) || newPath.startsWith("ftp://", true) ||
+                newPath.startsWith("http://", true) || newPath.startsWith("https://", true)
             if (::player.isInitialized) {
                 player.seekTo(0L)
                 player.play()
@@ -208,9 +223,6 @@ class PlayerActivity : AppCompatActivity() {
             } catch (_: Exception) {}
         }
 
-        videoQueuePaths.clear()
-        videoQueueNames.clear()
-        videoQueueIndex = 0
         isNetworkMedia = intent.getBooleanExtra("isNetworkMedia", false) ||
             newPath.startsWith("smb://", true) || newPath.startsWith("ftp://", true) ||
             newPath.startsWith("http://", true) || newPath.startsWith("https://", true)
@@ -602,10 +614,11 @@ class PlayerActivity : AppCompatActivity() {
         val duration = player.duration
         val position = player.currentPosition.coerceAtLeast(lastKnownLocalPosition).coerceAtLeast(0L)
 
-        // Certains flux SMB/UPnP/HTTP locaux ne publient pas de durée fiable. Dans ce cas, un
-        // STATE_ENDED après quelques secondes est presque toujours une coupure réseau/proxy et non
-        // une vraie fin de vidéo. On relance donc au même timecode au lieu de fermer l'écran.
-        if (duration <= 0 || duration == C.TIME_UNSET) return position > 5_000L
+        // Certains flux SMB/UPnP/HTTP locaux ne publient pas de durée fiable. Hors file
+        // d'attente, un STATE_ENDED après quelques secondes est souvent une coupure réseau/proxy.
+        // En file d'attente (et surtout en Cast), on privilégie l'enchaînement demandé par
+        // l'utilisateur au lieu de bloquer sur une reprise infinie du même média.
+        if (duration <= 0 || duration == C.TIME_UNSET) return videoQueuePaths.isEmpty() && position > 5_000L
 
         val remaining = duration - position
         if (remaining <= 8_000L) {
@@ -1133,7 +1146,16 @@ class PlayerActivity : AppCompatActivity() {
                         showUI()
                         if (!playNextCalled) {
                             playNextCalled = true
-                            if (prefAutoPlay && (!isNetworkPlayback() || networkPlaybackReachedNaturalEnd)) playNext()
+                            if (prefAutoPlay) {
+                                if (videoQueuePaths.isNotEmpty()) {
+                                    // La file d'attente vidéo est maintenant reliée au réglage global
+                                    // "Lecture automatique suivante" : OFF = arrêt en fin de vidéo,
+                                    // ON = enchaînement de l'élément suivant, y compris en Cast.
+                                    playNext()
+                                } else if (!isNetworkPlayback() || networkPlaybackReachedNaturalEnd) {
+                                    playNext()
+                                }
+                            }
                         }
                     }
                 }
@@ -1461,6 +1483,57 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun isNetworkVideoPath(path: String): Boolean = path.startsWith("smb://", true) ||
+        path.startsWith("ftp://", true) ||
+        path.startsWith("http://", true) ||
+        path.startsWith("https://", true)
+
+    private fun currentVideoQueueCategory(): PlaylistCategory {
+        return if (isNetworkMedia || isNetworkVideoPath(mediaPath) || videoQueuePaths.any { isNetworkVideoPath(it) }) {
+            PlaylistCategory.NETWORK_VIDEO
+        } else {
+            PlaylistCategory.LOCAL_VIDEO
+        }
+    }
+
+    private fun syncPlayerQueueFromStoredVideoQueue(category: PlaylistCategory) {
+        val queue = VideoQueueManager.getQueue(this, category)
+        if (queue.isEmpty()) {
+            videoQueuePaths.clear()
+            videoQueueNames.clear()
+            videoQueueIndex = 0
+            return
+        }
+        videoQueuePaths = ArrayList(queue.map { it.path })
+        videoQueueNames = ArrayList(queue.map { it.name })
+        val current = queue.indexOfFirst { it.path == mediaPath }
+        videoQueueIndex = if (current >= 0) current else videoQueueIndex.coerceIn(0, queue.size - 1)
+    }
+
+    private fun showVideoQueueOverlay() {
+        cancelHide()
+        val category = currentVideoQueueCategory()
+        VideoQueueSheet.show(
+            context = this,
+            category = category,
+            currentPath = mediaPath,
+            onItemSelected = { queue, index ->
+                if (queue.isNotEmpty() && index in queue.indices) {
+                    videoQueuePaths = ArrayList(queue.map { it.path })
+                    videoQueueNames = ArrayList(queue.map { it.name })
+                    videoQueueIndex = index
+                    val selected = queue[index]
+                    isNetworkMedia = category == PlaylistCategory.NETWORK_VIDEO || isNetworkVideoPath(selected.path)
+                    switchTo(selected.path, selected.name)
+                    scheduleHide()
+                }
+            },
+            onChanged = {
+                syncPlayerQueueFromStoredVideoQueue(category)
+            }
+        )
+    }
+
     private fun setupControls() {
         binding.btnBack.setOnClickListener { goBackToHistory() }
 
@@ -1494,6 +1567,7 @@ class PlayerActivity : AppCompatActivity() {
 
         binding.btnPrevious.setOnClickListener { scheduleHide(); playPrevious() }
         binding.btnNext.setOnClickListener { scheduleHide(); playNext() }
+        binding.btnVideoQueue.setOnClickListener { showVideoQueueOverlay() }
 
         binding.btnRatio.setOnClickListener { scheduleHide(); cycleAspectRatio() }
         binding.btnSeekInfo.setOnClickListener { scheduleHide(); showQuickVideoInfo() }

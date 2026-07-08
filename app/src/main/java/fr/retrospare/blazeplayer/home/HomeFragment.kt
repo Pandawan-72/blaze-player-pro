@@ -233,6 +233,7 @@ class HomeFragment : Fragment() {
 
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
+        if (_binding != null) setupVideoQueueButtons()
 
         // Switche vers Blaze Audio quand un fichier audio est ajouté depuis le navigateur
         val sharedAudioVm = androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
@@ -252,6 +253,7 @@ class HomeFragment : Fragment() {
         updateVersionBadge()
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
+        if (_binding != null) setupVideoQueueButtons()
         if (suppressGalleryResetOnResume) {
             // Retour d'un écran qu'on vient nous-mêmes de lancer ou d'une boîte système MediaStore :
             // ne surtout pas forcer l'accueil des dossiers, sinon la corbeille peut se transformer
@@ -386,24 +388,6 @@ class HomeFragment : Fragment() {
         else { hideAudioTab(); viewModel.onTabSelected(activeTab) }
     }
 
-    /** Appelé par MainActivity (détecteur de geste au niveau Activity, cf. dispatchTouchEvent)
-     *  quand un swipe gauche/droite franc est détecté pendant que l'accueil est affiché. */
-    fun handleTabSwipe(delta: Int) {
-        if (_binding == null || !isAdded) return
-        swipeToAdjacentTab(delta)
-    }
-
-    /** Change d'onglet (1=Local, 2=Réseau, 3=Blaze Gallery, 4=Audio) sur un swipe, en s'arrêtant
-     *  aux bords (pas de bouclage 4->1) plutôt que de désorienter l'utilisateur. On n'intervient
-     *  pas si l'utilisateur est actuellement dans une sous-navigation (dossier Blaze Gallery
-     *  ouvert, sélection multiple, choix de miniature personnalisée, navigation interne en cours) :
-     *  un swipe y a probablement un autre sens (ex. faire défiler des photos), pas changer d'onglet. */
-    private fun swipeToAdjacentTab(delta: Int) {
-        if (currentTabIndex !in 1..4) return
-        if (currentGalleryBucketId != null || gallerySelectionMode || galleryCustomThumbnailMode) return
-        val next = (currentTabIndex + delta).coerceIn(1, 4)
-        if (next != currentTabIndex) selectTab(next)
-    }
 
 
     private suspend fun canOpenTab(index: Int): Boolean {
@@ -570,6 +554,14 @@ class HomeFragment : Fragment() {
         binding.btnGallerySecondary.strokeWidth = (1 * resources.displayMetrics.density).toInt()
     }
 
+    private fun styleGalleryCreateFolderButton() {
+        binding.btnGallerySecondary.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface))
+        binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.on_surface))
+        binding.btnGallerySecondary.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
+        binding.btnGallerySecondary.strokeColor = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_accent))
+        binding.btnGallerySecondary.strokeWidth = (2 * resources.displayMetrics.density).toInt()
+    }
+
     private fun styleGalleryTrashButton(emptyAction: Boolean = false) {
         if (emptyAction) {
             binding.btnGalleryPrimary.setTextColor(android.graphics.Color.WHITE)
@@ -623,9 +615,9 @@ class HomeFragment : Fragment() {
         clearGallerySelection()
         binding.btnGallerySecondary.visibility = View.VISIBLE
         binding.btnGallerySecondary.text = getString(R.string.gallery_folder_button)
-        binding.btnGallerySecondary.setIconResource(R.drawable.ic_add)
+        binding.btnGallerySecondary.setIconResource(R.drawable.ic_add_circle)
         binding.btnGallerySecondary.setOnClickListener { showCreateGalleryFolderDialog() }
-        styleGalleryBackButton()
+        styleGalleryCreateFolderButton()
         binding.btnGalleryPrimary.visibility = View.VISIBLE
         binding.btnGalleryPrimary.text = getString(R.string.gallery_trash)
         binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
@@ -1856,7 +1848,18 @@ class HomeFragment : Fragment() {
                 startActivity(intent)
             }
         }
+        binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueLocal)?.setOnClickListener {
+            fr.retrospare.blazeplayer.player.VideoQueueSheet.show(
+                requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
+            ) { setupVideoQueueButtons() }
+        }
+        binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueNetwork)?.setOnClickListener {
+            fr.retrospare.blazeplayer.player.VideoQueueSheet.show(
+                requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
+            ) { setupVideoQueueButtons() }
+        }
         setupPlaylistButtons()
+        setupVideoQueueButtons()
     }
 
     /** Câble une puce de playlist numérotée : état visuel "non vide" indépendant de "dernière
@@ -1894,6 +1897,19 @@ class HomeFragment : Fragment() {
         popup.show()
     }
 
+    private fun setupVideoQueueButtons() {
+        val localBtn = binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueLocal)
+        val networkBtn = binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueNetwork)
+        val localHasItems = fr.retrospare.blazeplayer.player.VideoQueueManager
+            .getQueue(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO).isNotEmpty()
+        val networkHasItems = fr.retrospare.blazeplayer.player.VideoQueueManager
+            .getQueue(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO).isNotEmpty()
+        localBtn?.isSelected = localHasItems
+        networkBtn?.isSelected = networkHasItems
+        localBtn?.alpha = if (localHasItems) 1f else 0.72f
+        networkBtn?.alpha = if (networkHasItems) 1f else 0.72f
+    }
+
     private fun setupPlaylistButtons() {
         val localButtons = listOf(
             binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal1),
@@ -1925,9 +1941,19 @@ class HomeFragment : Fragment() {
         fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showPlaylistViewer(
             requireContext(), category, slot,
             onPlayAll = { tracks ->
-                fr.retrospare.blazeplayer.player.PlayerRouter.openPlaylist(requireContext(), tracks)
-                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayed(requireContext(), category, slot)
+                val ctx = requireContext()
+                val added = fr.retrospare.blazeplayer.player.VideoQueueManager.addToQueue(ctx, category, tracks)
+                val already = (tracks.size - added).coerceAtLeast(0)
+                val msg = if (already == 0) {
+                    getString(fr.retrospare.blazeplayer.R.string.toast_video_queue_added, added)
+                } else {
+                    getString(fr.retrospare.blazeplayer.R.string.toast_video_queue_added_partial, added, already)
+                }
+                android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
+                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayed(ctx, category, slot)
                 setupPlaylistButtons()
+                setupVideoQueueButtons()
+                fr.retrospare.blazeplayer.player.VideoQueueSheet.show(ctx, category)
             },
             onPlayOne = { track -> fr.retrospare.blazeplayer.player.PlayerRouter.open(requireContext(), track.path, track.name) }
         )
