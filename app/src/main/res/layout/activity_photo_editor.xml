@@ -243,35 +243,11 @@
     <LinearLayout
         android:id="@+id/blurPanel"
         android:layout_width="match_parent"
-        android:layout_height="184dp"
+        android:layout_height="140dp"
         android:orientation="vertical"
         android:paddingHorizontal="16dp"
         android:paddingVertical="6dp"
         android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/blur_enable_label"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:fontFamily="sans-serif-condensed" />
-
-            <Switch
-                android:id="@+id/switchBlurEnabled"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:thumbTint="@color/green_accent"
-                android:trackTint="#664D9A75" />
-        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"

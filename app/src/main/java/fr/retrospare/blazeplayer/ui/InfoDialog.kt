@@ -75,7 +75,7 @@ object InfoDialog {
             setColorFilter(Color.WHITE)
             contentDescription = context.getString(R.string.action_close)
             setPadding(dp(10), dp(10), dp(10), dp(10))
-            layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+            layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
             setOnClickListener { dialog.dismiss() }
         }
         header.addView(iconWrap)
@@ -105,8 +105,9 @@ object InfoDialog {
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             gravity = Gravity.CENTER
             setBackgroundResource(R.drawable.bg_queue_action_add_pill)
-            setPadding(dp(24), dp(10), dp(24), dp(10))
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            setPadding(dp(24), 0, dp(24), 0)
+            includeFontPadding = false
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(40)).apply {
                 topMargin = dp(20)
                 gravity = Gravity.END
             }

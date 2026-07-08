@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.favorites
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.content.Context
 import android.widget.Toast
 
@@ -13,7 +14,7 @@ object FavoriteDialogs {
                 .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.dialog_title_already_favorite))
                 .setMessage(context.getString(fr.retrospare.blazeplayer.R.string.dialog_already_favorite_message, folder.name))
                 .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_ok), null)
-                .show()
+                .showPremium()
             return
         }
         android.app.AlertDialog.Builder(context)
@@ -24,7 +25,7 @@ object FavoriteDialogs {
                 Toast.makeText(context, context.getString(fr.retrospare.blazeplayer.R.string.toast_added_to_favorites_short), Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
-            .show()
+            .showPremium()
     }
 
     /** Liste des dossiers favoris, avec un vrai style de ligne cliquable (icône dossier, chevron)
@@ -40,7 +41,7 @@ object FavoriteDialogs {
                 .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.favorites))
                 .setMessage(context.getString(fr.retrospare.blazeplayer.R.string.dialog_no_favorite_folders))
                 .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_ok), null)
-                .show()
+                .showPremium()
             return
         }
 
@@ -80,6 +81,7 @@ object FavoriteDialogs {
         }
 
         dialog.show()
+        fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(dialog)
         // "Gérer" ouvre un second dialogue de suppression, plutôt que de complexifier celui-ci
         // avec des boutons par ligne.
         dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
@@ -104,6 +106,6 @@ object FavoriteDialogs {
                 }
             }
             .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
-            .show()
+            .showPremium()
     }
 }

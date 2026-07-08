@@ -1,6 +1,7 @@
 package fr.retrospare.blazeplayer.settings
 
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.first
@@ -191,7 +192,7 @@ class SettingsFragment : Fragment() {
                     Toast.makeText(requireContext(), getString(R.string.toast_history_cleared), Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton(getString(R.string.action_cancel), null)
-                .show()
+                .showPremium()
         }
 
         // À PROPOS
@@ -206,7 +207,7 @@ class SettingsFragment : Fragment() {
                 .setTitle("Blaze Player")
                 .setMessage(getString(R.string.about_dialog_message, appVersion))
                 .setPositiveButton(getString(R.string.action_ok), null)
-                .show()
+                .showPremium()
         }
 
         // LANGUE
@@ -294,7 +295,7 @@ class SettingsFragment : Fragment() {
                 dialog.dismiss()
             }
             .setNegativeButton(getString(R.string.action_cancel), null)
-            .show()
+            .showPremium()
     }
 
     private fun setupToggle(view: View, icon: Int, title: String, subtitle: String, value: Boolean, onChange: (Boolean) -> Unit) {

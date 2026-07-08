@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.network
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.content.DialogInterface
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -168,7 +169,7 @@ class NetworkSharesFragment : Fragment() {
                             .setTitle(getString(R.string.dialog_choose_share))
                             .setItems(shares.toTypedArray()) { _: DialogInterface, j: Int ->
                                 etShare.setText(shares[j])
-                            }.show()
+                            }.showPremium()
                     }
                 }
             }
@@ -194,6 +195,7 @@ class NetworkSharesFragment : Fragment() {
             .setNegativeButton(getString(R.string.action_cancel), null)
             .create().also { d ->
                 d.show()
+                fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(d)
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
             }
     }
@@ -241,6 +243,7 @@ class NetworkSharesFragment : Fragment() {
             .setNegativeButton(getString(R.string.action_close), null)
             .create().also { d ->
                 d.show()
+                fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(d)
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
             }
     }
@@ -303,6 +306,7 @@ class NetworkSharesFragment : Fragment() {
             .setNegativeButton(getString(R.string.action_cancel), null)
             .create().also { d ->
                 d.show()
+                fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(d)
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
             }
     }
@@ -313,7 +317,7 @@ class NetworkSharesFragment : Fragment() {
             .setMessage(getString(R.string.dialog_delete_message, share.name))
             .setPositiveButton(getString(R.string.action_delete)) { _, _ -> viewModel.deleteShare(share.id) }
             .setNegativeButton(getString(R.string.action_cancel), null)
-            .show()
+            .showPremium()
     }
 
     override fun onDestroyView() {

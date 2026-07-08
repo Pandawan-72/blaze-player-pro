@@ -121,6 +121,10 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
     // Sélection multiple (pour "Ajouter à la playlist")
     private val selectedVideos = mutableSetOf<String>() // path
     private var currentVideos: List<MediaItem> = emptyList()
+    private var currentNetworkFolders: List<MediaItem> = emptyList()
+    private var currentNetworkVideos: MutableList<MediaItem> = mutableListOf()
+    private enum class SortMode { NAME_ASC, NAME_DESC, DATE_DESC, SIZE_DESC }
+    private var sortMode: SortMode = SortMode.NAME_ASC
 
     private fun updateSelectionToolbar() {
         // Les boutons "+ playlist" et "+ file d’attente" restent fixes en haut du
@@ -147,6 +151,14 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
         tvCount = findViewById(R.id.tvCount)
         recyclerNetwork = findViewById(R.id.recyclerNetwork)
         recyclerNetwork.layoutManager = LinearLayoutManager(this)
+        updateSortLabel()
+        val sortClick = View.OnClickListener {
+            cycleSortMode()
+            updateSortLabel()
+            showSortedCurrentList()
+        }
+        findViewById<View>(R.id.networkSortChip)?.setOnClickListener(sortClick)
+        findViewById<View>(R.id.btnSortChevron)?.setOnClickListener(sortClick)
 
         findViewById<View>(R.id.btnHome)?.setOnClickListener {
             val intent = Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java)
@@ -274,18 +286,20 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
             isBrowsing = false
 
             result.onSuccess { items ->
-                val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }.map { it.copy(isNetwork = true, networkShareId = share.id) }.sortedBy { it.name.lowercase() }
+                val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }.map { it.copy(isNetwork = true, networkShareId = share.id) }
                 val rawVideos = items.filter {
                     it.mimeType != "folder" && it.mimeType != "share" &&
                         (it.extension.lowercase() in videoExtensions || it.mimeType.startsWith("video/"))
-                }.map { it.copy(isNetwork = true, networkShareId = share.id) }.sortedBy { it.name.lowercase() }
+                }.map { it.copy(isNetwork = true, networkShareId = share.id) }
 
                 val videos = fr.retrospare.blazeplayer.player.VideoMetadataExtractor
                     .fastDecorateList(this@NetworkVideoBrowserActivity, rawVideos)
                     .toMutableList()
+                currentNetworkFolders = folders
+                currentNetworkVideos = videos
                 currentVideos = videos
                 tvCount.text = resources.getQuantityString(R.plurals.folder_count, folders.size, folders.size) + " - " + resources.getQuantityString(R.plurals.video_count, videos.size, videos.size)
-                showList(folders, videos, generation)
+                showSortedCurrentList(generation)
 
                 // UPnP expose déjà durée/taille via DIDL, puis on complète comme SMB avec le
                 // cache disque + extraction en arrière-plan pour obtenir résolution/codecs et les
@@ -298,8 +312,9 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                             withContext(Dispatchers.Main) {
                                 if (index in videos.indices) {
                                     videos[index] = enriched.copy(isNetwork = true, networkShareId = share.id)
+                                    currentNetworkVideos = videos
                                     currentVideos = videos
-                                    recyclerNetwork.adapter?.notifyItemChanged(folders.size + index)
+                                    showSortedCurrentList(generation)
                                 }
                             }
                         }
@@ -316,6 +331,44 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                 isBrowsing = false
             }
         }
+    }
+
+
+    private fun cycleSortMode() {
+        sortMode = when (sortMode) {
+            SortMode.NAME_ASC -> SortMode.NAME_DESC
+            SortMode.NAME_DESC -> SortMode.DATE_DESC
+            SortMode.DATE_DESC -> SortMode.SIZE_DESC
+            SortMode.SIZE_DESC -> SortMode.NAME_ASC
+        }
+    }
+
+    private fun updateSortLabel() {
+        findViewById<TextView>(R.id.tvSortLabel)?.text = when (sortMode) {
+            SortMode.NAME_ASC -> getString(R.string.sort_name_az)
+            SortMode.NAME_DESC -> getString(R.string.sort_name_za)
+            SortMode.DATE_DESC -> getString(R.string.sort_date_recent)
+            SortMode.SIZE_DESC -> getString(R.string.sort_size)
+        }
+    }
+
+    private fun sortedFolders(folders: List<MediaItem>): List<MediaItem> = when (sortMode) {
+        SortMode.NAME_DESC -> folders.sortedByDescending { it.name.lowercase() }
+        else -> folders.sortedBy { it.name.lowercase() }
+    }
+
+    private fun sortedVideos(videos: List<MediaItem>): List<MediaItem> = when (sortMode) {
+        SortMode.NAME_ASC -> videos.sortedBy { it.name.lowercase() }
+        SortMode.NAME_DESC -> videos.sortedByDescending { it.name.lowercase() }
+        SortMode.DATE_DESC -> videos.sortedByDescending { it.lastPlayedAt }
+        SortMode.SIZE_DESC -> videos.sortedByDescending { it.size }
+    }
+
+    private fun showSortedCurrentList(generation: Long = loadGeneration) {
+        val folders = sortedFolders(currentNetworkFolders)
+        val videos = sortedVideos(currentNetworkVideos)
+        currentVideos = videos
+        showList(folders, videos, generation)
     }
 
 

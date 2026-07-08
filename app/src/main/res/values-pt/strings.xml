@@ -320,6 +320,7 @@
     <string name="sort_name_za">Nome Z–A</string>
     <string name="sort_date_recent">Mais recente</string>
     <string name="sort_size">Tamanho</string>
+    <string name="sort_album_order">Ordem do álbum</string>
 
     <string name="dialog_permission_needed">Permissão necessária</string>
 
@@ -368,6 +369,18 @@
 
     <string name="history_empty_network_subtitle">Explore seus compartilhamentos de rede para começar</string>
     <string name="history_label">Histórico</string>
+
+    <!-- Historique : gestion par sélection -->
+    <string name="history_selection_active">Seleção ativa: %1$d miniatura(s) selecionada(s).</string>
+    <string name="history_action_prompt">Escolhe uma ação para este histórico.</string>
+    <string name="history_delete_selection">Eliminar seleção (%1$d)</string>
+    <string name="history_finish_selection">Terminar seleção</string>
+    <string name="history_select_thumbnails">Selecionar miniaturas</string>
+    <string name="history_delete_all">Eliminar todo o histórico</string>
+    <string name="history_confirm_delete_items">Eliminar %1$d item(ns) do histórico?</string>
+    <string name="history_confirm_delete_all_local">Eliminar todo o histórico local?</string>
+    <string name="history_confirm_delete_all_network">Eliminar todo o histórico de rede?</string>
+    <string name="history_toast_select_thumbnails">Seleciona as miniaturas a remover do histórico</string>
     <string name="browse_files_network">Explorar</string>
     <string name="browse_files_local">Explorar</string>
     <string name="action_close_favorites">Fechar favoritos</string>
@@ -464,8 +477,8 @@
     <string name="tmdb_title_not_found">Título não encontrado</string>
 
     <!-- Blaze Gallery -->
-    <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Ainda sem pastas — crie uma para começar</string>
 
@@ -557,7 +570,7 @@ Token: %2$s</string>
     </plurals>
 
     <string name="gallery_folder_button">Pasta</string>
-    <string name="gallery_create_folder">Pasta</string>
+    <string name="gallery_create_folder">Adicionar</string>
     <string name="gallery_create_folder_title">Nova pasta de fotos</string>
     <string name="gallery_create_folder_hint">Nome da pasta</string>
     <string name="gallery_folder_created">Pasta criada</string>

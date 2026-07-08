@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.player
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
@@ -1261,7 +1262,7 @@ class PlayerActivity : AppCompatActivity() {
                         if (playAfterChoice || wasPlaying) player.play()
                         scheduleHide()
                     }
-                    .show()
+                    .showPremium()
                 return true
             }
         }
@@ -1297,7 +1298,7 @@ class PlayerActivity : AppCompatActivity() {
                 loadMedia(mediaPath, mediaName, 0L, autoPlay = true)
                 scheduleHide()
             }
-            .show()
+            .showPremium()
     }
 
 
@@ -1380,7 +1381,7 @@ class PlayerActivity : AppCompatActivity() {
                 player.play()
             }
             .setNegativeButton(getString(R.string.action_quit)) { _, _ -> goBackToHistory() }
-            .show()
+            .showPremium()
     }
 
     private fun showQuickVideoInfo() {
@@ -1958,7 +1959,7 @@ class PlayerActivity : AppCompatActivity() {
             setColorFilter(android.graphics.Color.WHITE)
             contentDescription = getString(R.string.action_close)
             setPadding(dp(10), dp(10), dp(10), dp(10))
-            layoutParams = android.widget.LinearLayout.LayoutParams(dp(44), dp(44))
+            layoutParams = android.widget.LinearLayout.LayoutParams(dp(40), dp(40))
             setOnClickListener { dialog.dismiss() }
         }
         header.addView(iconWrap)
@@ -2035,12 +2036,12 @@ class PlayerActivity : AppCompatActivity() {
             text = getString(R.string.action_reset)
             gravity = android.view.Gravity.CENTER
             setTextColor(android.graphics.Color.WHITE)
-            textSize = 15f
+            textSize = 13f
             typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
-            setBackgroundResource(R.drawable.bg_cast_stop_button)
+            setBackgroundResource(R.drawable.bg_queue_action_remove_pill)
             isClickable = true
             isFocusable = true
-            layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(50)).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(40)).apply {
                 topMargin = dp(18)
             }
             setOnClickListener {

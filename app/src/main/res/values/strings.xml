@@ -346,6 +346,7 @@
     <string name="sort_name_za">Nom Z–A</string>
     <string name="sort_date_recent">Date récente</string>
     <string name="sort_size">Taille</string>
+    <string name="sort_album_order">Ordre album</string>
 
     <!-- MainActivity -->
     <string name="dialog_permission_needed">Permission nécessaire</string>
@@ -388,6 +389,18 @@
     <string name="history_empty_network_title">Aucune vidéo regardée récemment</string>
     <string name="history_empty_network_subtitle">Parcours tes partages réseau pour commencer</string>
     <string name="history_label">Historique</string>
+
+    <!-- Historique : gestion par sélection -->
+    <string name="history_selection_active">Sélection active : %1$d vignette(s) sélectionnée(s).</string>
+    <string name="history_action_prompt">Choisis une action pour cet historique.</string>
+    <string name="history_delete_selection">Supprimer la sélection (%1$d)</string>
+    <string name="history_finish_selection">Terminer la sélection</string>
+    <string name="history_select_thumbnails">Sélectionner des vignettes</string>
+    <string name="history_delete_all">Supprimer tout l’historique</string>
+    <string name="history_confirm_delete_items">Supprimer %1$d élément(s) de l’historique ?</string>
+    <string name="history_confirm_delete_all_local">Supprimer tout l’historique local ?</string>
+    <string name="history_confirm_delete_all_network">Supprimer tout l’historique réseau ?</string>
+    <string name="history_toast_select_thumbnails">Sélectionne les vignettes à retirer de l’historique</string>
     <string name="browse_files_network">Parcourir</string>
     <string name="browse_files_local">Parcourir</string>
     <string name="action_close_favorites">Fermer les favoris</string>
@@ -485,8 +498,8 @@
     <string name="movie_studio_label">Studio :</string>
     <string name="tmdb_title_not_found">Titre non trouvé</string>
 
-    <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_folders">Gallery</string>
     <string name="gallery_empty_folders">Aucun dossier pour l\'instant — crée-en un pour commencer</string>
     <string name="gallery_empty_photos">Ce dossier est vide</string>
     <string name="gallery_trash_empty_message">La corbeille est vide</string>
@@ -504,7 +517,7 @@
     <string name="action_share">Partager</string>
 
 
-    <string name="gallery_create_folder">Dossier</string>
+    <string name="gallery_create_folder">Ajouter</string>
     <string name="gallery_create_folder_title">Nouveau dossier photo</string>
     <string name="gallery_create_folder_hint">Nom du dossier</string>
     <string name="gallery_folder_created">Dossier créé</string>

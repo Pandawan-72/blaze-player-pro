@@ -41,7 +41,7 @@
             android:id="@+id/btnPlaylistSheetClear"
             android:includeFontPadding="false"
             android:layout_width="wrap_content"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:layout_marginStart="8dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
@@ -51,14 +51,15 @@
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
             app:backgroundTint="@color/surface_variant"
-            app:cornerRadius="22dp"
+            app:cornerRadius="20dp"
             app:strokeColor="@color/red_accent"
-            app:strokeWidth="1dp" />
+            app:strokeWidth="1dp"     android:insetTop="0dp"
+            android:insetBottom="0dp" />
 
         <ImageButton
             android:id="@+id/btnClosePlaylistSheet"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_close"
@@ -107,35 +108,39 @@
             android:id="@+id/btnPlaylistSheetSecondary"
             android:includeFontPadding="false"
             android:layout_width="wrap_content"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:layout_marginEnd="8dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
             android:paddingHorizontal="14dp"
-            android:textColor="@color/on_surface"
+            android:textColor="@color/green_accent"
             android:textSize="13sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
             android:visibility="gone"
             app:backgroundTint="@color/surface_variant"
-            app:cornerRadius="22dp"
+            app:cornerRadius="20dp"
             app:strokeColor="@color/green_accent"
-            app:strokeWidth="1dp" />
+            app:strokeWidth="1dp"     android:insetTop="0dp"
+            android:insetBottom="0dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPlaylistSheetPlayAll"
             android:includeFontPadding="false"
             android:layout_width="0dp"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:layout_weight="1"
             android:text="@string/action_play_playlist"
-            android:textColor="#FF000000"
+            android:textColor="@color/green_accent"
             android:textSize="13sp"
-            app:backgroundTint="@color/green_accent"
-            app:cornerRadius="22dp"
+            app:backgroundTint="@color/surface_variant"
+            app:cornerRadius="20dp"
+            app:strokeColor="@color/green_accent"
+            app:strokeWidth="1dp"
             app:icon="@drawable/ic_play_small"
             app:iconGravity="textStart"
-            app:iconTint="@null" />
+            app:iconTint="@color/green_accent"     android:insetTop="0dp"
+            android:insetBottom="0dp" />
     </LinearLayout>
 
 </LinearLayout>

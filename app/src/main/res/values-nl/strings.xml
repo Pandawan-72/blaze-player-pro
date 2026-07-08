@@ -320,6 +320,7 @@
     <string name="sort_name_za">Naam Z–A</string>
     <string name="sort_date_recent">Meest recent</string>
     <string name="sort_size">Grootte</string>
+    <string name="sort_album_order">Albumvolgorde</string>
 
     <string name="dialog_permission_needed">Toestemming vereist</string>
 
@@ -368,6 +369,18 @@
 
     <string name="history_empty_network_subtitle">Blader door je netwerkshares om te beginnen</string>
     <string name="history_label">Geschiedenis</string>
+
+    <!-- Historique : gestion par sélection -->
+    <string name="history_selection_active">Selectie actief: %1$d miniatuur/miniaturen geselecteerd.</string>
+    <string name="history_action_prompt">Kies een actie voor deze geschiedenis.</string>
+    <string name="history_delete_selection">Selectie verwijderen (%1$d)</string>
+    <string name="history_finish_selection">Selectie voltooien</string>
+    <string name="history_select_thumbnails">Miniaturen selecteren</string>
+    <string name="history_delete_all">Alle geschiedenis verwijderen</string>
+    <string name="history_confirm_delete_items">%1$d item(s) uit geschiedenis verwijderen?</string>
+    <string name="history_confirm_delete_all_local">Alle lokale geschiedenis verwijderen?</string>
+    <string name="history_confirm_delete_all_network">Alle netwerkgeschiedenis verwijderen?</string>
+    <string name="history_toast_select_thumbnails">Selecteer de miniaturen die je uit de geschiedenis wilt verwijderen</string>
     <string name="browse_files_network">Bladeren</string>
     <string name="browse_files_local">Bladeren</string>
     <string name="action_close_favorites">Favorieten sluiten</string>
@@ -464,8 +477,8 @@
     <string name="tmdb_title_not_found">Titel niet gevonden</string>
 
     <!-- Blaze Gallery -->
-    <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Nog geen mappen — maak er een aan om te beginnen</string>
 
@@ -542,7 +555,7 @@
     <string name="blaze_party_connection_lost">Verbinding met host verloren — terug naar je lokale wachtrij</string>
 
     <string name="gallery_folder_button">Map</string>
-    <string name="gallery_create_folder">Map</string>
+    <string name="gallery_create_folder">Toevoegen</string>
     <string name="gallery_create_folder_title">Nieuwe fotomap</string>
     <string name="gallery_create_folder_hint">Mapnaam</string>
     <string name="gallery_folder_created">Map gemaakt</string>

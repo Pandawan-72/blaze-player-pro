@@ -320,6 +320,7 @@
     <string name="sort_name_za">Nome Z–A</string>
     <string name="sort_date_recent">Più recente</string>
     <string name="sort_size">Dimensione</string>
+    <string name="sort_album_order">Ordine album</string>
 
     <string name="dialog_permission_needed">Autorizzazione necessaria</string>
 
@@ -368,6 +369,18 @@
 
     <string name="history_empty_network_subtitle">Sfoglia le tue condivisioni di rete per iniziare</string>
     <string name="history_label">Cronologia</string>
+
+    <!-- Historique : gestion par sélection -->
+    <string name="history_selection_active">Selezione attiva: %1$d miniatura/e selezionata/e.</string>
+    <string name="history_action_prompt">Scegli un’azione per questa cronologia.</string>
+    <string name="history_delete_selection">Elimina selezione (%1$d)</string>
+    <string name="history_finish_selection">Termina selezione</string>
+    <string name="history_select_thumbnails">Seleziona miniature</string>
+    <string name="history_delete_all">Elimina tutta la cronologia</string>
+    <string name="history_confirm_delete_items">Eliminare %1$d elemento/i dalla cronologia?</string>
+    <string name="history_confirm_delete_all_local">Eliminare tutta la cronologia locale?</string>
+    <string name="history_confirm_delete_all_network">Eliminare tutta la cronologia di rete?</string>
+    <string name="history_toast_select_thumbnails">Seleziona le miniature da rimuovere dalla cronologia</string>
     <string name="browse_files_network">Sfoglia</string>
     <string name="browse_files_local">Sfoglia</string>
     <string name="action_close_favorites">Chiudi preferiti</string>
@@ -464,8 +477,8 @@
     <string name="tmdb_title_not_found">Titolo non trovato</string>
 
     <!-- Blaze Gallery -->
-    <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Nessuna cartella ancora — creane una per iniziare</string>
 
@@ -557,7 +570,7 @@ Token: %2$s</string>
     </plurals>
 
     <string name="gallery_folder_button">Cartella</string>
-    <string name="gallery_create_folder">Cartella</string>
+    <string name="gallery_create_folder">Aggiungi</string>
     <string name="gallery_create_folder_title">Nuova cartella foto</string>
     <string name="gallery_create_folder_hint">Nome cartella</string>
     <string name="gallery_folder_created">Cartella creata</string>

@@ -75,6 +75,9 @@
         <item name="buttonBarPositiveButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
         <item name="buttonBarNeutralButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+        <item name="android:buttonBarPositiveButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+        <item name="android:buttonBarNeutralButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
     </style>
 
     <style name="ShapeAppearance.BlazePlayer.Dialog" parent="">

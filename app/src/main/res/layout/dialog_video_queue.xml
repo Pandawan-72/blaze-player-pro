@@ -8,89 +8,103 @@
     android:background="@color/background"
     android:paddingBottom="60dp">
 
+    <!-- Carte premium FILE D'ATTENTE VIDÉO : header raccord avec les cartes Local/Réseau -->
     <LinearLayout
+        android:id="@+id/videoQueueHeaderCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="20dp"
-        android:paddingBottom="12dp"
-        android:background="@color/background">
+        android:layout_marginHorizontal="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="0dp"
+        android:background="@drawable/bg_header_premium"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp">
 
-        <ImageButton
-            android:id="@+id/btnCloseVideoQueue"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_chevron_down"
-            android:tint="@color/on_surface"
-            android:contentDescription="@string/content_desc_close_video_queue"
-            android:layout_marginEnd="8dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/tvVideoQueueTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/video_queue_title"
-            android:textColor="@color/on_surface_variant"
-            android:textSize="11sp"
-            android:fontFamily="sans-serif-condensed"
-            android:letterSpacing="0.1" />
+            <ImageButton
+                android:id="@+id/btnCloseVideoQueue"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_header_action_button"
+                android:padding="9dp"
+                android:src="@drawable/ic_chevron_down"
+                android:tint="@color/on_surface"
+                android:contentDescription="@string/content_desc_close_video_queue" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnVideoQueueToPlaylist"
-            android:includeFontPadding="false"
-            android:layout_width="wrap_content"
-            android:layout_height="44dp"
-            android:layout_marginStart="6dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:paddingHorizontal="10dp"
-            android:text="@string/action_to_playlist"
-            android:textColor="@color/on_surface"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif-condensed"
-            app:icon="@drawable/ic_layout_list"
-            app:iconSize="14dp"
-            app:iconTint="@color/green_accent"
-            app:iconGravity="textStart"
-            app:backgroundTint="@color/surface_variant"
-            app:strokeColor="@color/green_accent"
-            app:strokeWidth="1dp"
-            app:cornerRadius="22dp"
-            android:contentDescription="@string/content_desc_queue_to_playlist" />
+            <TextView
+                android:id="@+id/tvVideoQueueTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-condensed"
+                android:includeFontPadding="false"
+                android:letterSpacing="0.1"
+                android:singleLine="true"
+                android:text="@string/video_queue_title"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/btnClearVideoQueue"
-            android:layout_width="56dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="6dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:paddingLeft="0dp"
-            android:paddingRight="0dp"
-            android:paddingTop="0dp"
-            android:paddingBottom="0dp"
-            android:includeFontPadding="false"
-            android:gravity="center"
-            android:textAlignment="center"
-            android:text="−"
-            android:textSize="21sp"
-            android:textStyle="bold"
-            android:fontFamily="sans-serif"
-            android:textColor="@color/red_accent"
-            android:background="@drawable/bg_queue_action_remove_pill"
-            android:contentDescription="@string/content_desc_clean" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVideoQueueToPlaylist"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:includeFontPadding="false"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="12dp"
+                android:text="@string/action_to_playlist"
+                android:textColor="@color/green_accent"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:icon="@drawable/ic_layout_list"
+                app:iconSize="15dp"
+                app:iconTint="@color/green_accent"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/surface_variant"
+                app:strokeColor="@color/green_accent_stroke"
+                app:strokeWidth="1dp"
+                app:cornerRadius="20dp"
+                android:contentDescription="@string/content_desc_queue_to_playlist" />
 
+            <TextView
+                android:id="@+id/btnClearVideoQueue"
+                android:layout_width="50dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingLeft="0dp"
+                android:paddingRight="0dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
+                android:includeFontPadding="false"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:text="−"
+                android:textSize="21sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif"
+                android:textColor="@color/red_accent"
+                android:background="@drawable/bg_queue_action_remove_pill"
+                android:contentDescription="@string/content_desc_clean" />
+
+        </LinearLayout>
     </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#33FFFFFF" />
 
     <FrameLayout
         android:layout_width="match_parent"

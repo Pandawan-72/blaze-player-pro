@@ -7,15 +7,17 @@
                 android:startColor="#111E2F"
                 android:centerColor="#0B111D"
                 android:endColor="#050812" />
+            <corners android:radius="24dp" />
             <stroke android:width="0.8dp" android:color="#2A21E69A" />
         </shape>
     </item>
-    <item android:left="1dp" android:right="1dp" android:top="1dp">
+    <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="1dp">
         <shape>
             <gradient
                 android:angle="270"
                 android:startColor="#10FFFFFF"
                 android:endColor="#00000000" />
+            <corners android:radius="23dp" />
         </shape>
     </item>
 </layer-list>

@@ -72,6 +72,7 @@ object TmdbWebDialog {
             .create()
         dialog.setOnDismissListener { runCatching { webView.destroy() } }
         dialog.show()
+        DialogButtonStyler.style(dialog)
 
         val main = Handler(Looper.getMainLooper())
         Thread {

@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -429,7 +430,7 @@ class MainActivity : AppCompatActivity() {
                 fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveNickname(this, input.text?.toString().orEmpty())
             }
             .setCancelable(false)
-            .show()
+            .showPremium()
     }
 
     private fun handleExternalAudioLaunchIntent(intent: Intent): Boolean {
@@ -666,7 +667,7 @@ class MainActivity : AppCompatActivity() {
                 prefs.edit().putBoolean(KEY_PERMISSION_INTRO_SHOWN, true).apply()
                 permissionLauncher.launch(notGranted.toTypedArray())
             }
-            .show()
+            .showPremium()
     }
 
     private fun showPermissionRationale() {
@@ -675,7 +676,7 @@ class MainActivity : AppCompatActivity() {
             .setMessage(getString(R.string.dialog_permission_message))
             .setPositiveButton(getString(R.string.action_allow)) { _, _ -> requestMissingPermissions() }
             .setNegativeButton(getString(R.string.action_ignore), null)
-            .show()
+            .showPremium()
     }
 
     companion object {

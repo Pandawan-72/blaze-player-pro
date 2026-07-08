@@ -7,238 +7,265 @@
     android:background="@color/background"
     android:orientation="vertical">
 
-    <!-- HEADER -->
+    <!-- Carte premium navigateur local : navigation + tri + actions dans le même bloc bord à bord -->
     <LinearLayout
+        android:id="@+id/browserHeaderCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
+        android:layout_marginHorizontal="0dp"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="0dp"
+        android:background="@drawable/bg_header_premium"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
         android:paddingTop="48dp"
-        android:paddingBottom="8dp"
-        android:gravity="center_vertical">
+        android:paddingEnd="16dp"
+        android:paddingBottom="10dp">
 
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="@drawable/bg_surface_card"
-            android:src="@drawable/ic_arrow_back"
-            android:tint="@color/on_surface_variant"
-            android:contentDescription="Retour" />
-
+        <!-- Navigation -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginHorizontal="10dp">
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/movies"
-                android:textColor="@color/on_background"
-                android:textSize="15sp"
-                android:fontFamily="sans-serif-condensed"
-                android:ellipsize="end"
-                android:singleLine="true" />
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_header_action_button"
+                android:contentDescription="Retour"
+                android:padding="9dp"
+                android:src="@drawable/ic_arrow_back"
+                android:tint="@color/on_surface_variant" />
 
-            <TextView
-                android:id="@+id/tvPath"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/example_smb_path"
-                android:textColor="@color/on_surface_variant"
-                android:textSize="11sp"
-                android:fontFamily="monospace"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:layout_marginTop="2dp" />
+                android:layout_marginHorizontal="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-condensed"
+                    android:includeFontPadding="false"
+                    android:singleLine="true"
+                    android:text="@string/movies"
+                    android:textColor="@color/on_background"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvPath"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:ellipsize="end"
+                    android:fontFamily="monospace"
+                    android:includeFontPadding="false"
+                    android:singleLine="true"
+                    android:text="@string/example_smb_path"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="10sp" />
+
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btnToggleAudio"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_header_action_button"
+                android:contentDescription="Afficher fichiers audio"
+                android:padding="9dp"
+                android:src="@drawable/ic_audio"
+                android:tint="@color/on_surface_variant"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/btnSearch"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_header_action_button"
+                android:contentDescription="Rechercher"
+                android:padding="9dp"
+                android:src="@drawable/ic_search"
+                android:tint="@color/on_surface_variant" />
+
+            <ImageButton
+                android:id="@+id/btnHome"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_header_action_button"
+                android:contentDescription="Accueil"
+                android:padding="9dp"
+                android:src="@drawable/ic_home"
+                android:tint="@color/on_surface_variant" />
 
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/btnToggleAudio"
-            android:visibility="gone"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_surface_card"
-            android:src="@drawable/ic_audio"
-            android:tint="@color/on_surface_variant"
-            android:contentDescription="Afficher fichiers audio" />
-
-        <ImageButton
-            android:id="@+id/btnSearch"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_surface_card"
-            android:src="@drawable/ic_search"
-            android:tint="@color/on_surface_variant"
-            android:contentDescription="Rechercher" />
-
-        <ImageButton
-            android:id="@+id/btnHome"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_surface_card"
-            android:src="@drawable/ic_home"
-            android:tint="@color/on_surface_variant"
-            android:contentDescription="Accueil" />
-
-    </LinearLayout>
-
-    <!-- BREADCRUMB -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="10dp"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:id="@+id/breadcrumbContainer"
-            android:layout_width="wrap_content"
+        <!-- Fil d'Ariane -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical" />
+            android:layout_marginTop="10dp"
+            android:scrollbars="none">
 
-    </HorizontalScrollView>
-
-    <!-- SORT BAR -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="8dp"
-        android:gravity="center_vertical">
-
-        <TextView
-            android:id="@+id/tvFileCount"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text=""
-            android:textColor="@color/on_surface_variant"
-            android:textSize="11sp" />
-
-        <LinearLayout
-            android:id="@+id/btnSort"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="4dp">
-
-            <ImageView
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:src="@drawable/ic_sort"
-                android:tint="@color/on_surface_variant"
-                android:contentDescription="@null" />
-
-            <TextView
-                android:id="@+id/tvSortLabel"
+            <LinearLayout
+                android:id="@+id/breadcrumbContainer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text="@string/sort_name_az"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+
+        </HorizontalScrollView>
+
+        <!-- Actions vidéo fixes -->
+        <LinearLayout
+            android:id="@+id/videoSelectionActions"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddToPlaylist"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-condensed"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="12dp"
+                android:text="@string/add_to_playlist_fixed_short"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/surface_variant"
+                app:cornerRadius="20dp"
+                app:icon="@drawable/ic_add_circle"
+                app:iconGravity="textStart"
+                app:iconSize="16dp"
+                app:iconTint="@color/green_accent"
+                app:strokeColor="@color/green_accent"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddToQueue"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-condensed"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="12dp"
+                android:text="@string/add_to_video_queue_short"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/green_accent"
+                app:cornerRadius="20dp"
+                app:icon="@drawable/ic_add_circle"
+                app:iconGravity="textStart"
+                app:iconSize="16dp"
+                app:iconTint="@color/black" />
+
+        </LinearLayout>
+
+        <!-- Compteur + tri -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvFileCount"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:includeFontPadding="false"
+                android:text=""
                 android:textColor="@color/on_surface_variant"
                 android:textSize="11sp" />
 
+            <LinearLayout
+                android:id="@+id/btnSort"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_header_action_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_sort"
+                    android:tint="@color/green_accent" />
+
+                <TextView
+                    android:id="@+id/tvSortLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:includeFontPadding="false"
+                    android:text="@string/sort_name_az"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
-    </LinearLayout>
-
-    <!-- ACTIONS VIDÉO FIXES -->
-    <LinearLayout
-        android:id="@+id/videoSelectionActions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="10dp"
-        android:background="@color/background">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddToPlaylist"
-            android:includeFontPadding="false"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+        <!-- Recherche intégrée à la carte lorsqu'elle est affichée -->
+        <EditText
+            android:id="@+id/etSearch"
+            android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:layout_marginEnd="8dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:paddingHorizontal="12dp"
-            android:fontFamily="sans-serif-condensed"
-            android:gravity="center"
-            android:text="@string/add_to_playlist_fixed_short"
-            android:textColor="@color/on_surface_variant"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            app:icon="@drawable/ic_add_circle"
-            app:iconSize="16dp"
-            app:iconTint="@color/green_accent"
-            app:iconGravity="textStart"
-            app:backgroundTint="@color/surface_variant"
-            app:cornerRadius="22dp"
-            app:strokeColor="@color/green_accent"
-            app:strokeWidth="1dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddToQueue"
-            android:includeFontPadding="false"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="44dp"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:paddingHorizontal="12dp"
-            android:fontFamily="sans-serif-condensed"
-            android:gravity="center"
-            android:text="@string/add_to_video_queue_short"
-            android:textColor="@color/black"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            app:icon="@drawable/ic_add_circle"
-            app:iconSize="16dp"
-            app:iconTint="@color/black"
-            app:iconGravity="textStart"
-            app:backgroundTint="@color/green_accent"
-            app:cornerRadius="22dp" />
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_search_field"
+            android:hint="@string/search_hint_video"
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:paddingHorizontal="16dp"
+            android:singleLine="true"
+            android:textColor="@color/on_surface"
+            android:textColorHint="@color/on_surface_variant"
+            android:visibility="gone" />
 
     </LinearLayout>
 
-    <!-- RECHERCHE -->
-    <EditText
-        android:id="@+id/etSearch"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:hint="@string/search_hint_video"
-        android:paddingHorizontal="16dp"
-        android:background="@color/surface_variant"
-        android:textColor="@color/on_surface"
-        android:textColorHint="@color/on_surface_variant"
-        android:inputType="text"
-        android:imeOptions="actionSearch"
-        android:singleLine="true"
-        android:visibility="gone" />
-
-    <!-- LISTE FICHIERS -->
+    <!-- LISTE FICHIERS : collée au bas de la carte -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:clipToPadding="false"
         android:paddingHorizontal="12dp"
         android:paddingBottom="16dp"
-        android:clipToPadding="false"
         android:scrollbars="none" />
 
 </LinearLayout>

@@ -334,6 +334,7 @@
     <string name="sort_name_za">Имя Я–А</string>
     <string name="sort_date_recent">Недавние</string>
     <string name="sort_size">Размер</string>
+    <string name="sort_album_order">Порядок альбома</string>
 
     <string name="dialog_permission_needed">Требуется разрешение</string>
 
@@ -382,6 +383,18 @@
 
     <string name="history_empty_network_subtitle">Просмотрите сетевые ресурсы, чтобы начать</string>
     <string name="history_label">История</string>
+
+    <!-- Historique : gestion par sélection -->
+    <string name="history_selection_active">Выбор активен: выбрано миниатюр: %1$d.</string>
+    <string name="history_action_prompt">Выберите действие для этой истории.</string>
+    <string name="history_delete_selection">Удалить выбранное (%1$d)</string>
+    <string name="history_finish_selection">Завершить выбор</string>
+    <string name="history_select_thumbnails">Выбрать миниатюры</string>
+    <string name="history_delete_all">Удалить всю историю</string>
+    <string name="history_confirm_delete_items">Удалить элементов из истории: %1$d?</string>
+    <string name="history_confirm_delete_all_local">Удалить всю локальную историю?</string>
+    <string name="history_confirm_delete_all_network">Удалить всю сетевую историю?</string>
+    <string name="history_toast_select_thumbnails">Выберите миниатюры, которые нужно удалить из истории</string>
     <string name="browse_files_network">Обзор</string>
     <string name="browse_files_local">Обзор</string>
     <string name="action_close_favorites">Закрыть избранное</string>
@@ -486,8 +499,8 @@
     <string name="tmdb_title_not_found">Название не найдено</string>
 
     <!-- Blaze Gallery -->
-    <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Пока нет папок — создайте одну, чтобы начать</string>
 
@@ -579,7 +592,7 @@
     </plurals>
 
     <string name="gallery_folder_button">Папка</string>
-    <string name="gallery_create_folder">Папка</string>
+    <string name="gallery_create_folder">Добавить</string>
     <string name="gallery_create_folder_title">Новая папка фото</string>
     <string name="gallery_create_folder_hint">Имя папки</string>
     <string name="gallery_folder_created">Папка создана</string>

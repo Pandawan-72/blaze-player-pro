@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.player
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.app.Dialog
 import android.content.Context
 import android.view.LayoutInflater
@@ -88,7 +89,7 @@ object VideoQueueSheet {
                     refreshHeader(adapter)
                 }
                 .setNegativeButton(context.getString(R.string.action_cancel), null)
-                .show()
+                .showPremium()
         }
         adapter = VideoQueueAdapter(
             tracks = tracks,
@@ -169,7 +170,8 @@ object VideoQueueSheet {
             fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
                 context = context,
                 category = category,
-                tracks = queue
+                tracks = queue,
+                onAdded = { onChanged?.invoke() }
             )
         }
         btnClear.setOnClickListener { showRemoveDialog() }

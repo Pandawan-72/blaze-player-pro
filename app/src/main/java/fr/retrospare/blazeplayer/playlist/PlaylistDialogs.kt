@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.playlist
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -64,13 +65,13 @@ object PlaylistDialogs {
                         .setMessage(context.getString(R.string.dialog_playlist_not_empty_message, slot, countText))
                         .setPositiveButton(context.getString(R.string.action_confirm_add_to_existing_playlist)) { _, _ -> addToSlot(slot) }
                         .setNegativeButton(context.getString(R.string.action_cancel), null)
-                        .show()
+                        .showPremium()
                 } else {
                     addToSlot(slot)
                 }
             }
             .setNegativeButton(context.getString(R.string.action_cancel), null)
-            .show()
+            .showPremium()
     }
 
     /** Affiche le contenu d'une playlist sauvegardée dans une feuille de bas d'écran habillée

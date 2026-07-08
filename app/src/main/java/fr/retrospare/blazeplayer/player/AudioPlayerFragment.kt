@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.player
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
 import android.Manifest
@@ -857,7 +858,7 @@ class AudioPlayerFragment : Fragment() {
         _binding?.btnPlayPause?.elevation = dp(10f)
         _binding?.btnPlayPause?.translationZ = dp(6f)
         _binding?.audioEqualizerView?.setAccentColor(accentColor)
-        _binding?.artworkFrame?.foreground = buildArtworkBorder(accentColor)
+        applyArtworkAccentBorder(accentColor)
         restoreStaticAudioControlColors()
         persistDynamicAudioColors(targetColor, accentColor)
     }
@@ -877,7 +878,7 @@ class AudioPlayerFragment : Fragment() {
         _binding?.btnPlayPause?.elevation = dp(10f)
         _binding?.btnPlayPause?.translationZ = dp(6f)
         _binding?.audioEqualizerView?.setAccentColor(accent)
-        _binding?.artworkFrame?.foreground = buildArtworkBorder(accent)
+        applyArtworkAccentBorder(accent)
         restoreStaticAudioControlColors()
     }
 
@@ -889,6 +890,42 @@ class AudioPlayerFragment : Fragment() {
                 .putInt(KEY_DYNAMIC_ACCENT, accent)
                 .apply()
         } catch (_: Exception) { }
+    }
+
+    private fun applyArtworkAccentBorder(accentColor: Int) {
+        val b = _binding ?: return
+        b.artworkFrame.foreground = buildArtworkAccentBorder(accentColor)
+        b.artworkFrame.foregroundGravity = Gravity.FILL
+    }
+
+    private fun buildArtworkAccentBorder(accentColor: Int): LayerDrawable {
+        val bright = mixColors(accentColor, Color.WHITE, 0.44f)
+        val shifted = rotateHue(accentColor, 28f)
+        val deep = mixColors(accentColor, Color.BLACK, 0.22f)
+        val outer = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(24f)
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(2.4f).toInt().coerceAtLeast(2), bright)
+        }
+        val colorRing = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(22.5f)
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(1.4f).toInt().coerceAtLeast(1), withAlpha(shifted, 220))
+        }
+        val innerShade = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(21f)
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(1f).toInt().coerceAtLeast(1), withAlpha(deep, 150))
+        }
+        return LayerDrawable(arrayOf(outer, colorRing, innerShade)).apply {
+            val one = dp(1f).toInt().coerceAtLeast(1)
+            val two = dp(2f).toInt().coerceAtLeast(2)
+            setLayerInset(1, one, one, one, one)
+            setLayerInset(2, two, two, two, two)
+        }
     }
 
     private fun appGreenColor(): Int = try {
@@ -916,18 +953,6 @@ class AudioPlayerFragment : Fragment() {
         b.btnAudioPlaylistParty.background = android.graphics.drawable.ColorDrawable(Color.TRANSPARENT)
         b.btnAudioPlaylistParty.elevation = 0f
         b.btnAudioPlaylistParty.translationZ = 0f
-    }
-
-    /** Simple contour dynamique dessiné sur la cover, en foreground : ne clippe rien,
-     *  se contente de dessiner un anneau arrondi (même radius que la cover) teinté
-     *  avec la couleur d'accent courante, comme les autres éléments dynamiques. */
-    private fun buildArtworkBorder(accentColor: Int): GradientDrawable {
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(23f)
-            setColor(Color.TRANSPARENT)
-            setStroke(dp(1.5f).toInt(), mixColors(accentColor, Color.WHITE, 0.22f))
-        }
     }
 
     /** Halo lumineux dynamique affiché derrière la pochette (ivArtworkGlow, sous artworkFrame).
@@ -1098,6 +1123,9 @@ class AudioPlayerFragment : Fragment() {
                     artworkContainer.layoutParams = containerParams
                 }
             }
+
+            b.artworkFrame.elevation = dp(18f)
+            b.artworkFrame.translationZ = dp(12f)
 
             val glowParams = b.ivArtworkGlow.layoutParams
             if (glowParams.width != 0 || glowParams.height != 0) {
@@ -1289,7 +1317,8 @@ class AudioPlayerFragment : Fragment() {
             fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
                 requireContext(),
                 fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO,
-                tracks
+                tracks,
+                onAdded = { setupSavedPlaylistDrawers() }
             )
         }
         binding.btnAudioFavoriteFolders.setOnClickListener {
@@ -1370,7 +1399,10 @@ class AudioPlayerFragment : Fragment() {
                 btn?.setTextColor(
                     ContextCompat.getColor(
                         ctx,
-                        if (hasItems) fr.retrospare.blazeplayer.R.color.green_accent else fr.retrospare.blazeplayer.R.color.on_surface_variant
+                        when {
+                            hasItems -> fr.retrospare.blazeplayer.R.color.black
+                            else -> fr.retrospare.blazeplayer.R.color.on_surface_variant
+                        }
                     )
                 )
             } else {
@@ -1584,7 +1616,7 @@ class AudioPlayerFragment : Fragment() {
                 android.widget.Toast.makeText(ctx, getString(fr.retrospare.blazeplayer.R.string.toast_blaze_party_playlist_emptied), android.widget.Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
-            .show()
+            .showPremium()
     }
 
     private fun sortedBlazePartyTracks(ctx: android.content.Context): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> =
@@ -1687,7 +1719,7 @@ class AudioPlayerFragment : Fragment() {
                 castPartyVote(track.path, nickname, add = false)
             }
         }
-        builder.show()
+        builder.showPremium()
     }
 
     /** Envoie un vote : localement si l'appareil est l'hôte (source de vérité), sinon via
@@ -2079,7 +2111,7 @@ class AudioPlayerFragment : Fragment() {
                 .setTitle(getString(fr.retrospare.blazeplayer.R.string.info))
                 .setMessage(getString(fr.retrospare.blazeplayer.R.string.dialog_track_info_message, title, artist, album))
                 .setPositiveButton("OK", null)
-                .show()
+                .showPremium()
         }
         binding.btnSleepTimer.setOnClickListener {
             val options = arrayOf(getString(fr.retrospare.blazeplayer.R.string.minutes_5), getString(fr.retrospare.blazeplayer.R.string.minutes_15), getString(fr.retrospare.blazeplayer.R.string.minutes_30), getString(fr.retrospare.blazeplayer.R.string.hour_1), getString(fr.retrospare.blazeplayer.R.string.action_cancel))
@@ -2101,7 +2133,7 @@ class AudioPlayerFragment : Fragment() {
                         (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)
                             ?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
                     }
-                }.show()
+                }.showPremium()
         }
     }
 
@@ -2198,15 +2230,17 @@ class AudioPlayerFragment : Fragment() {
         fun partyButton(label: String, icon: Int, action: () -> Unit) = MaterialButton(requireContext()).apply {
             text = label
             isAllCaps = false
-            textSize = 14f
+            textSize = 13f
             setIconResource(icon)
             iconTint = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.green_accent))
             setTextColor(Color.WHITE)
             backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.surface_variant))
             strokeColor = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.outline_variant))
             strokeWidth = dp(1)
-            cornerRadius = dp(18)
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)).apply { bottomMargin = dp(10) }
+            cornerRadius = dp(20)
+            insetTop = 0
+            insetBottom = 0
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(40)).apply { bottomMargin = dp(8) }
             setOnClickListener { action() }
         }
         root.addView(partyButton(getString(fr.retrospare.blazeplayer.R.string.blaze_party_host), fr.retrospare.blazeplayer.R.drawable.ic_wifi) {
@@ -2556,7 +2590,7 @@ class AudioPlayerFragment : Fragment() {
             .setView(box)
             .setPositiveButton(android.R.string.ok) { _, _ -> BlazePartyVoteManager.saveNickname(ctx, input.text?.toString().orEmpty()) }
             .setCancelable(false)
-            .show()
+            .showPremium()
     }
 
     private fun getLocalIpv4Address(): String? = getLocalIpv4Addresses().firstOrNull()
@@ -2762,7 +2796,7 @@ class AudioPlayerFragment : Fragment() {
                 AudioRepository.clear(requireContext())
             }
             .setNegativeButton(getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)
-            .show()
+            .showPremium()
     }
     private fun purgeNonAudioItems(ctrl: MediaController) {
         try {

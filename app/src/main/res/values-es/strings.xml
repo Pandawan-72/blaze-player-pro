@@ -320,6 +320,7 @@
     <string name="sort_name_za">Nombre Z–A</string>
     <string name="sort_date_recent">Más reciente</string>
     <string name="sort_size">Tamaño</string>
+    <string name="sort_album_order">Orden del álbum</string>
 
     <string name="dialog_permission_needed">Permiso necesario</string>
 
@@ -368,6 +369,18 @@
 
     <string name="history_empty_network_subtitle">Explora tus recursos de red para empezar</string>
     <string name="history_label">Historial</string>
+
+    <!-- Historique : gestion par sélection -->
+    <string name="history_selection_active">Selección activa: %1$d miniatura(s) seleccionada(s).</string>
+    <string name="history_action_prompt">Elige una acción para este historial.</string>
+    <string name="history_delete_selection">Eliminar selección (%1$d)</string>
+    <string name="history_finish_selection">Terminar selección</string>
+    <string name="history_select_thumbnails">Seleccionar miniaturas</string>
+    <string name="history_delete_all">Eliminar todo el historial</string>
+    <string name="history_confirm_delete_items">¿Eliminar %1$d elemento(s) del historial?</string>
+    <string name="history_confirm_delete_all_local">¿Eliminar todo el historial local?</string>
+    <string name="history_confirm_delete_all_network">¿Eliminar todo el historial de red?</string>
+    <string name="history_toast_select_thumbnails">Selecciona las miniaturas que quieres quitar del historial</string>
     <string name="browse_files_network">Explorar</string>
     <string name="browse_files_local">Explorar</string>
     <string name="action_close_favorites">Cerrar favoritos</string>
@@ -464,8 +477,8 @@
     <string name="tmdb_title_not_found">Título no encontrado</string>
 
     <!-- Blaze Gallery -->
-    <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Aún no hay carpetas — crea una para empezar</string>
 
@@ -557,7 +570,7 @@ Token: %2$s</string>
     </plurals>
 
     <string name="gallery_folder_button">Carpeta</string>
-    <string name="gallery_create_folder">Carpeta</string>
+    <string name="gallery_create_folder">Añadir</string>
     <string name="gallery_create_folder_title">Nueva carpeta de fotos</string>
     <string name="gallery_create_folder_hint">Nombre de la carpeta</string>
     <string name="gallery_folder_created">Carpeta creada</string>

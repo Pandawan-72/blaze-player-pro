@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.gallery
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.content.Context
 import android.net.Uri
 import androidx.appcompat.app.AlertDialog
@@ -54,6 +55,6 @@ object PhotoDetailsDialog {
             .setTitle(context.getString(R.string.action_information))
             .setMessage(if (message.isBlank()) context.getString(R.string.photo_details_no_exif) else message.toString().trim())
             .setPositiveButton(context.getString(R.string.action_ok), null)
-            .show()
+            .showPremium()
     }
 }

@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.home
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.graphics.Typeface
 import androidx.core.content.res.ResourcesCompat
 import android.os.Bundle
@@ -67,6 +68,11 @@ class HomeFragment : Fragment() {
     private var gallerySelectionMode: Boolean = false
     private val selectedGalleryPhotos = linkedSetOf<String>()
     private var currentGalleryPhotos: List<MediaItem> = emptyList()
+
+    private var latestLocalHistoryItems: List<MediaItem> = emptyList()
+    private var latestNetworkHistoryItems: List<MediaItem> = emptyList()
+    private var historySelectionTab: Int? = null
+    private val selectedHistoryPaths = linkedSetOf<String>()
     private var pendingGallerySystemActionRefresh: (() -> Unit)? = null
     private var pendingPermanentDeleteHistoryCleanup: List<MediaItem> = emptyList()
     private var galleryCustomThumbnailMode: Boolean = false
@@ -151,6 +157,10 @@ class HomeFragment : Fragment() {
         currentTabIndex = viewModel.currentTabIndex.value
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
+                if (historySelectionTab != null) {
+                    clearHistorySelection()
+                    return
+                }
                 if (currentTabIndex == 3 && handleBlazeGalleryBack()) return
                 isEnabled = false
                 requireActivity().onBackPressedDispatcher.onBackPressed()
@@ -233,7 +243,10 @@ class HomeFragment : Fragment() {
 
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
-        if (_binding != null) setupVideoQueueButtons()
+        if (_binding != null) {
+            setupPlaylistButtons()
+            setupVideoQueueButtons()
+        }
 
         // Switche vers Blaze Audio quand un fichier audio est ajouté depuis le navigateur
         val sharedAudioVm = androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
@@ -253,7 +266,10 @@ class HomeFragment : Fragment() {
         updateVersionBadge()
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
-        if (_binding != null) setupVideoQueueButtons()
+        if (_binding != null) {
+            setupPlaylistButtons()
+            setupVideoQueueButtons()
+        }
         if (suppressGalleryResetOnResume) {
             // Retour d'un écran qu'on vient nous-mêmes de lancer ou d'une boîte système MediaStore :
             // ne surtout pas forcer l'accueil des dossiers, sinon la corbeille peut se transformer
@@ -411,12 +427,12 @@ class HomeFragment : Fragment() {
                 proPlus -> {
                     binding.tvVersionBadge.text = getString(R.string.version_badge_pro_plus)
                     binding.tvVersionBadge.setBackgroundResource(R.drawable.bg_pro_badge)
-                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.background))
+                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
                 }
                 pro -> {
                     binding.tvVersionBadge.text = getString(R.string.version_badge_pro)
                     binding.tvVersionBadge.setBackgroundResource(R.drawable.bg_pro_badge)
-                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.background))
+                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
                 }
                 else -> {
                     binding.tvVersionBadge.text = getString(R.string.version_badge_free)
@@ -584,7 +600,7 @@ class HomeFragment : Fragment() {
             .setMessage(message)
             .setNegativeButton(getString(R.string.action_cancel), null)
             .setPositiveButton(getString(R.string.action_confirm_delete)) { _, _ -> onConfirm() }
-            .show()
+            .showPremium()
     }
 
     private fun showGallerySortMenu() {
@@ -1082,7 +1098,7 @@ class HomeFragment : Fragment() {
                 val name = input.text?.toString()?.trim().orEmpty()
                 if (name.isNotBlank()) createGalleryFolder(name)
             }
-            .show()
+            .showPremium()
     }
 
     private fun createGalleryFolder(folderName: String) {
@@ -1121,7 +1137,7 @@ class HomeFragment : Fragment() {
             androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle(getString(R.string.gallery_move_photo_title))
                 .setItems(names) { _, which -> moveGalleryPhotoToFolder(photo, folders[which]) }
-                .show()
+                .showPremium()
         }
     }
 
@@ -1800,18 +1816,27 @@ class HomeFragment : Fragment() {
                 binding.sectionLocal.visibility = View.VISIBLE
                 binding.sectionNetwork.visibility = View.GONE
                 binding.sectionGallery.visibility = View.GONE
+                binding.headerControlsLocal.visibility = View.VISIBLE
+                binding.headerControlsNetwork.visibility = View.GONE
+                binding.headerControlsGallery.visibility = View.GONE
                 viewModel.onTabSelected(1)
             }
             2 -> {
                 binding.sectionNetwork.visibility = View.VISIBLE
                 binding.sectionLocal.visibility = View.GONE
                 binding.sectionGallery.visibility = View.GONE
+                binding.headerControlsNetwork.visibility = View.VISIBLE
+                binding.headerControlsLocal.visibility = View.GONE
+                binding.headerControlsGallery.visibility = View.GONE
                 viewModel.onTabSelected(2)
             }
             3 -> {
                 binding.sectionLocal.visibility = View.GONE
                 binding.sectionNetwork.visibility = View.GONE
                 binding.sectionGallery.visibility = View.VISIBLE
+                binding.headerControlsLocal.visibility = View.GONE
+                binding.headerControlsNetwork.visibility = View.GONE
+                binding.headerControlsGallery.visibility = View.VISIBLE
                 viewModel.onTabSelected(3)
                 refreshGalleryDefaultContent()
             }
@@ -1819,6 +1844,9 @@ class HomeFragment : Fragment() {
                 binding.sectionLocal.visibility = View.VISIBLE
                 binding.sectionNetwork.visibility = View.GONE
                 binding.sectionGallery.visibility = View.GONE
+                binding.headerControlsLocal.visibility = View.VISIBLE
+                binding.headerControlsNetwork.visibility = View.GONE
+                binding.headerControlsGallery.visibility = View.GONE
                 viewModel.onTabSelected(1)
             }
         }
@@ -1852,6 +1880,8 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.action_home_to_browser)
         }
         binding.btnEmptyStateBrowseLocal.setOnClickListener { binding.btnBrowseLocal.performClick() }
+        binding.btnHistoryLocal.setOnClickListener { showHistoryActionsDialog(1) }
+        binding.btnHistoryNetwork.setOnClickListener { showHistoryActionsDialog(2) }
         binding.btnFavoritesLocal.setOnClickListener {
             fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
                 requireContext(), fr.retrospare.blazeplayer.favorites.FavoriteCategory.LOCAL
@@ -1881,12 +1911,18 @@ class HomeFragment : Fragment() {
         binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueLocal)?.setOnClickListener {
             fr.retrospare.blazeplayer.player.VideoQueueSheet.show(
                 requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
-            ) { setupVideoQueueButtons() }
+            ) {
+                setupPlaylistButtons()
+                setupVideoQueueButtons()
+            }
         }
         binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueNetwork)?.setOnClickListener {
             fr.retrospare.blazeplayer.player.VideoQueueSheet.show(
                 requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
-            ) { setupVideoQueueButtons() }
+            ) {
+                setupPlaylistButtons()
+                setupVideoQueueButtons()
+            }
         }
         setupPlaylistButtons()
         setupVideoQueueButtons()
@@ -1904,7 +1940,10 @@ class HomeFragment : Fragment() {
         btn.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
-                if (hasItems) R.color.green_accent else R.color.on_surface_variant
+                when {
+                    hasItems -> R.color.black
+                    else -> R.color.on_surface_variant
+                }
             )
         )
         btn.setOnClickListener { openSavedPlaylist(category, slot) }
@@ -1942,8 +1981,8 @@ class HomeFragment : Fragment() {
             .getQueue(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO).isNotEmpty()
         localBtn?.isSelected = localHasItems
         networkBtn?.isSelected = networkHasItems
-        localBtn?.alpha = if (localHasItems) 1f else 0.72f
-        networkBtn?.alpha = if (networkHasItems) 1f else 0.72f
+        localBtn?.alpha = 1f
+        networkBtn?.alpha = 1f
     }
 
     private fun setupPlaylistButtons() {
@@ -2025,11 +2064,191 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun historyItemsForTab(tab: Int): List<MediaItem> =
+        if (tab == 2) latestNetworkHistoryItems else latestLocalHistoryItems
+
+    private fun historyTitleForTab(tab: Int): String =
+        if (tab == 2) getString(R.string.history_network) else getString(R.string.history_local)
+
+    private fun showHistoryActionsDialog(tab: Int) {
+        val items = historyItemsForTab(tab)
+        if (items.isEmpty()) {
+            fr.retrospare.blazeplayer.ui.InfoDialog.show(
+                requireContext(),
+                historyTitleForTab(tab),
+                if (tab == 2) getString(R.string.history_empty_network_subtitle) else getString(R.string.history_empty_local_subtitle),
+                R.drawable.ic_history
+            )
+            return
+        }
+
+        fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+        val dialog = android.app.Dialog(requireContext())
+        val root = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(22), dp(22), dp(22))
+            setBackgroundResource(R.drawable.bg_cast_status_card)
+        }
+
+        val header = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val iconWrap = android.widget.FrameLayout(requireContext()).apply {
+            setBackgroundResource(R.drawable.bg_cast_icon_circle)
+            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
+        }
+        iconWrap.addView(ImageView(requireContext()).apply {
+            setImageResource(R.drawable.ic_history)
+            setColorFilter(android.graphics.Color.WHITE)
+            layoutParams = android.widget.FrameLayout.LayoutParams(dp(24), dp(24), android.view.Gravity.CENTER)
+        })
+        header.addView(iconWrap)
+        header.addView(TextView(requireContext()).apply {
+            text = historyTitleForTab(tab)
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 18f
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(14) }
+        })
+        header.addView(ImageButton(requireContext()).apply {
+            setBackgroundResource(R.drawable.bg_top_icon_btn)
+            setImageResource(R.drawable.ic_close)
+            setColorFilter(android.graphics.Color.WHITE)
+            contentDescription = getString(R.string.action_close)
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
+            setOnClickListener { dialog.dismiss() }
+        })
+        root.addView(header)
+
+        root.addView(View(requireContext()).apply {
+            setBackgroundColor(android.graphics.Color.parseColor("#1FFFFFFF"))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                topMargin = dp(20)
+                bottomMargin = dp(16)
+            }
+        })
+
+        val selectedCount = if (historySelectionTab == tab) selectedHistoryPaths.size else 0
+        root.addView(TextView(requireContext()).apply {
+            text = if (historySelectionTab == tab) {
+                getString(R.string.history_selection_active, selectedCount)
+            } else {
+                getString(R.string.history_action_prompt)
+            }
+            setTextColor(android.graphics.Color.parseColor("#CCFFFFFF"))
+            textSize = 14f
+            setLineSpacing(dp(2).toFloat(), 1f)
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = dp(14)
+            }
+        })
+
+        fun addActionButton(label: String, destructive: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
+            root.addView(TextView(requireContext()).apply {
+                text = label
+                setTextColor(ContextCompat.getColor(requireContext(), if (destructive) R.color.red_accent else R.color.green_accent))
+                textSize = 13f
+                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                gravity = android.view.Gravity.CENTER
+                setBackgroundResource(if (destructive) R.drawable.bg_queue_action_remove_pill else R.drawable.bg_queue_action_add_pill)
+                setPadding(dp(18), 0, dp(18), 0)
+                alpha = if (enabled) 1f else 0.45f
+                isEnabled = enabled
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(40)).apply {
+                    topMargin = dp(8)
+                }
+                setOnClickListener {
+                    dialog.dismiss()
+                    onClick()
+                }
+            })
+        }
+
+        if (historySelectionTab == tab) {
+            addActionButton(getString(R.string.history_delete_selection, selectedCount), destructive = true, enabled = selectedCount > 0) {
+                val selected = historyItemsForTab(tab).filter { selectedHistoryPaths.contains(it.path) }
+                confirmHistoryDeletion(
+                    getString(R.string.history_confirm_delete_items, selected.size),
+                    onConfirm = {
+                        viewModel.removeFromHistory(selected)
+                        clearHistorySelection()
+                    }
+                )
+            }
+            addActionButton(getString(R.string.history_finish_selection)) { clearHistorySelection() }
+        } else {
+            addActionButton(getString(R.string.history_select_thumbnails)) { enterHistorySelection(tab) }
+        }
+
+        addActionButton(getString(R.string.history_delete_all), destructive = true) {
+            val toDelete = historyItemsForTab(tab)
+            confirmHistoryDeletion(
+                if (tab == 2) getString(R.string.history_confirm_delete_all_network) else getString(R.string.history_confirm_delete_all_local),
+                onConfirm = {
+                    viewModel.removeFromHistory(toDelete)
+                    if (historySelectionTab == tab) clearHistorySelection()
+                }
+            )
+        }
+
+        dialog.setContentView(root)
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.88f).toInt(), android.view.WindowManager.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun confirmHistoryDeletion(message: String, onConfirm: () -> Unit) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.confirm_delete_title))
+            .setMessage(message)
+            .setNegativeButton(getString(R.string.action_cancel), null)
+            .setPositiveButton(getString(R.string.action_confirm_delete)) { _, _ -> onConfirm() }
+            .showPremium()
+    }
+
+    private fun enterHistorySelection(tab: Int) {
+        historySelectionTab = tab
+        selectedHistoryPaths.clear()
+        refreshHistorySelectionAdapters()
+        android.widget.Toast.makeText(requireContext(), getString(R.string.history_toast_select_thumbnails), android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    private fun toggleHistorySelection(item: MediaItem) {
+        if (historySelectionTab == null) return
+        if (!selectedHistoryPaths.add(item.path)) selectedHistoryPaths.remove(item.path)
+        refreshHistorySelectionAdapters()
+    }
+
+    private fun clearHistorySelection() {
+        historySelectionTab = null
+        selectedHistoryPaths.clear()
+        refreshHistorySelectionAdapters()
+    }
+
+    private fun refreshHistorySelectionAdapters() {
+        binding.listLocal.adapter?.notifyDataSetChanged()
+        binding.listNetwork.adapter?.notifyDataSetChanged()
+    }
+
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.recentNetworkItems.collect { updateRecycler(binding.listNetwork, it) } }
-                launch { viewModel.recentLocalItems.collect { updateRecycler(binding.listLocal, it) } }
+                launch {
+                    viewModel.recentNetworkItems.collect { items ->
+                        latestNetworkHistoryItems = items
+                        updateRecycler(binding.listNetwork, items)
+                    }
+                }
+                launch {
+                    viewModel.recentLocalItems.collect { items ->
+                        latestLocalHistoryItems = items
+                        updateRecycler(binding.listLocal, items)
+                    }
+                }
             }
         }
     }
@@ -2041,6 +2260,7 @@ class HomeFragment : Fragment() {
     private fun updateRecycler(recycler: androidx.recyclerview.widget.RecyclerView, items: List<MediaItem>) {
         val historyTabForRecycler = if (recycler.id == R.id.listNetwork) 2 else 1
         val emptyState = if (recycler.id == R.id.listNetwork) binding.emptyStateNetwork else binding.emptyStateLocal
+        if (items.isEmpty() && historySelectionTab == historyTabForRecycler) clearHistorySelection()
         recycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
         emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
         if (items.isEmpty()) return
@@ -2092,11 +2312,20 @@ class HomeFragment : Fragment() {
                     fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
                 }
 
+                val inSelectionMode = historySelectionTab == historyTabForRecycler
+                val cbSelect = v.findViewById<android.widget.CheckBox>(R.id.cbHistorySelect)
+                cbSelect?.visibility = if (inSelectionMode) View.VISIBLE else View.GONE
+                cbSelect?.isChecked = selectedHistoryPaths.contains(item.path)
+                cbSelect?.setOnClickListener { toggleHistorySelection(item) }
+
                 // Click
-                v.setOnClickListener { openHistoryItem(item) }
+                v.setOnClickListener {
+                    if (inSelectionMode) toggleHistorySelection(item) else openHistoryItem(item)
+                }
 
                 // Bouton 3 points, désormais ancré dans l'overlay bas de la tuile
                 val btnMore = v.findViewById<android.view.View>(R.id.btnMore)
+                btnMore?.visibility = if (inSelectionMode) View.GONE else View.VISIBLE
                 btnMore?.setOnClickListener { anchor ->
                     val popup = android.widget.PopupMenu(requireContext(), anchor)
                     popup.menu.add(0, 1, 0, getString(R.string.action_play))

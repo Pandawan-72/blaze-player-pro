@@ -320,6 +320,7 @@
     <string name="sort_name_za">Name Z–A</string>
     <string name="sort_date_recent">Neueste zuerst</string>
     <string name="sort_size">Größe</string>
+    <string name="sort_album_order">Albumreihenfolge</string>
 
     <string name="dialog_permission_needed">Berechtigung erforderlich</string>
 
@@ -368,6 +369,18 @@
 
     <string name="history_empty_network_subtitle">Durchsuche deine Netzwerkfreigaben, um loszulegen</string>
     <string name="history_label">Verlauf</string>
+
+    <!-- Historique : gestion par sélection -->
+    <string name="history_selection_active">Auswahl aktiv: %1$d Miniatur(en) ausgewählt.</string>
+    <string name="history_action_prompt">Wähle eine Aktion für diesen Verlauf.</string>
+    <string name="history_delete_selection">Auswahl löschen (%1$d)</string>
+    <string name="history_finish_selection">Auswahl beenden</string>
+    <string name="history_select_thumbnails">Miniaturen auswählen</string>
+    <string name="history_delete_all">Gesamten Verlauf löschen</string>
+    <string name="history_confirm_delete_items">%1$d Element(e) aus dem Verlauf löschen?</string>
+    <string name="history_confirm_delete_all_local">Gesamten lokalen Verlauf löschen?</string>
+    <string name="history_confirm_delete_all_network">Gesamten Netzwerkverlauf löschen?</string>
+    <string name="history_toast_select_thumbnails">Wähle die Miniaturen aus, die aus dem Verlauf entfernt werden sollen</string>
     <string name="browse_files_network">Durchsuchen</string>
     <string name="browse_files_local">Durchsuchen</string>
     <string name="action_close_favorites">Favoriten schließen</string>
@@ -464,8 +477,8 @@
     <string name="tmdb_title_not_found">Titel nicht gefunden</string>
 
     <!-- Blaze Gallery -->
-    <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Noch keine Ordner — erstelle einen, um loszulegen</string>
 
@@ -557,7 +570,7 @@ Token: %2$s</string>
     </plurals>
 
     <string name="gallery_folder_button">Ordner</string>
-    <string name="gallery_create_folder">Ordner</string>
+    <string name="gallery_create_folder">Hinzufügen</string>
     <string name="gallery_create_folder_title">Neuer Fotoordner</string>
     <string name="gallery_create_folder_hint">Ordnername</string>
     <string name="gallery_folder_created">Ordner erstellt</string>

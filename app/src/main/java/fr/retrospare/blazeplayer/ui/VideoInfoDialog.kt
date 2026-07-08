@@ -33,7 +33,7 @@ object VideoInfoDialog {
             .setTitle(title)
             .setView(view)
             .setPositiveButton(context.getString(R.string.action_ok), null)
-            .show()
+            .showPremium()
     }
 
     private fun buildBaseMessage(

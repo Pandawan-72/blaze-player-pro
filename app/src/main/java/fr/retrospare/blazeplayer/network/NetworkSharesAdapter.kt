@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.network
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -66,7 +67,7 @@ class NetworkSharesAdapter(
                             0 -> onEdit(share)
                             1 -> onDelete(share)
                         }
-                    }.show()
+                    }.showPremium()
             }
         }
     }

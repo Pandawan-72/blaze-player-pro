@@ -320,6 +320,7 @@
     <string name="sort_name_za">Name Z–A</string>
     <string name="sort_date_recent">Most recent</string>
     <string name="sort_size">Size</string>
+    <string name="sort_album_order">Album order</string>
 
     <string name="dialog_permission_needed">Permission needed</string>
 
@@ -368,6 +369,18 @@
 
     <string name="history_empty_network_subtitle">Browse your network shares to get started</string>
     <string name="history_label">History</string>
+
+    <!-- Historique : gestion par sélection -->
+    <string name="history_selection_active">Selection active: %1$d thumbnail(s) selected.</string>
+    <string name="history_action_prompt">Choose an action for this history.</string>
+    <string name="history_delete_selection">Delete selection (%1$d)</string>
+    <string name="history_finish_selection">Finish selection</string>
+    <string name="history_select_thumbnails">Select thumbnails</string>
+    <string name="history_delete_all">Delete all history</string>
+    <string name="history_confirm_delete_items">Delete %1$d item(s) from history?</string>
+    <string name="history_confirm_delete_all_local">Delete all local history?</string>
+    <string name="history_confirm_delete_all_network">Delete all network history?</string>
+    <string name="history_toast_select_thumbnails">Select the thumbnails to remove from history</string>
     <string name="browse_files_network">Browse</string>
     <string name="browse_files_local">Browse</string>
     <string name="action_close_favorites">Close favorites</string>
@@ -464,8 +477,8 @@
     <string name="tmdb_title_not_found">Title not found</string>
 
     <!-- Blaze Gallery -->
-    <string name="gallery_title">Blaze Gallery</string>
-    <string name="gallery_folders">Blaze Gallery</string>
+    <string name="gallery_title">Gallery</string>
+    <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">No folders yet — create one to get started</string>
 
@@ -557,7 +570,7 @@ Token: %2$s</string>
     </plurals>
 
     <string name="gallery_folder_button">Folder</string>
-    <string name="gallery_create_folder">Folder</string>
+    <string name="gallery_create_folder">Add</string>
     <string name="gallery_create_folder_title">New photo folder</string>
     <string name="gallery_create_folder_hint">Folder name</string>
     <string name="gallery_folder_created">Folder created</string>

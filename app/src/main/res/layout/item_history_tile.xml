@@ -117,6 +117,17 @@
                 android:tint="#FFFFFFFF" />
         </LinearLayout>
 
+
+
+        <CheckBox
+            android:id="@+id/cbHistorySelect"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="6dp"
+            android:buttonTint="@color/green_accent"
+            android:visibility="gone" />
+
         <!-- Contour vert : mise en évidence de l'élément le plus récemment lu (équivalent, en
              version tuile, de l'ancien fond bg_media_card_last_played du design en liste). -->
         <View

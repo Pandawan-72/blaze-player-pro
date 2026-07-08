@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.gallery.edit
 
+import fr.retrospare.blazeplayer.ui.showPremium
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -55,7 +56,6 @@ class PhotoEditorActivity : AppCompatActivity() {
     private lateinit var editorProgress: View
     private lateinit var btnCompareHold: View
     private lateinit var seekStraighten: SeekBar
-    private lateinit var switchBlurEnabled: android.widget.Switch
     private lateinit var btnEffectBlur: com.google.android.material.button.MaterialButton
     private lateinit var btnEffectMosaic: com.google.android.material.button.MaterialButton
     private lateinit var btnShapeCircle: com.google.android.material.button.MaterialButton
@@ -97,7 +97,6 @@ class PhotoEditorActivity : AppCompatActivity() {
         editorProgress = findViewById(R.id.editorProgress)
         btnCompareHold = findViewById(R.id.btnCompareHold)
         seekStraighten = findViewById(R.id.seekStraighten)
-        switchBlurEnabled = findViewById(R.id.switchBlurEnabled)
         btnEffectBlur = findViewById(R.id.btnEffectBlur)
         btnEffectMosaic = findViewById(R.id.btnEffectMosaic)
         btnShapeCircle = findViewById(R.id.btnShapeCircle)
@@ -299,12 +298,6 @@ class PhotoEditorActivity : AppCompatActivity() {
     private fun setupBlurControls() {
         blurOverlay.onSelectionChanged = { if (blurEnabled) refreshBlurPreview() }
 
-        switchBlurEnabled.setOnCheckedChangeListener { _, checked ->
-            blurEnabled = checked
-            blurOverlay.visibility = if (checked) View.VISIBLE else View.GONE
-            if (checked) refreshBlurPreview() else clearBlurPreview()
-        }
-
         val green = androidx.core.content.ContextCompat.getColor(this, R.color.green_accent)
         val neutral = android.graphics.Color.parseColor("#33FFFFFF")
 
@@ -342,6 +335,21 @@ class PhotoEditorActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
         })
     }
+    private fun selectDefaultBlurControls() {
+        val green = androidx.core.content.ContextCompat.getColor(this, R.color.green_accent)
+        val neutral = android.graphics.Color.parseColor("#33FFFFFF")
+        listOf(btnEffectBlur, btnEffectMosaic).forEach { button ->
+            val isSelected = button === btnEffectBlur
+            button.strokeColor = android.content.res.ColorStateList.valueOf(if (isSelected) green else neutral)
+            button.strokeWidth = if (isSelected) dp(2f).toInt() else 0
+        }
+        listOf(btnShapeCircle, btnShapeSquare).forEach { button ->
+            val isSelected = button === btnShapeCircle
+            button.strokeColor = android.content.res.ColorStateList.valueOf(if (isSelected) green else neutral)
+            button.strokeWidth = if (isSelected) dp(2f).toInt() else 0
+        }
+    }
+
 
     /** Aperçu en direct de l'effet flou/mosaïque : sans ça, la barre d'intensité (et le
      *  déplacement/redimensionnement de la sélection) n'auraient aucun retour visuel avant
@@ -394,9 +402,16 @@ class PhotoEditorActivity : AppCompatActivity() {
         rotatePanel.visibility = if (panel === rotatePanel) View.VISIBLE else View.GONE
         blurPanel.visibility = if (panel === blurPanel) View.VISIBLE else View.GONE
         cropOverlay.visibility = if (panel === cropPanel) View.VISIBLE else View.GONE
-        // Le flou ne se montre que si son outil est actif ET que l'utilisateur l'a activé —
-        // sinon il resterait visible en permanence dès qu'on a coché la case une fois.
-        blurOverlay.visibility = if (panel === blurPanel && blurEnabled) View.VISIBLE else View.GONE
+        // Plus de toggle : dès qu'on ouvre l'outil Flou/Mosaïque, l'effet est actif par défaut,
+        // avec "Flou" + "Rond" sélectionnés. Tant que l'utilisateur n'a pas ouvert cet outil,
+        // l'enregistrement ne modifie pas la photo avec un flou implicite.
+        if (panel === blurPanel && !blurEnabled) {
+            blurEnabled = true
+            blurIsMosaic = false
+            blurOverlay.isCircle = true
+            selectDefaultBlurControls()
+        }
+        blurOverlay.visibility = if (panel === blurPanel) View.VISIBLE else View.GONE
         btnCompareHold.visibility = if (panel === filterPanel) View.VISIBLE else View.GONE
         updateTabTint(panel)
         // Les panneaux n'ont pas tous la même hauteur (celui du flou est plus grand, pour loger
@@ -489,7 +504,7 @@ class PhotoEditorActivity : AppCompatActivity() {
                 showPanel(filterPanel) // Retour à l'onglet par défaut, comme demandé.
             }
             .setNegativeButton(getString(R.string.action_back_to_gallery)) { _, _ -> finish() }
-            .show()
+            .showPremium()
     }
 
     /** Applique un flou (boîte glissante, [SimpleBlur.blur]) ou une mosaïque ([SimpleBlur.pixelate])
