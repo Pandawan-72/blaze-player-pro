@@ -24,6 +24,12 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
   private final LinearLayout rootView;
 
   @NonNull
+  public final LinearLayout audioBrowserHeaderCard;
+
+  @NonNull
+  public final LinearLayout audioSortChip;
+
+  @NonNull
   public final MaterialButton btnAddAll;
 
   @NonNull
@@ -54,19 +60,26 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
   public final RecyclerView recyclerAudio;
 
   @NonNull
+  public final TextView tvBrowserTitle;
+
+  @NonNull
   public final TextView tvSelected;
 
   @NonNull
   public final TextView tvSortLabel;
 
   private ActivityAudioBrowserBinding(@NonNull LinearLayout rootView,
+      @NonNull LinearLayout audioBrowserHeaderCard, @NonNull LinearLayout audioSortChip,
       @NonNull MaterialButton btnAddAll, @NonNull MaterialButton btnAddToBlazeParty,
       @NonNull MaterialButton btnAddToSavedPlaylist, @NonNull ImageButton btnBack,
       @NonNull MaterialButton btnConfirm, @NonNull ImageButton btnHome,
       @NonNull MaterialButton btnLocal, @NonNull MaterialButton btnNetwork,
       @NonNull ImageView btnSortChevron, @NonNull RecyclerView recyclerAudio,
-      @NonNull TextView tvSelected, @NonNull TextView tvSortLabel) {
+      @NonNull TextView tvBrowserTitle, @NonNull TextView tvSelected,
+      @NonNull TextView tvSortLabel) {
     this.rootView = rootView;
+    this.audioBrowserHeaderCard = audioBrowserHeaderCard;
+    this.audioSortChip = audioSortChip;
     this.btnAddAll = btnAddAll;
     this.btnAddToBlazeParty = btnAddToBlazeParty;
     this.btnAddToSavedPlaylist = btnAddToSavedPlaylist;
@@ -77,6 +90,7 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
     this.btnNetwork = btnNetwork;
     this.btnSortChevron = btnSortChevron;
     this.recyclerAudio = recyclerAudio;
+    this.tvBrowserTitle = tvBrowserTitle;
     this.tvSelected = tvSelected;
     this.tvSortLabel = tvSortLabel;
   }
@@ -108,6 +122,18 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
+      id = R.id.audioBrowserHeaderCard;
+      LinearLayout audioBrowserHeaderCard = ViewBindings.findChildViewById(rootView, id);
+      if (audioBrowserHeaderCard == null) {
+        break missingId;
+      }
+
+      id = R.id.audioSortChip;
+      LinearLayout audioSortChip = ViewBindings.findChildViewById(rootView, id);
+      if (audioSortChip == null) {
+        break missingId;
+      }
+
       id = R.id.btnAddAll;
       MaterialButton btnAddAll = ViewBindings.findChildViewById(rootView, id);
       if (btnAddAll == null) {
@@ -168,6 +194,12 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.tvBrowserTitle;
+      TextView tvBrowserTitle = ViewBindings.findChildViewById(rootView, id);
+      if (tvBrowserTitle == null) {
+        break missingId;
+      }
+
       id = R.id.tvSelected;
       TextView tvSelected = ViewBindings.findChildViewById(rootView, id);
       if (tvSelected == null) {
@@ -180,9 +212,10 @@ public final class ActivityAudioBrowserBinding implements ViewBinding {
         break missingId;
       }
 
-      return new ActivityAudioBrowserBinding((LinearLayout) rootView, btnAddAll, btnAddToBlazeParty,
-          btnAddToSavedPlaylist, btnBack, btnConfirm, btnHome, btnLocal, btnNetwork, btnSortChevron,
-          recyclerAudio, tvSelected, tvSortLabel);
+      return new ActivityAudioBrowserBinding((LinearLayout) rootView, audioBrowserHeaderCard,
+          audioSortChip, btnAddAll, btnAddToBlazeParty, btnAddToSavedPlaylist, btnBack, btnConfirm,
+          btnHome, btnLocal, btnNetwork, btnSortChevron, recyclerAudio, tvBrowserTitle, tvSelected,
+          tvSortLabel);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

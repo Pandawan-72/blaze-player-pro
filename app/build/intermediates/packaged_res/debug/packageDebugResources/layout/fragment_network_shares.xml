@@ -51,7 +51,7 @@
         <ImageButton
             android:id="@+id/btnScan"
             android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_height="44dp"
             android:background="@drawable/bg_surface_card"
             android:src="@drawable/ic_wifi"
             android:tint="@color/blue_accent"
@@ -153,7 +153,7 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAdd"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
+            android:layout_height="44dp"
             android:text="@string/add"
             android:textSize="12sp"
             android:textColor="#000000"
@@ -161,7 +161,7 @@
             android:includeFontPadding="false"
             android:gravity="center"
             app:backgroundTint="@color/blue_accent"
-            app:cornerRadius="18dp"
+            app:cornerRadius="22dp"
             app:icon="@drawable/ic_add_circle"
             app:iconSize="16dp"
             app:iconTint="#000000"

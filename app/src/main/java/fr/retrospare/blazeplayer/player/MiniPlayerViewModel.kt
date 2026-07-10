@@ -31,12 +31,26 @@ data class MiniPlayerState(
     val isVisible: Boolean = false,
     val title: String = "",
     val artist: String = "",
+    // Uniquement un vrai tag ID3/FLAC (AudioMetadataExtractor) : jamais de nom de dossier ici,
+    // contrairement à ce que peut afficher Track.album côté bibliothèque. Vide si le morceau n'a
+    // pas de vraie tag album, auquel cas rien ne doit être affiché.
+    val album: String = "",
     val artworkData: ByteArray? = null,
     val isPlaying: Boolean = false,
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val backgroundColor: Int = AudioDynamicColor.DEFAULT_BACKGROUND,
     val accentColor: Int = AudioDynamicColor.DEFAULT_ACCENT
+)
+
+/** Regroupe artiste/album/pochette/état-plein-écran pour tenir dans la limite du combine() à 4
+ *  flows de kotlinx.coroutines (types hétérogènes, un simple Triple/Quadruple générique ne suffit
+ *  pas proprement). */
+private data class ArtistAlbumGroup(
+    val artist: String,
+    val album: String,
+    val artwork: ByteArray?,
+    val inAudioPlayer: Boolean
 )
 
 @HiltViewModel
@@ -53,6 +67,7 @@ class MiniPlayerViewModel @Inject constructor(
     private val _isPlaying = MutableStateFlow(false)
     private val _title = MutableStateFlow("")
     private val _artist = MutableStateFlow("")
+    private val _album = MutableStateFlow("")
     private val _artworkData = MutableStateFlow<ByteArray?>(null)
     private val _inAudioPlayer = MutableStateFlow(false)
     private val _dismissed = MutableStateFlow(false)
@@ -67,15 +82,16 @@ class MiniPlayerViewModel @Inject constructor(
     // State entièrement réactif — tous les flows sont dans combine
     val state: StateFlow<MiniPlayerState> = combine(
         combine(_hasMedia, _isPlaying, _title) { a, b, c -> Triple(a, b, c) },
-        combine(_artist, _artworkData, _inAudioPlayer) { a, b, c -> Triple(a, b, c) },
+        combine(_artist, _album, _artworkData, _inAudioPlayer) { a, b, c, d -> ArtistAlbumGroup(a, b, c, d) },
         miniPlayerEnabledFlow,
         combine(_dismissed, _backgroundColor, _accentColor) { a, b, c -> Triple(a, b, c) }
-    ) { (hasMedia, isPlaying, title), (artist, artwork, inAudioPlayer), enabled, (dismissed, bgColor, accentColor) ->
+    ) { (hasMedia, isPlaying, title), group, enabled, (dismissed, bgColor, accentColor) ->
         MiniPlayerState(
-            isVisible = hasMedia && enabled && !inAudioPlayer && !dismissed,
+            isVisible = hasMedia && enabled && !group.inAudioPlayer && !dismissed,
             title = title,
-            artist = artist,
-            artworkData = artwork,
+            artist = group.artist,
+            album = group.album,
+            artworkData = group.artwork,
             isPlaying = isPlaying,
             positionMs = controller?.currentPosition?.coerceAtLeast(0L) ?: 0L,
             durationMs = controller?.duration?.takeIf { it > 0 } ?: 0L,
@@ -190,6 +206,7 @@ class MiniPlayerViewModel @Inject constructor(
                 ?: ""
             if (path.isEmpty()) {
                 _hasMedia.value = false
+                _album.value = ""
                 applyArtwork(null)
                 return
             }
@@ -203,12 +220,22 @@ class MiniPlayerViewModel @Inject constructor(
             _artist.value = cached?.artist?.ifEmpty { null }
                 ?: metaArtist
                 ?: ""
-            applyArtwork(
-                meta?.artworkData
-                    ?: if (path.isNotEmpty()) fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, path) else null
-            )
+            // Uniquement le vrai tag album (AudioMetadataExtractor) : pas de repli sur
+            // meta.albumTitle ni sur un quelconque nom de dossier. Vide si aucune vraie tag.
+            _album.value = cached?.album?.ifEmpty { null } ?: ""
+            // Priorité au cache ThumbnailUtils (qui respecte déjà l'ordre cover-dossier > pochette
+            // embarquée) plutôt qu'à meta.artworkData brut : sinon une pochette embarquée "de
+            // secours" fournie par Media3 gagnait systématiquement contre un cover.jpg/png déjà
+            // résolu et caché juste avant, y compris pour la couleur dynamique du mini player.
+            val cachedArtwork = if (path.isNotEmpty()) fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, path) else null
+            applyArtwork(cachedArtwork ?: meta?.artworkData)
 
-            if (path.isNotEmpty() && (cached == null || _artworkData.value == null)) {
+            // hasPreferredFolderCoverForAudio() ne sait rien dire pour smb:// sans I/O réseau (elle
+            // reste volontairement synchrone/locale) : on force donc toujours une résolution complète
+            // en tâche de fond pour le réseau, en plus du cas "aucune pochette du tout" déjà couvert.
+            val mightHaveBetterCover = path.startsWith("smb://", true) ||
+                fr.retrospare.blazeplayer.ui.ThumbnailUtils.hasPreferredFolderCoverForAudio(path)
+            if (path.isNotEmpty() && (cached == null || cachedArtwork == null || mightHaveBetterCover)) {
                 viewModelScope.launch(Dispatchers.IO) {
                     val name = path.substringAfterLast('/')
                     val info = AudioMetadataExtractor.extract(context, path, name)
@@ -219,6 +246,7 @@ class MiniPlayerViewModel @Inject constructor(
                         if (current == path) {
                             if (info.title.isNotEmpty()) _title.value = info.title
                             if (info.artist.isNotEmpty()) _artist.value = info.artist
+                            if (info.album.isNotEmpty()) _album.value = info.album
                             if (art != null) applyArtwork(art)
                         }
                     }

@@ -25,6 +25,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.media3.session.SessionCommand
 import androidx.navigation.fragment.NavHostFragment
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.databinding.ActivityMainBinding
@@ -42,6 +43,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var miniBgAnimator: android.animation.ValueAnimator? = null
     private var currentMiniBgColor: Int = fr.retrospare.blazeplayer.player.AudioDynamicColor.DEFAULT_BACKGROUND
+    private var miniAudioVisualizerSessionId: Int = 0
+
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -110,7 +113,7 @@ class MainActivity : AppCompatActivity() {
             if (state.isVisible) android.view.View.VISIBLE else android.view.View.GONE
         if (state.isVisible) {
             binding.tvMiniTitle.text = state.title.ifEmpty { getString(R.string.unknown_title) }
-            binding.tvMiniArtist.text = state.artist
+            binding.tvMiniArtist.text = buildMiniArtistAlbumText(state.artist, state.album, state.accentColor)
             val art = state.artworkData
             if (art != null) {
                 binding.ivMiniArtwork.setImageBitmap(
@@ -123,22 +126,85 @@ class MainActivity : AppCompatActivity() {
                 if (state.isPlaying) fr.retrospare.blazeplayer.R.drawable.ic_pause
                 else fr.retrospare.blazeplayer.R.drawable.ic_play
             )
+            binding.miniEqView.setAccentColor(state.accentColor)
+            binding.miniEqOverlay.visibility = if (state.isPlaying) android.view.View.VISIBLE else android.view.View.GONE
             if (state.isPlaying) {
                 binding.miniEqView.start()
+                ensureMiniAudioVisualizer()
             } else {
+                stopMiniAudioVisualizer()
                 binding.miniEqView.stop()
             }
             applyMiniPlayerColor(state.backgroundColor, state.accentColor)
         } else {
+            stopMiniAudioVisualizer()
+            binding.miniEqOverlay.visibility = android.view.View.GONE
             binding.miniEqView.stop()
         }
     }
 
+    private fun ensureMiniAudioVisualizer() {
+        val c = miniPlayerVm.controller ?: return
+        val future = c.sendCustomCommand(
+            SessionCommand(fr.retrospare.blazeplayer.player.BlazePlayerService.COMMAND_GET_AUDIO_SESSION_ID, Bundle.EMPTY),
+            Bundle.EMPTY
+        )
+        future.addListener({
+            val sessionId = try {
+                future.get().extras.getInt(fr.retrospare.blazeplayer.player.BlazePlayerService.EXTRA_AUDIO_SESSION_ID, 0)
+            } catch (_: Exception) { 0 }
+            if (sessionId != 0) startMiniAudioVisualizer(sessionId) else binding.miniEqView.setIdle()
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun startMiniAudioVisualizer(sessionId: Int) {
+        if (sessionId == 0) return
+        if (android.os.Build.VERSION.SDK_INT >= 23 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
+        ) {
+            binding.miniEqView.setIdle()
+            return
+        }
+        if (miniAudioVisualizerSessionId == sessionId) return
+        miniAudioVisualizerSessionId = sessionId
+        try {
+            fr.retrospare.blazeplayer.player.AudioFftStream.attach("main-mini-player", sessionId) { fft ->
+                if (::binding.isInitialized && binding.miniEqView.isShown) {
+                    binding.miniEqView.updateFft(fft)
+                }
+            }
+        } catch (_: Exception) {
+            binding.miniEqView.setIdle()
+            stopMiniAudioVisualizer()
+        }
+    }
+
+    private fun stopMiniAudioVisualizer() {
+        fr.retrospare.blazeplayer.player.AudioFftStream.detach("main-mini-player")
+        miniAudioVisualizerSessionId = 0
+    }
+
+    /** Artiste en gras + couleur d'accent dynamique (même traitement que l'écran Blaze Audio et la
+     *  file d'attente), suivi de l'album quand une vraie tag existe. state.album ne vient jamais
+     *  d'un nom de dossier (cf. MiniPlayerViewModel/AudioMetadataExtractor) : vide, il ne s'affiche
+     *  simplement pas. */
+    private fun buildMiniArtistAlbumText(artist: String, album: String, accentColor: Int): CharSequence {
+        val safeArtist = artist.ifBlank { getString(R.string.unknown_artist) }
+        val builder = android.text.SpannableStringBuilder(safeArtist)
+        builder.setSpan(
+            android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+            0, safeArtist.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        builder.setSpan(
+            android.text.style.ForegroundColorSpan(accentColor),
+            0, safeArtist.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        if (album.isNotBlank()) builder.append("  •  ").append(album)
+        return builder
+    }
+
     /** Anime le fond du mini player vers la couleur dynamique du morceau en cours (même couleur
-     *  que l'écran Blaze Audio, cf. AudioDynamicColor). Le nom de l'artiste reste volontairement
-     *  toujours vert (@color/green_accent, déjà fixé dans le layout) : c'est aussi le
-     *  comportement de l'écran Blaze Audio (AudioPlayerFragment.appGreenColor()), qui ne teinte
-     *  jamais l'artiste avec la couleur dynamique de la pochette. */
+     *  que l'écran Blaze Audio, cf. AudioDynamicColor). */
     private fun applyMiniPlayerColor(backgroundColor: Int, accentColor: Int) {
         if (currentMiniBgColor == backgroundColor) return
         miniBgAnimator?.cancel()
@@ -238,6 +304,12 @@ class MainActivity : AppCompatActivity() {
             binding.miniPlayerBar.bringToFront()
             binding.miniPlayerBar.requestLayout()
         }
+    }
+
+    override fun onPause() {
+        stopMiniAudioVisualizer()
+        if (::binding.isInitialized) binding.miniEqView.setIdle()
+        super.onPause()
     }
 
     override fun onResume() {
@@ -564,6 +636,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         handler.removeCallbacks(miniTimeTicker)
+        stopMiniAudioVisualizer()
         super.onDestroy()
     }
 

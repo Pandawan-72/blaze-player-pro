@@ -50,10 +50,10 @@
             android:textSize="13sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
-            app:backgroundTint="@color/surface_variant"
-            app:cornerRadius="20dp"
+            app:backgroundTint="@android:color/transparent"
+            app:cornerRadius="0dp"
             app:strokeColor="@color/red_accent"
-            app:strokeWidth="1dp"     android:insetTop="0dp"
+            app:strokeWidth="0dp"     android:insetTop="0dp"
             android:insetBottom="0dp" />
 
         <ImageButton
@@ -118,10 +118,10 @@
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed"
             android:visibility="gone"
-            app:backgroundTint="@color/surface_variant"
-            app:cornerRadius="20dp"
+            app:backgroundTint="@android:color/transparent"
+            app:cornerRadius="0dp"
             app:strokeColor="@color/green_accent"
-            app:strokeWidth="1dp"     android:insetTop="0dp"
+            app:strokeWidth="0dp"     android:insetTop="0dp"
             android:insetBottom="0dp" />
 
         <com.google.android.material.button.MaterialButton
@@ -133,10 +133,10 @@
             android:text="@string/action_play_playlist"
             android:textColor="@color/green_accent"
             android:textSize="13sp"
-            app:backgroundTint="@color/surface_variant"
-            app:cornerRadius="20dp"
+            app:backgroundTint="@android:color/transparent"
+            app:cornerRadius="0dp"
             app:strokeColor="@color/green_accent"
-            app:strokeWidth="1dp"
+            app:strokeWidth="0dp"
             app:icon="@drawable/ic_play_small"
             app:iconGravity="textStart"
             app:iconTint="@color/green_accent"     android:insetTop="0dp"

@@ -29,15 +29,16 @@
             android:clipChildren="false"
             android:clipToPadding="false">
 
-            <ImageView
-                android:id="@+id/icPartyContext"
-                android:layout_width="32dp"
-                android:layout_height="44dp"
-                android:padding="6dp"
-                android:src="@drawable/ic_group_people"
-                android:tint="@color/on_surface_variant"
-                android:alpha="0.78"
-                android:contentDescription="@null" />
+            <ImageButton
+                android:id="@+id/btnAudioLibrary"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/bg_header_action_button"
+                android:contentDescription="@string/audio_library_title"
+                android:padding="9dp"
+                android:src="@drawable/ic_audio"
+                android:tint="@color/on_surface_variant" />
 
             <ImageButton
                 android:id="@+id/btnAudioPlaylistParty"
@@ -106,16 +107,16 @@
                 android:tint="@android:color/white"
                 android:contentDescription="@string/content_desc_playlist" />
 
-            <ImageView
-                android:id="@+id/icLocalUserContext"
-                android:layout_width="32dp"
-                android:layout_height="44dp"
+            <ImageButton
+                android:id="@+id/btnAudioSettings"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:layout_marginStart="2dp"
-                android:padding="7dp"
-                android:src="@drawable/ic_person_single"
-                android:tint="@color/on_surface_variant"
-                android:alpha="0.78"
-                android:contentDescription="@null" />
+                android:background="@drawable/bg_header_action_button"
+                android:contentDescription="@string/audio_settings_title"
+                android:padding="9dp"
+                android:src="@drawable/ic_settings"
+                android:tint="@color/on_surface_variant" />
 
         </LinearLayout>
 
@@ -187,6 +188,59 @@
                     android:layout_height="match_parent"
                     android:clipChildren="true"
                     android:clipToPadding="true">
+
+                    <LinearLayout
+                        android:id="@+id/lyricsOverlay"
+                        android:layout_width="match_parent"
+                        android:layout_height="142dp"
+                        android:layout_gravity="top"
+                        android:background="@drawable/bg_audio_lyrics_top_overlay"
+                        android:clipChildren="true"
+                        android:clipToPadding="true"
+                        android:gravity="top|center_horizontal"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="18dp"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="16dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/tvLyricsCurrent"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-condensed"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:lineSpacingExtra="1dp"
+                            android:maxLines="2"
+                            android:shadowColor="#CC000000"
+                            android:shadowDx="0"
+                            android:shadowDy="1"
+                            android:shadowRadius="4"
+                            android:textColor="@color/on_surface"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tvLyricsNext"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="7dp"
+                            android:fontFamily="sans-serif-condensed"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:lineSpacingExtra="1dp"
+                            android:maxLines="2"
+                            android:shadowColor="#BB000000"
+                            android:shadowDx="0"
+                            android:shadowDy="1"
+                            android:shadowRadius="4"
+                            android:textColor="@color/on_surface_variant"
+                            android:textSize="13sp"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
 
                     <FrameLayout
                         android:layout_width="match_parent"
@@ -522,14 +576,14 @@
                 <ImageView
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_info"
+                    android:src="@drawable/ic_lyrics"
                     android:tint="@color/on_surface_variant"
-                    android:contentDescription="@string/info" />
+                    android:contentDescription="@string/lyrics" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/info"
+                    android:text="@string/lyrics"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="10sp"
                     android:fontFamily="sans-serif-condensed"
@@ -605,6 +659,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAudioFavoriteFolders"
+                    android:visibility="gone"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_marginEnd="8dp"
@@ -629,6 +684,7 @@
 
                 <TextView
                     android:id="@+id/btnAddFolder"
+                    android:visibility="gone"
                     android:layout_width="50dp"
                     android:layout_height="40dp"
                     android:layout_marginEnd="8dp"
@@ -647,23 +703,20 @@
 
                 <TextView
                     android:id="@+id/btnCleanPlaylist"
-                    android:layout_width="50dp"
+                    android:layout_width="74dp"
                     android:layout_height="40dp"
                     android:background="@drawable/bg_queue_action_remove_pill"
                     android:contentDescription="@string/content_desc_clean"
-                    android:fontFamily="sans-serif"
+                    android:fontFamily="sans-serif-condensed"
                     android:gravity="center"
                     android:includeFontPadding="false"
                     android:minWidth="0dp"
                     android:minHeight="0dp"
-                    android:paddingLeft="0dp"
-                    android:paddingTop="0dp"
-                    android:paddingRight="0dp"
-                    android:paddingBottom="0dp"
-                    android:text="−"
+                    android:paddingHorizontal="12dp"
+                    android:text="@string/action_empty_playlist"
                     android:textAlignment="center"
                     android:textColor="@color/red_accent"
-                    android:textSize="21sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
             </LinearLayout>

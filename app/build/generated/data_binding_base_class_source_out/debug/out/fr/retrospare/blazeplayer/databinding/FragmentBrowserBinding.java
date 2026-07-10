@@ -4,7 +4,6 @@ package fr.retrospare.blazeplayer.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -14,6 +13,7 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
+import com.google.android.material.button.MaterialButton;
 import fr.retrospare.blazeplayer.R;
 import java.lang.NullPointerException;
 import java.lang.Override;
@@ -27,25 +27,22 @@ public final class FragmentBrowserBinding implements ViewBinding {
   public final LinearLayout breadcrumbContainer;
 
   @NonNull
-  public final Button btnAddSelected;
+  public final LinearLayout browserHeaderCard;
 
   @NonNull
-  public final Button btnAddToPlaylist;
+  public final MaterialButton btnAddToPlaylist;
+
+  @NonNull
+  public final MaterialButton btnAddToQueue;
 
   @NonNull
   public final ImageButton btnBack;
-
-  @NonNull
-  public final ImageButton btnCancelSelection;
 
   @NonNull
   public final ImageButton btnHome;
 
   @NonNull
   public final ImageButton btnSearch;
-
-  @NonNull
-  public final ImageButton btnSelectAll;
 
   @NonNull
   public final LinearLayout btnSort;
@@ -60,16 +57,10 @@ public final class FragmentBrowserBinding implements ViewBinding {
   public final RecyclerView recyclerView;
 
   @NonNull
-  public final LinearLayout toolbarSelection;
-
-  @NonNull
   public final TextView tvFileCount;
 
   @NonNull
   public final TextView tvPath;
-
-  @NonNull
-  public final TextView tvSelectionCount;
 
   @NonNull
   public final TextView tvSortLabel;
@@ -77,35 +68,34 @@ public final class FragmentBrowserBinding implements ViewBinding {
   @NonNull
   public final TextView tvTitle;
 
+  @NonNull
+  public final LinearLayout videoSelectionActions;
+
   private FragmentBrowserBinding(@NonNull LinearLayout rootView,
-      @NonNull LinearLayout breadcrumbContainer, @NonNull Button btnAddSelected,
-      @NonNull Button btnAddToPlaylist, @NonNull ImageButton btnBack,
-      @NonNull ImageButton btnCancelSelection, @NonNull ImageButton btnHome,
-      @NonNull ImageButton btnSearch, @NonNull ImageButton btnSelectAll,
+      @NonNull LinearLayout breadcrumbContainer, @NonNull LinearLayout browserHeaderCard,
+      @NonNull MaterialButton btnAddToPlaylist, @NonNull MaterialButton btnAddToQueue,
+      @NonNull ImageButton btnBack, @NonNull ImageButton btnHome, @NonNull ImageButton btnSearch,
       @NonNull LinearLayout btnSort, @NonNull ImageButton btnToggleAudio,
-      @NonNull EditText etSearch, @NonNull RecyclerView recyclerView,
-      @NonNull LinearLayout toolbarSelection, @NonNull TextView tvFileCount,
-      @NonNull TextView tvPath, @NonNull TextView tvSelectionCount, @NonNull TextView tvSortLabel,
-      @NonNull TextView tvTitle) {
+      @NonNull EditText etSearch, @NonNull RecyclerView recyclerView, @NonNull TextView tvFileCount,
+      @NonNull TextView tvPath, @NonNull TextView tvSortLabel, @NonNull TextView tvTitle,
+      @NonNull LinearLayout videoSelectionActions) {
     this.rootView = rootView;
     this.breadcrumbContainer = breadcrumbContainer;
-    this.btnAddSelected = btnAddSelected;
+    this.browserHeaderCard = browserHeaderCard;
     this.btnAddToPlaylist = btnAddToPlaylist;
+    this.btnAddToQueue = btnAddToQueue;
     this.btnBack = btnBack;
-    this.btnCancelSelection = btnCancelSelection;
     this.btnHome = btnHome;
     this.btnSearch = btnSearch;
-    this.btnSelectAll = btnSelectAll;
     this.btnSort = btnSort;
     this.btnToggleAudio = btnToggleAudio;
     this.etSearch = etSearch;
     this.recyclerView = recyclerView;
-    this.toolbarSelection = toolbarSelection;
     this.tvFileCount = tvFileCount;
     this.tvPath = tvPath;
-    this.tvSelectionCount = tvSelectionCount;
     this.tvSortLabel = tvSortLabel;
     this.tvTitle = tvTitle;
+    this.videoSelectionActions = videoSelectionActions;
   }
 
   @Override
@@ -141,27 +131,27 @@ public final class FragmentBrowserBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.btnAddSelected;
-      Button btnAddSelected = ViewBindings.findChildViewById(rootView, id);
-      if (btnAddSelected == null) {
+      id = R.id.browserHeaderCard;
+      LinearLayout browserHeaderCard = ViewBindings.findChildViewById(rootView, id);
+      if (browserHeaderCard == null) {
         break missingId;
       }
 
       id = R.id.btnAddToPlaylist;
-      Button btnAddToPlaylist = ViewBindings.findChildViewById(rootView, id);
+      MaterialButton btnAddToPlaylist = ViewBindings.findChildViewById(rootView, id);
       if (btnAddToPlaylist == null) {
+        break missingId;
+      }
+
+      id = R.id.btnAddToQueue;
+      MaterialButton btnAddToQueue = ViewBindings.findChildViewById(rootView, id);
+      if (btnAddToQueue == null) {
         break missingId;
       }
 
       id = R.id.btnBack;
       ImageButton btnBack = ViewBindings.findChildViewById(rootView, id);
       if (btnBack == null) {
-        break missingId;
-      }
-
-      id = R.id.btnCancelSelection;
-      ImageButton btnCancelSelection = ViewBindings.findChildViewById(rootView, id);
-      if (btnCancelSelection == null) {
         break missingId;
       }
 
@@ -174,12 +164,6 @@ public final class FragmentBrowserBinding implements ViewBinding {
       id = R.id.btnSearch;
       ImageButton btnSearch = ViewBindings.findChildViewById(rootView, id);
       if (btnSearch == null) {
-        break missingId;
-      }
-
-      id = R.id.btnSelectAll;
-      ImageButton btnSelectAll = ViewBindings.findChildViewById(rootView, id);
-      if (btnSelectAll == null) {
         break missingId;
       }
 
@@ -207,12 +191,6 @@ public final class FragmentBrowserBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.toolbarSelection;
-      LinearLayout toolbarSelection = ViewBindings.findChildViewById(rootView, id);
-      if (toolbarSelection == null) {
-        break missingId;
-      }
-
       id = R.id.tvFileCount;
       TextView tvFileCount = ViewBindings.findChildViewById(rootView, id);
       if (tvFileCount == null) {
@@ -222,12 +200,6 @@ public final class FragmentBrowserBinding implements ViewBinding {
       id = R.id.tvPath;
       TextView tvPath = ViewBindings.findChildViewById(rootView, id);
       if (tvPath == null) {
-        break missingId;
-      }
-
-      id = R.id.tvSelectionCount;
-      TextView tvSelectionCount = ViewBindings.findChildViewById(rootView, id);
-      if (tvSelectionCount == null) {
         break missingId;
       }
 
@@ -243,10 +215,16 @@ public final class FragmentBrowserBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.videoSelectionActions;
+      LinearLayout videoSelectionActions = ViewBindings.findChildViewById(rootView, id);
+      if (videoSelectionActions == null) {
+        break missingId;
+      }
+
       return new FragmentBrowserBinding((LinearLayout) rootView, breadcrumbContainer,
-          btnAddSelected, btnAddToPlaylist, btnBack, btnCancelSelection, btnHome, btnSearch,
-          btnSelectAll, btnSort, btnToggleAudio, etSearch, recyclerView, toolbarSelection,
-          tvFileCount, tvPath, tvSelectionCount, tvSortLabel, tvTitle);
+          browserHeaderCard, btnAddToPlaylist, btnAddToQueue, btnBack, btnHome, btnSearch, btnSort,
+          btnToggleAudio, etSearch, recyclerView, tvFileCount, tvPath, tvSortLabel, tvTitle,
+          videoSelectionActions);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

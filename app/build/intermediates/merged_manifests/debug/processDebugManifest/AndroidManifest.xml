@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fr.retrospare.blazeplayer"
-    android:versionCode="23"
-    android:versionName="0.9.6-Beta-Party" >
+    android:versionCode="45"
+    android:versionName="0.9.81-Beta-Party" >
 
     <uses-sdk
         android:minSdkVersion="28"
@@ -78,7 +78,6 @@
         android:name="fr.retrospare.blazeplayer.BlazePlayerApp"
         android:allowBackup="true"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-        android:dataExtractionRules="@xml/data_extraction_rules"
         android:debuggable="true"
         android:extractNativeLibs="false"
         android:fullBackupContent="@xml/backup_rules"
@@ -112,6 +111,53 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="join"
+                    android:scheme="blazeparty" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="bp" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!--
+                     Certains scanners ne parsèment pas les Android Intent URI et envoient
+                     littéralement intent://... à Android. On capte aussi ce format pour éviter
+                     que le QR termine dans le menu natif de partage.
+                -->
+                <data
+                    android:host="join"
+                    android:scheme="intent" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="blazeparty.local"
+                    android:pathPrefix="/join"
+                    android:scheme="https" />
+                <data
+                    android:host="blazeparty.local"
+                    android:pathPrefix="/join"
+                    android:scheme="http" />
             </intent-filter>
         </activity>
         <activity
@@ -187,6 +233,16 @@
         </service>
 
         <activity
+            android:name="fr.retrospare.blazeplayer.player.AudioLibraryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
+        <activity
+            android:name="fr.retrospare.blazeplayer.player.AudioProSettingsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
+        <activity
             android:name="fr.retrospare.blazeplayer.player.AudioPlayerActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
             android:exported="true"
@@ -216,17 +272,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
 
                 <data android:mimeType="audio/*" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="join"
-                    android:scheme="blazeparty" />
-                <data android:scheme="bp" />
             </intent-filter>
         </activity>
         <activity
@@ -310,13 +355,6 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.BlazePlayer" />
-        <activity
-            android:name="fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
-            android:exported="false"
-            android:screenOrientation="fullSensor"
-            android:supportsPictureInPicture="true"
-            android:theme="@style/Theme.BlazePlayer" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -327,6 +365,17 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!--
+        This activity is an invisible delegate activity to start scanner activity
+        and receive result, so it's unnecessary to support screen orientation and
+        we can avoid any side effect from activity recreation in any case.
+        -->
+        <activity
+            android:name="com.google.mlkit.vision.codescanner.internal.GmsBarcodeScanningDelegateActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" >
+        </activity>
 
         <receiver
             android:name="com.google.android.gms.cast.framework.media.MediaIntentReceiver"
@@ -386,6 +435,25 @@
             android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <service
+            android:name="com.google.mlkit.common.internal.MlKitComponentDiscoveryService"
+            android:directBootAware="true"
+            android:exported="false" >
+            <meta-data
+                android:name="com.google.firebase.components:com.google.mlkit.vision.common.internal.VisionCommonRegistrar"
+                android:value="com.google.firebase.components.ComponentRegistrar" />
+            <meta-data
+                android:name="com.google.firebase.components:com.google.mlkit.common.internal.CommonComponentRegistrar"
+                android:value="com.google.firebase.components.ComponentRegistrar" />
+        </service>
+
+        <provider
+            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
+            android:authorities="fr.retrospare.blazeplayer.mlkitinitprovider"
+            android:exported="false"
+            android:initOrder="99" />
+
         <activity
             android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity"
             android:excludeFromRecents="true"

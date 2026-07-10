@@ -11,8 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 23,
-      "versionName": "0.9.6-Beta-Party",
+      "versionCode": 45,
+      "versionName": "0.9.81-Beta-Party",
       "outputFile": "AndroidManifest.xml"
     }
   ],

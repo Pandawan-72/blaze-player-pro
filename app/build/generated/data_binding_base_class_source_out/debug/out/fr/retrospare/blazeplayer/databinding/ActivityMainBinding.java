@@ -40,6 +40,9 @@ public final class ActivityMainBinding implements ViewBinding {
   public final ImageView ivMiniArtwork;
 
   @NonNull
+  public final View miniEqOverlay;
+
+  @NonNull
   public final MiniEqualizerView miniEqView;
 
   @NonNull
@@ -60,15 +63,17 @@ public final class ActivityMainBinding implements ViewBinding {
   private ActivityMainBinding(@NonNull CoordinatorLayout rootView,
       @NonNull ImageButton btnMiniClose, @NonNull ImageButton btnMiniNext,
       @NonNull ImageButton btnMiniPlayPause, @NonNull ImageButton btnMiniPrev,
-      @NonNull ImageView ivMiniArtwork, @NonNull MiniEqualizerView miniEqView,
-      @NonNull LinearLayout miniPlayerBar, @NonNull FragmentContainerView navHostFragment,
-      @NonNull TextView tvMiniArtist, @NonNull TextView tvMiniTime, @NonNull TextView tvMiniTitle) {
+      @NonNull ImageView ivMiniArtwork, @NonNull View miniEqOverlay,
+      @NonNull MiniEqualizerView miniEqView, @NonNull LinearLayout miniPlayerBar,
+      @NonNull FragmentContainerView navHostFragment, @NonNull TextView tvMiniArtist,
+      @NonNull TextView tvMiniTime, @NonNull TextView tvMiniTitle) {
     this.rootView = rootView;
     this.btnMiniClose = btnMiniClose;
     this.btnMiniNext = btnMiniNext;
     this.btnMiniPlayPause = btnMiniPlayPause;
     this.btnMiniPrev = btnMiniPrev;
     this.ivMiniArtwork = ivMiniArtwork;
+    this.miniEqOverlay = miniEqOverlay;
     this.miniEqView = miniEqView;
     this.miniPlayerBar = miniPlayerBar;
     this.navHostFragment = navHostFragment;
@@ -134,6 +139,12 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.miniEqOverlay;
+      View miniEqOverlay = ViewBindings.findChildViewById(rootView, id);
+      if (miniEqOverlay == null) {
+        break missingId;
+      }
+
       id = R.id.miniEqView;
       MiniEqualizerView miniEqView = ViewBindings.findChildViewById(rootView, id);
       if (miniEqView == null) {
@@ -171,8 +182,8 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       return new ActivityMainBinding((CoordinatorLayout) rootView, btnMiniClose, btnMiniNext,
-          btnMiniPlayPause, btnMiniPrev, ivMiniArtwork, miniEqView, miniPlayerBar, navHostFragment,
-          tvMiniArtist, tvMiniTime, tvMiniTitle);
+          btnMiniPlayPause, btnMiniPrev, ivMiniArtwork, miniEqOverlay, miniEqView, miniPlayerBar,
+          navHostFragment, tvMiniArtist, tvMiniTime, tvMiniTitle);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

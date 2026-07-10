@@ -4,7 +4,6 @@ package fr.retrospare.blazeplayer.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -14,6 +13,7 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
+import com.google.android.material.button.MaterialButton;
 import fr.retrospare.blazeplayer.R;
 import java.lang.NullPointerException;
 import java.lang.Override;
@@ -24,13 +24,13 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
   private final LinearLayout rootView;
 
   @NonNull
-  public final Button btnAddToPlaylist;
+  public final MaterialButton btnAddToPlaylist;
+
+  @NonNull
+  public final MaterialButton btnAddToQueue;
 
   @NonNull
   public final ImageButton btnBack;
-
-  @NonNull
-  public final ImageButton btnCancelSelection;
 
   @NonNull
   public final ImageButton btnHome;
@@ -39,10 +39,13 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
   public final ImageView btnSortChevron;
 
   @NonNull
-  public final RecyclerView recyclerNetwork;
+  public final LinearLayout networkBrowserHeaderCard;
 
   @NonNull
-  public final LinearLayout toolbarSelection;
+  public final LinearLayout networkSortChip;
+
+  @NonNull
+  public final RecyclerView recyclerNetwork;
 
   @NonNull
   public final TextView tvCount;
@@ -51,34 +54,35 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
   public final TextView tvPath;
 
   @NonNull
-  public final TextView tvSelectionCount;
-
-  @NonNull
   public final TextView tvSortLabel;
 
   @NonNull
   public final TextView tvTitle;
 
+  @NonNull
+  public final LinearLayout videoSelectionActions;
+
   private ActivityNetworkVideoBrowserBinding(@NonNull LinearLayout rootView,
-      @NonNull Button btnAddToPlaylist, @NonNull ImageButton btnBack,
-      @NonNull ImageButton btnCancelSelection, @NonNull ImageButton btnHome,
-      @NonNull ImageView btnSortChevron, @NonNull RecyclerView recyclerNetwork,
-      @NonNull LinearLayout toolbarSelection, @NonNull TextView tvCount, @NonNull TextView tvPath,
-      @NonNull TextView tvSelectionCount, @NonNull TextView tvSortLabel,
-      @NonNull TextView tvTitle) {
+      @NonNull MaterialButton btnAddToPlaylist, @NonNull MaterialButton btnAddToQueue,
+      @NonNull ImageButton btnBack, @NonNull ImageButton btnHome, @NonNull ImageView btnSortChevron,
+      @NonNull LinearLayout networkBrowserHeaderCard, @NonNull LinearLayout networkSortChip,
+      @NonNull RecyclerView recyclerNetwork, @NonNull TextView tvCount, @NonNull TextView tvPath,
+      @NonNull TextView tvSortLabel, @NonNull TextView tvTitle,
+      @NonNull LinearLayout videoSelectionActions) {
     this.rootView = rootView;
     this.btnAddToPlaylist = btnAddToPlaylist;
+    this.btnAddToQueue = btnAddToQueue;
     this.btnBack = btnBack;
-    this.btnCancelSelection = btnCancelSelection;
     this.btnHome = btnHome;
     this.btnSortChevron = btnSortChevron;
+    this.networkBrowserHeaderCard = networkBrowserHeaderCard;
+    this.networkSortChip = networkSortChip;
     this.recyclerNetwork = recyclerNetwork;
-    this.toolbarSelection = toolbarSelection;
     this.tvCount = tvCount;
     this.tvPath = tvPath;
-    this.tvSelectionCount = tvSelectionCount;
     this.tvSortLabel = tvSortLabel;
     this.tvTitle = tvTitle;
+    this.videoSelectionActions = videoSelectionActions;
   }
 
   @Override
@@ -109,20 +113,20 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
     int id;
     missingId: {
       id = R.id.btnAddToPlaylist;
-      Button btnAddToPlaylist = ViewBindings.findChildViewById(rootView, id);
+      MaterialButton btnAddToPlaylist = ViewBindings.findChildViewById(rootView, id);
       if (btnAddToPlaylist == null) {
+        break missingId;
+      }
+
+      id = R.id.btnAddToQueue;
+      MaterialButton btnAddToQueue = ViewBindings.findChildViewById(rootView, id);
+      if (btnAddToQueue == null) {
         break missingId;
       }
 
       id = R.id.btnBack;
       ImageButton btnBack = ViewBindings.findChildViewById(rootView, id);
       if (btnBack == null) {
-        break missingId;
-      }
-
-      id = R.id.btnCancelSelection;
-      ImageButton btnCancelSelection = ViewBindings.findChildViewById(rootView, id);
-      if (btnCancelSelection == null) {
         break missingId;
       }
 
@@ -138,15 +142,21 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.recyclerNetwork;
-      RecyclerView recyclerNetwork = ViewBindings.findChildViewById(rootView, id);
-      if (recyclerNetwork == null) {
+      id = R.id.networkBrowserHeaderCard;
+      LinearLayout networkBrowserHeaderCard = ViewBindings.findChildViewById(rootView, id);
+      if (networkBrowserHeaderCard == null) {
         break missingId;
       }
 
-      id = R.id.toolbarSelection;
-      LinearLayout toolbarSelection = ViewBindings.findChildViewById(rootView, id);
-      if (toolbarSelection == null) {
+      id = R.id.networkSortChip;
+      LinearLayout networkSortChip = ViewBindings.findChildViewById(rootView, id);
+      if (networkSortChip == null) {
+        break missingId;
+      }
+
+      id = R.id.recyclerNetwork;
+      RecyclerView recyclerNetwork = ViewBindings.findChildViewById(rootView, id);
+      if (recyclerNetwork == null) {
         break missingId;
       }
 
@@ -162,12 +172,6 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.tvSelectionCount;
-      TextView tvSelectionCount = ViewBindings.findChildViewById(rootView, id);
-      if (tvSelectionCount == null) {
-        break missingId;
-      }
-
       id = R.id.tvSortLabel;
       TextView tvSortLabel = ViewBindings.findChildViewById(rootView, id);
       if (tvSortLabel == null) {
@@ -180,9 +184,16 @@ public final class ActivityNetworkVideoBrowserBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.videoSelectionActions;
+      LinearLayout videoSelectionActions = ViewBindings.findChildViewById(rootView, id);
+      if (videoSelectionActions == null) {
+        break missingId;
+      }
+
       return new ActivityNetworkVideoBrowserBinding((LinearLayout) rootView, btnAddToPlaylist,
-          btnBack, btnCancelSelection, btnHome, btnSortChevron, recyclerNetwork, toolbarSelection,
-          tvCount, tvPath, tvSelectionCount, tvSortLabel, tvTitle);
+          btnAddToQueue, btnBack, btnHome, btnSortChevron, networkBrowserHeaderCard,
+          networkSortChip, recyclerNetwork, tvCount, tvPath, tvSortLabel, tvTitle,
+          videoSelectionActions);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

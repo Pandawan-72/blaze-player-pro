@@ -41,15 +41,18 @@
         android:layout_marginTop="16dp"
         android:text="@string/save_current_list"
         android:textSize="13sp"
-        android:textColor="#FF000000"
+        android:textColor="@color/green_accent"
         android:paddingHorizontal="20dp"
         android:includeFontPadding="false"
             android:gravity="center"
-            app:backgroundTint="@color/green_accent"
-        app:cornerRadius="20dp"
+            app:backgroundTint="@android:color/transparent"
+        app:cornerRadius="0dp"
+        app:strokeColor="@color/green_accent"
+        app:strokeWidth="0dp"
         app:icon="@drawable/ic_add_circle"
         app:iconSize="16dp"
-        app:iconTint="#FF000000"
-        app:iconGravity="textStart" />
+        app:iconTint="@color/green_accent"
+        app:iconGravity="textStart"     android:insetTop="0dp"
+            android:insetBottom="0dp" />
 
 </LinearLayout>

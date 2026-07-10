@@ -104,7 +104,7 @@ object InfoDialog {
             textSize = 14f
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             gravity = Gravity.CENTER
-            setBackgroundResource(R.drawable.bg_queue_action_add_pill)
+            background = ColorDrawable(Color.TRANSPARENT)
             setPadding(dp(24), 0, dp(24), 0)
             includeFontPadding = false
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(40)).apply {

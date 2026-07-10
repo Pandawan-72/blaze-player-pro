@@ -45,6 +45,8 @@ class AudioBrowserActivity : AppCompatActivity() {
         /** Identifiant du partage réseau associé au favori, si c'en est un — absent pour un
          *  favori local. */
         const val EXTRA_FAVORITE_SHARE_ID = "extra_favorite_share_id"
+        /** Mode lancé depuis les paramètres audio : le navigateur sert à choisir les dossiers à surveiller. */
+        const val EXTRA_WATCHED_FOLDERS_MODE = "extra_watched_folders_mode"
     }
 
     @Inject lateinit var networkRepository: NetworkRepository
@@ -54,6 +56,8 @@ class AudioBrowserActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAudioBrowserBinding
     private val selectedItems = mutableListOf<Pair<String, String>>() // path, name
     private var currentMode = Mode.LOCAL
+    private var watchedFoldersMode = false
+    private var currentLocalFolder: java.io.File? = null
 
     enum class Mode { LOCAL, NETWORK, FOLDER }
 
@@ -76,6 +80,8 @@ class AudioBrowserActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAudioBrowserBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        watchedFoldersMode = intent.getBooleanExtra(EXTRA_WATCHED_FOLDERS_MODE, false)
+        if (watchedFoldersMode) configureWatchedFoldersMode()
 
         binding.btnHome?.setOnClickListener {
             // Dans le navigateur audio, la maison ne doit pas revenir à l'accueil général :
@@ -114,9 +120,14 @@ class AudioBrowserActivity : AppCompatActivity() {
         binding.btnSortChevron.setOnClickListener(sortClick)
         // Boutons action
         binding.btnAddAll.setOnClickListener {
-            selectAllCurrentFolderTracks()
+            if (watchedFoldersMode) addCurrentFolderToWatched() else selectAllCurrentFolderTracks()
         }
         binding.btnConfirm.setOnClickListener {
+            if (watchedFoldersMode) {
+                setResult(android.app.Activity.RESULT_OK)
+                finish()
+                return@setOnClickListener
+            }
             if (selectedItems.isEmpty()) {
                 android.widget.Toast.makeText(this, getString(R.string.toast_no_track_selected), android.widget.Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -209,10 +220,69 @@ class AudioBrowserActivity : AppCompatActivity() {
     private var folderBrowserFolders: List<Pair<String, String>> = emptyList()
     private var folderBrowserFiles: List<AudioFile> = emptyList()
 
+    private fun configureWatchedFoldersMode() {
+        binding.tvBrowserTitle.text = getString(R.string.audio_watched_folders)
+        // En mode "dossiers surveillés", les cases à cocher sur les dossiers + le bouton
+        // Terminer suffisent. On masque donc l'ancien bouton "Ajouter dossier" pour réduire
+        // la friction et éviter une action redondante.
+        binding.btnAddAll.visibility = View.GONE
+        binding.btnConfirm.text = getString(R.string.action_done)
+        binding.btnConfirm.setIconResource(R.drawable.ic_check)
+        (binding.btnAddToSavedPlaylist.parent as? View)?.visibility = View.GONE
+    }
+
+    private fun addCurrentFolderToWatched() {
+        val folder = currentWatchedFolder()
+        if (isFolderWatched(folder)) removeWatchedFolder(folder) else addWatchedFolder(folder)
+        updateWatchedModeControls()
+        renderCurrentAudioList()
+    }
+
+    private fun currentWatchedFolder(): AudioProSettings.WatchedFolder {
+        val share = currentNetworkShare
+        return if (share != null) {
+            val cleanPath = currentNetworkPath.ifBlank { if (share.type == ShareType.UPNP) "0" else "" }
+            val name = when {
+                cleanPath.isBlank() || cleanPath == "0" -> share.name
+                else -> cleanPath.replace('\\', '/').trim('/').substringAfterLast('/').ifBlank { share.name }
+            }
+            AudioProSettings.WatchedFolder(
+                name = name,
+                path = cleanPath,
+                isNetwork = true,
+                shareId = share.id,
+                shareName = share.name
+            )
+        } else {
+            val local = currentLocalFolder ?: android.os.Environment.getExternalStorageDirectory()
+            AudioProSettings.WatchedFolder(local.name.ifBlank { getString(R.string.local_storage) }, local.absolutePath, isNetwork = false)
+        }
+    }
+
+    private fun watchedFolderForLocal(folder: java.io.File): AudioProSettings.WatchedFolder =
+        AudioProSettings.WatchedFolder(folder.name.ifBlank { getString(R.string.local_storage) }, folder.absolutePath, isNetwork = false)
+
+    private fun watchedFolderForNetwork(share: NetworkShare, folderPath: String, folderName: String): AudioProSettings.WatchedFolder =
+        AudioProSettings.WatchedFolder(
+            name = folderName.ifBlank { share.name },
+            path = folderPath.ifBlank { if (share.type == ShareType.UPNP) "0" else "" },
+            isNetwork = true,
+            shareId = share.id,
+            shareName = share.name
+        )
+
+    private fun isFolderWatched(folder: AudioProSettings.WatchedFolder): Boolean =
+        AudioProSettings.isWatchedFolder(this, folder)
+
+    private fun updateWatchedModeControls() {
+        if (!watchedFoldersMode) return
+        // Le dossier courant se gère maintenant depuis les cases à cocher de la liste.
+        binding.btnAddAll.visibility = View.GONE
+    }
+
     private fun setActiveTab(index: Int) {
         val green = getColor(fr.retrospare.blazeplayer.R.color.green_accent)
         val blue = getColor(fr.retrospare.blazeplayer.R.color.blue_accent)
-        val purple = 0xFF9C6FD6.toInt()
         val dim = 0xFF6B6E80.toInt()
         binding.btnLocal.backgroundTintList = android.content.res.ColorStateList.valueOf(if (index == 0) green else dim)
         binding.btnNetwork.backgroundTintList = android.content.res.ColorStateList.valueOf(if (index == 1) blue else dim)
@@ -276,6 +346,67 @@ class AudioBrowserActivity : AppCompatActivity() {
         else -> folders.sortedBy { it.first.lowercase() }
     }
 
+
+    private fun showLocalFolderActions(folder: java.io.File) {
+        val watched = watchedFolderForLocal(folder)
+        val alreadyWatched = isFolderWatched(watched)
+        AlertDialog.Builder(this)
+            .setTitle(folder.name)
+            .setItems(arrayOf(getString(if (alreadyWatched) R.string.audio_remove_watched_folder else R.string.audio_add_to_watched), getString(R.string.audio_add_to_favorites))) { _, which ->
+                when (which) {
+                    0 -> setWatchedFolder(watched, !alreadyWatched)
+                    1 -> fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
+                        this,
+                        fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
+                        fr.retrospare.blazeplayer.favorites.FavoriteFolder(path = folder.absolutePath, name = folder.name)
+                    )
+                }
+            }
+            .showPremium()
+    }
+
+    private fun showNetworkFolderActions(share: NetworkShare, folderPath: String, folderName: String) {
+        val watched = watchedFolderForNetwork(share, folderPath, folderName)
+        val alreadyWatched = isFolderWatched(watched)
+        AlertDialog.Builder(this)
+            .setTitle(folderName)
+            .setItems(arrayOf(getString(if (alreadyWatched) R.string.audio_remove_watched_folder else R.string.audio_add_to_watched), getString(R.string.audio_add_to_favorites))) { _, which ->
+                when (which) {
+                    0 -> setWatchedFolder(watched, !alreadyWatched)
+                    1 -> fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
+                        this,
+                        fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
+                        fr.retrospare.blazeplayer.favorites.FavoriteFolder(
+                            path = folderPath, name = folderName,
+                            shareId = share.id, shareName = share.name
+                        )
+                    )
+                }
+            }
+            .showPremium()
+    }
+
+    private fun addWatchedFolder(folder: AudioProSettings.WatchedFolder) {
+        val added = AudioProSettings.addWatchedFolder(this, folder)
+        Toast.makeText(
+            this,
+            if (added) getString(R.string.audio_watched_folder_added) else getString(R.string.audio_watched_folder_already),
+            Toast.LENGTH_SHORT
+        ).show()
+        renderCurrentAudioList()
+    }
+
+    private fun removeWatchedFolder(folder: AudioProSettings.WatchedFolder) {
+        AudioProSettings.removeWatchedFolder(this, folder)
+        Toast.makeText(this, R.string.audio_watched_folder_removed, Toast.LENGTH_SHORT).show()
+        renderCurrentAudioList()
+    }
+
+    private fun setWatchedFolder(folder: AudioProSettings.WatchedFolder, checked: Boolean) {
+        if (checked) addWatchedFolder(folder) else removeWatchedFolder(folder)
+        updateWatchedModeControls()
+    }
+
     private fun selectedAudioPaths(): Set<String> = selectedItems.map { it.first }.toSet()
 
     private fun renderCurrentAudioList() {
@@ -294,13 +425,10 @@ class AudioBrowserActivity : AppCompatActivity() {
         val adapter = FolderAdapter(
             folders = folders,
             onClick = { folder -> browseFolderAudio(folder) },
-            onMoreClick = { folder ->
-                fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
-                    this,
-                    fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
-                    fr.retrospare.blazeplayer.favorites.FavoriteFolder(path = folder.absolutePath, name = folder.name)
-                )
-            }
+            onMoreClick = { folder -> showLocalFolderActions(folder) },
+            watchedFoldersMode = watchedFoldersMode,
+            isWatched = { folder -> isFolderWatched(watchedFolderForLocal(folder)) },
+            onWatchedToggle = { folder, checked -> setWatchedFolder(watchedFolderForLocal(folder), checked) }
         )
         currentItems = emptyList()
         binding.recyclerAudio.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
@@ -322,13 +450,10 @@ class AudioBrowserActivity : AppCompatActivity() {
                 else selectedItems.removeAll { it.first == path }
                 updateCounter()
             },
-            onFolderMoreClick = { folder ->
-                fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
-                    this,
-                    fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
-                    fr.retrospare.blazeplayer.favorites.FavoriteFolder(path = folder.absolutePath, name = folder.name)
-                )
-            }
+            onFolderMoreClick = { folder -> showLocalFolderActions(folder) },
+            watchedFoldersMode = watchedFoldersMode,
+            isFolderWatched = { folder -> isFolderWatched(watchedFolderForLocal(folder)) },
+            onFolderWatchedToggle = { folder, checked -> setWatchedFolder(watchedFolderForLocal(folder), checked) }
         )
         binding.recyclerAudio.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         binding.recyclerAudio.adapter = adapter
@@ -357,14 +482,16 @@ class AudioBrowserActivity : AppCompatActivity() {
             },
             onFolderMoreClick = onFolderMoreClick@ { folderPath, folderName ->
                 val share = currentShare ?: return@onFolderMoreClick
-                fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
-                    this,
-                    fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
-                    fr.retrospare.blazeplayer.favorites.FavoriteFolder(
-                        path = folderPath, name = folderName,
-                        shareId = share.id, shareName = share.name
-                    )
-                )
+                showNetworkFolderActions(share, folderPath, folderName)
+            },
+            watchedFoldersMode = watchedFoldersMode,
+            isFolderWatched = isWatched@ { folderPath, folderName ->
+                val share = currentShare ?: return@isWatched false
+                isFolderWatched(watchedFolderForNetwork(share, folderPath, folderName))
+            },
+            onFolderWatchedToggle = onToggle@ { folderPath, folderName, checked ->
+                val share = currentShare ?: return@onToggle
+                setWatchedFolder(watchedFolderForNetwork(share, folderPath, folderName), checked)
             }
         )
         binding.recyclerAudio.layoutManager = LinearLayoutManager(this)
@@ -410,6 +537,8 @@ class AudioBrowserActivity : AppCompatActivity() {
         folderStack.clear()
         currentNetworkShare = null
         currentNetworkPath = ""
+        currentLocalFolder = android.os.Environment.getExternalStorageDirectory()
+        updateWatchedModeControls()
         lifecycleScope.launch {
             binding.tvSelected.text = getString(R.string.loading)
             val folders = withContext(Dispatchers.IO) {
@@ -422,6 +551,10 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun browseFolderAudio(folder: java.io.File, pushBack: Boolean = true) {
+        currentLocalFolder = folder
+        currentNetworkShare = null
+        currentNetworkPath = ""
+        updateWatchedModeControls()
         if (pushBack) {
             // Sauvegarde l'état courant pour pouvoir y revenir
             val prevAdapter = binding.recyclerAudio.adapter
@@ -457,6 +590,7 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     private fun loadNetworkShares() {
         folderStack.clear()
+        currentLocalFolder = null
         lifecycleScope.launch {
             val shares = networkRepository.getShares().first()
             if (shares.isEmpty()) {
@@ -486,8 +620,10 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun browseNetworkShare(share: NetworkShare, path: String) {
+        currentLocalFolder = null
         currentNetworkShare = share
         currentNetworkPath = path
+        updateWatchedModeControls()
         lifecycleScope.launch {
             binding.tvSelected.text = getString(R.string.loading)
             val browsePath = if (share.type == ShareType.UPNP) path.ifBlank { "0" } else path
@@ -856,6 +992,9 @@ class CombinedAudioAdapter(
     private val onFolderClick: (String) -> Unit,
     private val onFileToggle: (String, String, Boolean) -> Unit,
     private val onFolderMoreClick: (String, String) -> Unit = { _, _ -> },
+    private val watchedFoldersMode: Boolean = false,
+    private val isFolderWatched: (String, String) -> Boolean = { _, _ -> false },
+    private val onFolderWatchedToggle: (String, String, Boolean) -> Unit = { _, _, _ -> },
     preselectedPaths: Set<String> = emptySet()
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -894,6 +1033,17 @@ class CombinedAudioAdapter(
         if (position < folders.size) {
             val folder = folders[position]
             holder.itemView.findViewById<TextView>(R.id.tvFolderName)?.text = folder.first
+            val watchedCheck = holder.itemView.findViewById<CheckBox>(R.id.checkWatchedFolder)
+            if (watchedFoldersMode) {
+                watchedCheck?.visibility = View.VISIBLE
+                watchedCheck?.setOnCheckedChangeListener(null)
+                watchedCheck?.isChecked = isFolderWatched(folder.second, folder.first)
+                watchedCheck?.setOnCheckedChangeListener { _, checked ->
+                    onFolderWatchedToggle(folder.second, folder.first, checked)
+                }
+            } else {
+                watchedCheck?.visibility = View.GONE
+            }
             holder.itemView.setOnClickListener { onFolderClick(folder.second) }
             holder.itemView.findViewById<View>(R.id.btnFolderMore)?.setOnClickListener {
                 onFolderMoreClick(folder.second, folder.first)
@@ -1011,7 +1161,10 @@ class FolderBrowserAdapter(
 class FolderAdapter(
     private val folders: List<java.io.File>,
     private val onClick: (java.io.File) -> Unit,
-    private val onMoreClick: (java.io.File) -> Unit = {}
+    private val onMoreClick: (java.io.File) -> Unit = {},
+    private val watchedFoldersMode: Boolean = false,
+    private val isWatched: (java.io.File) -> Boolean = { false },
+    private val onWatchedToggle: (java.io.File, Boolean) -> Unit = { _, _ -> }
 ) : androidx.recyclerview.widget.RecyclerView.Adapter<FolderAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int) =
@@ -1020,6 +1173,15 @@ class FolderAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val folder = folders[position]
         holder.itemView.findViewById<android.widget.TextView>(R.id.tvFolderName).text = folder.name
+        val watchedCheck = holder.itemView.findViewById<android.widget.CheckBox>(R.id.checkWatchedFolder)
+        if (watchedFoldersMode) {
+            watchedCheck?.visibility = android.view.View.VISIBLE
+            watchedCheck?.setOnCheckedChangeListener(null)
+            watchedCheck?.isChecked = isWatched(folder)
+            watchedCheck?.setOnCheckedChangeListener { _, checked -> onWatchedToggle(folder, checked) }
+        } else {
+            watchedCheck?.visibility = android.view.View.GONE
+        }
         holder.itemView.setOnClickListener { onClick(folder) }
         // Le "..." doit toujours permettre d'ajouter le dossier aux favoris, même s'il
         // contient d'autres sous-dossiers à l'intérieur.
@@ -1039,6 +1201,9 @@ class MixedAudioAdapter(
     private val onFolderClick: (java.io.File) -> Unit,
     private val onFileToggle: (String, String, Boolean) -> Unit,
     private val onFolderMoreClick: (java.io.File) -> Unit = {},
+    private val watchedFoldersMode: Boolean = false,
+    private val isFolderWatched: (java.io.File) -> Boolean = { false },
+    private val onFolderWatchedToggle: (java.io.File, Boolean) -> Unit = { _, _ -> },
     private val preselectedPaths: Set<String> = emptySet()
 ) : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
 
@@ -1075,6 +1240,15 @@ class MixedAudioAdapter(
         if (position < folders.size) {
             val folder = folders[position]
             holder.itemView.findViewById<android.widget.TextView>(R.id.tvFolderName)?.text = folder.name
+            val watchedCheck = holder.itemView.findViewById<android.widget.CheckBox>(R.id.checkWatchedFolder)
+            if (watchedFoldersMode) {
+                watchedCheck?.visibility = android.view.View.VISIBLE
+                watchedCheck?.setOnCheckedChangeListener(null)
+                watchedCheck?.isChecked = isFolderWatched(folder)
+                watchedCheck?.setOnCheckedChangeListener { _, checked -> onFolderWatchedToggle(folder, checked) }
+            } else {
+                watchedCheck?.visibility = android.view.View.GONE
+            }
             holder.itemView.setOnClickListener { onFolderClick(folder) }
             holder.itemView.findViewById<android.view.View>(R.id.btnFolderMore)?.setOnClickListener {
                 onFolderMoreClick(folder)

@@ -196,29 +196,81 @@ object AudioRepository {
             .build()
     }
 
+    private fun buildMediaItemFromCachedInfo(context: Context, path: String, fileName: String, info: AudioTechnicalInfo): MediaItem {
+        val rawTitle = info.title.ifBlank { fileName.substringBeforeLast(".").ifBlank { "Audio" } }
+        val rawArtist = info.artist
+        val rawAlbum = info.album
+        val override = AudioLocalEnhancements.applyOverride(context, path, rawTitle, rawArtist, rawAlbum)
+        val artworkData = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, path)
+        return MediaItem.Builder()
+            .setMediaId(path)
+            .setUri(localPlaybackUri(path))
+            .setMimeType(mimeTypeForPath(path))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(override.title.ifBlank { rawTitle })
+                    .setArtist(override.artist.ifBlank { rawArtist })
+                    .setAlbumTitle(override.album.ifBlank { rawAlbum })
+                    .setArtworkData(artworkData, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                    .setExtras(localExtras(path, extensionForAudio(path, fileName).ifBlank { info.extension }))
+                    .build()
+            )
+            .build()
+    }
+
     fun buildMediaItemWithMetadata(context: Context, path: String, fileName: String): MediaItem {
+        val cachedInfo = AudioMetadataExtractor.getCached(context, path)
         val retriever = MediaMetadataRetriever()
         var smbDataSource: SmbMediaDataSource? = null
+        var closeable: AutoCloseable? = null
         return try {
             when {
-                path.startsWith("smb://") -> {
+                path.startsWith("smb://", true) -> {
                     smbDataSource = SmbMediaDataSource(path)
                     retriever.setDataSource(smbDataSource)
                 }
-                path.startsWith("content://") -> retriever.setDataSource(context, Uri.parse(path))
+                path.startsWith("content://", true) -> {
+                    val uri = Uri.parse(path)
+                    try {
+                        val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                        if (pfd != null) {
+                            retriever.setDataSource(pfd.fileDescriptor)
+                            closeable = pfd
+                        } else {
+                            retriever.setDataSource(context, uri)
+                        }
+                    } catch (_: Exception) {
+                        retriever.setDataSource(context, uri)
+                    }
+                }
+                path.startsWith("file://", true) -> retriever.setDataSource(context, Uri.parse(path))
+                path.startsWith("http://", true) || path.startsWith("https://", true) -> retriever.setDataSource(path, emptyMap())
                 else -> retriever.setDataSource(path)
             }
-            val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)?.ifEmpty { null }
+            val rawTitle = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)?.ifEmpty { null }
+                ?: cachedInfo?.title?.ifBlank { null }
                 ?: fileName.substringBeforeLast(".")
-            val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)?.ifEmpty { null } ?: ""
-            val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)?.ifEmpty { null } ?: ""
+            val rawArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)?.ifEmpty { null }
+                ?: cachedInfo?.artist?.ifBlank { null }
+                ?: ""
+            val rawAlbum = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)?.ifEmpty { null }
+                ?: cachedInfo?.album?.ifBlank { null }
+                ?: ""
+            val override = AudioLocalEnhancements.applyOverride(context, path, rawTitle, rawArtist, rawAlbum)
+            val title = override.title
+            val artist = override.artist
+            val album = override.album
             val trackNumber = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
                 ?.substringBefore("/")
                 ?.filter { it.isDigit() }
                 ?.toIntOrNull()
+                ?: cachedInfo?.trackNumber
                 ?: 0
-            val artworkData = retriever.embeddedPicture
-                ?: fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, path)
+            // Priorité réelle aux covers dossier : on force l'extraction depuis le thread de fond du service.
+            // Si aucune image jpg/jpeg/png n'est trouvée près du morceau, ThumbnailUtils retombe sur
+            // l'artwork embarqué MediaMetadataRetriever puis ID3/APIC pour les MP3 récalcitrants.
+            val artworkData = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytesBlocking(context, path)
+                ?: retriever.embeddedPicture
             fr.retrospare.blazeplayer.ui.ThumbnailUtils.cacheAudioArtworkData(context, path, artworkData)
             AudioMetadataExtractor.putCached(
                 context,
@@ -228,7 +280,10 @@ object AudioRepository {
                     title = title,
                     album = album,
                     trackNumber = trackNumber,
-                    extension = fileName.substringAfterLast(".", "").uppercase()
+                    extension = fileName.substringAfterLast(".", "").uppercase(),
+                    duration = cachedInfo?.duration ?: 0L,
+                    bitrate = cachedInfo?.bitrate ?: 0L,
+                    isLossless = cachedInfo?.isLossless ?: false
                 )
             )
             MediaItem.Builder()
@@ -246,9 +301,14 @@ object AudioRepository {
                 )
                 .build()
         } catch (e: Exception) {
-            buildSimpleMediaItem(context, path, fileName)
+            if (cachedInfo != null && (cachedInfo.title.isNotBlank() || cachedInfo.artist.isNotBlank() || cachedInfo.album.isNotBlank())) {
+                buildMediaItemFromCachedInfo(context, path, fileName, cachedInfo)
+            } else {
+                buildSimpleMediaItem(context, path, fileName)
+            }
         } finally {
             retriever.release()
+            try { closeable?.close() } catch (_: Exception) {}
             try { smbDataSource?.close() } catch (_: Exception) {}
         }
     }

@@ -1,6 +1,8 @@
 package fr.retrospare.blazeplayer.ui
 
 import android.graphics.Typeface
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.view.Gravity
 import android.widget.Button
@@ -40,13 +42,15 @@ object DialogButtonStyler {
         button.includeFontPadding = false
         button.textAlignment = android.view.View.TEXT_ALIGNMENT_CENTER
         button.setAllCaps(false)
+        ButtonTextFitter.fit(button, minSp = 9, maxSp = 14)
         button.typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
         button.setTextColor(ContextCompat.getColor(ctx, R.color.green_accent))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            button.backgroundTintList = null
+            button.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.TRANSPARENT)
             button.stateListAnimator = null
         }
-        button.background = ContextCompat.getDrawable(ctx, R.drawable.bg_queue_action_fixed_secondary)
+        // Boutons de modals en texte seul : plus de contour/pilule verte.
+        button.background = ColorDrawable(Color.TRANSPARENT)
         button.layoutParams = button.layoutParams?.apply { this.height = height }
         button.requestLayout()
     }

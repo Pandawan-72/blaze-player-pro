@@ -4,6 +4,7 @@ package fr.retrospare.blazeplayer.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -24,15 +25,20 @@ public final class ItemAudioFolderBinding implements ViewBinding {
   public final ImageButton btnFolderMore;
 
   @NonNull
+  public final CheckBox checkWatchedFolder;
+
+  @NonNull
   public final TextView tvFolderCount;
 
   @NonNull
   public final TextView tvFolderName;
 
   private ItemAudioFolderBinding(@NonNull LinearLayout rootView, @NonNull ImageButton btnFolderMore,
-      @NonNull TextView tvFolderCount, @NonNull TextView tvFolderName) {
+      @NonNull CheckBox checkWatchedFolder, @NonNull TextView tvFolderCount,
+      @NonNull TextView tvFolderName) {
     this.rootView = rootView;
     this.btnFolderMore = btnFolderMore;
+    this.checkWatchedFolder = checkWatchedFolder;
     this.tvFolderCount = tvFolderCount;
     this.tvFolderName = tvFolderName;
   }
@@ -70,6 +76,12 @@ public final class ItemAudioFolderBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.checkWatchedFolder;
+      CheckBox checkWatchedFolder = ViewBindings.findChildViewById(rootView, id);
+      if (checkWatchedFolder == null) {
+        break missingId;
+      }
+
       id = R.id.tvFolderCount;
       TextView tvFolderCount = ViewBindings.findChildViewById(rootView, id);
       if (tvFolderCount == null) {
@@ -82,8 +94,8 @@ public final class ItemAudioFolderBinding implements ViewBinding {
         break missingId;
       }
 
-      return new ItemAudioFolderBinding((LinearLayout) rootView, btnFolderMore, tvFolderCount,
-          tvFolderName);
+      return new ItemAudioFolderBinding((LinearLayout) rootView, btnFolderMore, checkWatchedFolder,
+          tvFolderCount, tvFolderName);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

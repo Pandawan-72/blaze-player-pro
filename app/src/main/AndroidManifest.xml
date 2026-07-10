@@ -179,6 +179,18 @@ android:name=".player.BlazePlayerService"
 
 
         <activity
+            android:name=".player.AudioLibraryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
+
+        <activity
+            android:name=".player.AudioProSettingsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
+
+        <activity
             android:name=".player.AudioPlayerActivity"
             android:exported="true"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"

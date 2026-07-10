@@ -55,6 +55,7 @@ import hilt_aggregated_deps._fr_retrospare_blazeplayer_paywall_PaywallFragment_G
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_paywall_PaywallViewModel_HiltModules_BindsModule;
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_paywall_PaywallViewModel_HiltModules_KeyModule;
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_player_AudioBrowserActivity_GeneratedInjector;
+import hilt_aggregated_deps._fr_retrospare_blazeplayer_player_AudioLibraryActivity_GeneratedInjector;
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_player_AudioPlayerActivity_GeneratedInjector;
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_player_AudioPlayerFragment_GeneratedInjector;
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_player_MiniPlayerViewModel_HiltModules_BindsModule;
@@ -64,7 +65,6 @@ import hilt_aggregated_deps._fr_retrospare_blazeplayer_player_PlayerActivity_Gen
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_settings_SettingsFragment_GeneratedInjector;
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_settings_SettingsViewModel_HiltModules_BindsModule;
 import hilt_aggregated_deps._fr_retrospare_blazeplayer_settings_SettingsViewModel_HiltModules_KeyModule;
-import hilt_aggregated_deps._fr_retrospare_blazeplayer_youtube_YouTubePlayerActivity_GeneratedInjector;
 
 @ComponentTreeDeps(
     rootDeps = _fr_retrospare_blazeplayer_BlazePlayerApp.class,
@@ -124,6 +124,7 @@ import hilt_aggregated_deps._fr_retrospare_blazeplayer_youtube_YouTubePlayerActi
         _fr_retrospare_blazeplayer_paywall_PaywallViewModel_HiltModules_BindsModule.class,
         _fr_retrospare_blazeplayer_paywall_PaywallViewModel_HiltModules_KeyModule.class,
         _fr_retrospare_blazeplayer_player_AudioBrowserActivity_GeneratedInjector.class,
+        _fr_retrospare_blazeplayer_player_AudioLibraryActivity_GeneratedInjector.class,
         _fr_retrospare_blazeplayer_player_AudioPlayerActivity_GeneratedInjector.class,
         _fr_retrospare_blazeplayer_player_AudioPlayerFragment_GeneratedInjector.class,
         _fr_retrospare_blazeplayer_player_MiniPlayerViewModel_HiltModules_BindsModule.class,
@@ -132,8 +133,7 @@ import hilt_aggregated_deps._fr_retrospare_blazeplayer_youtube_YouTubePlayerActi
         _fr_retrospare_blazeplayer_player_PlayerActivity_GeneratedInjector.class,
         _fr_retrospare_blazeplayer_settings_SettingsFragment_GeneratedInjector.class,
         _fr_retrospare_blazeplayer_settings_SettingsViewModel_HiltModules_BindsModule.class,
-        _fr_retrospare_blazeplayer_settings_SettingsViewModel_HiltModules_KeyModule.class,
-        _fr_retrospare_blazeplayer_youtube_YouTubePlayerActivity_GeneratedInjector.class
+        _fr_retrospare_blazeplayer_settings_SettingsViewModel_HiltModules_KeyModule.class
     }
 )
 public final class BlazePlayerApp_ComponentTreeDeps {

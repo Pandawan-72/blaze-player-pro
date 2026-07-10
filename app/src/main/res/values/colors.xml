@@ -24,6 +24,14 @@
     <color name="on_surface_secondary">#8C96A8</color>
     <color name="text_hint">#566075</color>
 
+    <!-- Bibliothèque audio : textes secondaires plus lisibles sur la carte globale -->
+    <color name="audio_library_text_muted">#C3CBD8</color>
+
+    <!-- Bibliothèque audio : accent permanent polyvalent sur fonds dynamiques -->
+    <color name="audio_library_accent">#B9DFFF</color>
+    <color name="audio_library_accent_soft">#33B9DFFF</color>
+    <color name="audio_library_accent_stroke">#DDB9DFFF</color>
+
     <!-- Bordures -->
     <color name="outline">#151C29</color>
     <color name="outline_variant">#263247</color>

@@ -16,8 +16,28 @@ import fr.retrospare.blazeplayer.R
  */
 class PlaylistAdapter(
     private val player: () -> Player?,
+    // Lu à chaque bind plutôt que poussé explicitement : le fragment appelle juste refresh()
+    // quand la couleur dynamique change, et chaque ligne relit la valeur courante ici.
+    private val accentColorProvider: () -> Int = { android.graphics.Color.rgb(63, 215, 143) },
     private val onItemClick: (Int) -> Unit
 ) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
+
+    /** Artiste en gras + couleur d'accent dynamique, suivi de l'album (texte normal) s'il existe
+     *  vraiment comme tag — jamais de nom de dossier ici : [album] doit venir uniquement d'une
+     *  extraction ID3/FLAC réelle (AudioTechnicalInfo), qui ne retombe jamais sur le dossier. */
+    private fun buildArtistAlbumText(artist: String, album: String): CharSequence {
+        val builder = android.text.SpannableStringBuilder(artist)
+        builder.setSpan(
+            android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+            0, artist.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        builder.setSpan(
+            android.text.style.ForegroundColorSpan(accentColorProvider()),
+            0, artist.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        if (album.isNotBlank()) builder.append("  •  ").append(album)
+        return builder
+    }
 
     companion object {
         // Pool limite a 2 threads concurrents pour eviter de saturer le NAS/reseau lors du scroll
@@ -213,7 +233,9 @@ class PlaylistAdapter(
             if (cached != null) {
                 applyMeta(cached, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvFormatBadge, tvBitrate, tvName, isCurrent)
             } else {
-                tvArtist?.text = metaArtist ?: itemView.context.getString(R.string.unknown_artist)
+                // Pas encore de vraie extraction ID3/FLAC ici : pas d'album fiable disponible,
+                // seulement l'artiste (bold + accent), appliqué dès que applyMeta() tourne plus bas.
+                tvArtist?.text = buildArtistAlbumText(metaArtist ?: itemView.context.getString(R.string.unknown_artist), "")
                 tvArtist?.visibility = View.VISIBLE
                 val extFromItem = containerExtFor(mediaItem, name, path)
                 if (extFromItem.isNotBlank()) {
@@ -276,7 +298,13 @@ class PlaylistAdapter(
             isCurrent: Boolean
         ) {
             if (meta.title.isNotEmpty()) tvName.text = meta.title
-            tvArtist?.text = meta.artist.ifEmpty { itemView.context.getString(R.string.unknown_artist) }
+            // meta.album vient uniquement d'AudioMetadataExtractor (tag ID3/FLAC réel) : jamais de
+            // repli sur le nom de dossier ici, contrairement à ce que fait la bibliothèque pour son
+            // propre regroupement par album.
+            tvArtist?.text = buildArtistAlbumText(
+                meta.artist.ifEmpty { itemView.context.getString(R.string.unknown_artist) },
+                meta.album
+            )
             tvArtist?.visibility = View.VISIBLE
 
             val ext = meta.extension.ifBlank { fallbackExtension }.uppercase()

@@ -2,9 +2,11 @@ package fr.retrospare.blazeplayer.player
 
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 /** Informations audio "brutes" — jamais de texte déjà formaté/traduit ici (pas de "Lossless" ni
  *  de "320 kbps" tout fait), pour que l'affichage reste correct quelle que soit la langue active
@@ -32,9 +34,19 @@ object AudioMetadataExtractor {
 
     private val cache = ConcurrentHashMap<String, AudioTechnicalInfo>()
     private const val DISK_CACHE_PREFS = "blaze_audio_metadata_cache"
-    private const val CACHE_VERSION = 3
+    private const val CACHE_VERSION = 4
     private val LOSSLESS_EXTENSIONS = setOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
     private val inFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<AudioTechnicalInfo>>()
+    private val metadataDispatcher = Executors.newSingleThreadExecutor { runnable ->
+        Thread {
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + 6) } catch (_: Exception) {}
+            runnable.run()
+        }.apply {
+            name = "BlazeAudioMetadataBg"
+            isDaemon = true
+            priority = Thread.MIN_PRIORITY
+        }
+    }.asCoroutineDispatcher()
 
     /**
      * Un cache peut être volontairement partiel : AudioRepository y dépose parfois seulement
@@ -47,6 +59,17 @@ object AudioMetadataExtractor {
     private fun hasQualityBadge(info: AudioTechnicalInfo): Boolean {
         val ext = info.extension.uppercase()
         return info.bitrate > 0L || info.isLossless || ext in LOSSLESS_EXTENSIONS
+    }
+
+    /**
+     * Suffisant pour éviter une ré-extraction lourde. Les anciennes versions du cache pouvaient
+     * contenir uniquement bitrate/extension : utile pour le badge qualité, mais insuffisant pour
+     * alimenter correctement Albums / Artistes / Titres. On exige donc au moins des métadonnées
+     * d'affichage ou un numéro de piste en plus de la qualité/durée.
+     */
+    private fun isCompleteEnough(info: AudioTechnicalInfo): Boolean {
+        val hasDisplayTags = info.title.isNotBlank() || info.artist.isNotBlank() || info.album.isNotBlank() || info.trackNumber > 0
+        return (info.bitrate > 0L || info.isLossless) && info.duration > 0L && hasDisplayTags
     }
 
     private fun mergeKnownMetadata(fresh: AudioTechnicalInfo, previous: AudioTechnicalInfo?): AudioTechnicalInfo {
@@ -64,10 +87,10 @@ object AudioMetadataExtractor {
     }
 
     suspend fun extract(context: Context, path: String, name: String): AudioTechnicalInfo {
-        cache[path]?.takeIf { hasQualityBadge(it) }?.let { return it }
-        return withContext(Dispatchers.IO) {
+        cache[path]?.takeIf { isCompleteEnough(it) }?.let { return it }
+        return withContext(metadataDispatcher) {
             val cached = cache[path] ?: loadFromDisk(context, path)?.also { cache[path] = it }
-            if (cached != null && hasQualityBadge(cached)) return@withContext cached
+            if (cached != null && isCompleteEnough(cached)) return@withContext cached
             inFlight[path]?.let { return@withContext it.await() }
             val deferred = async {
                 val fallbackExt = name.substringAfterLast(".", "").uppercase().ifBlank { cached?.extension.orEmpty() }
@@ -193,20 +216,36 @@ object AudioMetadataExtractor {
 
     private fun extractInternal(context: Context, path: String, name: String): AudioTechnicalInfo {
         var smbDataSource: SmbMediaDataSource? = null
+        var closeable: AutoCloseable? = null
         return try {
             val retriever = android.media.MediaMetadataRetriever()
             try {
                 when {
-                    path.startsWith("smb://") -> {
+                    path.startsWith("smb://", true) -> {
                         smbDataSource = SmbMediaDataSource(path)
                         retriever.setDataSource(smbDataSource)
                     }
-                    path.startsWith("content://") -> retriever.setDataSource(context, android.net.Uri.parse(path))
+                    path.startsWith("content://", true) -> {
+                        val uri = android.net.Uri.parse(path)
+                        try {
+                            val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                            if (pfd != null) {
+                                retriever.setDataSource(pfd.fileDescriptor)
+                                closeable = pfd
+                            } else {
+                                retriever.setDataSource(context, uri)
+                            }
+                        } catch (_: Exception) {
+                            retriever.setDataSource(context, uri)
+                        }
+                    }
+                    path.startsWith("file://", true) -> retriever.setDataSource(context, android.net.Uri.parse(path))
+                    path.startsWith("http://", true) || path.startsWith("https://", true) -> retriever.setDataSource(path, emptyMap())
                     else -> retriever.setDataSource(path)
                 }
-                val title = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)?.trim() ?: ""
-                val artist = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)?.trim() ?: ""
-                val album = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM)?.trim() ?: ""
+                val title = cleanMetadataValue(retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE))
+                val artist = cleanMetadataValue(retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST))
+                val album = cleanMetadataValue(retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM))
                 val trackNumber = parseTrackNumber(retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER))
                 val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
 
@@ -238,11 +277,23 @@ object AudioMetadataExtractor {
                 )
             } finally {
                 retriever.release()
+                try { closeable?.close() } catch (_: Exception) {}
             }
         } catch (e: Exception) {
             AudioTechnicalInfo(extension = name.substringAfterLast(".", "").uppercase())
         } finally {
             try { smbDataSource?.close() } catch (_: Exception) {}
+        }
+    }
+
+    private fun cleanMetadataValue(raw: String?): String {
+        val value = raw?.trim().orEmpty()
+        return when {
+            value.isBlank() -> ""
+            value.equals("<unknown>", true) -> ""
+            value.equals("unknown", true) -> ""
+            value.equals("null", true) -> ""
+            else -> value
         }
     }
 

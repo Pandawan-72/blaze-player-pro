@@ -16,9 +16,9 @@ object AudioDynamicColor {
 
     private const val MIN_ALPHA = 48
     private const val STRICT_MIN_SATURATION = 0.30f
-    private const val STRICT_MIN_VALUE = 0.34f
+    private const val STRICT_MIN_VALUE = 0.50f
     private const val RELAXED_MIN_SATURATION = 0.18f
-    private const val RELAXED_MIN_VALUE = 0.26f
+    private const val RELAXED_MIN_VALUE = 0.42f
     private const val MIN_ACCEPTED_PIXELS = 8
 
     /** Couleur dominante robuste de la pochette.
@@ -71,18 +71,18 @@ object AudioDynamicColor {
     }
 
     private fun isStrictCandidate(hsv: FloatArray): Boolean = when {
-        isNeutralGrey(hsv) -> hsv[2] >= 0.52f
-        isBrownHue(hsv[0]) -> hsv[2] >= 0.52f && hsv[1] >= 0.20f
+        isNeutralGrey(hsv) -> hsv[2] >= 0.58f
+        isBrownHue(hsv[0]) -> hsv[2] >= 0.58f && hsv[1] >= 0.20f
         else -> hsv[1] >= STRICT_MIN_SATURATION && hsv[2] >= STRICT_MIN_VALUE
     }
 
     private fun isRelaxedCandidate(hsv: FloatArray): Boolean = when {
-        isNeutralGrey(hsv) -> hsv[2] >= 0.42f
-        isBrownHue(hsv[0]) -> hsv[2] >= 0.42f && hsv[1] >= 0.15f
+        isNeutralGrey(hsv) -> hsv[2] >= 0.50f
+        isBrownHue(hsv[0]) -> hsv[2] >= 0.50f && hsv[1] >= 0.15f
         else -> hsv[1] >= RELAXED_MIN_SATURATION && hsv[2] >= RELAXED_MIN_VALUE
     }
 
-    private fun isRejectedTooDark(hsv: FloatArray): Boolean = hsv[2] < 0.22f
+    private fun isRejectedTooDark(hsv: FloatArray): Boolean = hsv[2] < 0.36f
 
     private fun isNeutralGrey(hsv: FloatArray): Boolean = hsv[1] < 0.14f
 
@@ -90,7 +90,7 @@ object AudioDynamicColor {
 
     private fun vividScore(hsv: FloatArray): Float {
         val neutralPenalty = if (isNeutralGrey(hsv)) 0.18f else 0f
-        val brownPenalty = if (isBrownHue(hsv[0]) && hsv[2] < 0.55f) 0.10f else 0f
+        val brownPenalty = if (isBrownHue(hsv[0]) && hsv[2] < 0.62f) 0.10f else 0f
         return (hsv[1] * 1.25f) + (hsv[2] * 1.10f) - neutralPenalty - brownPenalty
     }
 
@@ -104,24 +104,41 @@ object AudioDynamicColor {
             // Gris autorisé s'il n'est pas trop sombre : on garde un gris propre, sans le transformer
             // artificiellement en rouge/marron via une saturation minimale.
             hsv[1] = hsv[1].coerceIn(0f, 0.10f)
-            hsv[2] = (hsv[2] * 1.10f + 0.06f).coerceIn(0.50f, 0.82f)
+            hsv[2] = (hsv[2] * 1.12f + 0.08f).coerceIn(0.58f, 0.86f)
             return Color.HSVToColor(hsv)
         }
 
         if (isBrownHue(hsv[0])) {
             // Marron/brun autorisé quand il reste lisible : léger boost, mais pas de rejet brutal.
             hsv[1] = (hsv[1] * 1.12f + 0.06f).coerceIn(0.22f, 0.82f)
-            hsv[2] = (hsv[2] * 1.12f + 0.08f).coerceIn(0.50f, 0.88f)
+            hsv[2] = (hsv[2] * 1.16f + 0.10f).coerceIn(0.58f, 0.90f)
             return Color.HSVToColor(hsv)
         }
 
         hsv[1] = (hsv[1] * 1.28f + 0.12f).coerceIn(0.38f, 1f)
-        hsv[2] = (hsv[2] * 1.18f + 0.10f).coerceIn(0.52f, 1f)
+        hsv[2] = (hsv[2] * 1.20f + 0.12f).coerceIn(0.60f, 1f)
         return Color.HSVToColor(hsv)
     }
 
-    /** Fond sombre teinté par l'accent (même dosage que l'écran Blaze Audio). */
-    fun backgroundFromAccent(accent: Int): Int = mix(Color.rgb(4, 14, 16), accent, 0.30f)
+    /**
+     * Fond sombre teinté par l'accent, avec une intensité volontairement plus douce.
+     *
+     * L'accent extrait de la pochette peut être très vif pour les contrôles, mais le fond doit
+     * rester confortable sur toute la durée d'écoute. On désature donc légèrement la couleur avant
+     * de la mélanger au socle sombre, puis on réduit le taux de mélange.
+     */
+    fun backgroundFromAccent(accent: Int): Int {
+        val softAccent = softenAccentForBackground(accent)
+        return mix(Color.rgb(5, 13, 17), softAccent, 0.22f)
+    }
+
+    private fun softenAccentForBackground(color: Int): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        hsv[1] = (hsv[1] * 0.62f).coerceIn(0f, 0.58f)
+        hsv[2] = (hsv[2] * 0.86f).coerceIn(0.30f, 0.74f)
+        return Color.HSVToColor(hsv)
+    }
 
     fun mix(a: Int, b: Int, amount: Float): Int {
         val t = amount.coerceIn(0f, 1f)

@@ -32,8 +32,8 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 23
-        versionName = "0.9.6-Beta-Party"
+        versionCode = 45
+        versionName = "0.9.81-Beta-Party"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Clé API YouTube Data v3 : lue depuis local.properties (jamais commité), à ajouter
         // toi-même sous la forme YOUTUBE_API_KEY=ta_cle dans ce fichier à la racine du projet.
@@ -163,6 +163,9 @@ dependencies {
     // Génération de QR code (invitations Blaze Party) : bibliothèque de référence, testée contre
     // la quasi-totalité des scanners du marché — remplace l'ancien encodeur QR fait main.
     implementation("com.google.zxing:core:3.5.3")
+    // Scan QR intégré côté client : évite de déléguer à l'appareil photo/lecteur QR Android,
+    // qui peut afficher la feuille native de partage au lieu de renvoyer le contenu à Blaze Player.
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
 
     // Material Design (Views) + AppCompat
     implementation(libs.material)

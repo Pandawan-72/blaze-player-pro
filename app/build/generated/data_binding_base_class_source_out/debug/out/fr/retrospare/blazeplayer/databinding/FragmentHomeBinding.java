@@ -4,7 +4,6 @@ package fr.retrospare.blazeplayer.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -40,22 +39,10 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final MediaRouteButton btnCast;
 
   @NonNull
-  public final MaterialButton btnCloseYoutubeFavorites;
-
-  @NonNull
-  public final ImageView btnCloseYoutubeSearch;
-
-  @NonNull
-  public final MaterialButton btnCloudFiles;
-
-  @NonNull
   public final MaterialButton btnEmptyStateBrowseLocal;
 
   @NonNull
   public final MaterialButton btnEmptyStateBrowseNetwork;
-
-  @NonNull
-  public final MaterialButton btnFavoritesCloud;
 
   @NonNull
   public final MaterialButton btnFavoritesLocal;
@@ -64,25 +51,22 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final MaterialButton btnFavoritesNetwork;
 
   @NonNull
+  public final MaterialButton btnGalleryPrimary;
+
+  @NonNull
+  public final MaterialButton btnGallerySecondary;
+
+  @NonNull
   public final ImageButton btnGalleryTypePhoto;
 
   @NonNull
   public final ImageButton btnGalleryTypeVideo;
 
   @NonNull
-  public final TextView btnPlaylistCloud1;
+  public final MaterialButton btnHistoryLocal;
 
   @NonNull
-  public final TextView btnPlaylistCloud2;
-
-  @NonNull
-  public final TextView btnPlaylistCloud3;
-
-  @NonNull
-  public final TextView btnPlaylistCloud4;
-
-  @NonNull
-  public final TextView btnPlaylistCloud5;
+  public final MaterialButton btnHistoryNetwork;
 
   @NonNull
   public final TextView btnPlaylistLocal1;
@@ -115,34 +99,19 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final TextView btnPlaylistNetwork5;
 
   @NonNull
-  public final TextView btnPlaylistYoutube1;
-
-  @NonNull
-  public final TextView btnPlaylistYoutube2;
-
-  @NonNull
-  public final TextView btnPlaylistYoutube3;
-
-  @NonNull
-  public final TextView btnPlaylistYoutube4;
-
-  @NonNull
-  public final TextView btnPlaylistYoutube5;
-
-  @NonNull
   public final ImageButton btnScreenCast;
 
   @NonNull
   public final ImageButton btnSettings;
 
   @NonNull
-  public final MaterialButton btnYoutubeFavorites;
+  public final ImageButton btnVideoQueueLocal;
 
   @NonNull
-  public final EditText editYoutubeSearch;
+  public final ImageButton btnVideoQueueNetwork;
 
   @NonNull
-  public final LinearLayout emptyStateCloud;
+  public final LinearLayout emptyStateGallery;
 
   @NonNull
   public final LinearLayout emptyStateLocal;
@@ -151,10 +120,22 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final LinearLayout emptyStateNetwork;
 
   @NonNull
+  public final LinearLayout headerCard;
+
+  @NonNull
+  public final LinearLayout headerControlsGallery;
+
+  @NonNull
+  public final LinearLayout headerControlsLocal;
+
+  @NonNull
+  public final LinearLayout headerControlsNetwork;
+
+  @NonNull
   public final ImageView ivLogo;
 
   @NonNull
-  public final RecyclerView listCloud;
+  public final RecyclerView listGallery;
 
   @NonNull
   public final RecyclerView listLocal;
@@ -163,22 +144,16 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final RecyclerView listNetwork;
 
   @NonNull
-  public final RecyclerView listYoutubeHistory;
-
-  @NonNull
-  public final RecyclerView listYoutubeSearch;
-
-  @NonNull
   public final LinearLayout scrollContent;
+
+  @NonNull
+  public final LinearLayout sectionGallery;
 
   @NonNull
   public final LinearLayout sectionLocal;
 
   @NonNull
   public final LinearLayout sectionNetwork;
-
-  @NonNull
-  public final LinearLayout sectionYoutube;
 
   @NonNull
   public final TextView tabAll;
@@ -191,6 +166,15 @@ public final class FragmentHomeBinding implements ViewBinding {
 
   @NonNull
   public final TextView tabAudioText;
+
+  @NonNull
+  public final LinearLayout tabGallery;
+
+  @NonNull
+  public final ImageView tabGalleryIcon;
+
+  @NonNull
+  public final TextView tabGalleryText;
 
   @NonNull
   public final LinearLayout tabLocal;
@@ -211,99 +195,60 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final TextView tabNetworkText;
 
   @NonNull
-  public final LinearLayout tabYoutube;
+  public final TextView tvEmptyStateGallery;
 
   @NonNull
-  public final ImageView tabYoutubeIcon;
-
-  @NonNull
-  public final TextView tabYoutubeText;
-
-  @NonNull
-  public final TextView tvEmptyStateCloud;
-
-  @NonNull
-  public final TextView tvSectionCloud;
-
-  @NonNull
-  public final TextView tvSectionLocal;
-
-  @NonNull
-  public final TextView tvSectionNetwork;
+  public final TextView tvSectionGallery;
 
   @NonNull
   public final TextView tvVersionBadge;
 
-  @NonNull
-  public final TextView tvYoutubeError;
-
-  @NonNull
-  public final LinearLayout youtubeDefaultContent;
-
-  @NonNull
-  public final LinearLayout youtubeFavoritesHeaderRow;
-
-  @NonNull
-  public final LinearLayout youtubeSearchBarRow;
-
   private FragmentHomeBinding(@NonNull CoordinatorLayout rootView,
       @NonNull FrameLayout audioContainer, @NonNull MaterialButton btnBrowseLocal,
       @NonNull MaterialButton btnBrowseNetwork, @NonNull MediaRouteButton btnCast,
-      @NonNull MaterialButton btnCloseYoutubeFavorites, @NonNull ImageView btnCloseYoutubeSearch,
-      @NonNull MaterialButton btnCloudFiles, @NonNull MaterialButton btnEmptyStateBrowseLocal,
-      @NonNull MaterialButton btnEmptyStateBrowseNetwork, @NonNull MaterialButton btnFavoritesCloud,
-      @NonNull MaterialButton btnFavoritesLocal, @NonNull MaterialButton btnFavoritesNetwork,
-      @NonNull ImageButton btnGalleryTypePhoto, @NonNull ImageButton btnGalleryTypeVideo,
-      @NonNull TextView btnPlaylistCloud1, @NonNull TextView btnPlaylistCloud2,
-      @NonNull TextView btnPlaylistCloud3, @NonNull TextView btnPlaylistCloud4,
-      @NonNull TextView btnPlaylistCloud5, @NonNull TextView btnPlaylistLocal1,
+      @NonNull MaterialButton btnEmptyStateBrowseLocal,
+      @NonNull MaterialButton btnEmptyStateBrowseNetwork, @NonNull MaterialButton btnFavoritesLocal,
+      @NonNull MaterialButton btnFavoritesNetwork, @NonNull MaterialButton btnGalleryPrimary,
+      @NonNull MaterialButton btnGallerySecondary, @NonNull ImageButton btnGalleryTypePhoto,
+      @NonNull ImageButton btnGalleryTypeVideo, @NonNull MaterialButton btnHistoryLocal,
+      @NonNull MaterialButton btnHistoryNetwork, @NonNull TextView btnPlaylistLocal1,
       @NonNull TextView btnPlaylistLocal2, @NonNull TextView btnPlaylistLocal3,
       @NonNull TextView btnPlaylistLocal4, @NonNull TextView btnPlaylistLocal5,
       @NonNull TextView btnPlaylistNetwork1, @NonNull TextView btnPlaylistNetwork2,
       @NonNull TextView btnPlaylistNetwork3, @NonNull TextView btnPlaylistNetwork4,
-      @NonNull TextView btnPlaylistNetwork5, @NonNull TextView btnPlaylistYoutube1,
-      @NonNull TextView btnPlaylistYoutube2, @NonNull TextView btnPlaylistYoutube3,
-      @NonNull TextView btnPlaylistYoutube4, @NonNull TextView btnPlaylistYoutube5,
-      @NonNull ImageButton btnScreenCast, @NonNull ImageButton btnSettings,
-      @NonNull MaterialButton btnYoutubeFavorites, @NonNull EditText editYoutubeSearch,
-      @NonNull LinearLayout emptyStateCloud, @NonNull LinearLayout emptyStateLocal,
-      @NonNull LinearLayout emptyStateNetwork, @NonNull ImageView ivLogo,
-      @NonNull RecyclerView listCloud, @NonNull RecyclerView listLocal,
-      @NonNull RecyclerView listNetwork, @NonNull RecyclerView listYoutubeHistory,
-      @NonNull RecyclerView listYoutubeSearch, @NonNull LinearLayout scrollContent,
-      @NonNull LinearLayout sectionLocal, @NonNull LinearLayout sectionNetwork,
-      @NonNull LinearLayout sectionYoutube, @NonNull TextView tabAll,
+      @NonNull TextView btnPlaylistNetwork5, @NonNull ImageButton btnScreenCast,
+      @NonNull ImageButton btnSettings, @NonNull ImageButton btnVideoQueueLocal,
+      @NonNull ImageButton btnVideoQueueNetwork, @NonNull LinearLayout emptyStateGallery,
+      @NonNull LinearLayout emptyStateLocal, @NonNull LinearLayout emptyStateNetwork,
+      @NonNull LinearLayout headerCard, @NonNull LinearLayout headerControlsGallery,
+      @NonNull LinearLayout headerControlsLocal, @NonNull LinearLayout headerControlsNetwork,
+      @NonNull ImageView ivLogo, @NonNull RecyclerView listGallery, @NonNull RecyclerView listLocal,
+      @NonNull RecyclerView listNetwork, @NonNull LinearLayout scrollContent,
+      @NonNull LinearLayout sectionGallery, @NonNull LinearLayout sectionLocal,
+      @NonNull LinearLayout sectionNetwork, @NonNull TextView tabAll,
       @NonNull LinearLayout tabAudio, @NonNull ImageView tabAudioIcon,
-      @NonNull TextView tabAudioText, @NonNull LinearLayout tabLocal,
-      @NonNull ImageView tabLocalIcon, @NonNull TextView tabLocalText,
-      @NonNull LinearLayout tabNetwork, @NonNull ImageView tabNetworkIcon,
-      @NonNull TextView tabNetworkText, @NonNull LinearLayout tabYoutube,
-      @NonNull ImageView tabYoutubeIcon, @NonNull TextView tabYoutubeText,
-      @NonNull TextView tvEmptyStateCloud, @NonNull TextView tvSectionCloud,
-      @NonNull TextView tvSectionLocal, @NonNull TextView tvSectionNetwork,
-      @NonNull TextView tvVersionBadge, @NonNull TextView tvYoutubeError,
-      @NonNull LinearLayout youtubeDefaultContent, @NonNull LinearLayout youtubeFavoritesHeaderRow,
-      @NonNull LinearLayout youtubeSearchBarRow) {
+      @NonNull TextView tabAudioText, @NonNull LinearLayout tabGallery,
+      @NonNull ImageView tabGalleryIcon, @NonNull TextView tabGalleryText,
+      @NonNull LinearLayout tabLocal, @NonNull ImageView tabLocalIcon,
+      @NonNull TextView tabLocalText, @NonNull LinearLayout tabNetwork,
+      @NonNull ImageView tabNetworkIcon, @NonNull TextView tabNetworkText,
+      @NonNull TextView tvEmptyStateGallery, @NonNull TextView tvSectionGallery,
+      @NonNull TextView tvVersionBadge) {
     this.rootView = rootView;
     this.audioContainer = audioContainer;
     this.btnBrowseLocal = btnBrowseLocal;
     this.btnBrowseNetwork = btnBrowseNetwork;
     this.btnCast = btnCast;
-    this.btnCloseYoutubeFavorites = btnCloseYoutubeFavorites;
-    this.btnCloseYoutubeSearch = btnCloseYoutubeSearch;
-    this.btnCloudFiles = btnCloudFiles;
     this.btnEmptyStateBrowseLocal = btnEmptyStateBrowseLocal;
     this.btnEmptyStateBrowseNetwork = btnEmptyStateBrowseNetwork;
-    this.btnFavoritesCloud = btnFavoritesCloud;
     this.btnFavoritesLocal = btnFavoritesLocal;
     this.btnFavoritesNetwork = btnFavoritesNetwork;
+    this.btnGalleryPrimary = btnGalleryPrimary;
+    this.btnGallerySecondary = btnGallerySecondary;
     this.btnGalleryTypePhoto = btnGalleryTypePhoto;
     this.btnGalleryTypeVideo = btnGalleryTypeVideo;
-    this.btnPlaylistCloud1 = btnPlaylistCloud1;
-    this.btnPlaylistCloud2 = btnPlaylistCloud2;
-    this.btnPlaylistCloud3 = btnPlaylistCloud3;
-    this.btnPlaylistCloud4 = btnPlaylistCloud4;
-    this.btnPlaylistCloud5 = btnPlaylistCloud5;
+    this.btnHistoryLocal = btnHistoryLocal;
+    this.btnHistoryNetwork = btnHistoryNetwork;
     this.btnPlaylistLocal1 = btnPlaylistLocal1;
     this.btnPlaylistLocal2 = btnPlaylistLocal2;
     this.btnPlaylistLocal3 = btnPlaylistLocal3;
@@ -314,50 +259,41 @@ public final class FragmentHomeBinding implements ViewBinding {
     this.btnPlaylistNetwork3 = btnPlaylistNetwork3;
     this.btnPlaylistNetwork4 = btnPlaylistNetwork4;
     this.btnPlaylistNetwork5 = btnPlaylistNetwork5;
-    this.btnPlaylistYoutube1 = btnPlaylistYoutube1;
-    this.btnPlaylistYoutube2 = btnPlaylistYoutube2;
-    this.btnPlaylistYoutube3 = btnPlaylistYoutube3;
-    this.btnPlaylistYoutube4 = btnPlaylistYoutube4;
-    this.btnPlaylistYoutube5 = btnPlaylistYoutube5;
     this.btnScreenCast = btnScreenCast;
     this.btnSettings = btnSettings;
-    this.btnYoutubeFavorites = btnYoutubeFavorites;
-    this.editYoutubeSearch = editYoutubeSearch;
-    this.emptyStateCloud = emptyStateCloud;
+    this.btnVideoQueueLocal = btnVideoQueueLocal;
+    this.btnVideoQueueNetwork = btnVideoQueueNetwork;
+    this.emptyStateGallery = emptyStateGallery;
     this.emptyStateLocal = emptyStateLocal;
     this.emptyStateNetwork = emptyStateNetwork;
+    this.headerCard = headerCard;
+    this.headerControlsGallery = headerControlsGallery;
+    this.headerControlsLocal = headerControlsLocal;
+    this.headerControlsNetwork = headerControlsNetwork;
     this.ivLogo = ivLogo;
-    this.listCloud = listCloud;
+    this.listGallery = listGallery;
     this.listLocal = listLocal;
     this.listNetwork = listNetwork;
-    this.listYoutubeHistory = listYoutubeHistory;
-    this.listYoutubeSearch = listYoutubeSearch;
     this.scrollContent = scrollContent;
+    this.sectionGallery = sectionGallery;
     this.sectionLocal = sectionLocal;
     this.sectionNetwork = sectionNetwork;
-    this.sectionYoutube = sectionYoutube;
     this.tabAll = tabAll;
     this.tabAudio = tabAudio;
     this.tabAudioIcon = tabAudioIcon;
     this.tabAudioText = tabAudioText;
+    this.tabGallery = tabGallery;
+    this.tabGalleryIcon = tabGalleryIcon;
+    this.tabGalleryText = tabGalleryText;
     this.tabLocal = tabLocal;
     this.tabLocalIcon = tabLocalIcon;
     this.tabLocalText = tabLocalText;
     this.tabNetwork = tabNetwork;
     this.tabNetworkIcon = tabNetworkIcon;
     this.tabNetworkText = tabNetworkText;
-    this.tabYoutube = tabYoutube;
-    this.tabYoutubeIcon = tabYoutubeIcon;
-    this.tabYoutubeText = tabYoutubeText;
-    this.tvEmptyStateCloud = tvEmptyStateCloud;
-    this.tvSectionCloud = tvSectionCloud;
-    this.tvSectionLocal = tvSectionLocal;
-    this.tvSectionNetwork = tvSectionNetwork;
+    this.tvEmptyStateGallery = tvEmptyStateGallery;
+    this.tvSectionGallery = tvSectionGallery;
     this.tvVersionBadge = tvVersionBadge;
-    this.tvYoutubeError = tvYoutubeError;
-    this.youtubeDefaultContent = youtubeDefaultContent;
-    this.youtubeFavoritesHeaderRow = youtubeFavoritesHeaderRow;
-    this.youtubeSearchBarRow = youtubeSearchBarRow;
   }
 
   @Override
@@ -411,24 +347,6 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.btnCloseYoutubeFavorites;
-      MaterialButton btnCloseYoutubeFavorites = ViewBindings.findChildViewById(rootView, id);
-      if (btnCloseYoutubeFavorites == null) {
-        break missingId;
-      }
-
-      id = R.id.btnCloseYoutubeSearch;
-      ImageView btnCloseYoutubeSearch = ViewBindings.findChildViewById(rootView, id);
-      if (btnCloseYoutubeSearch == null) {
-        break missingId;
-      }
-
-      id = R.id.btnCloudFiles;
-      MaterialButton btnCloudFiles = ViewBindings.findChildViewById(rootView, id);
-      if (btnCloudFiles == null) {
-        break missingId;
-      }
-
       id = R.id.btnEmptyStateBrowseLocal;
       MaterialButton btnEmptyStateBrowseLocal = ViewBindings.findChildViewById(rootView, id);
       if (btnEmptyStateBrowseLocal == null) {
@@ -438,12 +356,6 @@ public final class FragmentHomeBinding implements ViewBinding {
       id = R.id.btnEmptyStateBrowseNetwork;
       MaterialButton btnEmptyStateBrowseNetwork = ViewBindings.findChildViewById(rootView, id);
       if (btnEmptyStateBrowseNetwork == null) {
-        break missingId;
-      }
-
-      id = R.id.btnFavoritesCloud;
-      MaterialButton btnFavoritesCloud = ViewBindings.findChildViewById(rootView, id);
-      if (btnFavoritesCloud == null) {
         break missingId;
       }
 
@@ -459,6 +371,18 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnGalleryPrimary;
+      MaterialButton btnGalleryPrimary = ViewBindings.findChildViewById(rootView, id);
+      if (btnGalleryPrimary == null) {
+        break missingId;
+      }
+
+      id = R.id.btnGallerySecondary;
+      MaterialButton btnGallerySecondary = ViewBindings.findChildViewById(rootView, id);
+      if (btnGallerySecondary == null) {
+        break missingId;
+      }
+
       id = R.id.btnGalleryTypePhoto;
       ImageButton btnGalleryTypePhoto = ViewBindings.findChildViewById(rootView, id);
       if (btnGalleryTypePhoto == null) {
@@ -471,33 +395,15 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.btnPlaylistCloud1;
-      TextView btnPlaylistCloud1 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistCloud1 == null) {
+      id = R.id.btnHistoryLocal;
+      MaterialButton btnHistoryLocal = ViewBindings.findChildViewById(rootView, id);
+      if (btnHistoryLocal == null) {
         break missingId;
       }
 
-      id = R.id.btnPlaylistCloud2;
-      TextView btnPlaylistCloud2 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistCloud2 == null) {
-        break missingId;
-      }
-
-      id = R.id.btnPlaylistCloud3;
-      TextView btnPlaylistCloud3 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistCloud3 == null) {
-        break missingId;
-      }
-
-      id = R.id.btnPlaylistCloud4;
-      TextView btnPlaylistCloud4 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistCloud4 == null) {
-        break missingId;
-      }
-
-      id = R.id.btnPlaylistCloud5;
-      TextView btnPlaylistCloud5 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistCloud5 == null) {
+      id = R.id.btnHistoryNetwork;
+      MaterialButton btnHistoryNetwork = ViewBindings.findChildViewById(rootView, id);
+      if (btnHistoryNetwork == null) {
         break missingId;
       }
 
@@ -561,36 +467,6 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.btnPlaylistYoutube1;
-      TextView btnPlaylistYoutube1 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistYoutube1 == null) {
-        break missingId;
-      }
-
-      id = R.id.btnPlaylistYoutube2;
-      TextView btnPlaylistYoutube2 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistYoutube2 == null) {
-        break missingId;
-      }
-
-      id = R.id.btnPlaylistYoutube3;
-      TextView btnPlaylistYoutube3 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistYoutube3 == null) {
-        break missingId;
-      }
-
-      id = R.id.btnPlaylistYoutube4;
-      TextView btnPlaylistYoutube4 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistYoutube4 == null) {
-        break missingId;
-      }
-
-      id = R.id.btnPlaylistYoutube5;
-      TextView btnPlaylistYoutube5 = ViewBindings.findChildViewById(rootView, id);
-      if (btnPlaylistYoutube5 == null) {
-        break missingId;
-      }
-
       id = R.id.btnScreenCast;
       ImageButton btnScreenCast = ViewBindings.findChildViewById(rootView, id);
       if (btnScreenCast == null) {
@@ -603,21 +479,21 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.btnYoutubeFavorites;
-      MaterialButton btnYoutubeFavorites = ViewBindings.findChildViewById(rootView, id);
-      if (btnYoutubeFavorites == null) {
+      id = R.id.btnVideoQueueLocal;
+      ImageButton btnVideoQueueLocal = ViewBindings.findChildViewById(rootView, id);
+      if (btnVideoQueueLocal == null) {
         break missingId;
       }
 
-      id = R.id.editYoutubeSearch;
-      EditText editYoutubeSearch = ViewBindings.findChildViewById(rootView, id);
-      if (editYoutubeSearch == null) {
+      id = R.id.btnVideoQueueNetwork;
+      ImageButton btnVideoQueueNetwork = ViewBindings.findChildViewById(rootView, id);
+      if (btnVideoQueueNetwork == null) {
         break missingId;
       }
 
-      id = R.id.emptyStateCloud;
-      LinearLayout emptyStateCloud = ViewBindings.findChildViewById(rootView, id);
-      if (emptyStateCloud == null) {
+      id = R.id.emptyStateGallery;
+      LinearLayout emptyStateGallery = ViewBindings.findChildViewById(rootView, id);
+      if (emptyStateGallery == null) {
         break missingId;
       }
 
@@ -633,15 +509,39 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.headerCard;
+      LinearLayout headerCard = ViewBindings.findChildViewById(rootView, id);
+      if (headerCard == null) {
+        break missingId;
+      }
+
+      id = R.id.headerControlsGallery;
+      LinearLayout headerControlsGallery = ViewBindings.findChildViewById(rootView, id);
+      if (headerControlsGallery == null) {
+        break missingId;
+      }
+
+      id = R.id.headerControlsLocal;
+      LinearLayout headerControlsLocal = ViewBindings.findChildViewById(rootView, id);
+      if (headerControlsLocal == null) {
+        break missingId;
+      }
+
+      id = R.id.headerControlsNetwork;
+      LinearLayout headerControlsNetwork = ViewBindings.findChildViewById(rootView, id);
+      if (headerControlsNetwork == null) {
+        break missingId;
+      }
+
       id = R.id.ivLogo;
       ImageView ivLogo = ViewBindings.findChildViewById(rootView, id);
       if (ivLogo == null) {
         break missingId;
       }
 
-      id = R.id.listCloud;
-      RecyclerView listCloud = ViewBindings.findChildViewById(rootView, id);
-      if (listCloud == null) {
+      id = R.id.listGallery;
+      RecyclerView listGallery = ViewBindings.findChildViewById(rootView, id);
+      if (listGallery == null) {
         break missingId;
       }
 
@@ -657,21 +557,15 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.listYoutubeHistory;
-      RecyclerView listYoutubeHistory = ViewBindings.findChildViewById(rootView, id);
-      if (listYoutubeHistory == null) {
-        break missingId;
-      }
-
-      id = R.id.listYoutubeSearch;
-      RecyclerView listYoutubeSearch = ViewBindings.findChildViewById(rootView, id);
-      if (listYoutubeSearch == null) {
-        break missingId;
-      }
-
       id = R.id.scrollContent;
       LinearLayout scrollContent = ViewBindings.findChildViewById(rootView, id);
       if (scrollContent == null) {
+        break missingId;
+      }
+
+      id = R.id.sectionGallery;
+      LinearLayout sectionGallery = ViewBindings.findChildViewById(rootView, id);
+      if (sectionGallery == null) {
         break missingId;
       }
 
@@ -684,12 +578,6 @@ public final class FragmentHomeBinding implements ViewBinding {
       id = R.id.sectionNetwork;
       LinearLayout sectionNetwork = ViewBindings.findChildViewById(rootView, id);
       if (sectionNetwork == null) {
-        break missingId;
-      }
-
-      id = R.id.sectionYoutube;
-      LinearLayout sectionYoutube = ViewBindings.findChildViewById(rootView, id);
-      if (sectionYoutube == null) {
         break missingId;
       }
 
@@ -714,6 +602,24 @@ public final class FragmentHomeBinding implements ViewBinding {
       id = R.id.tabAudioText;
       TextView tabAudioText = ViewBindings.findChildViewById(rootView, id);
       if (tabAudioText == null) {
+        break missingId;
+      }
+
+      id = R.id.tabGallery;
+      LinearLayout tabGallery = ViewBindings.findChildViewById(rootView, id);
+      if (tabGallery == null) {
+        break missingId;
+      }
+
+      id = R.id.tabGalleryIcon;
+      ImageView tabGalleryIcon = ViewBindings.findChildViewById(rootView, id);
+      if (tabGalleryIcon == null) {
+        break missingId;
+      }
+
+      id = R.id.tabGalleryText;
+      TextView tabGalleryText = ViewBindings.findChildViewById(rootView, id);
+      if (tabGalleryText == null) {
         break missingId;
       }
 
@@ -753,45 +659,15 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.tabYoutube;
-      LinearLayout tabYoutube = ViewBindings.findChildViewById(rootView, id);
-      if (tabYoutube == null) {
+      id = R.id.tvEmptyStateGallery;
+      TextView tvEmptyStateGallery = ViewBindings.findChildViewById(rootView, id);
+      if (tvEmptyStateGallery == null) {
         break missingId;
       }
 
-      id = R.id.tabYoutubeIcon;
-      ImageView tabYoutubeIcon = ViewBindings.findChildViewById(rootView, id);
-      if (tabYoutubeIcon == null) {
-        break missingId;
-      }
-
-      id = R.id.tabYoutubeText;
-      TextView tabYoutubeText = ViewBindings.findChildViewById(rootView, id);
-      if (tabYoutubeText == null) {
-        break missingId;
-      }
-
-      id = R.id.tvEmptyStateCloud;
-      TextView tvEmptyStateCloud = ViewBindings.findChildViewById(rootView, id);
-      if (tvEmptyStateCloud == null) {
-        break missingId;
-      }
-
-      id = R.id.tvSectionCloud;
-      TextView tvSectionCloud = ViewBindings.findChildViewById(rootView, id);
-      if (tvSectionCloud == null) {
-        break missingId;
-      }
-
-      id = R.id.tvSectionLocal;
-      TextView tvSectionLocal = ViewBindings.findChildViewById(rootView, id);
-      if (tvSectionLocal == null) {
-        break missingId;
-      }
-
-      id = R.id.tvSectionNetwork;
-      TextView tvSectionNetwork = ViewBindings.findChildViewById(rootView, id);
-      if (tvSectionNetwork == null) {
+      id = R.id.tvSectionGallery;
+      TextView tvSectionGallery = ViewBindings.findChildViewById(rootView, id);
+      if (tvSectionGallery == null) {
         break missingId;
       }
 
@@ -801,47 +677,19 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.tvYoutubeError;
-      TextView tvYoutubeError = ViewBindings.findChildViewById(rootView, id);
-      if (tvYoutubeError == null) {
-        break missingId;
-      }
-
-      id = R.id.youtubeDefaultContent;
-      LinearLayout youtubeDefaultContent = ViewBindings.findChildViewById(rootView, id);
-      if (youtubeDefaultContent == null) {
-        break missingId;
-      }
-
-      id = R.id.youtubeFavoritesHeaderRow;
-      LinearLayout youtubeFavoritesHeaderRow = ViewBindings.findChildViewById(rootView, id);
-      if (youtubeFavoritesHeaderRow == null) {
-        break missingId;
-      }
-
-      id = R.id.youtubeSearchBarRow;
-      LinearLayout youtubeSearchBarRow = ViewBindings.findChildViewById(rootView, id);
-      if (youtubeSearchBarRow == null) {
-        break missingId;
-      }
-
       return new FragmentHomeBinding((CoordinatorLayout) rootView, audioContainer, btnBrowseLocal,
-          btnBrowseNetwork, btnCast, btnCloseYoutubeFavorites, btnCloseYoutubeSearch, btnCloudFiles,
-          btnEmptyStateBrowseLocal, btnEmptyStateBrowseNetwork, btnFavoritesCloud,
-          btnFavoritesLocal, btnFavoritesNetwork, btnGalleryTypePhoto, btnGalleryTypeVideo,
-          btnPlaylistCloud1, btnPlaylistCloud2, btnPlaylistCloud3, btnPlaylistCloud4,
-          btnPlaylistCloud5, btnPlaylistLocal1, btnPlaylistLocal2, btnPlaylistLocal3,
-          btnPlaylistLocal4, btnPlaylistLocal5, btnPlaylistNetwork1, btnPlaylistNetwork2,
-          btnPlaylistNetwork3, btnPlaylistNetwork4, btnPlaylistNetwork5, btnPlaylistYoutube1,
-          btnPlaylistYoutube2, btnPlaylistYoutube3, btnPlaylistYoutube4, btnPlaylistYoutube5,
-          btnScreenCast, btnSettings, btnYoutubeFavorites, editYoutubeSearch, emptyStateCloud,
-          emptyStateLocal, emptyStateNetwork, ivLogo, listCloud, listLocal, listNetwork,
-          listYoutubeHistory, listYoutubeSearch, scrollContent, sectionLocal, sectionNetwork,
-          sectionYoutube, tabAll, tabAudio, tabAudioIcon, tabAudioText, tabLocal, tabLocalIcon,
-          tabLocalText, tabNetwork, tabNetworkIcon, tabNetworkText, tabYoutube, tabYoutubeIcon,
-          tabYoutubeText, tvEmptyStateCloud, tvSectionCloud, tvSectionLocal, tvSectionNetwork,
-          tvVersionBadge, tvYoutubeError, youtubeDefaultContent, youtubeFavoritesHeaderRow,
-          youtubeSearchBarRow);
+          btnBrowseNetwork, btnCast, btnEmptyStateBrowseLocal, btnEmptyStateBrowseNetwork,
+          btnFavoritesLocal, btnFavoritesNetwork, btnGalleryPrimary, btnGallerySecondary,
+          btnGalleryTypePhoto, btnGalleryTypeVideo, btnHistoryLocal, btnHistoryNetwork,
+          btnPlaylistLocal1, btnPlaylistLocal2, btnPlaylistLocal3, btnPlaylistLocal4,
+          btnPlaylistLocal5, btnPlaylistNetwork1, btnPlaylistNetwork2, btnPlaylistNetwork3,
+          btnPlaylistNetwork4, btnPlaylistNetwork5, btnScreenCast, btnSettings, btnVideoQueueLocal,
+          btnVideoQueueNetwork, emptyStateGallery, emptyStateLocal, emptyStateNetwork, headerCard,
+          headerControlsGallery, headerControlsLocal, headerControlsNetwork, ivLogo, listGallery,
+          listLocal, listNetwork, scrollContent, sectionGallery, sectionLocal, sectionNetwork,
+          tabAll, tabAudio, tabAudioIcon, tabAudioText, tabGallery, tabGalleryIcon, tabGalleryText,
+          tabLocal, tabLocalIcon, tabLocalText, tabNetwork, tabNetworkIcon, tabNetworkText,
+          tvEmptyStateGallery, tvSectionGallery, tvVersionBadge);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

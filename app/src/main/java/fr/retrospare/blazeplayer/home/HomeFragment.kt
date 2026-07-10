@@ -2154,7 +2154,7 @@ class HomeFragment : Fragment() {
                 textSize = 13f
                 typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 gravity = android.view.Gravity.CENTER
-                setBackgroundResource(if (destructive) R.drawable.bg_queue_action_remove_pill else R.drawable.bg_queue_action_add_pill)
+                background = android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT)
                 setPadding(dp(18), 0, dp(18), 0)
                 alpha = if (enabled) 1f else 0.45f
                 isEnabled = enabled

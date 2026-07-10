@@ -68,6 +68,8 @@ import fr.retrospare.blazeplayer.paywall.PaywallViewModel_HiltModules_BindsModul
 import fr.retrospare.blazeplayer.paywall.PaywallViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
 import fr.retrospare.blazeplayer.player.AudioBrowserActivity;
 import fr.retrospare.blazeplayer.player.AudioBrowserActivity_MembersInjector;
+import fr.retrospare.blazeplayer.player.AudioLibraryActivity;
+import fr.retrospare.blazeplayer.player.AudioLibraryActivity_MembersInjector;
 import fr.retrospare.blazeplayer.player.AudioPlayerActivity;
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment;
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment_MembersInjector;
@@ -84,8 +86,6 @@ import fr.retrospare.blazeplayer.settings.SettingsViewModel;
 import fr.retrospare.blazeplayer.settings.SettingsViewModel_HiltModules;
 import fr.retrospare.blazeplayer.settings.SettingsViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
 import fr.retrospare.blazeplayer.settings.SettingsViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
-import fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity;
-import fr.retrospare.blazeplayer.youtube.YouTubePlayerActivity_MembersInjector;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.processing.Generated;
@@ -498,6 +498,11 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     }
 
     @Override
+    public void injectAudioLibraryActivity(AudioLibraryActivity arg0) {
+      injectAudioLibraryActivity2(arg0);
+    }
+
+    @Override
     public void injectAudioPlayerActivity(AudioPlayerActivity arg0) {
     }
 
@@ -511,11 +516,6 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
       injectPlayerActivity2(arg0);
     }
 
-    @Override
-    public void injectYouTubePlayerActivity(YouTubePlayerActivity arg0) {
-      injectYouTubePlayerActivity2(arg0);
-    }
-
     @CanIgnoreReturnValue
     private AudioBrowserActivity injectAudioBrowserActivity2(AudioBrowserActivity instance) {
       AudioBrowserActivity_MembersInjector.injectNetworkRepository(instance, singletonCImpl.provideNetworkRepositoryProvider.get());
@@ -525,24 +525,26 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     }
 
     @CanIgnoreReturnValue
-    private NetworkVideoBrowserActivity injectNetworkVideoBrowserActivity2(
-        NetworkVideoBrowserActivity instance2) {
-      NetworkVideoBrowserActivity_MembersInjector.injectSmbBrowser(instance2, singletonCImpl.provideSmbBrowserProvider.get());
-      NetworkVideoBrowserActivity_MembersInjector.injectUpnpBrowser(instance2, singletonCImpl.upnpBrowserProvider.get());
-      NetworkVideoBrowserActivity_MembersInjector.injectNetworkRepository(instance2, singletonCImpl.provideNetworkRepositoryProvider.get());
+    private AudioLibraryActivity injectAudioLibraryActivity2(AudioLibraryActivity instance2) {
+      AudioLibraryActivity_MembersInjector.injectNetworkRepository(instance2, singletonCImpl.provideNetworkRepositoryProvider.get());
+      AudioLibraryActivity_MembersInjector.injectSmbBrowser(instance2, singletonCImpl.provideSmbBrowserProvider.get());
+      AudioLibraryActivity_MembersInjector.injectUpnpBrowser(instance2, singletonCImpl.upnpBrowserProvider.get());
       return instance2;
     }
 
     @CanIgnoreReturnValue
-    private PlayerActivity injectPlayerActivity2(PlayerActivity instance3) {
-      PlayerActivity_MembersInjector.injectDataStore(instance3, singletonCImpl.provideDataStoreProvider.get());
-      PlayerActivity_MembersInjector.injectMediaRepository(instance3, singletonCImpl.mediaRepositoryProvider.get());
+    private NetworkVideoBrowserActivity injectNetworkVideoBrowserActivity2(
+        NetworkVideoBrowserActivity instance3) {
+      NetworkVideoBrowserActivity_MembersInjector.injectSmbBrowser(instance3, singletonCImpl.provideSmbBrowserProvider.get());
+      NetworkVideoBrowserActivity_MembersInjector.injectUpnpBrowser(instance3, singletonCImpl.upnpBrowserProvider.get());
+      NetworkVideoBrowserActivity_MembersInjector.injectNetworkRepository(instance3, singletonCImpl.provideNetworkRepositoryProvider.get());
       return instance3;
     }
 
     @CanIgnoreReturnValue
-    private YouTubePlayerActivity injectYouTubePlayerActivity2(YouTubePlayerActivity instance4) {
-      YouTubePlayerActivity_MembersInjector.injectDataStore(instance4, singletonCImpl.provideDataStoreProvider.get());
+    private PlayerActivity injectPlayerActivity2(PlayerActivity instance4) {
+      PlayerActivity_MembersInjector.injectDataStore(instance4, singletonCImpl.provideDataStoreProvider.get());
+      PlayerActivity_MembersInjector.injectMediaRepository(instance4, singletonCImpl.mediaRepositoryProvider.get());
       return instance4;
     }
   }

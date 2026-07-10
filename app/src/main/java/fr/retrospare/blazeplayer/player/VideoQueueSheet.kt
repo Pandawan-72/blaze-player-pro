@@ -1,6 +1,7 @@
 package fr.retrospare.blazeplayer.player
 
 import fr.retrospare.blazeplayer.ui.showPremium
+import fr.retrospare.blazeplayer.ui.ButtonTextFitter
 import android.app.Dialog
 import android.content.Context
 import android.view.LayoutInflater
@@ -38,6 +39,7 @@ object VideoQueueSheet {
         val btnClose = view.findViewById<ImageButton>(R.id.btnCloseVideoQueue)
         val btnToPlaylist = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnVideoQueueToPlaylist)
         val btnClear = view.findViewById<TextView>(R.id.btnClearVideoQueue)
+        ButtonTextFitter.fitRecursively(view, minSp = 9, maxSp = 13)
 
         recycler.layoutManager = GridLayoutManager(context, 2)
         lateinit var adapter: VideoQueueAdapter

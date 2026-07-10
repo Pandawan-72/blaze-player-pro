@@ -1,6 +1,7 @@
 package fr.retrospare.blazeplayer.playlist
 
 import fr.retrospare.blazeplayer.ui.showPremium
+import fr.retrospare.blazeplayer.ui.ButtonTextFitter
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -162,6 +163,7 @@ object PlaylistDialogs {
         val btnClear = view.findViewById<MaterialButton>(R.id.btnPlaylistSheetClear)
         val btnSecondary = view.findViewById<MaterialButton>(R.id.btnPlaylistSheetSecondary)
         val btnPlayAll = view.findViewById<MaterialButton>(R.id.btnPlaylistSheetPlayAll)
+        ButtonTextFitter.fitRecursively(view, minSp = 9, maxSp = 13)
 
         val dialog = BottomSheetDialog(context)
         dialog.setContentView(view)

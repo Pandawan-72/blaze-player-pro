@@ -1,0 +1,84 @@
+--------- beginning of main
+07-08 15:12:06.803 27937 27937 I Zygote  : Process 27937 created for fr.retrospare.blazeplayer
+07-08 15:12:06.804 27937 27937 I are.blazeplayer: Late-enabling -Xcheck:jni
+07-08 15:12:06.869 27937 27937 I are.blazeplayer: Using generational CollectorTypeCMC GC.
+07-08 15:12:06.888 27937 27937 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+07-08 15:12:06.944 27937 27937 D ApplicationLoaders: Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
+07-08 15:12:06.944 27937 27937 D ApplicationLoaders: Returning zygote-cached class loader: /system_ext/framework/androidx.window.sidecar.jar
+07-08 15:12:07.332 27937 27937 D nativeloader: Configuring clns-9 for other apk /data/app/~~fZ7kDnlun98r2fshXxvM1A==/fr.retrospare.blazeplayer-GdRdBZ704Uju5EAsTzAOqw==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~fZ7kDnlun98r2fshXxvM1A==/fr.retrospare.blazeplayer-GdRdBZ704Uju5EAsTzAOqw==/lib/arm64:/data/app/~~fZ7kDnlun98r2fshXxvM1A==/fr.retrospare.blazeplayer-GdRdBZ704Uju5EAsTzAOqw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/fr.retrospare.blazeplayer
+07-08 15:12:07.357 27937 27937 V GraphicsEnvironment: Currently set values for:
+07-08 15:12:07.357 27937 27937 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[com.android.angle]
+07-08 15:12:07.357 27937 27937 V GraphicsEnvironment:   angle_gl_driver_selection_values=[angle]
+07-08 15:12:07.357 27937 27937 V GraphicsEnvironment: fr.retrospare.blazeplayer is not listed in per-application setting
+07-08 15:12:07.357 27937 27937 V GraphicsEnvironment: No special selections for ANGLE, returning default driver choice
+07-08 15:12:07.357 27937 27937 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+07-08 15:12:07.404 27937 27937 I BlazeCrash: CrashReporter installed
+07-08 15:12:07.677 27937 27937 I ExoPlayerImpl: Init 2dad75a [AndroidXMedia3/1.9.0] [akita, Pixel 8a, Google, 36]
+07-08 15:12:07.734 27937 27937 I DefaultRenderersFactory: Loaded FfmpegVideoRenderer.
+07-08 15:12:07.761 27937 27937 I DefaultRenderersFactory: Loaded FfmpegAudioRenderer.
+07-08 15:12:07.847 27937 27958 D AudioSystem: onNewServiceWithAdapter: media.audio_flinger service obtained 0xb4000073d1067e00
+07-08 15:12:07.848 27937 27958 D AudioSystem: getService: IAudioFlingerService retrieved: 0xb4000072910d3180  IAudioFlinger cached: 0xb4000073d1067e00
+07-08 15:12:07.881 27937 27937 I MediaSessionImpl: Init 8f186ac [AndroidXMedia3/1.9.0] [akita, Pixel 8a, Google, 36]
+07-08 15:12:07.971 27937 27937 I MediaSessionCompat: Couldn't find a unique registered media button receiver in the given context.
+07-08 15:12:08.013 27937 27937 D AudioSystem: onNewService: media.audio_policy service obtained 0xb4000072910d35e0
+07-08 15:12:08.015 27937 27937 D AudioSystem: getService: IAudioPolicyService retrieved: 0xb4000072910d35e0  cached: 0xb4000072910d35e0
+07-08 15:12:08.155 27937 27937 E AudioEffect: set(): AudioFlinger could not create effect 0634f220-ddd4-11db-a0fc-0002a5d5c51b / ec7178ec-e5e1-4432-a3f4-4657e6795210, status: -38
+07-08 15:12:08.155 27937 27937 E AudioEffects-JNI: AudioEffect initCheck failed -3
+07-08 15:12:08.156 27937 27937 E AudioEffect-JAVA: Error code -3 when initializing AudioEffect.
+07-08 15:12:08.168 27937 27937 E AudioEffect: set(): AudioFlinger could not create effect 37cc2c00-dddd-11db-8577-0002a5d5c51b / ec7178ec-e5e1-4432-a3f4-4657e6795210, status: -38
+07-08 15:12:08.168 27937 27937 E AudioEffects-JNI: AudioEffect initCheck failed -3
+07-08 15:12:08.168 27937 27937 E AudioEffect-JAVA: Error code -3 when initializing AudioEffect.
+--------- beginning of system
+07-08 15:12:08.192 27937 27970 I DisplayManager: Choreographer implicitly registered for the refresh rate.
+07-08 15:12:08.194 27937 27970 D vulkan  : searching for layers in '/data/app/~~fZ7kDnlun98r2fshXxvM1A==/fr.retrospare.blazeplayer-GdRdBZ704Uju5EAsTzAOqw==/lib/arm64'
+07-08 15:12:08.195 27937 27970 D vulkan  : searching for layers in '/data/app/~~fZ7kDnlun98r2fshXxvM1A==/fr.retrospare.blazeplayer-GdRdBZ704Uju5EAsTzAOqw==/base.apk!/lib/arm64-v8a'
+07-08 15:12:08.209 27937 27937 D DesktopExperienceFlags: Toggle override initialized to: false
+07-08 15:12:08.214 27937 27937 D AppCompatDelegate: Checking for metadata for AppLocalesMetadataHolderService : Service not found
+07-08 15:12:08.287 27937 27937 D CompatChangeReporter: Compat change id reported: 377864165; UID 10608; state: ENABLED
+07-08 15:12:08.287 27937 27937 D DesktopModeFlags: Toggle override initialized to: OVERRIDE_UNSET
+07-08 15:12:08.291 27937 27937 I are.blazeplayer: hiddenapi: Accessing hidden method Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (runtime_flags=0, domain=platform, api=unsupported) from Landroidx/appcompat/widget/ViewUtils; (domain=app, TargetSdkVersion=36) using reflection: allowed
+07-08 15:12:08.306 27937 27937 I MediaController: Init d6400e1 [AndroidXMedia3/1.9.0] [akita, Pixel 8a, Google, 36]
+07-08 15:12:08.334 27937 27937 V MediaRouter: Audio routes updated: AudioRoutesInfo{ type=SPEAKER, bluetoothName=JBL Flip Essential }, a2dp=true
+07-08 15:12:08.334 27937 27937 V MediaRouter: Selecting route: RouteInfo{ name=JBL Flip Essential, description=Bluetooth audio, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO , presentationDisplay=null }
+07-08 15:12:08.334 27937 27937 I MediaRouter: Skip setBluetoothA2dpOn(): types=1, isPlaybackActive()=false, BT route=RouteInfo{ name=JBL Flip Essential, description=Bluetooth audio, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO , presentationDisplay=null }
+07-08 15:12:08.336 27937 27937 I AxMediaRouter: Found default route: MediaRouter.RouteInfo{ uniqueId=DEFAULT_ROUTE, name=Phone, description=null, iconUri=null, enabled=true, isSystemRoute=true, connectionState=0, canDisconnect=false, playbackType=0, playbackStream=3, deviceType=0, volumeHandling=1, volume=7, volumeMax=25, presentationDisplayId=-1, extras=null, settingsIntent=null, providerPackageName=android }
+07-08 15:12:08.336 27937 27937 I AxMediaRouter: Found bluetooth route: MediaRouter.RouteInfo{ uniqueId=ROUTE_1e5a5ee7, name=JBL Flip Essential, description=Bluetooth audio, iconUri=null, enabled=true, isSystemRoute=true, connectionState=0, canDisconnect=false, playbackType=0, playbackStream=3, deviceType=3, volumeHandling=1, volume=7, volumeMax=25, presentationDisplayId=-1, extras=null, settingsIntent=null, providerPackageName=android }
+07-08 15:12:08.336 27937 27937 I AxMediaRouter: Unselecting the current route because it is no longer selectable: null
+07-08 15:12:08.415 27937 27937 I MediaController: Init 6604cf6 [AndroidXMedia3/1.9.0] [akita, Pixel 8a, Google, 36]
+07-08 15:12:08.421 27937 27937 I ContentCaptureHelper: Setting logging level to OFF
+07-08 15:12:08.428 27937 27937 I MediaController: Init 55d303d [AndroidXMedia3/1.9.0] [akita, Pixel 8a, Google, 36]
+07-08 15:12:08.445 27937 27937 W AxMediaRouter: Ignoring attempt to select selected route: MediaRouter.RouteInfo{ uniqueId=ROUTE_1e5a5ee7, name=JBL Flip Essential, description=Bluetooth audio, iconUri=null, enabled=true, isSystemRoute=true, connectionState=0, canDisconnect=false, playbackType=0, playbackStream=3, deviceType=3, volumeHandling=1, volume=7, volumeMax=25, presentationDisplayId=-1, extras=null, settingsIntent=null, providerPackageName=android }
+07-08 15:12:08.445 27937 27937 V MediaRouter: Selecting route: RouteInfo{ name=JBL Flip Essential, description=Bluetooth audio, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO , presentationDisplay=null }
+07-08 15:12:08.454 27937 27937 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): android.app.Activity$$ExternalSyntheticLambda0@8fc0d60
+07-08 15:12:08.454 27937 27937 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@a0952de
+07-08 15:12:08.462 27937 27937 D VRI[MainActivity]: WindowInsets changed: 1080x2400 statusBars:[0,121,0,0] navigationBars:[0,0,0,126] mandatorySystemGestures:[0,153,0,126] 
+07-08 15:12:08.465 27937 27937 I HWUI    : Using FreeType backend (prop=Auto)
+07-08 15:12:08.507 27937 27937 W TextView: onProvideContentCaptureStructure(): calling assumeLayout()
+07-08 15:12:08.530 27937 27937 W are.blazeplayer: ClassLoaderContext classpath size mismatch. expected=1, found=0 (DLC[];PCL[base.apk*1625495682]{PCL[/system/framework/org.apache.http.legacy.jar*3558135066]#PCL[/system/framework/com.android.location.provider.jar*275730956]#PCL[/system/framework/com.android.media.remotedisplay.jar*1374153400]#PCL[/system_ext/framework/com.android.extensions.appfunctions.jar*694088577]#PCL[/system_ext/framework/androidx.window.extensions.jar*3492423461]#PCL[/system_ext/framework/androidx.window.sidecar.jar*364651475]} | DLC[];PCL[])
+07-08 15:12:08.531 27937 27937 I DynamiteModule: Considering local module com.google.android.gms.cast.framework.dynamite:0 and remote module com.google.android.gms.cast.framework.dynamite:262434000
+07-08 15:12:08.531 27937 27937 I DynamiteModule: Selected remote version of com.google.android.gms.cast.framework.dynamite, version >= 262434000
+07-08 15:12:08.531 27937 27937 V DynamiteModule: Dynamite loader version >= 2, using loadModule2NoCrashUtils
+07-08 15:12:08.536 27937 27937 W System  : ClassLoader referenced unknown path: 
+07-08 15:12:08.536 27937 27937 D nativeloader: Configuring clns-10 for other apk . target_sdk_version=37, uses_libraries=, library_path=/data/app/~~iKzXASo13o9qpvyouNleZw==/com.google.android.gms-e28QXKh_W9T8bpG_P_wl0w==/lib/arm64:/data/app/~~iKzXASo13o9qpvyouNleZw==/com.google.android.gms-e28QXKh_W9T8bpG_P_wl0w==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+07-08 15:12:08.544 27937 27937 W are.blazeplayer: ClassLoaderContext classpath element checksum mismatch. expected=1625495682, found=3681401737 (DLC[];PCL[base.apk*1625495682]{PCL[/system/framework/org.apache.http.legacy.jar*3558135066]#PCL[/system/framework/com.android.location.provider.jar*275730956]#PCL[/system/framework/com.android.media.remotedisplay.jar*1374153400]#PCL[/system_ext/framework/com.android.extensions.appfunctions.jar*694088577]#PCL[/system_ext/framework/androidx.window.extensions.jar*3492423461]#PCL[/system_ext/framework/androidx.window.sidecar.jar*364651475]} | DLC[];PCL[/data/app/~~fZ7kDnlun98r2fshXxvM1A==/fr.retrospare.blazeplayer-GdRdBZ704Uju5EAsTzAOqw==/base.apk*3681401737]{PCL[/system_ext/framework/androidx.window.extensions.jar*3492423461]#PCL[/system_ext/framework/androidx.window.sidecar.jar*364651475]})
+07-08 15:12:08.552 27937 27937 I CastDynamiteModuleImpl: sk created by ClassLoader dalvik.system.DelegateLastClassLoader[DexPathList[[zip file "/data/app/~~iKzXASo13o9qpvyouNleZw==/com.google.android.gms-e28QXKh_W9T8bpG_P_wl0w==/split_DynamiteModulesC_installtime.apk"],nativeLibraryDirectories=[/data/app/~~iKzXASo13o9qpvyouNleZw==/com.google.android.gms-e28QXKh_W9T8bpG_P_wl0w==/split_DynamiteModulesC_installtime.apk!/lib/arm64-v8a, /system/lib64, /system_ext/lib64]]].
+07-08 15:12:08.573 27937 27937 I MediaController: Init 77fa077 [AndroidXMedia3/1.9.0] [akita, Pixel 8a, Google, 36]
+07-08 15:12:08.659 27937 27937 D InsetsController: hide(ime())
+07-08 15:12:08.659 27937 27937 I ImeTracker: fr.retrospare.blazeplayer:bb248152: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+07-08 15:12:08.663 27937 27937 I MediaRouterProxy: media transfer = true, session transfer = true, transfer to local = false, in-app output switcher = false
+07-08 15:12:08.675 27937 27937 W MR2Provider: setDynamicRouteDescriptors: No matching routeController found. routingController=RoutingController{ id=com.android.server.media/.SystemMediaRoute2Provider:SYSTEM_SESSION, selectedRoutes={[com.android.server.media/.SystemMediaRoute2Provider:DEFAULT_ROUTE]}, selectableRoutes={[]}, deselectableRoutes={[]} }
+07-08 15:12:08.810 27937 27942 I are.blazeplayer: Compiler allocated 5116KB to compile void android.view.ViewRootImpl.performTraversals()
+07-08 15:12:12.894 27937 28041 D ProfileInstaller: Installing profile for fr.retrospare.blazeplayer
+07-08 15:12:38.665 27937 27937 D VRI[MainActivity]: visibilityChanged oldVisibility=true newVisibility=false
+07-08 15:12:38.770 27937 27937 I AppVisibilityProxy: onAppEnteredBackground
+07-08 15:12:38.772 27937 27937 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): android.app.Activity$$ExternalSyntheticLambda0@8fc0d60
+07-08 15:17:06.590 27937 27937 D ViewRootImpl: Skipping stats log for color mode
+07-08 15:17:06.592 27937 27937 I AppVisibilityProxy: onAppEnteredForeground
+07-08 15:17:06.613 27937 27937 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@a0952de
+07-08 15:17:06.620 27937 27937 D VRI[MainActivity]: visibilityChanged oldVisibility=false newVisibility=true
+07-08 15:17:07.052 27937 27937 D InsetsController: hide(ime())
+07-08 15:17:07.052 27937 27937 I ImeTracker: fr.retrospare.blazeplayer:f7146be5: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+07-08 15:17:08.179 27937 27937 I AppVisibilityProxy: onAppEnteredBackground
+07-08 15:17:08.182 27937 27937 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): android.app.Activity$$ExternalSyntheticLambda0@8fc0d60
+07-08 15:17:08.285 27937 27937 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): null
+07-08 15:17:08.331 27937 27937 D ViewRootImpl: Skipping stats log for color mode

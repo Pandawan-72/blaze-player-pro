@@ -51,6 +51,15 @@
 
     </LinearLayout>
 
+    <CheckBox
+        android:id="@+id/checkWatchedFolder"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="6dp"
+        android:buttonTint="@color/green_accent"
+        android:contentDescription="@string/audio_watched_folders"
+        android:visibility="gone" />
+
     <ImageButton
         android:id="@+id/btnFolderMore"
         android:layout_width="32dp"
