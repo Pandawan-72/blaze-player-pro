@@ -6,15 +6,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.chip.ChipGroup;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import fr.retrospare.blazeplayer.R;
+import fr.retrospare.blazeplayer.player.RotaryKnobView;
 import java.lang.NullPointerException;
 import java.lang.Override;
 import java.lang.String;
@@ -24,66 +26,196 @@ public final class DialogEqualizerBinding implements ViewBinding {
   private final LinearLayout rootView;
 
   @NonNull
+  public final MaterialButtonToggleGroup advancedTabs;
+
+  @NonNull
   public final LinearLayout bandsContainer;
+
+  @NonNull
+  public final LinearLayout bassContainer;
 
   @NonNull
   public final ImageButton btnCloseEq;
 
   @NonNull
+  public final MaterialButton btnMono;
+
+  @NonNull
+  public final MaterialButton btnTabAmbience;
+
+  @NonNull
+  public final MaterialButton btnTabDynamics;
+
+  @NonNull
+  public final MaterialButton btnTabTone;
+
+  @NonNull
+  public final LinearLayout compressorContainer;
+
+  @NonNull
+  public final LinearLayout eqBandsCard;
+
+  @NonNull
+  public final RotaryKnobView knobBalance;
+
+  @NonNull
+  public final RotaryKnobView knobBass;
+
+  @NonNull
+  public final RotaryKnobView knobCompressor;
+
+  @NonNull
+  public final RotaryKnobView knobLoudness;
+
+  @NonNull
+  public final RotaryKnobView knobPreamp;
+
+  @NonNull
+  public final RotaryKnobView knobReverbMix;
+
+  @NonNull
+  public final RotaryKnobView knobStereo;
+
+  @NonNull
+  public final RotaryKnobView knobTreble;
+
+  @NonNull
+  public final LinearLayout loudnessContainer;
+
+  @NonNull
+  public final LinearLayout panelAmbience;
+
+  @NonNull
+  public final LinearLayout panelDynamics;
+
+  @NonNull
+  public final LinearLayout panelTone;
+
+  @NonNull
+  public final LinearLayout preampContainer;
+
+  @NonNull
   public final ChipGroup presetContainer;
 
   @NonNull
-  public final SeekBar seekBassBoost;
+  public final ChipGroup reverbPresetGroup;
 
   @NonNull
-  public final SeekBar seekCompressor;
+  public final MaterialSwitch switchAutoHeadroom;
 
   @NonNull
-  public final SeekBar seekPreamp;
+  public final MaterialSwitch switchEq;
 
   @NonNull
-  public final SeekBar seekVirtualizer;
+  public final MaterialSwitch switchLimiter;
 
   @NonNull
-  public final SwitchMaterial switchEq;
+  public final MaterialSwitch switchReverb;
 
   @NonNull
-  public final TextView tvBassValue;
+  public final LinearLayout trebleContainer;
 
   @NonNull
-  public final TextView tvCompressorValue;
+  public final TextView tvAutoHeadroomSummary;
+
+  @NonNull
+  public final TextView tvBalanceValue;
+
+  @NonNull
+  public final TextView tvBassToneValue;
+
+  @NonNull
+  public final TextView tvCompressorKnobValue;
 
   @NonNull
   public final TextView tvEqStatus;
 
   @NonNull
-  public final TextView tvPreampValue;
+  public final TextView tvLoudnessValue;
 
   @NonNull
-  public final TextView tvVirtValue;
+  public final TextView tvPreampKnobValue;
+
+  @NonNull
+  public final TextView tvPresetTitle;
+
+  @NonNull
+  public final TextView tvReverbMixValue;
+
+  @NonNull
+  public final TextView tvStereoValue;
+
+  @NonNull
+  public final TextView tvToneUnavailable;
+
+  @NonNull
+  public final TextView tvTrebleToneValue;
 
   private DialogEqualizerBinding(@NonNull LinearLayout rootView,
-      @NonNull LinearLayout bandsContainer, @NonNull ImageButton btnCloseEq,
-      @NonNull ChipGroup presetContainer, @NonNull SeekBar seekBassBoost,
-      @NonNull SeekBar seekCompressor, @NonNull SeekBar seekPreamp,
-      @NonNull SeekBar seekVirtualizer, @NonNull SwitchMaterial switchEq,
-      @NonNull TextView tvBassValue, @NonNull TextView tvCompressorValue,
-      @NonNull TextView tvEqStatus, @NonNull TextView tvPreampValue,
-      @NonNull TextView tvVirtValue) {
+      @NonNull MaterialButtonToggleGroup advancedTabs, @NonNull LinearLayout bandsContainer,
+      @NonNull LinearLayout bassContainer, @NonNull ImageButton btnCloseEq,
+      @NonNull MaterialButton btnMono, @NonNull MaterialButton btnTabAmbience,
+      @NonNull MaterialButton btnTabDynamics, @NonNull MaterialButton btnTabTone,
+      @NonNull LinearLayout compressorContainer, @NonNull LinearLayout eqBandsCard,
+      @NonNull RotaryKnobView knobBalance, @NonNull RotaryKnobView knobBass,
+      @NonNull RotaryKnobView knobCompressor, @NonNull RotaryKnobView knobLoudness,
+      @NonNull RotaryKnobView knobPreamp, @NonNull RotaryKnobView knobReverbMix,
+      @NonNull RotaryKnobView knobStereo, @NonNull RotaryKnobView knobTreble,
+      @NonNull LinearLayout loudnessContainer, @NonNull LinearLayout panelAmbience,
+      @NonNull LinearLayout panelDynamics, @NonNull LinearLayout panelTone,
+      @NonNull LinearLayout preampContainer, @NonNull ChipGroup presetContainer,
+      @NonNull ChipGroup reverbPresetGroup, @NonNull MaterialSwitch switchAutoHeadroom,
+      @NonNull MaterialSwitch switchEq, @NonNull MaterialSwitch switchLimiter,
+      @NonNull MaterialSwitch switchReverb, @NonNull LinearLayout trebleContainer,
+      @NonNull TextView tvAutoHeadroomSummary, @NonNull TextView tvBalanceValue,
+      @NonNull TextView tvBassToneValue, @NonNull TextView tvCompressorKnobValue,
+      @NonNull TextView tvEqStatus, @NonNull TextView tvLoudnessValue,
+      @NonNull TextView tvPreampKnobValue, @NonNull TextView tvPresetTitle,
+      @NonNull TextView tvReverbMixValue, @NonNull TextView tvStereoValue,
+      @NonNull TextView tvToneUnavailable, @NonNull TextView tvTrebleToneValue) {
     this.rootView = rootView;
+    this.advancedTabs = advancedTabs;
     this.bandsContainer = bandsContainer;
+    this.bassContainer = bassContainer;
     this.btnCloseEq = btnCloseEq;
+    this.btnMono = btnMono;
+    this.btnTabAmbience = btnTabAmbience;
+    this.btnTabDynamics = btnTabDynamics;
+    this.btnTabTone = btnTabTone;
+    this.compressorContainer = compressorContainer;
+    this.eqBandsCard = eqBandsCard;
+    this.knobBalance = knobBalance;
+    this.knobBass = knobBass;
+    this.knobCompressor = knobCompressor;
+    this.knobLoudness = knobLoudness;
+    this.knobPreamp = knobPreamp;
+    this.knobReverbMix = knobReverbMix;
+    this.knobStereo = knobStereo;
+    this.knobTreble = knobTreble;
+    this.loudnessContainer = loudnessContainer;
+    this.panelAmbience = panelAmbience;
+    this.panelDynamics = panelDynamics;
+    this.panelTone = panelTone;
+    this.preampContainer = preampContainer;
     this.presetContainer = presetContainer;
-    this.seekBassBoost = seekBassBoost;
-    this.seekCompressor = seekCompressor;
-    this.seekPreamp = seekPreamp;
-    this.seekVirtualizer = seekVirtualizer;
+    this.reverbPresetGroup = reverbPresetGroup;
+    this.switchAutoHeadroom = switchAutoHeadroom;
     this.switchEq = switchEq;
-    this.tvBassValue = tvBassValue;
-    this.tvCompressorValue = tvCompressorValue;
+    this.switchLimiter = switchLimiter;
+    this.switchReverb = switchReverb;
+    this.trebleContainer = trebleContainer;
+    this.tvAutoHeadroomSummary = tvAutoHeadroomSummary;
+    this.tvBalanceValue = tvBalanceValue;
+    this.tvBassToneValue = tvBassToneValue;
+    this.tvCompressorKnobValue = tvCompressorKnobValue;
     this.tvEqStatus = tvEqStatus;
-    this.tvPreampValue = tvPreampValue;
-    this.tvVirtValue = tvVirtValue;
+    this.tvLoudnessValue = tvLoudnessValue;
+    this.tvPreampKnobValue = tvPreampKnobValue;
+    this.tvPresetTitle = tvPresetTitle;
+    this.tvReverbMixValue = tvReverbMixValue;
+    this.tvStereoValue = tvStereoValue;
+    this.tvToneUnavailable = tvToneUnavailable;
+    this.tvTrebleToneValue = tvTrebleToneValue;
   }
 
   @Override
@@ -113,9 +245,21 @@ public final class DialogEqualizerBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
+      id = R.id.advancedTabs;
+      MaterialButtonToggleGroup advancedTabs = ViewBindings.findChildViewById(rootView, id);
+      if (advancedTabs == null) {
+        break missingId;
+      }
+
       id = R.id.bandsContainer;
       LinearLayout bandsContainer = ViewBindings.findChildViewById(rootView, id);
       if (bandsContainer == null) {
+        break missingId;
+      }
+
+      id = R.id.bassContainer;
+      LinearLayout bassContainer = ViewBindings.findChildViewById(rootView, id);
+      if (bassContainer == null) {
         break missingId;
       }
 
@@ -125,51 +269,183 @@ public final class DialogEqualizerBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnMono;
+      MaterialButton btnMono = ViewBindings.findChildViewById(rootView, id);
+      if (btnMono == null) {
+        break missingId;
+      }
+
+      id = R.id.btnTabAmbience;
+      MaterialButton btnTabAmbience = ViewBindings.findChildViewById(rootView, id);
+      if (btnTabAmbience == null) {
+        break missingId;
+      }
+
+      id = R.id.btnTabDynamics;
+      MaterialButton btnTabDynamics = ViewBindings.findChildViewById(rootView, id);
+      if (btnTabDynamics == null) {
+        break missingId;
+      }
+
+      id = R.id.btnTabTone;
+      MaterialButton btnTabTone = ViewBindings.findChildViewById(rootView, id);
+      if (btnTabTone == null) {
+        break missingId;
+      }
+
+      id = R.id.compressorContainer;
+      LinearLayout compressorContainer = ViewBindings.findChildViewById(rootView, id);
+      if (compressorContainer == null) {
+        break missingId;
+      }
+
+      id = R.id.eqBandsCard;
+      LinearLayout eqBandsCard = ViewBindings.findChildViewById(rootView, id);
+      if (eqBandsCard == null) {
+        break missingId;
+      }
+
+      id = R.id.knobBalance;
+      RotaryKnobView knobBalance = ViewBindings.findChildViewById(rootView, id);
+      if (knobBalance == null) {
+        break missingId;
+      }
+
+      id = R.id.knobBass;
+      RotaryKnobView knobBass = ViewBindings.findChildViewById(rootView, id);
+      if (knobBass == null) {
+        break missingId;
+      }
+
+      id = R.id.knobCompressor;
+      RotaryKnobView knobCompressor = ViewBindings.findChildViewById(rootView, id);
+      if (knobCompressor == null) {
+        break missingId;
+      }
+
+      id = R.id.knobLoudness;
+      RotaryKnobView knobLoudness = ViewBindings.findChildViewById(rootView, id);
+      if (knobLoudness == null) {
+        break missingId;
+      }
+
+      id = R.id.knobPreamp;
+      RotaryKnobView knobPreamp = ViewBindings.findChildViewById(rootView, id);
+      if (knobPreamp == null) {
+        break missingId;
+      }
+
+      id = R.id.knobReverbMix;
+      RotaryKnobView knobReverbMix = ViewBindings.findChildViewById(rootView, id);
+      if (knobReverbMix == null) {
+        break missingId;
+      }
+
+      id = R.id.knobStereo;
+      RotaryKnobView knobStereo = ViewBindings.findChildViewById(rootView, id);
+      if (knobStereo == null) {
+        break missingId;
+      }
+
+      id = R.id.knobTreble;
+      RotaryKnobView knobTreble = ViewBindings.findChildViewById(rootView, id);
+      if (knobTreble == null) {
+        break missingId;
+      }
+
+      id = R.id.loudnessContainer;
+      LinearLayout loudnessContainer = ViewBindings.findChildViewById(rootView, id);
+      if (loudnessContainer == null) {
+        break missingId;
+      }
+
+      id = R.id.panelAmbience;
+      LinearLayout panelAmbience = ViewBindings.findChildViewById(rootView, id);
+      if (panelAmbience == null) {
+        break missingId;
+      }
+
+      id = R.id.panelDynamics;
+      LinearLayout panelDynamics = ViewBindings.findChildViewById(rootView, id);
+      if (panelDynamics == null) {
+        break missingId;
+      }
+
+      id = R.id.panelTone;
+      LinearLayout panelTone = ViewBindings.findChildViewById(rootView, id);
+      if (panelTone == null) {
+        break missingId;
+      }
+
+      id = R.id.preampContainer;
+      LinearLayout preampContainer = ViewBindings.findChildViewById(rootView, id);
+      if (preampContainer == null) {
+        break missingId;
+      }
+
       id = R.id.presetContainer;
       ChipGroup presetContainer = ViewBindings.findChildViewById(rootView, id);
       if (presetContainer == null) {
         break missingId;
       }
 
-      id = R.id.seekBassBoost;
-      SeekBar seekBassBoost = ViewBindings.findChildViewById(rootView, id);
-      if (seekBassBoost == null) {
+      id = R.id.reverbPresetGroup;
+      ChipGroup reverbPresetGroup = ViewBindings.findChildViewById(rootView, id);
+      if (reverbPresetGroup == null) {
         break missingId;
       }
 
-      id = R.id.seekCompressor;
-      SeekBar seekCompressor = ViewBindings.findChildViewById(rootView, id);
-      if (seekCompressor == null) {
-        break missingId;
-      }
-
-      id = R.id.seekPreamp;
-      SeekBar seekPreamp = ViewBindings.findChildViewById(rootView, id);
-      if (seekPreamp == null) {
-        break missingId;
-      }
-
-      id = R.id.seekVirtualizer;
-      SeekBar seekVirtualizer = ViewBindings.findChildViewById(rootView, id);
-      if (seekVirtualizer == null) {
+      id = R.id.switchAutoHeadroom;
+      MaterialSwitch switchAutoHeadroom = ViewBindings.findChildViewById(rootView, id);
+      if (switchAutoHeadroom == null) {
         break missingId;
       }
 
       id = R.id.switchEq;
-      SwitchMaterial switchEq = ViewBindings.findChildViewById(rootView, id);
+      MaterialSwitch switchEq = ViewBindings.findChildViewById(rootView, id);
       if (switchEq == null) {
         break missingId;
       }
 
-      id = R.id.tvBassValue;
-      TextView tvBassValue = ViewBindings.findChildViewById(rootView, id);
-      if (tvBassValue == null) {
+      id = R.id.switchLimiter;
+      MaterialSwitch switchLimiter = ViewBindings.findChildViewById(rootView, id);
+      if (switchLimiter == null) {
         break missingId;
       }
 
-      id = R.id.tvCompressorValue;
-      TextView tvCompressorValue = ViewBindings.findChildViewById(rootView, id);
-      if (tvCompressorValue == null) {
+      id = R.id.switchReverb;
+      MaterialSwitch switchReverb = ViewBindings.findChildViewById(rootView, id);
+      if (switchReverb == null) {
+        break missingId;
+      }
+
+      id = R.id.trebleContainer;
+      LinearLayout trebleContainer = ViewBindings.findChildViewById(rootView, id);
+      if (trebleContainer == null) {
+        break missingId;
+      }
+
+      id = R.id.tvAutoHeadroomSummary;
+      TextView tvAutoHeadroomSummary = ViewBindings.findChildViewById(rootView, id);
+      if (tvAutoHeadroomSummary == null) {
+        break missingId;
+      }
+
+      id = R.id.tvBalanceValue;
+      TextView tvBalanceValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvBalanceValue == null) {
+        break missingId;
+      }
+
+      id = R.id.tvBassToneValue;
+      TextView tvBassToneValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvBassToneValue == null) {
+        break missingId;
+      }
+
+      id = R.id.tvCompressorKnobValue;
+      TextView tvCompressorKnobValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvCompressorKnobValue == null) {
         break missingId;
       }
 
@@ -179,21 +455,57 @@ public final class DialogEqualizerBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.tvPreampValue;
-      TextView tvPreampValue = ViewBindings.findChildViewById(rootView, id);
-      if (tvPreampValue == null) {
+      id = R.id.tvLoudnessValue;
+      TextView tvLoudnessValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvLoudnessValue == null) {
         break missingId;
       }
 
-      id = R.id.tvVirtValue;
-      TextView tvVirtValue = ViewBindings.findChildViewById(rootView, id);
-      if (tvVirtValue == null) {
+      id = R.id.tvPreampKnobValue;
+      TextView tvPreampKnobValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvPreampKnobValue == null) {
         break missingId;
       }
 
-      return new DialogEqualizerBinding((LinearLayout) rootView, bandsContainer, btnCloseEq,
-          presetContainer, seekBassBoost, seekCompressor, seekPreamp, seekVirtualizer, switchEq,
-          tvBassValue, tvCompressorValue, tvEqStatus, tvPreampValue, tvVirtValue);
+      id = R.id.tvPresetTitle;
+      TextView tvPresetTitle = ViewBindings.findChildViewById(rootView, id);
+      if (tvPresetTitle == null) {
+        break missingId;
+      }
+
+      id = R.id.tvReverbMixValue;
+      TextView tvReverbMixValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvReverbMixValue == null) {
+        break missingId;
+      }
+
+      id = R.id.tvStereoValue;
+      TextView tvStereoValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvStereoValue == null) {
+        break missingId;
+      }
+
+      id = R.id.tvToneUnavailable;
+      TextView tvToneUnavailable = ViewBindings.findChildViewById(rootView, id);
+      if (tvToneUnavailable == null) {
+        break missingId;
+      }
+
+      id = R.id.tvTrebleToneValue;
+      TextView tvTrebleToneValue = ViewBindings.findChildViewById(rootView, id);
+      if (tvTrebleToneValue == null) {
+        break missingId;
+      }
+
+      return new DialogEqualizerBinding((LinearLayout) rootView, advancedTabs, bandsContainer,
+          bassContainer, btnCloseEq, btnMono, btnTabAmbience, btnTabDynamics, btnTabTone,
+          compressorContainer, eqBandsCard, knobBalance, knobBass, knobCompressor, knobLoudness,
+          knobPreamp, knobReverbMix, knobStereo, knobTreble, loudnessContainer, panelAmbience,
+          panelDynamics, panelTone, preampContainer, presetContainer, reverbPresetGroup,
+          switchAutoHeadroom, switchEq, switchLimiter, switchReverb, trebleContainer,
+          tvAutoHeadroomSummary, tvBalanceValue, tvBassToneValue, tvCompressorKnobValue, tvEqStatus,
+          tvLoudnessValue, tvPreampKnobValue, tvPresetTitle, tvReverbMixValue, tvStereoValue,
+          tvToneUnavailable, tvTrebleToneValue);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

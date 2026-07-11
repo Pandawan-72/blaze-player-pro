@@ -758,4 +758,32 @@ Code : %2$s</string>
     <string name="audio_library_network_synced">Réseau synchronisé</string>
     <string name="audio_album_sort_album">Nom d’album</string>
     <string name="audio_album_sort_artist">Nom d’artiste</string>
+
+    <string name="close">Fermer</string>
+    <string name="eq_tab_tone">Tonalité</string>
+    <string name="eq_tab_dynamics">Dynamique</string>
+    <string name="eq_tab_ambience">Ambiance</string>
+    <string name="eq_bass">Basses</string>
+    <string name="eq_treble">Aigus</string>
+    <string name="eq_balance">Balance</string>
+    <string name="eq_stereo">Stéréo</string>
+    <string name="eq_center">Centre</string>
+    <string name="eq_balance_left">G %1$d</string>
+    <string name="eq_balance_right">D %1$d</string>
+    <string name="eq_mono">Mono</string>
+    <string name="eq_mono_active">Mono activé</string>
+    <string name="eq_auto_headroom">Marge automatique</string>
+    <string name="eq_auto_headroom_summary">Réduit automatiquement le préampli quand la courbe risque de saturer.</string>
+    <string name="eq_limiter">Limiteur</string>
+    <string name="eq_limiter_summary">Contient les crêtes numériques avant la sortie audio.</string>
+    <string name="eq_loudness">Loudness</string>
+    <string name="eq_reverb">Réverbération</string>
+    <string name="eq_room_type">Type de salle</string>
+    <string name="eq_reverb_mix">Mix</string>
+    <string name="eq_room_studio">Studio</string>
+    <string name="eq_room_small">Petite pièce</string>
+    <string name="eq_room_hall">Grande salle</string>
+    <string name="eq_room_plate">Plaque</string>
+    <string name="eq_equalizer_unavailable">L’égaliseur matériel n’est pas disponible sur cette sortie. Les réglages de canaux restent actifs.</string>
+
 </resources>

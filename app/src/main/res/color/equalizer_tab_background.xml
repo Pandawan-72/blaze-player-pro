@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Nuances fixes : ces couleurs ne suivent jamais la pochette ni le thème dynamique. -->
+    <item android:state_checked="true" android:color="#FF1A1E24" />
+    <item android:state_pressed="true" android:color="#FF20252C" />
+    <item android:color="#FF0E1116" />
+</selector>

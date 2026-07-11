@@ -377,6 +377,7 @@ class AudioPlayerFragment : Fragment() {
         updateLyricsKeepScreenOn(false)
         runCatching { AudioProSettings.prefs(requireContext()).unregisterOnSharedPreferenceChangeListener(audioProPrefsListener) }
         eqManager?.release()
+        eqManager = null
         stopAudioVisualizer()
         savePlaylistFromController()
         controllerFuture?.let { MediaController.releaseFuture(it) }
@@ -2160,30 +2161,17 @@ class AudioPlayerFragment : Fragment() {
         }
 
         binding.btnEq.setOnClickListener {
-            val existing = eqManager
-            if (existing != null) {
-                EqualizerDialog(existing).show(parentFragmentManager, "eq")
-                return@setOnClickListener
-            }
-            val ctrl = controller ?: return@setOnClickListener
-            // L'audioSessionId n'est pas exposé par l'API Player standard : on le récupère via une
-            // commande de session personnalisée plutôt qu'une référence statique vers le service
-            // (cf. BlazePlayerService.SessionCallback), conformément aux best practices Media3.
-            val future = ctrl.sendCustomCommand(
-                androidx.media3.session.SessionCommand(BlazePlayerService.COMMAND_GET_AUDIO_SESSION_ID, android.os.Bundle.EMPTY),
-                android.os.Bundle.EMPTY
-            )
-            future.addListener({
-                val sessionId = try {
-                    future.get().extras.getInt(BlazePlayerService.EXTRA_AUDIO_SESSION_ID, 0)
-                } catch (_: Exception) { 0 }
-                if (sessionId != 0) {
-                    try {
-                        eqManager = EqualizerManager(sessionId, requireContext()).also { it.restoreLastSession() }
-                        eqManager?.let { eq -> EqualizerDialog(eq).show(parentFragmentManager, "eq") }
-                    } catch (_: Exception) { }
-                }
-            }, androidx.core.content.ContextCompat.getMainExecutor(requireContext()))
+            // Ce bouton ouvre le panneau DSP complet (10 bandes, basses, balance,
+            // dynamique et réverbération), pas la page générale des paramètres audio.
+            // Le service audio est propriétaire des AudioEffect et applique en direct les
+            // préférences : le gestionnaire de l'UI reste donc volontairement détaché de
+            // l'audioSessionId, ce qui rend l'ouverture immédiate même avant la lecture.
+            val manager = eqManager ?: EqualizerManager(
+                audioSessionId = 0,
+                context = requireContext().applicationContext,
+                attachToAudioSession = false
+            ).also { eqManager = it }
+            EqualizerDialog(manager).show(parentFragmentManager, "eq")
         }
 
         binding.btnInfos?.setOnClickListener { toggleLyricsOverlayFromPlayer() }

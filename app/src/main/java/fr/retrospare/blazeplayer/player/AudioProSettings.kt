@@ -21,7 +21,6 @@ object AudioProSettings {
     const val KEY_NORMALIZE = "normalize"
     const val KEY_HI_RES = "hi_res"
     const val KEY_REPLAYGAIN = "replaygain"
-    const val KEY_PREAMP = "preamp"
     const val KEY_BIT_DEPTH = "bit_depth"
     const val KEY_AUTO_SCAN = "auto_scan"
     const val KEY_TRACK_ORDER = "track_order"
@@ -50,7 +49,6 @@ object AudioProSettings {
         val normalize: Boolean = true,
         val hiRes: Boolean = true,
         val replayGain: Int = REPLAYGAIN_TRACK,
-        val preampDb: Int = 0,
         val bitDepth: String = "24",
         val autoScan: Boolean = true,
         val trackOrder: Boolean = true,
@@ -75,7 +73,6 @@ object AudioProSettings {
             normalize = p.getBoolean(KEY_NORMALIZE, true),
             hiRes = p.getBoolean(KEY_HI_RES, true),
             replayGain = p.getInt(KEY_REPLAYGAIN, REPLAYGAIN_TRACK).coerceIn(REPLAYGAIN_OFF, REPLAYGAIN_ALBUM),
-            preampDb = p.getInt(KEY_PREAMP, 0).coerceIn(-12, 12),
             bitDepth = p.getString(KEY_BIT_DEPTH, "24") ?: "24",
             autoScan = p.getBoolean(KEY_AUTO_SCAN, true),
             trackOrder = p.getBoolean(KEY_TRACK_ORDER, true),
@@ -199,8 +196,8 @@ object AudioProSettings {
         prefs(context).edit().putString(KEY_WATCHED_FOLDERS, array.toString()).apply()
     }
 
-    /** Volume logiciel anti-clipping. Le préampli reste appliqué via EqualizerManager quand
-     *  possible ; ici on applique les corrections qui doivent rester sûres au niveau Player. */
+    /** Volume logiciel anti-clipping. Le préampli est exclusivement géré par EqualizerManager ;
+     *  ici on applique seulement les corrections globales sûres au niveau Player. */
     fun playerVolume(values: Values): Float = playerVolume(values, 0f)
 
     fun playerVolume(values: Values, replayGainDb: Float): Float {
@@ -208,9 +205,6 @@ object AudioProSettings {
         // Petit headroom quand la normalisation est active : cela laisse de la marge au limiteur
         // Android/LoudnessEnhancer et évite que les corrections ReplayGain positives saturent.
         if (values.normalize) db -= 1.0
-        // Si l'utilisateur pousse fortement le préampli, on protège un peu le volume player pour
-        // éviter la saturation quand l'égaliseur système est disponible.
-        if (values.preampDb > 6) db -= (values.preampDb - 6) * 0.45
         return (10.0.pow(db / 20.0)).toFloat().coerceIn(0.18f, 1.0f)
     }
 
@@ -218,12 +212,10 @@ object AudioProSettings {
         var gain = 0
         if (values.normalize) gain += 180
         if (replayGainDb > 0f) gain += (replayGainDb * 100f).toInt()
-        if (values.preampDb > 0) gain += (values.preampDb * 55)
         // En mode 16-bit, on garde plus de marge ; en 24/32, on peut permettre un rendu un peu
         // plus ouvert. Cela reste un réglage logiciel prudent, pas une promesse DAC universelle.
         if (values.bitDepth == "16") gain = (gain * 0.75f).toInt()
         return gain.coerceIn(0, 1200)
     }
 
-    fun eqPreampMillibels(values: Values): Int = (values.preampDb * 100).coerceIn(-1000, 1000)
 }

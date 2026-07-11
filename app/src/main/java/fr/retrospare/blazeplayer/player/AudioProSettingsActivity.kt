@@ -70,8 +70,6 @@ class AudioProSettingsActivity : AppCompatActivity() {
             addView(separator())
             addView(choiceRow(AudioProSettings.KEY_REPLAYGAIN, R.drawable.ic_layout_list, R.string.audio_replaygain_title, arrayOf(getString(R.string.audio_replaygain_off), getString(R.string.audio_replaygain_track), getString(R.string.audio_replaygain_album)), AudioProSettings.REPLAYGAIN_TRACK))
             addView(separator())
-            addView(sliderRow(AudioProSettings.KEY_PREAMP, R.drawable.ic_equalizer, R.string.audio_preamp_title, R.string.audio_preamp_subtitle, -12, 12, 0, " dB"))
-            addView(separator())
             addView(bitDepthRow())
         })
         container.addView(section(R.string.audio_section_library).apply {

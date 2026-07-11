@@ -732,4 +732,32 @@ Token: %2$s</string>
     <string name="audio_library_network_synced">Network synced</string>
     <string name="audio_album_sort_album">Album name</string>
     <string name="audio_album_sort_artist">Artist name</string>
+
+    <string name="close">Close</string>
+    <string name="eq_tab_tone">Tone</string>
+    <string name="eq_tab_dynamics">Dynamics</string>
+    <string name="eq_tab_ambience">Ambience</string>
+    <string name="eq_bass">Bass</string>
+    <string name="eq_treble">Treble</string>
+    <string name="eq_balance">Balance</string>
+    <string name="eq_stereo">Stereo</string>
+    <string name="eq_center">Center</string>
+    <string name="eq_balance_left">L %1$d</string>
+    <string name="eq_balance_right">R %1$d</string>
+    <string name="eq_mono">Mono</string>
+    <string name="eq_mono_active">Mono enabled</string>
+    <string name="eq_auto_headroom">Automatic headroom</string>
+    <string name="eq_auto_headroom_summary">Automatically reduces preamp when the curve could clip.</string>
+    <string name="eq_limiter">Limiter</string>
+    <string name="eq_limiter_summary">Controls digital peaks before audio output.</string>
+    <string name="eq_loudness">Loudness</string>
+    <string name="eq_reverb">Reverb</string>
+    <string name="eq_room_type">Room type</string>
+    <string name="eq_reverb_mix">Mix</string>
+    <string name="eq_room_studio">Studio</string>
+    <string name="eq_room_small">Small room</string>
+    <string name="eq_room_hall">Large hall</string>
+    <string name="eq_room_plate">Plate</string>
+    <string name="eq_equalizer_unavailable">The device equalizer is unavailable on this output. Channel controls remain active.</string>
+
 </resources>

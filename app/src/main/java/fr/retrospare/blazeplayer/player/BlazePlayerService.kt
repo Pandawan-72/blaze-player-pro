@@ -2,6 +2,7 @@ package fr.retrospare.blazeplayer.player
 
 import android.animation.ValueAnimator
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.content.SharedPreferences
@@ -10,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.net.wifi.WifiManager
 import androidx.media3.common.AudioAttributes
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -17,6 +19,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
@@ -96,7 +100,11 @@ class BlazePlayerService : MediaSessionService() {
     private var player: ExoPlayer? = null
     private var sessionPlayer: Player? = null
     private var eqManager: EqualizerManager? = null
+    private var equalizerSessionId: Int = 0
     private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var loudnessEnhancerSessionId: Int = 0
+    private var pcmAudioProcessor: BlazePcmAudioProcessor? = null
+    private lateinit var eqPrefs: SharedPreferences
     private lateinit var audioProPrefs: SharedPreferences
     private var audioProValues: AudioProSettings.Values = AudioProSettings.Values()
     private var currentReplayGainDb: Float = 0f
@@ -110,6 +118,14 @@ class BlazePlayerService : MediaSessionService() {
         audioProValues = AudioProSettings.read(applicationContext)
         refreshReplayGainForCurrentItem()
         applyAudioProSettings()
+    }
+    private val eqPreferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == EqualizerManager.KEY_LOUDNESS || key == EqualizerManager.KEY_EQ_ENABLED) {
+            applyLoudnessEnhancer(player?.audioSessionId ?: 0)
+        }
+        if (key == EqualizerManager.KEY_EQ_ENABLED) {
+            player?.let { tryApplyHighQualityOutput(it) }
+        }
     }
     private val crossfadeRunnable = object : Runnable {
         override fun run() {
@@ -140,6 +156,8 @@ class BlazePlayerService : MediaSessionService() {
         audioProPrefs = AudioProSettings.prefs(this)
         audioProValues = AudioProSettings.read(this)
         audioProPrefs.registerOnSharedPreferenceChangeListener(audioProListener)
+        eqPrefs = getSharedPreferences(EqualizerManager.PREFS_NAME, Context.MODE_PRIVATE)
+        eqPrefs.registerOnSharedPreferenceChangeListener(eqPreferenceListener)
 
         // Media3 recommande de garder le Player et la MediaSession dans le MediaSessionService.
         // On ne détruit/recrée plus le service pour chaque fichier externe : on remplace simplement
@@ -162,8 +180,23 @@ class BlazePlayerService : MediaSessionService() {
         // tard avec une initialisation lazy hors thread principal.
         val dataSourceFactory = BlazeDataSourceFactory(this)
         val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
-        val renderersFactory = DefaultRenderersFactory(this)
-            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+        val centralPcmProcessor = BlazePcmAudioProcessor(this).also { pcmAudioProcessor = it }
+        val renderersFactory = object : DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioOutputPlaybackParams: Boolean
+            ): AudioSink? {
+                return DefaultAudioSink.Builder(context)
+                    // Un AudioProcessor PCM doit rester actif pour la balance, le mono, la largeur
+                    // stéréo, le limiteur et la réverbération. La sortie float directe contournerait
+                    // cette chaîne sur certains appareils, donc on garde ici la sortie entière.
+                    .setEnableFloatOutput(false)
+                    .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
+                    .setAudioProcessors(arrayOf<AudioProcessor>(centralPcmProcessor))
+                    .build()
+            }
+        }.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 
         // Lecture audio réseau : on privilégie la stabilité sur SMB/Wi-Fi plutôt qu'un démarrage
         // ultra agressif. Les valeurs ci-dessous gardent un démarrage raisonnable, mais exigent
@@ -212,6 +245,18 @@ class BlazePlayerService : MediaSessionService() {
                 isAudioPlaybackActive = exoPlayer.playWhenReady &&
                     playbackState != androidx.media3.common.Player.STATE_IDLE &&
                     playbackState != androidx.media3.common.Player.STATE_ENDED
+            }
+
+            override fun onEvents(
+                player: androidx.media3.common.Player,
+                events: androidx.media3.common.Player.Events
+            ) {
+                // Un changement de route ou une recréation de l'AudioTrack peut attribuer une
+                // nouvelle session. Les AudioEffect natifs doivent alors être libérés puis
+                // rattachés immédiatement à la session réellement active.
+                if (events.contains(androidx.media3.common.Player.EVENT_AUDIO_SESSION_ID)) {
+                    restoreEqualizerForPlayer(exoPlayer)
+                }
             }
         })
         player = exoPlayer
@@ -684,11 +729,17 @@ class BlazePlayerService : MediaSessionService() {
             return
         }
         if (sessionId <= 0) return
+        if (eqManager != null && equalizerSessionId == sessionId) {
+            applyLoudnessEnhancer(sessionId)
+            return
+        }
         try { eqManager?.release() } catch (_: Exception) {}
+        eqManager = null
+        equalizerSessionId = 0
         eqManager = try {
             EqualizerManager(sessionId, applicationContext).also {
                 it.restoreLastSession()
-                it.setPreamp(AudioProSettings.eqPreampMillibels(audioProValues))
+                equalizerSessionId = sessionId
             }
         } catch (e: Exception) {
             fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Restore equalizer in audio service failed", e)
@@ -706,7 +757,8 @@ class BlazePlayerService : MediaSessionService() {
             if (!crossfadeInProgress) p.volume = volume
             trySetSkipSilence(p, !audioProValues.gapless)
             tryApplyHighQualityOutput(p)
-            eqManager?.setPreamp(AudioProSettings.eqPreampMillibels(audioProValues))
+            // Le préampli de l'égaliseur possède sa propre valeur persistante. Il ne doit pas
+            // être écrasé à chaque changement d'un réglage Pro+ sans rapport avec l'EQ.
             applyLoudnessEnhancer(p.audioSessionId)
             scheduleCrossfadeCheck()
         } catch (e: Exception) {
@@ -737,7 +789,15 @@ class BlazePlayerService : MediaSessionService() {
             }
             call("setIsGaplessSupportRequired", audioProValues.gapless)
             call("setIsSpeedChangeSupportRequired", false)
-            call("setAudioOffloadMode", if (audioProValues.hiRes) 1 else 0)
+            // Le passthrough/offload court-circuite la chaîne PCM. Tant que le DSP Blaze est actif,
+            // on privilégie donc les réglages audibles (balance, mono, limiteur, réverbération) à
+            // l'offload matériel. Désactiver l'égaliseur réautorise le mode Hi-Res/offload demandé.
+            val blazeDspEnabled = if (::eqPrefs.isInitialized) {
+                eqPrefs.getBoolean(EqualizerManager.KEY_EQ_ENABLED, true)
+            } else {
+                true
+            }
+            call("setAudioOffloadMode", if (audioProValues.hiRes && !blazeDspEnabled) 1 else 0)
             val prefs = builderClass.methods.firstOrNull { it.name == "build" && it.parameterTypes.isEmpty() }
                 ?.invoke(builder)
                 ?: return@runCatching
@@ -788,20 +848,39 @@ class BlazePlayerService : MediaSessionService() {
     private fun applyLoudnessEnhancer(sessionId: Int) {
         if (sessionId <= 0) return
         try {
-            val targetGain = AudioProSettings.loudnessTargetMillibels(audioProValues, currentReplayGainDb)
+            val eqLoudnessGain = eqManager
+                ?.takeIf { it.isEnabled() && it.isLoudnessAvailable() }
+                ?.getSavedLoudnessMillibels()
+                ?: 0
+            val targetGain = (
+                AudioProSettings.loudnessTargetMillibels(audioProValues, currentReplayGainDb) +
+                    eqLoudnessGain
+                ).coerceIn(0, 1800)
+
             if (targetGain <= 0) {
                 loudnessEnhancer?.enabled = false
                 loudnessEnhancer?.release()
                 loudnessEnhancer = null
+                loudnessEnhancerSessionId = 0
                 return
             }
-            val enhancer = loudnessEnhancer ?: LoudnessEnhancer(sessionId).also { loudnessEnhancer = it }
+
+            if (loudnessEnhancerSessionId != sessionId) {
+                try { loudnessEnhancer?.release() } catch (_: Exception) {}
+                loudnessEnhancer = null
+                loudnessEnhancerSessionId = 0
+            }
+            val enhancer = loudnessEnhancer ?: LoudnessEnhancer(sessionId).also {
+                loudnessEnhancer = it
+                loudnessEnhancerSessionId = sessionId
+            }
             enhancer.setTargetGain(targetGain)
             enhancer.enabled = true
         } catch (e: Exception) {
             fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Loudness enhancer unavailable", e)
             try { loudnessEnhancer?.release() } catch (_: Exception) {}
             loudnessEnhancer = null
+            loudnessEnhancerSessionId = 0
         }
     }
 
@@ -1005,8 +1084,12 @@ class BlazePlayerService : MediaSessionService() {
         try { crossfadeHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { playerVolumeAnimator?.cancel() } catch (_: Exception) {}
         try { if (::audioProPrefs.isInitialized) audioProPrefs.unregisterOnSharedPreferenceChangeListener(audioProListener) } catch (_: Exception) {}
+        try { if (::eqPrefs.isInitialized) eqPrefs.unregisterOnSharedPreferenceChangeListener(eqPreferenceListener) } catch (_: Exception) {}
+        try { pcmAudioProcessor?.releaseSettings() } catch (_: Exception) {}
+        pcmAudioProcessor = null
         try { loudnessEnhancer?.release() } catch (_: Exception) {}
         loudnessEnhancer = null
+        loudnessEnhancerSessionId = 0
         try { serviceScope.cancel() } catch (_: Exception) {}
         stopPartyHostServer()
         val sessionToRelease = mediaSession
@@ -1014,6 +1097,7 @@ class BlazePlayerService : MediaSessionService() {
         val playerToRelease = player
         mediaSession = null
         eqManager = null
+        equalizerSessionId = 0
         sessionPlayer = null
         player = null
         try { sessionToRelease?.release() } catch (_: Exception) {}
