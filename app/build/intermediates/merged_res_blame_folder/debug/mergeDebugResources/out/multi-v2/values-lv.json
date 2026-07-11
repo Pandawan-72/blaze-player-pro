@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "fr.retrospare.blazeplayer.app-mergeDebugResources-80:/values-lv/values-lv.xml",
+            "outputFile": "fr.retrospare.blazeplayer.app-mergeDebugResources-81:/values-lv/values-lv.xml",
             "map": [
                 {
                     "source": "/Users/pandawan/.gradle/caches/9.4.1/transforms/f5e1f2f97641cc6722d905b92a2e7cb3/transformed/play-services-cast-22.1.0/res/values-lv/values.xml",

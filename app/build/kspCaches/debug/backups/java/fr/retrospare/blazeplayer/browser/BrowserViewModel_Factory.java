@@ -11,6 +11,7 @@ import dagger.internal.ScopeMetadata;
 import fr.retrospare.blazeplayer.data.repository.MediaRepository;
 import fr.retrospare.blazeplayer.data.repository.NetworkRepository;
 import fr.retrospare.blazeplayer.network.SmbBrowser;
+import fr.retrospare.blazeplayer.network.UpnpBrowser;
 import javax.annotation.processing.Generated;
 
 @ScopeMetadata
@@ -38,33 +39,37 @@ public final class BrowserViewModel_Factory implements Factory<BrowserViewModel>
 
   private final Provider<SmbBrowser> smbBrowserProvider;
 
+  private final Provider<UpnpBrowser> upnpBrowserProvider;
+
   private final Provider<NetworkRepository> networkRepositoryProvider;
 
   private BrowserViewModel_Factory(Provider<DataStore<Preferences>> dataStoreProvider,
       Provider<Context> contextProvider, Provider<MediaRepository> mediaRepositoryProvider,
-      Provider<SmbBrowser> smbBrowserProvider,
+      Provider<SmbBrowser> smbBrowserProvider, Provider<UpnpBrowser> upnpBrowserProvider,
       Provider<NetworkRepository> networkRepositoryProvider) {
     this.dataStoreProvider = dataStoreProvider;
     this.contextProvider = contextProvider;
     this.mediaRepositoryProvider = mediaRepositoryProvider;
     this.smbBrowserProvider = smbBrowserProvider;
+    this.upnpBrowserProvider = upnpBrowserProvider;
     this.networkRepositoryProvider = networkRepositoryProvider;
   }
 
   @Override
   public BrowserViewModel get() {
-    return newInstance(dataStoreProvider.get(), contextProvider.get(), mediaRepositoryProvider.get(), smbBrowserProvider.get(), networkRepositoryProvider.get());
+    return newInstance(dataStoreProvider.get(), contextProvider.get(), mediaRepositoryProvider.get(), smbBrowserProvider.get(), upnpBrowserProvider.get(), networkRepositoryProvider.get());
   }
 
   public static BrowserViewModel_Factory create(Provider<DataStore<Preferences>> dataStoreProvider,
       Provider<Context> contextProvider, Provider<MediaRepository> mediaRepositoryProvider,
-      Provider<SmbBrowser> smbBrowserProvider,
+      Provider<SmbBrowser> smbBrowserProvider, Provider<UpnpBrowser> upnpBrowserProvider,
       Provider<NetworkRepository> networkRepositoryProvider) {
-    return new BrowserViewModel_Factory(dataStoreProvider, contextProvider, mediaRepositoryProvider, smbBrowserProvider, networkRepositoryProvider);
+    return new BrowserViewModel_Factory(dataStoreProvider, contextProvider, mediaRepositoryProvider, smbBrowserProvider, upnpBrowserProvider, networkRepositoryProvider);
   }
 
   public static BrowserViewModel newInstance(DataStore<Preferences> dataStore, Context context,
-      MediaRepository mediaRepository, SmbBrowser smbBrowser, NetworkRepository networkRepository) {
-    return new BrowserViewModel(dataStore, context, mediaRepository, smbBrowser, networkRepository);
+      MediaRepository mediaRepository, SmbBrowser smbBrowser, UpnpBrowser upnpBrowser,
+      NetworkRepository networkRepository) {
+    return new BrowserViewModel(dataStore, context, mediaRepository, smbBrowser, upnpBrowser, networkRepository);
   }
 }

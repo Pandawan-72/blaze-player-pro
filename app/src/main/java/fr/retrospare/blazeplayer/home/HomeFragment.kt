@@ -68,11 +68,15 @@ class HomeFragment : Fragment() {
     private var gallerySelectionMode: Boolean = false
     private val selectedGalleryPhotos = linkedSetOf<String>()
     private var currentGalleryPhotos: List<MediaItem> = emptyList()
+    private var galleryFoldersScrollPosition: Int = 0
+    private var galleryFoldersScrollOffset: Int = 0
 
     private var latestLocalHistoryItems: List<MediaItem> = emptyList()
     private var latestNetworkHistoryItems: List<MediaItem> = emptyList()
     private var historySelectionTab: Int? = null
     private val selectedHistoryPaths = linkedSetOf<String>()
+    private var pendingAudioTabAfterPermission = false
+    private var pendingNetworkScanAfterPermission = false
     private var pendingGallerySystemActionRefresh: (() -> Unit)? = null
     private var pendingPermanentDeleteHistoryCleanup: List<MediaItem> = emptyList()
     private var galleryCustomThumbnailMode: Boolean = false
@@ -98,7 +102,25 @@ class HomeFragment : Fragment() {
     }
 
     private val galleryPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        showGalleryFolders()
+        if (hasGalleryPermission()) {
+            showGalleryFolders()
+        } else {
+            showGalleryPermissionPlaceholder()
+        }
+    }
+
+    private val audioPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        if (pendingAudioTabAfterPermission) {
+            pendingAudioTabAfterPermission = false
+            showAudioTab()
+        }
+    }
+
+    private val networkPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        if (pendingNetworkScanAfterPermission) {
+            pendingNetworkScanAfterPermission = false
+            requestEmbeddedNetworkScan()
+        }
     }
 
     private val gallerySystemActionLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
@@ -382,32 +404,104 @@ class HomeFragment : Fragment() {
             currentTabIndex = index
             updateTabStyles(index)
             if (index == 4) {
-                showAudioTab()
+                viewModel.onTabSelected(index)
+                if (requestAudioPermissionsIfNeeded()) showAudioTab()
             } else {
                 hideAudioTab()
                 viewModel.onTabSelected(index)
+                if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
             }
         }
     }
 
     private fun setupTabs() {
-        listOf(binding.tabLocal, binding.tabNetwork, binding.tabGallery, binding.tabAudio).forEachIndexed { i, tab ->
-            val index = i + 1
-            tab.setOnClickListener { selectTab(index) }
+        binding.tabLocal.setOnClickListener { selectTab(1) }
+        binding.tabNetwork.setOnClickListener { selectTab(2) }
+        binding.tabGallery.setOnClickListener { selectTab(3) }
+        binding.tabAudio.setOnClickListener { selectTab(4) }
+
+        val activeTab = when (viewModel.currentTabIndex.value) {
+            2, 3, 4 -> viewModel.currentTabIndex.value
+            else -> 1
         }
-        val activeTab = if (viewModel.currentTabIndex.value == 0) 1 else viewModel.currentTabIndex.value
         currentTabIndex = activeTab
         updateTabStyles(activeTab)
         updateSectionTitles(activeTab)
-        if (activeTab == 4) showAudioTab()
-        else { hideAudioTab(); viewModel.onTabSelected(activeTab) }
+        if (activeTab == 4) {
+            if (requestAudioPermissionsIfNeeded()) showAudioTab()
+        } else {
+            hideAudioTab()
+            if (activeTab == 2) requestNetworkPermissionsIfNeeded()
+            viewModel.onTabSelected(activeTab)
+        }
+    }
+
+    private fun openNetworkSourcesFromTab() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!canOpenTab(2)) {
+                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                return@launch
+            }
+            currentTabIndex = 2
+            audioPlayerFragment?.savePlaylistFromController() ?: Unit
+            updateTabStyles(2)
+            hideAudioTab()
+            requestNetworkPermissionsIfNeeded()
+            updateSectionTitles(2)
+        }
+    }
+
+    private fun ensureEmbeddedNetworkSources() {
+        if (_binding == null || !isAdded) return
+        val existing = childFragmentManager.findFragmentByTag("home_network_sources")
+        if (existing == null) {
+            childFragmentManager.beginTransaction()
+                .replace(
+                    fr.retrospare.blazeplayer.R.id.networkConfigContainer,
+                    fr.retrospare.blazeplayer.network.NetworkSharesFragment().apply {
+                        arguments = Bundle().apply { putBoolean("embeddedInHome", true) }
+                    },
+                    "home_network_sources"
+                )
+                .commitAllowingStateLoss()
+        } else if (existing.isHidden) {
+            childFragmentManager.beginTransaction()
+                .show(existing)
+                .commitAllowingStateLoss()
+        }
+    }
+
+    private fun requestEmbeddedNetworkScan() {
+        if (_binding == null || !isAdded) return
+        if (!requestNetworkPermissionsIfNeeded(scanAfterGrant = true)) return
+        updateEmbeddedNetworkScanState(scanning = true)
+        ensureEmbeddedNetworkSources()
+        binding.root.post {
+            (childFragmentManager.findFragmentByTag("home_network_sources") as? fr.retrospare.blazeplayer.network.NetworkSharesFragment)
+                ?.requestScanFromParent()
+                ?: updateEmbeddedNetworkScanState(scanning = false)
+        }
+    }
+
+    private fun updateHeaderCastButtons(tabIndex: Int) {
+        val showCastButtons = tabIndex == 1
+        val visibility = if (showCastButtons) View.VISIBLE else View.GONE
+        binding.btnCast.visibility = visibility
+        binding.btnScreenCast.visibility = visibility
+    }
+
+    fun updateEmbeddedNetworkScanState(scanning: Boolean) {
+        if (_binding == null || !isAdded) return
+        binding.tvNetworkHeaderSubtitle.text = getString(if (scanning) R.string.scan_in_progress else R.string.scan_complete)
+        binding.btnNetworkHeaderScan.isEnabled = !scanning
+        binding.btnNetworkHeaderScan.alpha = if (scanning) 0.55f else 1f
     }
 
 
 
     private suspend fun canOpenTab(index: Int): Boolean {
-        // 1 = Local (gratuit), 2 = Réseau (Pro), 3 = Blaze Gallery (Pro), 4 = Blaze Audio (Pro+).
+        // 1 = Blaze Video (gratuit), 2 = Réseau / sources SMB-UPnP (Pro), 3 = Blaze Gallery (Pro), 4 = Blaze Audio (Pro+).
         return when (index) {
             2, 3 -> fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
             4 -> fr.retrospare.blazeplayer.paywall.FeatureAccess.isProPlus(userRepository)
@@ -446,8 +540,7 @@ class HomeFragment : Fragment() {
 
     /** Configure l'onglet Blaze Gallery : il affiche uniquement la galerie locale MediaStore. */
     private fun setupGalleryTab() {
-        binding.btnGalleryPrimary.text = getString(R.string.gallery_trash)
-        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
+        configureGalleryPrimaryAsTrashIcon()
         binding.btnGalleryPrimary.setOnClickListener { showGalleryTrash() }
         binding.btnGallerySecondary.text = getString(R.string.action_back)
         binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
@@ -466,6 +559,8 @@ class HomeFragment : Fragment() {
     private fun switchGalleryMediaType(type: GalleryMediaType) {
         if (currentGalleryMediaType == type || galleryCustomThumbnailMode) return
         currentGalleryMediaType = type
+        galleryFoldersScrollPosition = 0
+        galleryFoldersScrollOffset = 0
         refreshGalleryTypeToggleColors()
         showGalleryFolders()
     }
@@ -482,6 +577,7 @@ class HomeFragment : Fragment() {
      *  sélection multiple, exactement comme le reste de la barre d'action de cet écran. */
     private fun updateGalleryTypeToggle(visible: Boolean) {
         val visibility = if (visible) View.VISIBLE else View.GONE
+        binding.galleryTypeHeaderToggle.visibility = visibility
         binding.btnGalleryTypePhoto.visibility = visibility
         binding.btnGalleryTypeVideo.visibility = visibility
     }
@@ -502,7 +598,7 @@ class HomeFragment : Fragment() {
                 true
             }
             currentGalleryBucketId != null -> {
-                showGalleryFolders()
+                showGalleryFolders(restoreScroll = true)
                 true
             }
             else -> false
@@ -541,28 +637,156 @@ class HomeFragment : Fragment() {
     private fun createdGalleryFoldersPrefKey(): String =
         if (currentGalleryMediaType == GalleryMediaType.VIDEO) "created_folders_video" else "created_folders_photo"
 
-    private fun hasGalleryPermission(): Boolean {
-        return if (android.os.Build.VERSION.SDK_INT >= 33) {
-            ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_MEDIA_IMAGES) == android.content.pm.PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_MEDIA_VIDEO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        }
+    private fun runtimePermissionPrefs() =
+        requireContext().getSharedPreferences(PREFS_RUNTIME_PERMISSIONS, android.content.Context.MODE_PRIVATE)
+
+    private fun missingRuntimePermissions(permissions: Array<String>): Array<String> =
+        permissions.filter {
+            ContextCompat.checkSelfPermission(requireContext(), it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        }.toTypedArray()
+
+    private fun galleryPermissions(): Array<String> = if (android.os.Build.VERSION.SDK_INT >= 33) {
+        arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO)
+    } else {
+        arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
     }
+
+    private fun audioPermissions(): Array<String> {
+        val result = mutableListOf<String>()
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            result += android.Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            result += android.Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            // Requis par android.media.audiofx.Visualizer pour l'égaliseur visuel dynamique.
+            // L'app ne s'en sert pas pour enregistrer du son.
+            result += android.Manifest.permission.RECORD_AUDIO
+        }
+        return result.toTypedArray()
+    }
+
+    private fun networkPermissions(): Array<String> = if (android.os.Build.VERSION.SDK_INT >= 33) {
+        arrayOf(android.Manifest.permission.NEARBY_WIFI_DEVICES)
+    } else {
+        emptyArray()
+    }
+
+    private fun hasGalleryPermission(): Boolean = missingRuntimePermissions(galleryPermissions()).isEmpty()
 
     private fun requestGalleryPermissionIfNeeded(): Boolean {
         if (hasGalleryPermission()) return true
-        val permissions = if (android.os.Build.VERSION.SDK_INT >= 33) {
-            arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO)
-        } else {
-            arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        val prefs = runtimePermissionPrefs()
+        val permissions = missingRuntimePermissions(galleryPermissions())
+        if (permissions.isEmpty()) return true
+        if (prefs.getBoolean(KEY_GALLERY_PERMISSIONS_PROMPTED, false)) {
+            showGalleryPermissionPlaceholder()
+            return false
         }
+        prefs.edit().putBoolean(KEY_GALLERY_PERMISSIONS_PROMPTED, true).apply()
         galleryPermissionLauncher.launch(permissions)
         return false
     }
 
+    private fun requestAudioPermissionsIfNeeded(): Boolean {
+        val permissions = missingRuntimePermissions(audioPermissions())
+        if (permissions.isEmpty()) return true
+        val prefs = runtimePermissionPrefs()
+        if (prefs.getBoolean(KEY_AUDIO_PERMISSIONS_PROMPTED, false)) return true
+        prefs.edit().putBoolean(KEY_AUDIO_PERMISSIONS_PROMPTED, true).apply()
+        pendingAudioTabAfterPermission = true
+        audioPermissionLauncher.launch(permissions)
+        return false
+    }
+
+    private fun requestNetworkPermissionsIfNeeded(scanAfterGrant: Boolean = false): Boolean {
+        val permissions = missingRuntimePermissions(networkPermissions())
+        if (permissions.isEmpty()) return true
+        val prefs = runtimePermissionPrefs()
+        if (prefs.getBoolean(KEY_NETWORK_PERMISSIONS_PROMPTED, false)) return true
+        prefs.edit().putBoolean(KEY_NETWORK_PERMISSIONS_PROMPTED, true).apply()
+        pendingNetworkScanAfterPermission = scanAfterGrant
+        networkPermissionLauncher.launch(permissions)
+        return false
+    }
+
+    private fun showGalleryPermissionPlaceholder() {
+        if (_binding == null || !isAdded) return
+        binding.listGallery.visibility = View.GONE
+        binding.emptyStateGallery.visibility = View.VISIBLE
+        binding.tvEmptyStateGallery.text = getString(R.string.permission_gallery_required)
+        binding.btnGallerySecondary.visibility = View.GONE
+        binding.btnGalleryPrimary.visibility = View.GONE
+        updateGalleryTypeToggle(false)
+    }
+
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun setGalleryPrimaryCompact(compact: Boolean) {
+        val params = binding.btnGalleryPrimary.layoutParams
+        params.width = if (compact) dp(40) else ViewGroup.LayoutParams.WRAP_CONTENT
+        binding.btnGalleryPrimary.layoutParams = params
+        binding.btnGalleryPrimary.minWidth = 0
+        binding.btnGalleryPrimary.minimumWidth = 0
+        binding.btnGalleryPrimary.iconPadding = if (compact) 0 else dp(6)
+        binding.btnGalleryPrimary.iconSize = if (compact) dp(22) else dp(15)
+        if (compact) {
+            binding.btnGalleryPrimary.setPadding(0, 0, 0, 0)
+        } else {
+            binding.btnGalleryPrimary.setPadding(dp(14), 0, dp(14), 0)
+        }
+    }
+
+    private fun setGallerySecondaryCompact(compact: Boolean) {
+        val params = binding.btnGallerySecondary.layoutParams
+        params.width = if (compact) dp(40) else ViewGroup.LayoutParams.WRAP_CONTENT
+        binding.btnGallerySecondary.layoutParams = params
+        binding.btnGallerySecondary.minWidth = 0
+        binding.btnGallerySecondary.minimumWidth = 0
+        binding.btnGallerySecondary.iconPadding = if (compact) 0 else dp(6)
+        binding.btnGallerySecondary.iconSize = if (compact) dp(20) else dp(15)
+        if (compact) {
+            binding.btnGallerySecondary.setPadding(0, 0, 0, 0)
+        } else {
+            binding.btnGallerySecondary.setPadding(dp(12), 0, dp(12), 0)
+        }
+    }
+
+    private fun configureGalleryPrimaryAsTrashIcon() {
+        setGalleryPrimaryCompact(true)
+        binding.btnGalleryPrimary.text = ""
+        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
+        binding.btnGalleryPrimary.contentDescription = getString(R.string.gallery_trash)
+        binding.btnGalleryPrimary.setTextColor(android.graphics.Color.TRANSPARENT)
+        binding.btnGalleryPrimary.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#FF5C5C"))
+        binding.btnGalleryPrimary.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_header_action_button)
+        binding.btnGalleryPrimary.backgroundTintList = null
+        binding.btnGalleryPrimary.strokeWidth = 0
+        binding.btnGalleryPrimary.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+    }
+
+    private fun configureGalleryPrimaryAsTextAction() {
+        setGalleryPrimaryCompact(false)
+        binding.btnGalleryPrimary.contentDescription = null
+    }
 
     private fun styleGalleryBackButton() {
+        setGallerySecondaryCompact(true)
+        binding.btnGallerySecondary.text = ""
+        binding.btnGallerySecondary.contentDescription = getString(R.string.action_back)
+        binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
+        binding.btnGallerySecondary.setTextColor(android.graphics.Color.TRANSPARENT)
+        binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.on_surface))
+        binding.btnGallerySecondary.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_header_action_button)
+        binding.btnGallerySecondary.backgroundTintList = null
+        binding.btnGallerySecondary.strokeWidth = 0
+        binding.btnGallerySecondary.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+    }
+
+    private fun styleGallerySecondaryNeutralButton() {
+        setGallerySecondaryCompact(false)
+        binding.btnGallerySecondary.contentDescription = null
         binding.btnGallerySecondary.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface))
         binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.on_surface))
         binding.btnGallerySecondary.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
@@ -571,14 +795,17 @@ class HomeFragment : Fragment() {
     }
 
     private fun styleGalleryCreateFolderButton() {
+        setGallerySecondaryCompact(false)
+        binding.btnGallerySecondary.contentDescription = null
         binding.btnGallerySecondary.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface))
-        binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.on_surface))
+        binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_accent))
         binding.btnGallerySecondary.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
-        binding.btnGallerySecondary.strokeColor = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_accent))
-        binding.btnGallerySecondary.strokeWidth = (2 * resources.displayMetrics.density).toInt()
+        binding.btnGallerySecondary.strokeColor = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_accent_stroke))
+        binding.btnGallerySecondary.strokeWidth = dp(1)
     }
 
     private fun styleGalleryTrashButton(emptyAction: Boolean = false) {
+        configureGalleryPrimaryAsTextAction()
         if (emptyAction) {
             binding.btnGalleryPrimary.setTextColor(android.graphics.Color.WHITE)
             binding.btnGalleryPrimary.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
@@ -622,7 +849,34 @@ class HomeFragment : Fragment() {
         popup.show()
     }
 
-    private fun showGalleryFolders() {
+    private fun saveGalleryFoldersScrollPosition() {
+        val recycler = _binding?.listGallery ?: return
+        val layoutManager = recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager ?: return
+        val firstVisible = layoutManager.findFirstVisibleItemPosition()
+        if (firstVisible == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return
+        val firstView = layoutManager.findViewByPosition(firstVisible)
+        galleryFoldersScrollPosition = firstVisible
+        galleryFoldersScrollOffset = (firstView?.top ?: recycler.paddingTop) - recycler.paddingTop
+    }
+
+    private fun restoreGalleryFoldersScrollPosition(itemCount: Int) {
+        if (itemCount <= 0) return
+        val position = galleryFoldersScrollPosition.coerceIn(0, itemCount - 1)
+        val offset = galleryFoldersScrollOffset
+        val recycler = _binding?.listGallery ?: return
+        recycler.post {
+            val currentRecycler = _binding?.listGallery ?: return@post
+            val layoutManager = currentRecycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager ?: return@post
+            layoutManager.scrollToPositionWithOffset(position, offset)
+        }
+    }
+
+    private fun openGalleryFolder(folder: MediaItem) {
+        saveGalleryFoldersScrollPosition()
+        showGalleryPhotos(folder.path, folder.name)
+    }
+
+    private fun showGalleryFolders(restoreScroll: Boolean = false) {
         if (!isAdded || !requestGalleryPermissionIfNeeded()) return
         val renderGeneration = nextGalleryRenderGeneration()
         currentGalleryBucketId = null
@@ -635,10 +889,8 @@ class HomeFragment : Fragment() {
         binding.btnGallerySecondary.setOnClickListener { showCreateGalleryFolderDialog() }
         styleGalleryCreateFolderButton()
         binding.btnGalleryPrimary.visibility = View.VISIBLE
-        binding.btnGalleryPrimary.text = getString(R.string.gallery_trash)
-        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
+        configureGalleryPrimaryAsTrashIcon()
         binding.btnGalleryPrimary.setOnClickListener { showGalleryTrash() }
-        styleGalleryTrashButton(false)
         binding.tvSectionGallery.text = if (galleryCustomThumbnailMode) {
             getString(R.string.custom_thumbnail_pick_folder)
         } else {
@@ -662,10 +914,16 @@ class HomeFragment : Fragment() {
                 items = folders,
                 grid = false,
                 trashMode = false,
-                onClick = { folder -> showGalleryPhotos(folder.path, folder.name) },
+                onClick = { folder -> openGalleryFolder(folder) },
                 onLongClick = {},
                 onMore = { folder, anchor -> showGalleryFolderMenu(folder, anchor) }
             )
+            if (restoreScroll) restoreGalleryFoldersScrollPosition(folders.size)
+            if (currentGalleryMediaType == GalleryMediaType.PHOTO) {
+                // Pré-cache utile à la réouverture, mais volontairement lancé doucement pour ne
+                // pas concurrencer le scroll de l'accueil Galerie où chaque dossier affiche 4 aperçus.
+                precacheGalleryPhotoThumbnails(folders.flatMap { it.previewUris }, renderGeneration, maxSize = 220, initialDelayMs = 450L)
+            }
             updateGalleryEmptyState(folders.isEmpty(), getString(R.string.gallery_empty_folders))
         }
     }
@@ -692,7 +950,7 @@ class HomeFragment : Fragment() {
         binding.btnGallerySecondary.visibility = View.VISIBLE
         binding.btnGallerySecondary.text = getString(R.string.action_back)
         binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
-        binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
+        binding.btnGallerySecondary.setOnClickListener { showGalleryFolders(restoreScroll = true) }
         styleGalleryBackButton()
         binding.btnGalleryPrimary.visibility = View.VISIBLE
         binding.btnGalleryPrimary.text = getString(R.string.gallery_sort)
@@ -730,6 +988,9 @@ class HomeFragment : Fragment() {
                 onLongClick = { photo -> if (!galleryCustomThumbnailMode) enterGallerySelection(photo) },
                 onMore = { photo, anchor -> showGalleryPhotoMenu(photo, anchor) }
             )
+            if (currentGalleryMediaType == GalleryMediaType.PHOTO) {
+                precacheGalleryPhotoThumbnails(photos.map { it.path }, renderGeneration, maxSize = 360)
+            }
             updateGalleryEmptyState(photos.isEmpty(), getString(R.string.gallery_empty_photos))
         }
     }
@@ -972,7 +1233,8 @@ class HomeFragment : Fragment() {
         return Size(maxDim, maxDim)
     }
 
-    private fun loadGalleryImage(imageView: ImageView, uriString: String, requestSize: Size = Size(360, 360), isFullScreen: Boolean = false) {
+    private fun loadGalleryImage(imageView: ImageView, uriString: String, requestSize: Size = Size(360, 360), isFullScreen: Boolean = false, thumbnailMaxSize: Int = 360) {
+        imageView.setTag(R.id.ivThumbnail, uriString)
         imageView.setImageDrawable(null)
         if (currentGalleryMediaType == GalleryMediaType.VIDEO) {
             // Les vignettes vidéo passent par le même extracteur de frame (+ cache mémoire/disque)
@@ -1021,7 +1283,34 @@ class HomeFragment : Fragment() {
             }
             return
         }
-        loadStaticGalleryImage(imageView, uriString, requestSize)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val loaded = ThumbnailUtils.loadImageThumbnail(requireContext(), uriString, imageView, thumbnailMaxSize)
+            if (!loaded && isAdded && imageView.getTag(R.id.ivThumbnail) == uriString) {
+                // Filet de sécurité : si un fournisseur MediaStore/SAF refuse le décodage direct,
+                // Coil garde l'ancien comportement d'affichage au lieu de laisser une case vide.
+                loadStaticGalleryImage(imageView, uriString, requestSize)
+            }
+        }
+    }
+
+    private fun precacheGalleryPhotoThumbnails(
+        paths: List<String>,
+        renderGeneration: Long,
+        maxSize: Int,
+        initialDelayMs: Long = 250L
+    ) {
+        if (paths.isEmpty()) return
+        val appContext = requireContext().applicationContext
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (initialDelayMs > 0L) kotlinx.coroutines.delay(initialDelayMs)
+            paths.distinct().forEachIndexed { index, path ->
+                if (renderGeneration != galleryRenderGeneration) return@launch
+                ThumbnailUtils.getImageThumbnailBitmap(appContext, path, maxSize)
+                // Laisse respirer le thread UI/GPU pendant un scroll rapide : le pré-cache doit
+                // améliorer la prochaine ouverture, pas rendre l'ouverture actuelle saccadée.
+                if (index % 4 == 3) kotlinx.coroutines.delay(24L)
+            }
+        }
     }
 
     private fun isGifUri(uriString: String): Boolean {
@@ -1467,6 +1756,9 @@ class HomeFragment : Fragment() {
                 onLongClick = {},
                 onMore = { photo, anchor -> showGalleryPhotoMenu(photo, anchor) }
             )
+            if (currentGalleryMediaType == GalleryMediaType.PHOTO) {
+                precacheGalleryPhotoThumbnails(photos.map { it.path }, renderGeneration, maxSize = 360)
+            }
             updateGalleryEmptyState(photos.isEmpty(), getString(R.string.gallery_trash_empty_message))
         }
     }
@@ -1558,7 +1850,7 @@ class HomeFragment : Fragment() {
         binding.btnGalleryPrimary.text = getString(R.string.gallery_share_all)
         binding.btnGalleryPrimary.setIconResource(R.drawable.ic_share)
         binding.btnGalleryPrimary.setOnClickListener { shareSelectedGalleryPhotosAsZip() }
-        styleGalleryBackButton()
+        styleGallerySecondaryNeutralButton()
         styleGalleryTrashButton(false)
         binding.tvSectionGallery.text = getString(R.string.gallery_selected_count, selectedGalleryPhotos.size)
     }
@@ -1681,8 +1973,9 @@ class HomeFragment : Fragment() {
                     val uri = item.previewUris.getOrNull(index)
                     if (uri != null) {
                         imageView.visibility = View.VISIBLE
-                        loadGalleryImage(imageView, uri, Size(220, 220))
+                        loadGalleryImage(imageView, uri, Size(220, 220), thumbnailMaxSize = 220)
                     } else {
+                        imageView.setTag(R.id.ivThumbnail, null)
                         imageView.visibility = View.INVISIBLE
                         imageView.setImageDrawable(null)
                     }
@@ -1695,6 +1988,20 @@ class HomeFragment : Fragment() {
                 true
             }
         }
+
+        override fun onViewRecycled(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder) {
+            super.onViewRecycled(holder)
+            when (holder) {
+                is PhotoViewHolder -> {
+                    holder.ivThumbnail.setTag(R.id.ivThumbnail, null)
+                    holder.ivThumbnail.setImageDrawable(null)
+                }
+                is FolderViewHolder -> holder.previews.forEach { imageView ->
+                    imageView.setTag(R.id.ivThumbnail, null)
+                    imageView.setImageDrawable(null)
+                }
+            }
+        }
     }
 
     private fun refreshGalleryDefaultContent() {
@@ -1702,6 +2009,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun showAudioTab() {
+        updateGalleryTypeToggle(false)
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
         binding.scrollContent.visibility = android.view.View.GONE
         binding.audioContainer.visibility = android.view.View.VISIBLE
@@ -1724,8 +2032,9 @@ class HomeFragment : Fragment() {
 
     fun switchToAudioTab() {
         currentTabIndex = 4
+        viewModel.onTabSelected(4)
         updateTabStyles(4)
-        showAudioTab()
+        if (requestAudioPermissionsIfNeeded()) showAudioTab()
     }
 
     fun switchToTab(index: Int) {
@@ -1741,9 +2050,10 @@ class HomeFragment : Fragment() {
             viewModel.onTabSelected(index)
             updateTabStyles(index)
             if (index == 4) {
-                showAudioTab()
+                if (requestAudioPermissionsIfNeeded()) showAudioTab()
             } else {
                 hideAudioTab()
+                if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
             }
         }
@@ -1811,6 +2121,7 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateSectionTitles(tabIndex: Int) {
+        updateHeaderCastButtons(tabIndex)
         when (tabIndex) {
             1 -> {
                 binding.sectionLocal.visibility = View.VISIBLE
@@ -1819,16 +2130,22 @@ class HomeFragment : Fragment() {
                 binding.headerControlsLocal.visibility = View.VISIBLE
                 binding.headerControlsNetwork.visibility = View.GONE
                 binding.headerControlsGallery.visibility = View.GONE
+                updateGalleryTypeToggle(false)
                 viewModel.onTabSelected(1)
             }
             2 -> {
-                binding.sectionNetwork.visibility = View.VISIBLE
+                // L'onglet Réseau est maintenant une vraie page intégrée à Home :
+                // la configuration SMB/UPnP reste affichée sous la barre d'onglets,
+                // sans repasser par une destination plein écran qui masquerait les tabs.
                 binding.sectionLocal.visibility = View.GONE
+                binding.sectionNetwork.visibility = View.VISIBLE
                 binding.sectionGallery.visibility = View.GONE
-                binding.headerControlsNetwork.visibility = View.VISIBLE
                 binding.headerControlsLocal.visibility = View.GONE
+                binding.headerControlsNetwork.visibility = View.VISIBLE
                 binding.headerControlsGallery.visibility = View.GONE
-                viewModel.onTabSelected(2)
+                updateGalleryTypeToggle(false)
+                updateEmbeddedNetworkScanState(scanning = false)
+                ensureEmbeddedNetworkSources()
             }
             3 -> {
                 binding.sectionLocal.visibility = View.GONE
@@ -1847,13 +2164,15 @@ class HomeFragment : Fragment() {
                 binding.headerControlsLocal.visibility = View.VISIBLE
                 binding.headerControlsNetwork.visibility = View.GONE
                 binding.headerControlsGallery.visibility = View.GONE
+                updateGalleryTypeToggle(false)
                 viewModel.onTabSelected(1)
             }
         }
+        updateHistoryDeleteOverlay()
     }
 
     private fun updateTabStyles(selectedIndex: Int) {
-        // selectedIndex: 1=Local, 2=Réseau, 3=Blaze Gallery, 4=Audio
+        // selectedIndex: 1=Blaze Video, 2=Réseau raccourci sources, 3=Blaze Gallery, 4=Audio
         val tabViews = listOf(binding.tabLocal, binding.tabNetwork, binding.tabGallery, binding.tabAudio)
         val tabIcons = listOf(binding.tabLocalIcon, binding.tabNetworkIcon, binding.tabGalleryIcon, binding.tabAudioIcon)
         val tabTexts = listOf(binding.tabLocalText, binding.tabNetworkText, binding.tabGalleryText, binding.tabAudioText)
@@ -1870,10 +2189,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupButtons() {
-        binding.btnBrowseNetwork.setOnClickListener {
-            audioPlayerFragment?.savePlaylistFromController() ?: Unit
-            findNavController().navigate(R.id.action_home_to_network)
-        }
+        binding.btnNetworkHeaderScan.setOnClickListener { requestEmbeddedNetworkScan() }
+        binding.btnBrowseNetwork.setOnClickListener { openNetworkSourcesFromTab() }
         binding.btnEmptyStateBrowseNetwork.setOnClickListener { binding.btnBrowseNetwork.performClick() }
         binding.btnBrowseLocal.setOnClickListener {
             audioPlayerFragment?.savePlaylistFromController() ?: Unit
@@ -1881,17 +2198,9 @@ class HomeFragment : Fragment() {
         }
         binding.btnEmptyStateBrowseLocal.setOnClickListener { binding.btnBrowseLocal.performClick() }
         binding.btnHistoryLocal.setOnClickListener { showHistoryActionsDialog(1) }
-        binding.btnHistoryNetwork.setOnClickListener { showHistoryActionsDialog(2) }
+        binding.btnHistoryNetwork.setOnClickListener { openNetworkSourcesFromTab() }
         binding.btnFavoritesLocal.setOnClickListener {
-            fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
-                requireContext(), fr.retrospare.blazeplayer.favorites.FavoriteCategory.LOCAL
-            ) { favorite ->
-                audioPlayerFragment?.savePlaylistFromController() ?: Unit
-                findNavController().navigate(
-                    R.id.action_home_to_browser,
-                    androidx.core.os.bundleOf("path" to favorite.path)
-                )
-            }
+            showBlazeVideoFavorites()
         }
         binding.btnFavoritesNetwork.setOnClickListener {
             fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
@@ -1902,10 +2211,15 @@ class HomeFragment : Fragment() {
                     fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_error), getString(R.string.toast_share_not_found))
                     return@showFavoritesList
                 }
-                val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity::class.java)
-                intent.putExtra("shareId", shareId)
-                intent.putExtra("initialPath", favorite.path)
-                startActivity(intent)
+                audioPlayerFragment?.savePlaylistFromController() ?: Unit
+                findNavController().navigate(
+                    R.id.action_home_to_browser,
+                    android.os.Bundle().apply {
+                        putBoolean("isNetwork", true)
+                        putString("shareId", shareId)
+                        putString("path", favorite.path)
+                    }
+                )
             }
         }
         binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueLocal)?.setOnClickListener {
@@ -1926,6 +2240,44 @@ class HomeFragment : Fragment() {
         }
         setupPlaylistButtons()
         setupVideoQueueButtons()
+    }
+
+    private fun showBlazeVideoFavorites() {
+        fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
+            requireContext(),
+            listOf(
+                fr.retrospare.blazeplayer.favorites.FavoriteCategory.LOCAL,
+                fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK
+            )
+        ) { category, favorite ->
+            audioPlayerFragment?.savePlaylistFromController() ?: Unit
+            if (category == fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK) {
+                val shareId = favorite.shareId
+                if (shareId.isNullOrEmpty()) {
+                    fr.retrospare.blazeplayer.ui.InfoDialog.show(
+                        requireContext(),
+                        getString(R.string.info_dialog_title_error),
+                        getString(R.string.toast_share_not_found)
+                    )
+                    return@showFavoritesList
+                }
+                findNavController().navigate(
+                    R.id.action_home_to_browser,
+                    android.os.Bundle().apply {
+                        putBoolean("isNetwork", true)
+                        putString("shareId", shareId)
+                        putString("path", favorite.path)
+                    }
+                )
+            } else {
+                findNavController().navigate(
+                    R.id.action_home_to_browser,
+                    android.os.Bundle().apply {
+                        putString("path", favorite.path)
+                    }
+                )
+            }
+        }
     }
 
     /** Câble une puce de playlist numérotée : état visuel "non vide" indépendant de "dernière
@@ -2064,11 +2416,17 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun historyItemsForTab(tab: Int): List<MediaItem> =
-        if (tab == 2) latestNetworkHistoryItems else latestLocalHistoryItems
+    private fun sourceBadgeFrom(item: MediaItem): String = when {
+        item.path.startsWith("smb://", ignoreCase = true) -> "SMB"
+        item.networkShareId?.startsWith("upnp_", ignoreCase = true) == true -> "UPNP"
+        item.isNetwork && (item.path.startsWith("http://", ignoreCase = true) || item.path.startsWith("https://", ignoreCase = true)) -> "UPNP"
+        item.isNetwork -> "SMB"
+        else -> "LOC"
+    }
 
-    private fun historyTitleForTab(tab: Int): String =
-        if (tab == 2) getString(R.string.history_network) else getString(R.string.history_local)
+    private fun historyItemsForTab(tab: Int): List<MediaItem> = latestLocalHistoryItems
+
+    private fun historyTitleForTab(tab: Int): String = getString(R.string.history_blaze_video)
 
     private fun showHistoryActionsDialog(tab: Int) {
         val items = historyItemsForTab(tab)
@@ -2076,7 +2434,7 @@ class HomeFragment : Fragment() {
             fr.retrospare.blazeplayer.ui.InfoDialog.show(
                 requireContext(),
                 historyTitleForTab(tab),
-                if (tab == 2) getString(R.string.history_empty_network_subtitle) else getString(R.string.history_empty_local_subtitle),
+                getString(R.string.history_empty_blaze_video_subtitle),
                 R.drawable.ic_history
             )
             return
@@ -2137,7 +2495,7 @@ class HomeFragment : Fragment() {
             text = if (historySelectionTab == tab) {
                 getString(R.string.history_selection_active, selectedCount)
             } else {
-                getString(R.string.history_action_prompt)
+                getString(R.string.history_toast_select_thumbnails)
             }
             setTextColor(android.graphics.Color.parseColor("#CCFFFFFF"))
             textSize = 14f
@@ -2147,10 +2505,10 @@ class HomeFragment : Fragment() {
             }
         })
 
-        fun addActionButton(label: String, destructive: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
+        fun addActionButton(label: String, enabled: Boolean = true, onClick: () -> Unit) {
             root.addView(TextView(requireContext()).apply {
                 text = label
-                setTextColor(ContextCompat.getColor(requireContext(), if (destructive) R.color.red_accent else R.color.green_accent))
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
                 textSize = 13f
                 typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 gravity = android.view.Gravity.CENTER
@@ -2168,31 +2526,12 @@ class HomeFragment : Fragment() {
             })
         }
 
+        // Le dialogue ne supprime plus rien : il sert uniquement à passer en mode sélection.
+        // La validation destructive se fait ensuite via le bouton rouge en overlay sur la grille,
+        // ce qui évite les suppressions trop rapides depuis un modal fermé.
+        addActionButton(getString(R.string.history_select_thumbnails)) { enterHistorySelection(tab) }
         if (historySelectionTab == tab) {
-            addActionButton(getString(R.string.history_delete_selection, selectedCount), destructive = true, enabled = selectedCount > 0) {
-                val selected = historyItemsForTab(tab).filter { selectedHistoryPaths.contains(it.path) }
-                confirmHistoryDeletion(
-                    getString(R.string.history_confirm_delete_items, selected.size),
-                    onConfirm = {
-                        viewModel.removeFromHistory(selected)
-                        clearHistorySelection()
-                    }
-                )
-            }
             addActionButton(getString(R.string.history_finish_selection)) { clearHistorySelection() }
-        } else {
-            addActionButton(getString(R.string.history_select_thumbnails)) { enterHistorySelection(tab) }
-        }
-
-        addActionButton(getString(R.string.history_delete_all), destructive = true) {
-            val toDelete = historyItemsForTab(tab)
-            confirmHistoryDeletion(
-                if (tab == 2) getString(R.string.history_confirm_delete_all_network) else getString(R.string.history_confirm_delete_all_local),
-                onConfirm = {
-                    viewModel.removeFromHistory(toDelete)
-                    if (historySelectionTab == tab) clearHistorySelection()
-                }
-            )
         }
 
         dialog.setContentView(root)
@@ -2210,10 +2549,59 @@ class HomeFragment : Fragment() {
             .showPremium()
     }
 
+    private fun ensureHistoryDeleteOverlayButton(): com.google.android.material.button.MaterialButton? {
+        if (_binding == null || !isAdded) return null
+        return binding.btnHistoryDeleteOverlay.apply {
+            setOnClickListener { deleteSelectedHistoryFromOverlay() }
+        }
+    }
+
+    private fun updateHistoryDeleteOverlay() {
+        if (_binding == null || !isAdded) return
+        val activeOnBlazeVideo = currentTabIndex == 1 && historySelectionTab == 1
+        val targetBottomPadding = dp(if (activeOnBlazeVideo) 88 else 24)
+        if (binding.listLocal.paddingBottom != targetBottomPadding) {
+            binding.listLocal.setPadding(
+                binding.listLocal.paddingLeft,
+                binding.listLocal.paddingTop,
+                binding.listLocal.paddingRight,
+                targetBottomPadding
+            )
+        }
+        val button = ensureHistoryDeleteOverlayButton() ?: return
+        if (!activeOnBlazeVideo) {
+            button.visibility = View.GONE
+            return
+        }
+        val selectedCount = selectedHistoryPaths.size
+        button.text = if (selectedCount > 0) {
+            getString(R.string.history_delete_selection, selectedCount)
+        } else {
+            getString(R.string.action_delete)
+        }
+        button.isEnabled = selectedCount > 0
+        button.alpha = if (selectedCount > 0) 1f else 0.55f
+        button.visibility = View.VISIBLE
+        button.bringToFront()
+    }
+
+    private fun deleteSelectedHistoryFromOverlay() {
+        val selected = historyItemsForTab(1).filter { selectedHistoryPaths.contains(it.path) }
+        if (selected.isEmpty()) return
+        confirmHistoryDeletion(
+            getString(R.string.history_confirm_delete_items, selected.size),
+            onConfirm = {
+                viewModel.removeFromHistory(selected)
+                clearHistorySelection()
+            }
+        )
+    }
+
     private fun enterHistorySelection(tab: Int) {
         historySelectionTab = tab
         selectedHistoryPaths.clear()
         refreshHistorySelectionAdapters()
+        updateHistoryDeleteOverlay()
         android.widget.Toast.makeText(requireContext(), getString(R.string.history_toast_select_thumbnails), android.widget.Toast.LENGTH_SHORT).show()
     }
 
@@ -2221,15 +2609,18 @@ class HomeFragment : Fragment() {
         if (historySelectionTab == null) return
         if (!selectedHistoryPaths.add(item.path)) selectedHistoryPaths.remove(item.path)
         refreshHistorySelectionAdapters()
+        updateHistoryDeleteOverlay()
     }
 
     private fun clearHistorySelection() {
         historySelectionTab = null
         selectedHistoryPaths.clear()
         refreshHistorySelectionAdapters()
+        updateHistoryDeleteOverlay()
     }
 
     private fun refreshHistorySelectionAdapters() {
+        if (_binding == null) return
         binding.listLocal.adapter?.notifyDataSetChanged()
         binding.listNetwork.adapter?.notifyDataSetChanged()
     }
@@ -2240,7 +2631,6 @@ class HomeFragment : Fragment() {
                 launch {
                     viewModel.recentNetworkItems.collect { items ->
                         latestNetworkHistoryItems = items
-                        updateRecycler(binding.listNetwork, items)
                     }
                 }
                 launch {
@@ -2258,8 +2648,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateRecycler(recycler: androidx.recyclerview.widget.RecyclerView, items: List<MediaItem>) {
-        val historyTabForRecycler = if (recycler.id == R.id.listNetwork) 2 else 1
-        val emptyState = if (recycler.id == R.id.listNetwork) binding.emptyStateNetwork else binding.emptyStateLocal
+        val historyTabForRecycler = 1
+        val emptyState = binding.emptyStateLocal
         if (items.isEmpty() && historySelectionTab == historyTabForRecycler) clearHistorySelection()
         recycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
         emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
@@ -2283,6 +2673,7 @@ class HomeFragment : Fragment() {
                 // Titre + durée, dans l'overlay bas comme sur les tuiles photo de Blaze Gallery.
                 v.findViewById<TextView>(R.id.tvFileName).text = item.name
                 v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
+                v.findViewById<TextView>(R.id.tvSourceBadge)?.text = sourceBadgeFrom(item)
 
                 // Badges conteneur + qualité en haut à gauche de la tuile (résolution seule sert
                 // désormais de badge "qualité" : le champ MediaItem.resolution est déjà normalisé
@@ -2290,18 +2681,26 @@ class HomeFragment : Fragment() {
                 val tvFmt = v.findViewById<TextView>(R.id.tvFormat)
                 val tvRes = v.findViewById<TextView>(R.id.tvResolution)
                 val ext = containerBadgeFrom(item)
-                if (ext.isNotEmpty()) {
-                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFmt, ext)
-                    tvFmt.visibility = View.VISIBLE
+                val isAudioItem = item.mimeType.startsWith("audio/") ||
+                    item.extension.lowercase() in setOf("mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "wv", "aiff", "alac")
+                if (isAudioItem) {
+                    fr.retrospare.blazeplayer.player.AudioQualityBadgeBinder.bind(
+                        tvFmt, tvRes, item.path, item.name, ext
+                    )
                 } else {
-                    tvFmt.visibility = View.GONE
-                }
-                if (!item.resolution.isNullOrEmpty()) {
-                    tvRes.text = item.resolution
-                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvRes)
-                    tvRes.visibility = View.VISIBLE
-                } else {
-                    tvRes.visibility = View.GONE
+                    if (ext.isNotEmpty()) {
+                        fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFmt, ext)
+                        tvFmt.visibility = View.VISIBLE
+                    } else {
+                        tvFmt.visibility = View.GONE
+                    }
+                    if (!item.resolution.isNullOrEmpty()) {
+                        tvRes.text = item.resolution
+                        fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvRes)
+                        tvRes.visibility = View.VISIBLE
+                    } else {
+                        tvRes.visibility = View.GONE
+                    }
                 }
 
                 // Miniatures vidéo locales/réseau avec cache disque persistant, comme avant.
@@ -2378,6 +2777,13 @@ class HomeFragment : Fragment() {
                 }
             }
         }
+    }
+
+    companion object {
+        private const val PREFS_RUNTIME_PERMISSIONS = "blaze_runtime_permissions"
+        private const val KEY_GALLERY_PERMISSIONS_PROMPTED = "gallery_permissions_prompted"
+        private const val KEY_AUDIO_PERMISSIONS_PROMPTED = "audio_permissions_prompted"
+        private const val KEY_NETWORK_PERMISSIONS_PROMPTED = "network_permissions_prompted"
     }
 
 }

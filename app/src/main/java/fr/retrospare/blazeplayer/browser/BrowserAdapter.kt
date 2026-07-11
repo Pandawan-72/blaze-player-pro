@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
+import fr.retrospare.blazeplayer.player.AudioQualityBadgeBinder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,8 +28,11 @@ class BrowserAdapter(
         private const val TYPE_FILE_GRID = 2
     }
 
-    override fun getItemViewType(position: Int): Int =
-if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYPE_FILE_GRID else TYPE_FILE
+    override fun getItemViewType(position: Int): Int {
+        val item = getItem(position)
+        val isFolderLike = item.mimeType == "folder" || item.mimeType == "share" || item.mimeType == "network"
+        return if (isFolderLike) TYPE_FOLDER else if (isGridMode) TYPE_FILE_GRID else TYPE_FILE
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
@@ -62,9 +66,9 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
     private fun applyFilter() {
         val filtered = if (currentQuery.isEmpty()) fullList
         else fullList.filter { it.name.contains(currentQuery, ignoreCase = true) }
-        // Force le refresh en soumettant null puis la nouvelle liste
-        super.submitList(null)
-        super.submitList(filtered)
+        // Ne jamais soumettre null avant la nouvelle liste : cela vidait brièvement le
+        // RecyclerView à chaque enrichissement metadata et faisait sauter le scroll.
+        super.submitList(filtered.toList())
     }
 
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
@@ -86,7 +90,11 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
         private val btnMore: ImageView? = view.findViewById(fr.retrospare.blazeplayer.R.id.btnFolderMore)
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             tvName.text = item.name
-            tvCount.text = ""
+            tvCount.text = when (item.mimeType) {
+                "network" -> itemView.context.getString(R.string.tab_network)
+                "share" -> itemView.context.getString(R.string.saved_paths)
+                else -> ""
+            }
             // Checkbox visibilité
             val checkbox = itemView.findViewById<android.widget.CheckBox>(fr.retrospare.blazeplayer.R.id.checkboxSelect)
             checkbox?.visibility = if (isSelectionMode) android.view.View.VISIBLE else android.view.View.GONE
@@ -150,6 +158,7 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
         private val ivPlayOverlay: ImageView = view.findViewById(R.id.ivPlayOverlay)
         private val tvVideoCodec: TextView = view.findViewById(R.id.tvVideoCodec)
         private val tvAudioCodec: TextView = view.findViewById(R.id.tvAudioCodec)
+        private val tvAudioQuality: TextView = view.findViewById(R.id.tvAudioQuality)
 
         private fun isEventInsideChild(parent: View, child: View?, event: android.view.MotionEvent): Boolean {
             if (child == null || child.visibility != View.VISIBLE) return false
@@ -190,6 +199,14 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
             tvVideoCodec.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
             tvAudioCodec.text = item.audioCodec ?: ""
             tvAudioCodec.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+            val isAudio = item.mimeType.startsWith("audio/") || item.extension.lowercase() in setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka","wv","aiff","alac")
+            if (isAudio) {
+                // Pour l'audio, le conteneur et la qualité restent côte à côte dans la rangée.
+                tvFormat.visibility = View.GONE
+                AudioQualityBadgeBinder.bind(tvAudioCodec, tvAudioQuality, item.path, item.name, item.extension)
+            } else {
+                tvAudioQuality.visibility = View.GONE
+            }
 
             if (item.duration > 0 && item.lastPosition > 0) {
                 progressFill.visibility = View.VISIBLE
@@ -201,34 +218,39 @@ if (getItem(position).mimeType == "folder") TYPE_FOLDER else if (isGridMode) TYP
                 progressFill.visibility = View.GONE
             }
 
-            // Miniature à gauche du titre : cache RAM/disque en priorité, puis extraction
-            // asynchrone bornée par ThumbnailUtils. Cela couvre local, réseau SMB et audio
-            // affiché dans le navigateur sans bloquer le scroll.
+            // Miniature navigateur : pour les vidéos, on n'extrait plus jamais une frame ici.
+            // On affiche uniquement une miniature personnalisée ou un snapshot capturé pendant
+            // la lecture. L'extraction de frame à l'affichage était trop coûteuse et provoquait
+            // des saccades, surtout sur MP4/SMB. L'audio garde son extraction artwork dédiée.
             thumbnailJob?.cancel()
             (ivThumbnail.parent as? View)?.visibility = View.VISIBLE
             ivThumbnail.setImageDrawable(null)
+            ivThumbnail.setBackgroundResource(R.drawable.bg_thumbnail)
+            ivThumbnail.scaleType = ImageView.ScaleType.CENTER
+            ivThumbnail.setImageResource(R.drawable.ic_video_camera)
             ivPlayOverlay.visibility = View.VISIBLE
             ivThumbnail.setTag(R.id.ivThumbnail, item.path)
-            val cachedThumb = if (item.mimeType.startsWith("audio/") || item.extension.lowercase() in setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")) {
-                fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(itemView.context, item.path)
+            if (isAudio) ivThumbnail.setImageResource(R.drawable.ic_music_note_large)
+            val cachedThumb = if (isAudio) {
+                fr.retrospare.blazeplayer.player.AudioArtworkResolver.cachedJpegBytes(itemView.context, item.path)
                     ?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
             } else {
                 fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailBitmap(itemView.context, item.path)
             }
             if (cachedThumb != null) {
                 ivThumbnail.setImageBitmap(cachedThumb)
-            } else {
+                ivThumbnail.scaleType = ImageView.ScaleType.CENTER_CROP
+                ivThumbnail.setBackgroundColor(0x00000000)
+            } else if (isAudio) {
                 thumbnailJob = scope.launch {
-                    val bitmap = if (item.mimeType.startsWith("audio/") || item.extension.lowercase() in setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka")) {
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytes(itemView.context, item.path)
-                                ?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
-                        }
-                    } else {
-                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(itemView.context, item.path)
+                    val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        fr.retrospare.blazeplayer.player.AudioArtworkResolver.resolveJpegBytes(itemView.context, item.path)
+                            ?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
                     }
                     if (ivThumbnail.getTag(R.id.ivThumbnail) == item.path && bitmap != null) {
                         ivThumbnail.setImageBitmap(bitmap)
+                        ivThumbnail.scaleType = ImageView.ScaleType.CENTER_CROP
+                        ivThumbnail.setBackgroundColor(0x00000000)
                     }
                 }
             }

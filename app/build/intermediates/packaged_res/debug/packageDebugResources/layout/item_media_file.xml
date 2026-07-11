@@ -128,6 +128,19 @@
                 android:textSize="10sp"
                 android:textColor="@color/on_surface_variant"
                 android:fontFamily="sans-serif-condensed"
+                android:layout_marginEnd="4dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvAudioQuality"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_gray"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:textSize="10sp"
+                android:textColor="@color/on_surface_variant"
+                android:fontFamily="sans-serif-condensed"
                 android:visibility="gone" />
 
         </LinearLayout>

@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package fr.retrospare.blazeplayer.player
 
 import android.content.Context

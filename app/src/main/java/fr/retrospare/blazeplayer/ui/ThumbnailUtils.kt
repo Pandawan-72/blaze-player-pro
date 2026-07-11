@@ -21,6 +21,8 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
+import java.util.Locale
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
@@ -35,7 +37,26 @@ object ThumbnailUtils {
     )
 
     private val folderCoverImageExtensions = setOf("jpg", "jpeg", "png")
-    private const val MAX_FOLDER_COVER_IMAGE_BYTES = 16L * 1024L * 1024L
+    private val preferredFolderCoverExtensions = listOf("jpg", "png")
+    private val preferredFolderCoverBaseNames = listOf("cover")
+    private val fastExactCoverFileNames = preferredFolderCoverBaseNames.flatMap { base ->
+        preferredFolderCoverExtensions.flatMap { ext ->
+            val capitalized = base.replaceFirstChar { it.uppercaseChar() }
+            listOf(
+                "$base.$ext",
+                "$capitalized.$ext",
+                "${base.uppercase()}.$ext",
+                "$base.${ext.uppercase()}",
+                "$capitalized.${ext.uppercase()}",
+                "${base.uppercase()}.${ext.uppercase()}"
+            )
+        }
+    }.distinct()
+    private const val MAX_FOLDER_COVER_IMAGE_BYTES = 32L * 1024L * 1024L
+    private const val AUDIO_ARTWORK_MAX_PX = 512
+
+    private fun safePathForLog(path: String): String =
+        fr.retrospare.blazeplayer.player.SmbDataSource.redactForLog(path)
 
     private fun extensionOf(path: String): String =
         path.substringBefore('?').substringBefore('#').substringAfterLast('.', "").lowercase()
@@ -43,6 +64,13 @@ object ThumbnailUtils {
     private fun isAudioPath(path: String): Boolean = extensionOf(path) in audioExtensions
 
     private fun isFolderCoverImagePath(path: String): Boolean = extensionOf(path) in folderCoverImageExtensions
+
+    private fun isAllowedAudioFolderCoverName(path: String): Boolean = when (
+        path.substringBefore('?').substringBefore('#').substringAfterLast('/').substringAfterLast('\\').lowercase()
+    ) {
+        "cover.jpg", "cover.png" -> true
+        else -> false
+    }
 
     private fun isNetworkVideoPath(path: String): Boolean =
         path.startsWith("smb://", true) || path.startsWith("http://", true) || path.startsWith("https://", true)
@@ -54,6 +82,22 @@ object ThumbnailUtils {
     private val cache = object : LruCache<String, Bitmap>(15 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
+    // Cache RAM dédié, exclusivement pour les pochettes de la bibliothèque audio, séparé du cache
+    // partagé ci-dessus (partagé avec la Galerie photo/vidéo). Une bibliothèque de plusieurs
+    // centaines/milliers de titres peut faire défiler beaucoup plus de pochettes distinctes que les
+    // 15MB partagés ne peuvent en retenir : chaque éviction prématurée forçait un redécodage visible
+    // (flash/saut d'image) au moment où l'utilisateur revenait sur une ligne déjà vue. Budget calé sur
+    // le tas de l'app (borné 16–32MB) pour rester généreux sans risquer un OutOfMemoryError sur un
+    // appareil d'entrée de gamme.
+    private val audioCoverHotCacheBytes = (Runtime.getRuntime().maxMemory() / 12)
+        .coerceIn(16L * 1024L * 1024L, 32L * 1024L * 1024L)
+        .toInt()
+    private val audioCoverHotCache = object : LruCache<String, Bitmap>(audioCoverHotCacheBytes) {
+        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+    }
+    private fun promoteAudioHotCache(key: String, bitmap: Bitmap) {
+        audioCoverHotCache.put(key, bitmap)
+    }
     private val inFlight = ConcurrentHashMap<String, Deferred<Bitmap?>>()
     private val audioArtworkInFlight = ConcurrentHashMap<String, Deferred<Bitmap?>>()
     private val networkThumbnailSemaphore = Semaphore(2)
@@ -64,13 +108,29 @@ object ThumbnailUtils {
     // au lieu de continuer à servir indéfiniment l'ancienne pochette (ou "aucune pochette") mise
     // en cache lors d'un scan précédent — sans ça, une cover ajoutée après coup n'apparaissait
     // jamais tant que le processus de l'app restait vivant.
-    private val folderCoverPathCache = ConcurrentHashMap<String, Pair<Long, String>>()
+    private val folderCoverPathCache = ConcurrentHashMap<String, Pair<Long, List<String>>>()
+    private val audioFolderCoverEpoch = AtomicLong(0L)
     private val audioArtworkDispatcher = Executors.newSingleThreadExecutor { runnable ->
         Thread {
-            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + 6) } catch (_: Exception) {}
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_LOWEST) } catch (_: Exception) {}
             runnable.run()
         }.apply {
             name = "BlazeAudioArtworkBg"
+            isDaemon = true
+            priority = Thread.MIN_PRIORITY
+        }
+    }.asCoroutineDispatcher()
+
+    // Les miniatures photo doivent rester hors du thread principal : une simple lecture disque ou
+    // une requête MediaStore dans onBindViewHolder suffit à créer des micro-saccades pendant le
+    // scroll de l'accueil Galerie, surtout avec 4 aperçus par dossier. Deux workers bas-priorité
+    // gardent les vignettes visibles réactives sans saturer l'I/O ni le GPU.
+    private val imageThumbnailDispatcher = Executors.newFixedThreadPool(2) { runnable ->
+        Thread {
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + 5) } catch (_: Exception) {}
+            runnable.run()
+        }.apply {
+            name = "BlazeImageThumbBg"
             isDaemon = true
             priority = Thread.MIN_PRIORITY
         }
@@ -94,6 +154,36 @@ object ThumbnailUtils {
 
     private fun diskFileFor(context: Context, path: String): File =
         File(diskCacheDir(context), keyFor(path) + ".jpg")
+
+    private fun imageThumbnailKey(context: Context, path: String, maxSize: Int): String =
+        "image-thumb-v1:$maxSize:$path:${imageContentStamp(context, path)}"
+
+    private fun imageContentStamp(context: Context, path: String): String {
+        return try {
+            when {
+                path.startsWith("content://", true) -> {
+                    val uri = Uri.parse(path)
+                    val projection = arrayOf(
+                        MediaStore.MediaColumns.DATE_MODIFIED,
+                        MediaStore.MediaColumns.SIZE
+                    )
+                    context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val dateIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
+                            val sizeIdx = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
+                            val date = if (dateIdx >= 0) cursor.getLong(dateIdx) else 0L
+                            val size = if (sizeIdx >= 0) cursor.getLong(sizeIdx) else 0L
+                            ":$date:$size"
+                        } else ""
+                    }.orEmpty()
+                }
+                else -> localFileForImagePath(path)
+                    ?.takeIf { it.exists() && it.isFile }
+                    ?.let { ":${it.lastModified()}:${it.length()}" }
+                    .orEmpty()
+            }
+        } catch (_: Exception) { "" }
+    }
 
     private fun deleteFromDisk(context: Context, path: String) {
         try { diskFileFor(context, path).delete() } catch (_: Exception) {}
@@ -199,12 +289,33 @@ object ThumbnailUtils {
     // Caches séparés audio/vidéo : évite qu'une miniature vidéo (même chemin logique,
     // ancien cache Vxx ou artworkUri Cast) soit réutilisée comme pochette audio.
     private fun audioKey(path: String): String {
-        // v6 : la clé audio tient compte de la jaquette dossier prioritaire, du parser ID3 durci et des chemins locaux décodés. Si un cover.jpg/png
-        // apparaît ou change, on évite de réutiliser une ancienne pochette embarquée cachée.
-        val preferredCover = if (isAudioPath(path)) preferredFolderCoverPathForAudioPath(path) else null
-        val stampedPath = preferredCover ?: path
-        val imageStamp = if (isFolderCoverImagePath(stampedPath)) folderCoverStamp(stampedPath) else ""
-        return "audio-hires-v6:$path:${preferredCover.orEmpty()}$imageStamp"
+        // v10 : priorité stricte à cover.jpg puis cover.png. La pochette embarquée n'est utilisée
+        // qu'en repli, et le stamp du fichier de dossier reste dans la clé pour rafraîchir le cache
+        // dès qu'une cover est ajoutée ou remplacée.
+        val fallbackCover = if (isAudioPath(path)) preferredFolderCoverPathForAudioPath(path) else null
+        val imageStamp = fallbackCover?.let { folderCoverStamp(it) }.orEmpty()
+        val remoteEpoch = if (path.startsWith("smb://", true)) ":${audioFolderCoverEpoch.get()}" else ""
+        return "audio-hires-v10:$path:${fallbackCover.orEmpty()}$imageStamp$remoteEpoch"
+    }
+
+    private fun audioNoProbeKey(path: String): String {
+        val remoteEpoch = if (path.startsWith("smb://", true)) ":${audioFolderCoverEpoch.get()}" else ""
+        return "audio-hires-v10:$path:$remoteEpoch"
+    }
+
+    private fun putAudioArtworkAliases(context: Context, path: String, key: String, bitmap: Bitmap) {
+        cache.put(key, bitmap)
+        promoteAudioHotCache(key, bitmap)
+        writeToDisk(context.applicationContext, key, bitmap)
+        // Alias cache-first destiné aux écrans de bibliothèque : il permet de retrouver une cover
+        // déjà générée sans relancer preferredFolderCoverPathForAudioPath(), donc sans listFiles()
+        // sur chaque dossier au moment de l'ouverture.
+        if (isAudioPath(path)) {
+            val noProbeKey = audioNoProbeKey(path)
+            cache.put(noProbeKey, bitmap)
+            promoteAudioHotCache(noProbeKey, bitmap)
+            writeToDisk(context.applicationContext, noProbeKey, bitmap)
+        }
     }
 
     private fun folderCoverStamp(path: String): String = localFileForImagePath(path)
@@ -213,10 +324,11 @@ object ThumbnailUtils {
         .orEmpty()
     private fun videoKey(path: String): String = "video:$path"
     private fun customVideoKey(path: String): String = "custom-video-thumb:$path"
-    // Versionne le cache des frames vidéo pour forcer une vraie extraction à 10s
-    // après mise à jour, au lieu de réutiliser d'anciennes miniatures à 1s/5s
-    // ou des artworks DLNA mis en cache sous la même URL.
-    private fun thumbnailKey(path: String): String = if (isAudioPath(path)) "audio-thumb-v3:${audioKey(path)}" else "video-frame-10s-v2:$path"
+    // Les miniatures vidéo automatiques viennent d'une extraction légère et cachée : miniature
+    // personnalisée en priorité, puis thumbnail système MediaStore quand Android l'a déjà indexée,
+    // puis frame vidéo bornée par timeout. Clé séparée pour ne pas réutiliser les anciens snapshots
+    // capturés pendant la lecture.
+    private fun thumbnailKey(path: String): String = if (isAudioPath(path)) "audio-thumb-v3:${audioKey(path)}" else "video-frame-lite-v2:$path"
 
     /** Retourne une pochette audio déjà en cache RAM/disque sans ouvrir le fichier source.
      *  À utiliser depuis l'UI : évite de lancer MediaMetadataRetriever sur le thread principal. */
@@ -225,23 +337,53 @@ object ThumbnailUtils {
         cache.get(key)?.let { return it }
         readFromDisk(context.applicationContext, key)?.let { cached ->
             cache.put(key, cached)
+            promoteAudioHotCache(key, cached)
             return cached
         }
-        // Pour un fichier audio avec cover dossier existante, ne pas retomber sur une ancienne
-        // pochette embarquée cachée : getAudioArtworkBitmap() devra décoder la cover dossier.
-        val coverPath = if (isAudioPath(path)) preferredFolderCoverPathForAudioPath(path) else null
-        if (coverPath != null) {
-            val coverKey = audioKey(coverPath)
-            cache.get(coverKey)?.let { return it }
-            readFromDisk(context.applicationContext, coverKey)?.let { cached ->
-                cache.put(coverKey, cached)
-                cache.put(key, cached)
+        if (isFolderCoverImagePath(path)) {
+            val imageKey = audioKey(path)
+            cache.get(imageKey)?.let { return it }
+            readFromDisk(context.applicationContext, imageKey)?.let { cached ->
+                cache.put(imageKey, cached)
+                promoteAudioHotCache(imageKey, cached)
                 return cached
             }
-            return null
         }
         return null
     }
+    /** Retourne RAM + disque sans résoudre cover.jpg voisin.
+     *  C'est le chemin d'ouverture rapide de la bibliothèque : lire un jpg déjà en cache est OK,
+     *  lister le dossier de chaque titre/album ne l'est pas. */
+    fun getCachedAudioArtworkBitmapNoFolderProbe(context: Context, path: String): Bitmap? {
+        val simpleKey = audioNoProbeKey(path)
+        cache.get(simpleKey)?.let { return it }
+        readFromDisk(context.applicationContext, simpleKey)?.let { cached ->
+            cache.put(simpleKey, cached)
+            promoteAudioHotCache(simpleKey, cached)
+            return cached
+        }
+        val thumbKey = "audio-thumb-v3:$simpleKey"
+        cache.get(thumbKey)?.let { return it }
+        readFromDisk(context.applicationContext, thumbKey)?.let { cached ->
+            cache.put(thumbKey, cached)
+            promoteAudioHotCache(thumbKey, cached)
+            return cached
+        }
+        // Si artworkPath est déjà une image explicite indexée (cover.jpg/png), audioKey() ne
+        // déclenche aucun scan de dossier car ce n'est pas un chemin audio. On peut donc réutiliser
+        // le cache normal dans ce cas.
+        if (isFolderCoverImagePath(path)) {
+            val imageKey = audioKey(path)
+            cache.get(imageKey)?.let { return it }
+            readFromDisk(context.applicationContext, imageKey)?.let { cached ->
+                cache.put(imageKey, cached)
+                promoteAudioHotCache(imageKey, cached)
+                return cached
+            }
+        }
+        return null
+    }
+
     /** Retourne uniquement le cache RAM : aucune lecture disque ni extraction.
      *  Utilisé pendant l'inflation des grandes bibliothèques pour éviter les micro-freezes UI. */
     fun getMemoryCachedAudioArtworkBitmap(path: String): Bitmap? {
@@ -250,9 +392,36 @@ object ThumbnailUtils {
         return coverPath?.let { cache.get(audioKey(it)) }
     }
 
-    /** Permet aux écrans de savoir s'il faut lancer une extraction même si MediaMetadata contient
-     *  déjà une image embarquée : une image jpg/png à la racine du dossier reste prioritaire. */
+    /** Variante strictement no-I/O : ne résout pas cover.jpg et ne touche pas au disque.
+     *  À utiliser pendant l'ouverture de la bibliothèque ou quand un audio joue. */
+    fun getMemoryCachedAudioArtworkBitmapNoIo(path: String): Bitmap? {
+        // Cache dédié en premier : budget plus généreux et non partagé avec la Galerie, donc plus
+        // de chances qu'une pochette déjà vue soit encore résidente, pour un rebind instantané.
+        val noProbeKey = audioNoProbeKey(path)
+        audioCoverHotCache.get(noProbeKey)?.let { return it }
+        audioCoverHotCache.get("audio-thumb-v3:$noProbeKey")?.let { return it }
+        cache.get(noProbeKey)?.let { return it }
+        cache.get("audio-thumb-v3:$noProbeKey")?.let { return it }
+        // Pour artworkPath déjà résolu vers cover.jpg/png (local ou smb), audioKey() ne déclenche
+        // aucun probe de dossier et permet de réutiliser l'image RAM immédiatement au retour écran.
+        if (isFolderCoverImagePath(path) || path.startsWith("content://", true)) {
+            audioCoverHotCache.get(audioKey(path))?.let { return it }
+            cache.get(audioKey(path))?.let { return it }
+        }
+        return null
+    }
+
+    /** Indique si le dossier contient une cover exacte cover.jpg ou cover.png. Cette image de
+     *  dossier est prioritaire sur la pochette embarquée lors de l'extraction. */
     fun hasPreferredFolderCoverForAudio(path: String): Boolean = preferredFolderCoverPathForAudioPath(path) != null
+
+    /** Appelé au début d'un rafraîchissement de bibliothèque. Les caches de lookup, notamment les
+     *  résultats négatifs SMB, ne doivent pas masquer un cover.jpg ajouté depuis le dernier scan. */
+    fun invalidateAudioFolderCoverLookups() {
+        folderCoverPathCache.clear()
+        smbFolderCoverCache.clear()
+        audioFolderCoverEpoch.incrementAndGet()
+    }
 
 
     fun hasCachedAudioArtwork(context: Context, path: String): Boolean = getCachedAudioArtworkBitmap(context, path) != null
@@ -267,24 +436,46 @@ object ThumbnailUtils {
         } catch (_: Exception) { null }
     }
 
+    /** Cache RAM/disque strict, sans chercher cover.jpg/png voisin. Chemin prioritaire pour
+     *  player/mini-player/bibliothèque au premier affichage : aucun listing dossier/NAS n'est
+     *  déclenché pour simplement relire une cover déjà extraite. */
+    fun getCachedAudioArtworkJpegBytesNoFolderProbe(context: Context, path: String): ByteArray? {
+        val bitmap = getCachedAudioArtworkBitmapNoFolderProbe(context, path) ?: return null
+        return try {
+            java.io.ByteArrayOutputStream().use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, DISK_CACHE_JPEG_QUALITY, out)
+                out.toByteArray()
+            }
+        } catch (_: Exception) { null }
+    }
+
+    /** Associe un bitmap déjà résolu (par exemple un cover.jpg indexé dans Room) au chemin de
+     *  la piste audio. Tous les écrans qui ne connaissent que le chemin audio récupèrent ensuite
+     *  exactement la même pochette depuis les alias RAM/disque. */
+    fun cacheResolvedAudioArtworkBitmap(context: Context, audioPath: String, bitmap: Bitmap) {
+        if (audioPath.isBlank()) return
+        try {
+            val scaled = scaleBitmap(bitmap, AUDIO_ARTWORK_MAX_PX)
+            putAudioArtworkAliases(context.applicationContext, audioPath, audioKey(audioPath), scaled)
+        } catch (e: Exception) {
+            android.util.Log.w("ThumbnailUtils", "Failed to alias resolved audio artwork for ${safePathForLog(audioPath)}", e)
+        }
+    }
+
     fun cacheAudioArtworkData(context: Context, path: String, artworkData: ByteArray?) {
         if (artworkData == null || artworkData.isEmpty()) return
-        // Si une cover dossier existe pour ce morceau, elle doit rester prioritaire. On évite donc
-        // de remplir la clé prioritaire avec une image embarquée reçue via MediaMetadata.
-        if (isAudioPath(path) && preferredFolderCoverPathForAudioPath(path) != null) return
         try {
-            val bitmap = BitmapFactory.decodeByteArray(artworkData, 0, artworkData.size) ?: return
-            val scaled = scaleBitmap(bitmap, 1024)
+            val bitmap = decodeByteArraySampled(artworkData, artworkData.size, AUDIO_ARTWORK_MAX_PX) ?: return
+            val scaled = scaleBitmap(bitmap, AUDIO_ARTWORK_MAX_PX)
             val key = audioKey(path)
-            cache.put(key, scaled)
-            writeToDisk(context.applicationContext, key, scaled)
+            putAudioArtworkAliases(context, path, key, scaled)
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "Failed to cache audio artwork for $path", e)
+            android.util.Log.w("ThumbnailUtils", "Failed to cache audio artwork for ${safePathForLog(path)}", e)
         }
     }
 
     suspend fun getAudioArtworkJpegBytes(context: Context, path: String): ByteArray? {
-        getCachedAudioArtworkJpegBytes(context, path)?.let { return it }
+        if (!isAudioPath(path)) getCachedAudioArtworkJpegBytes(context, path)?.let { return it }
         val bitmap = getAudioArtworkBitmap(context, path) ?: return null
         return withContext(Dispatchers.IO) {
             try {
@@ -297,10 +488,10 @@ object ThumbnailUtils {
     }
 
     /** Version synchrone à utiliser uniquement depuis un thread de fond/service.
-     *  Elle force l'extraction réelle quand le cache est vide : cover dossier prioritaire,
-     *  puis pochette embarquée via MediaMetadataRetriever/ID3. */
+     *  Elle force l'extraction réelle quand le cache est vide : cover.jpg, puis cover.png,
+     *  puis seulement la pochette embarquée si aucun fichier de dossier n'existe. */
     fun getAudioArtworkJpegBytesBlocking(context: Context, path: String): ByteArray? {
-        getCachedAudioArtworkJpegBytes(context, path)?.let { return it }
+        if (!isAudioPath(path)) getCachedAudioArtworkJpegBytes(context, path)?.let { return it }
         val bitmap = extractAudioArtworkInternal(context.applicationContext, path) ?: return null
         return try {
             java.io.ByteArrayOutputStream().use { out ->
@@ -313,7 +504,7 @@ object ThumbnailUtils {
     /** Extraction audio dédupliquée et bridée. Sur NAS/FLAC lourds, lancer trop de
      *  retrievers en parallèle provoque des freezes I/O et des ANR indirects. */
     suspend fun getAudioArtworkBitmap(context: Context, path: String): Bitmap? = coroutineScope {
-        getCachedAudioArtworkBitmap(context, path)?.let { return@coroutineScope it }
+        if (!isAudioPath(path)) getCachedAudioArtworkBitmap(context, path)?.let { return@coroutineScope it }
         val key = audioKey(path)
         audioArtworkInFlight[key]?.let { return@coroutineScope it.await() }
         val deferred = async(audioArtworkDispatcher) {
@@ -346,15 +537,53 @@ object ThumbnailUtils {
         } catch (_: Exception) { null }
     }
 
-    fun preferredFolderCoverPathForAudioPath(path: String): String? {
+    /**
+     * Lookup ultra-court pour les vues visibles : uniquement des noms exacts type cover.jpg/png,
+     * pas de listFiles() massif, pas de MediaStore, pas de réseau. Ne jamais appeler cette méthode
+     * pendant la construction globale du modèle de bibliothèque.
+     */
+    fun fastPreferredFolderCoverPathForAudioPath(path: String): String? {
         if (!isAudioPath(path)) return null
         if (path.startsWith("smb://", true) || path.startsWith("http://", true) ||
-            path.startsWith("https://", true) || path.startsWith("upnp://", true)) return null
+            path.startsWith("https://", true) || path.startsWith("content://", true) ||
+            path.startsWith("upnp://", true)) return null
         return localCoverSearchDirectoriesForAudioPath(path)
             .asSequence()
-            .mapNotNull { preferredCoverImageInDirectory(it) }
+            .mapNotNull { directory ->
+                val key = directory.absolutePath
+                val stamp = directory.lastModified()
+                folderCoverPathCache[key]?.let { (cachedStamp, cachedPaths) ->
+                    if (cachedStamp == stamp) {
+                        cachedPaths.firstOrNull { cached -> File(cached).exists() && File(cached).isFile }
+                            ?.let { return@mapNotNull it }
+                    }
+                }
+                fastExactCoverFileNames
+                    .asSequence()
+                    .map { File(directory, it) }
+                    .firstOrNull { it.exists() && it.isFile }
+                    ?.absolutePath
+                    ?.also { folderCoverPathCache[key] = stamp to listOf(it) }
+            }
             .firstOrNull()
-            ?.absolutePath
+    }
+
+    fun preferredFolderCoverPathForAudioPath(path: String): String? =
+        preferredLocalFolderCoverCandidatesForAudioPath(path).firstOrNull()
+
+    /** Liste ordonnée et validée des pochettes de dossier locales. On garde plusieurs candidats
+     *  au lieu d'un seul : un cover.jpg présent mais illisible ne doit pas empêcher le repli vers
+     *  cover.png. Le lookup est insensible à la casse pour les volumes dont le nom réel est
+     *  Cover.JPG/COVER.PNG. */
+    private fun preferredLocalFolderCoverCandidatesForAudioPath(path: String): List<String> {
+        if (!isAudioPath(path)) return emptyList()
+        if (path.startsWith("smb://", true) || path.startsWith("http://", true) ||
+            path.startsWith("https://", true) || path.startsWith("content://", true) ||
+            path.startsWith("upnp://", true)) return emptyList()
+        return localCoverSearchDirectoriesForAudioPath(path)
+            .flatMap { preferredCoverImagesInDirectory(it) }
+            .distinctBy { it.absolutePath.lowercase(Locale.getDefault()) }
+            .map { it.absolutePath }
     }
 
     private fun localCoverSearchDirectoriesForAudioPath(path: String): List<File> {
@@ -370,22 +599,37 @@ object ThumbnailUtils {
             .distinctBy { it.absolutePath }
     }
 
-    private fun preferredCoverImageInDirectory(directory: File): File? {
+    private fun preferredCoverImageInDirectory(directory: File): File? =
+        preferredCoverImagesInDirectory(directory).firstOrNull()
+
+    private fun preferredCoverImagesInDirectory(directory: File): List<File> {
         val key = directory.absolutePath
         val dirStamp = directory.lastModified()
-        folderCoverPathCache[key]?.let { (stamp, coverPath) ->
+        folderCoverPathCache[key]?.let { (stamp, coverPaths) ->
             if (stamp == dirStamp) {
-                if (coverPath.isBlank()) return null
-                File(coverPath).takeIf { it.exists() && it.isFile }?.let { return it }
+                val cached = coverPaths.map { File(it) }.filter { it.exists() && it.isFile }
+                if (cached.isNotEmpty()) return cached
             }
         }
-        val cover = runCatching {
-            directory.listFiles { file -> file.isFile && extensionOf(file.name) in folderCoverImageExtensions }
-                ?.sortedWith(Comparator { a, b -> naturalFileNameCompare(a.name, b.name) })
-                ?.firstOrNull()
-        }.getOrNull()
-        folderCoverPathCache[key] = dirStamp to cover?.absolutePath.orEmpty()
-        return cover
+        val filesByName = runCatching {
+            directory.listFiles()
+                ?.asSequence()
+                ?.filter { it.isFile }
+                ?.associateBy { it.name.lowercase(Locale.getDefault()) }
+                .orEmpty()
+        }.getOrDefault(emptyMap())
+        val covers = listOf("cover.jpg", "cover.png")
+            .mapNotNull { expected ->
+                File(directory, expected).takeIf { it.exists() && it.isFile }
+                    ?: filesByName[expected]
+            }
+            .distinctBy { it.absolutePath.lowercase() }
+        // Ne pas mémoriser durablement une absence : certains NAS/volumes externes ne mettent pas
+        // à jour lastModified() du dossier lors de l'ajout d'une image. Une prochaine demande doit
+        // donc pouvoir retenter immédiatement.
+        if (covers.isNotEmpty()) folderCoverPathCache[key] = dirStamp to covers.map { it.absolutePath }
+        else folderCoverPathCache.remove(key)
+        return covers
     }
 
     private fun preferredMediaStoreFolderCoverPathForAudioPath(context: Context, path: String): String? {
@@ -418,7 +662,7 @@ object ThumbnailUtils {
                         val parent = runCatching { File(imagePath).parentFile?.absolutePath }.getOrNull()
                         if (parent != dirPath) continue
                         val name = cursor.getString(nameIdx).orEmpty().ifBlank { imagePath.substringAfterLast('/') }
-                        if (!isFolderCoverImagePath(name)) continue
+                        if (!isAllowedAudioFolderCoverName(name)) continue
                         val id = cursor.getLong(idIdx)
                         val uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id).toString()
                         candidates += name to uri
@@ -427,9 +671,35 @@ object ThumbnailUtils {
             }
         }
         return candidates
-            .sortedWith(Comparator { a, b -> naturalFileNameCompare(a.first, b.first) })
+            .sortedWith(Comparator { a, b -> preferredCoverFileCompare(a.first, b.first) })
             .firstOrNull()
             ?.second
+    }
+
+    private fun preferredCoverFileCompare(left: String, right: String): Int {
+        val lp = folderCoverPriority(left)
+        val rp = folderCoverPriority(right)
+        if (lp != rp) return lp.compareTo(rp)
+        return naturalFileNameCompare(left, right)
+    }
+
+    private fun folderCoverPriority(name: String): Int {
+        val base = name.substringBeforeLast('.', name)
+            .replace('_', ' ')
+            .replace('-', ' ')
+            .trim()
+            .lowercase()
+        val extPenalty = when (extensionOf(name)) {
+            "jpg" -> 0
+            "png" -> 1
+            "jpeg" -> 2
+            else -> 9
+        }
+        val exactIndex = preferredFolderCoverBaseNames.indexOf(base)
+        if (exactIndex >= 0) return exactIndex * 10 + extPenalty
+        val prefixIndex = preferredFolderCoverBaseNames.indexOfFirst { base.startsWith(it) }
+        if (prefixIndex >= 0) return 100 + prefixIndex * 10 + extPenalty
+        return 1_000 + extPenalty
     }
 
     private fun naturalFileNameCompare(left: String, right: String): Int {
@@ -461,16 +731,14 @@ object ThumbnailUtils {
         if (!isFolderCoverImagePath(path) && !path.startsWith("content://", true)) return null
         return try {
             when {
-                path.startsWith("content://", true) -> context.contentResolver.openInputStream(Uri.parse(path))?.use { input ->
-                    BitmapFactory.decodeStream(input)
-                }
-                path.startsWith("file://", true) -> localFileForImagePath(path)?.takeIf { it.exists() }?.absolutePath?.let(BitmapFactory::decodeFile)
+                path.startsWith("content://", true) -> decodeSampledImageBitmap(context, path, AUDIO_ARTWORK_MAX_PX)
+                path.startsWith("file://", true) -> decodeSampledImageBitmap(context, path, AUDIO_ARTWORK_MAX_PX)
                 path.startsWith("smb://", true) -> decodeSmbFolderCoverBitmap(path)
                 path.startsWith("http://", true) || path.startsWith("https://", true) -> null
-                else -> localFileForImagePath(path)?.takeIf { it.exists() }?.absolutePath?.let(BitmapFactory::decodeFile)
+                else -> decodeSampledImageBitmap(context, path, AUDIO_ARTWORK_MAX_PX)
             }
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "Failed to decode folder cover image for $path", e)
+            android.util.Log.w("ThumbnailUtils", "Failed to decode folder cover image for ${safePathForLog(path)}", e)
             null
         }
     }
@@ -478,22 +746,68 @@ object ThumbnailUtils {
     private fun decodeSmbFolderCoverBitmap(path: String): Bitmap? {
         var source: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
         return try {
-            source = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
-            val size = source.getSize()
+            val smbSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
+            source = smbSource
+            val size = smbSource.getSize()
             if (size <= 0L || size > MAX_FOLDER_COVER_IMAGE_BYTES) return null
-            val bytes = ByteArray(size.toInt())
-            var offset = 0
-            while (offset < bytes.size) {
-                val read = source.readAt(offset.toLong(), bytes, offset, bytes.size - offset)
-                if (read <= 0) break
-                offset += read
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            SmbSourceInputStream(smbSource).use { BitmapFactory.decodeStream(it, null, bounds) }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            var sample = 1
+            while ((bounds.outWidth / sample) > AUDIO_ARTWORK_MAX_PX * 2 ||
+                (bounds.outHeight / sample) > AUDIO_ARTWORK_MAX_PX * 2
+            ) sample *= 2
+            val decoded = SmbSourceInputStream(smbSource).use {
+                BitmapFactory.decodeStream(
+                    it,
+                    null,
+                    BitmapFactory.Options().apply {
+                        inSampleSize = sample.coerceAtLeast(1)
+                        inPreferredConfig = Bitmap.Config.RGB_565
+                    }
+                )
             }
-            if (offset <= 0) null else BitmapFactory.decodeByteArray(bytes, 0, offset)
+            decoded ?: run {
+                // Certains décodeurs JPEG/PNG Android réclament des lectures non séquentielles et
+                // renvoient null sur un InputStream SMB pourtant valide. Pour les images bornées à
+                // 32 Mo, un dernier essai en mémoire est plus fiable et reste raisonnable.
+                val bytes = ByteArray(size.toInt())
+                var offset = 0
+                while (offset < bytes.size) {
+                    val read = smbSource.readAt(offset.toLong(), bytes, offset, bytes.size - offset)
+                    if (read <= 0) break
+                    offset += read
+                }
+                if (offset == bytes.size) decodeByteArraySampled(bytes, bytes.size, AUDIO_ARTWORK_MAX_PX) else null
+            }
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "Failed to read SMB folder cover image for $path", e)
+            if (!fr.retrospare.blazeplayer.player.SmbDataSource.isMissingPathError(e)) {
+                android.util.Log.w("ThumbnailUtils", "Failed to read SMB folder cover image for ${safePathForLog(path)}", e)
+            }
             null
         } finally {
             try { source?.close() } catch (_: Exception) {}
+        }
+    }
+
+    /** Flux séquentiel léger au-dessus du readAt SMB : évite d'allouer en RAM l'intégralité
+     * d'un cover.jpg réseau (jusqu'à 32 Mo) avant le décodage échantillonné. */
+    private class SmbSourceInputStream(
+        private val source: fr.retrospare.blazeplayer.player.SmbMediaDataSource
+    ) : java.io.InputStream() {
+        private var position = 0L
+        private val oneByte = ByteArray(1)
+
+        override fun read(): Int {
+            val count = read(oneByte, 0, 1)
+            return if (count <= 0) -1 else oneByte[0].toInt() and 0xFF
+        }
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            if (length <= 0) return 0
+            val count = source.readAt(position, buffer, offset, length)
+            if (count > 0) position += count
+            return if (count <= 0) -1 else count
         }
     }
 
@@ -502,9 +816,32 @@ object ThumbnailUtils {
     // simplement, un TTL est le compromis le plus simple pour éviter de relister le dossier à
     // chaque miniature tout en restant à jour si une cover est ajoutée/changée sur le NAS).
     private val smbFolderCoverCache = ConcurrentHashMap<String, Pair<Long, String>>()
-    private const val SMB_FOLDER_COVER_CACHE_TTL_MS = 60_000L
+    private const val SMB_FOLDER_COVER_CACHE_TTL_MS = 15_000L
 
-    /** Recherche une image jpg/jpeg/png dans le dossier SMB qui contient [path], comme le fait déjà
+    /** Construit les chemins directs cover.jpg/cover.png dans le dossier du titre, puis dans le
+     *  dossier album si la piste se trouve sous CD1/Disc 1. Cela évite de dépendre uniquement d'un
+     *  listing SMB, qui peut être incomplet ou expirer sur certains NAS. */
+    private fun smbFolderCoverCandidatePaths(path: String): List<String> {
+        if (!path.startsWith("smb://", true)) return emptyList()
+        return runCatching {
+            val parsed = fr.retrospare.blazeplayer.player.SmbDataSource.parseSmbUri(Uri.parse(path))
+            val normalized = parsed.filePath.replace('\\', '/')
+            val fileDir = normalized.substringBeforeLast('/', "")
+            val dirs = mutableListOf(fileDir)
+            val lastDirName = fileDir.substringAfterLast('/', fileDir)
+            if (isDiscFolderName(lastDirName)) {
+                val albumDir = fileDir.substringBeforeLast('/', "")
+                if (albumDir.isNotBlank()) dirs += albumDir
+            }
+            dirs.distinct().flatMap { dir ->
+                listOf("cover.jpg", "cover.png").map { name ->
+                    buildSmbCoverUri(parsed, if (dir.isBlank()) name else "$dir/$name")
+                }
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    /** Recherche uniquement cover.jpg puis cover.png dans le dossier SMB qui contient [path], comme le fait déjà
      *  [preferredFolderCoverPathForAudioPath] pour le stockage local. Sans ça, un MP3 sur un partage
      *  réseau sans tag APIC embarqué n'affichait jamais rien, même avec un cover.jpg juste à côté :
      *  seule la pochette embarquée était tentée pour smb://, la recherche de cover-dossier était
@@ -515,8 +852,7 @@ object ThumbnailUtils {
         return try {
             val parsed = fr.retrospare.blazeplayer.player.SmbDataSource.parseSmbUri(Uri.parse(path))
             val lastSep = parsed.filePath.lastIndexOf('\\')
-            if (lastSep < 0) return null // fichier à la racine du partage, pas de dossier parent à lister
-            val dirPath = parsed.filePath.substring(0, lastSep)
+            val dirPath = if (lastSep < 0) "" else parsed.filePath.substring(0, lastSep)
             val cacheKey = "${parsed.host}:${parsed.port}:${parsed.shareName}:$dirPath"
             val now = System.currentTimeMillis()
             smbFolderCoverCache[cacheKey]?.let { (ts, cover) ->
@@ -529,8 +865,8 @@ object ThumbnailUtils {
                 share.list(dirPath)
                     .asSequence()
                     .map { it.fileName }
-                    .filter { name -> !name.startsWith(".") && extensionOf(name) in folderCoverImageExtensions }
-                    .sortedWith(Comparator { a, b -> naturalFileNameCompare(a, b) })
+                    .filter { name -> !name.startsWith(".") && isAllowedAudioFolderCoverName(name) }
+                    .sortedWith(Comparator { a, b -> preferredCoverFileCompare(a, b) })
                     .firstOrNull()
             } finally {
                 try { share.close() } catch (_: Exception) {}
@@ -542,75 +878,79 @@ object ThumbnailUtils {
             smbFolderCoverCache[cacheKey] = now to coverPath.orEmpty()
             coverPath
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "SMB folder cover search failed for $path", e)
+            android.util.Log.w("ThumbnailUtils", "SMB folder cover search failed for ${safePathForLog(path)}", e)
             null
         }
     }
 
     private fun buildSmbCoverUri(parsed: fr.retrospare.blazeplayer.player.SmbDataSource.ParsedSmbUri, cleanPath: String): String {
-        val auth = if (parsed.username.isNullOrEmpty()) "" else {
-            val pass = parsed.password?.let { ":${java.net.URLEncoder.encode(it, "UTF-8")}" } ?: ""
-            "${java.net.URLEncoder.encode(parsed.username, "UTF-8")}$pass@"
-        }
-        val portPart = if (parsed.port != 445) ":${parsed.port}" else ""
-        return "smb://$auth${parsed.host}$portPart/${parsed.shareName}/$cleanPath"
+        return fr.retrospare.blazeplayer.player.SmbDataSource.buildSmbUri(
+            host = parsed.host,
+            port = parsed.port,
+            shareName = parsed.shareName,
+            filePath = cleanPath,
+            username = parsed.username,
+            password = parsed.password
+        )
     }
 
     private fun extractAudioArtworkInternal(context: Context, path: String): Bitmap? {
         val key = audioKey(path)
 
-        // Priorité 1 : image jpg/jpeg/png dans le dossier qui contient le morceau. Pour les
-        // dossiers CD1/Disc 2 sans image locale, on retombe ensuite sur le dossier album parent.
-        // On décode avant tout cache embarqué éventuel pour éviter qu'un ancien embedded art masque le fichier cover.
-        if (isAudioPath(path)) {
-            val coverPath = preferredFolderCoverPathForAudioPath(path)
-                ?: preferredMediaStoreFolderCoverPathForAudioPath(context, path)
-                ?: preferredSmbFolderCoverPath(path)
-            if (coverPath != null) {
-                // On tente la cover dossier AVANT le cache disque de la piste : si une image a été
-                // ajoutée à côté des morceaux après une première lecture, elle doit remplacer
-                // immédiatement l'ancienne pochette embarquée cachée.
-                decodeFolderCoverBitmap(context, coverPath)?.let { coverBitmap ->
-                    val scaled = scaleBitmap(coverBitmap, 1024)
-                    cache.put(key, scaled)
-                    cache.put(audioKey(coverPath), scaled)
-                    writeToDisk(context, key, scaled)
-                    writeToDisk(context, audioKey(coverPath), scaled)
-                    return scaled
-                }
-                cache.get(key)?.let { return it }
-                readFromDisk(context, key)?.let { cache.put(key, it); return it }
-            }
-        }
-
-        cache.get(key)?.let { return it }
-        readFromDisk(context, key)?.let { cache.put(key, it); return it }
-
         if (isFolderCoverImagePath(path)) {
+            cache.get(key)?.let { return it }
+            readFromDisk(context, key)?.let { cache.put(key, it); return it }
             return decodeFolderCoverBitmap(context, path)?.let {
-                val scaled = scaleBitmap(it, 1024)
-                cache.put(key, scaled)
-                writeToDisk(context, key, scaled)
+                val scaled = scaleBitmap(it, AUDIO_ARTWORK_MAX_PX)
+                putAudioArtworkAliases(context, path, key, scaled)
                 scaled
             }
         }
 
-        // Sur réseau, on tente d'abord notre parseur binaire maison : quelques lectures larges et
-        // séquentielles (voir RandomAccessSource/readFully) plutôt que le sondage à l'aveugle que
-        // fait MediaMetadataRetriever en interne (petites lectures éparpillées pour détecter le
-        // conteneur), qui multiplie les allers-retours réseau et pouvait à lui seul épuiser le
-        // budget de temps avant même d'atteindre le repli — observé notamment sur MP3/ID3 volumineux.
-        val bitmap = if (path.startsWith("smb://", true)) {
+        // Toujours valider les fichiers de dossier avant de réutiliser une éventuelle pochette
+        // embarquée mise en cache. Un timeout réseau ponctuel ne doit pas figer l'embedded comme
+        // choix définitif alors qu'un cover.jpg existe réellement à côté du titre.
+        if (isAudioPath(path)) {
+            val explicitCandidates = buildList {
+                addAll(preferredLocalFolderCoverCandidatesForAudioPath(path))
+                addAll(smbFolderCoverCandidatePaths(path))
+                preferredMediaStoreFolderCoverPathForAudioPath(context, path)?.let { add(it) }
+                preferredSmbFolderCoverPath(path)?.let { add(it) }
+            }.distinct()
+            for (coverPath in explicitCandidates) {
+                val coverKey = audioKey(coverPath)
+                val coverBitmap = cache.get(coverKey)
+                    ?: readFromDisk(context, coverKey)?.also { cache.put(coverKey, it) }
+                    ?: decodeFolderCoverBitmap(context, coverPath)
+                if (coverBitmap != null) {
+                    val scaled = scaleBitmap(coverBitmap, AUDIO_ARTWORK_MAX_PX)
+                    putAudioArtworkAliases(context, path, key, scaled)
+                    cache.put(coverKey, scaled)
+                    promoteAudioHotCache(coverKey, scaled)
+                    writeToDisk(context, coverKey, scaled)
+                    return scaled
+                }
+            }
+        }
+
+        // Aucun cover.jpg/png exploitable : seulement maintenant, réutiliser l'embedded déjà en
+        // cache ou lancer son extraction.
+        cache.get(key)?.let { return it }
+        readFromDisk(context, key)?.let { cache.put(key, it); return it }
+
+        // Repli automatique : extraction de la pochette embarquée uniquement quand aucun
+        // cover.jpg/cover.png exploitable n'a été trouvé.
+        val embedded = if (path.startsWith("smb://", true)) {
             extractEmbeddedArtworkFallback(context, path) ?: tryExtractEmbeddedArtworkWithRetriever(context, path)
         } else {
             tryExtractEmbeddedArtworkWithRetriever(context, path) ?: extractEmbeddedArtworkFallback(context, path)
         }
-        return bitmap?.let {
-            val scaled = scaleBitmap(it, 1024)
-            cache.put(key, scaled)
-            writeToDisk(context, key, scaled)
-            scaled
+        if (embedded != null) {
+            val scaled = scaleBitmap(embedded, AUDIO_ARTWORK_MAX_PX)
+            putAudioArtworkAliases(context, path, key, scaled)
+            return scaled
         }
+        return null
     }
 
     private fun tryExtractEmbeddedArtworkWithRetriever(context: Context, path: String): Bitmap? {
@@ -618,9 +958,9 @@ object ThumbnailUtils {
         var closeable: AutoCloseable? = null
         return try {
             closeable = setRetrieverDataSource(context, retriever, path)
-            retriever.embeddedPicture?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+            retriever.embeddedPicture?.let { decodeByteArraySampled(it, it.size, AUDIO_ARTWORK_MAX_PX) }
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "MediaMetadataRetriever artwork failed for $path", e)
+            android.util.Log.w("ThumbnailUtils", "MediaMetadataRetriever artwork failed for ${safePathForLog(path)}", e)
             null
         } finally {
             try { retriever.release() } catch (_: Exception) {}
@@ -636,11 +976,11 @@ object ThumbnailUtils {
         val imageBytes = try {
             extractEmbeddedArtworkBytes(context, path, extensionOf(path))
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "Embedded artwork fallback failed for $path", e)
+            android.util.Log.w("ThumbnailUtils", "Embedded artwork fallback failed for ${safePathForLog(path)}", e)
             null
         } ?: return null
         return try {
-            BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+            decodeByteArraySampled(imageBytes, imageBytes.size, AUDIO_ARTWORK_MAX_PX)
         } catch (e: Exception) {
             null
         }
@@ -715,7 +1055,7 @@ object ThumbnailUtils {
             else -> File(path).takeIf { it.exists() && it.isFile }?.let { LocalRandomAccessSource(it) }
         }
     } catch (e: Exception) {
-        android.util.Log.w("ThumbnailUtils", "Failed to open random access source for $path", e)
+        android.util.Log.w("ThumbnailUtils", "Failed to open random access source for ${safePathForLog(path)}", e)
         null
     }
 
@@ -789,7 +1129,7 @@ object ThumbnailUtils {
             }
             null
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "FLAC picture parse failed for $path", e)
+            android.util.Log.w("ThumbnailUtils", "FLAC picture parse failed for ${safePathForLog(path)}", e)
             null
         } finally {
             try { source.close() } catch (_: Exception) {}
@@ -824,7 +1164,7 @@ object ThumbnailUtils {
             if (source.size < 16) return null
             findMp4Covr(source, 0L, source.size, depth = 0)
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "MP4 cover parse failed for $path", e)
+            android.util.Log.w("ThumbnailUtils", "MP4 cover parse failed for ${safePathForLog(path)}", e)
             null
         } finally {
             try { source.close() } catch (_: Exception) {}
@@ -928,7 +1268,7 @@ object ThumbnailUtils {
             }
             null
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "APEv2 picture parse failed for $path", e)
+            android.util.Log.w("ThumbnailUtils", "APEv2 picture parse failed for ${safePathForLog(path)}", e)
             null
         } finally {
             try { source.close() } catch (_: Exception) {}
@@ -995,7 +1335,7 @@ object ThumbnailUtils {
             System.arraycopy(body, 0, all, 10, body.size)
             all
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "Failed to read ID3 tag for $path", e)
+            android.util.Log.w("ThumbnailUtils", "Failed to read ID3 tag for ${safePathForLog(path)}", e)
             null
         } finally {
             try { source.close() } catch (_: Exception) {}
@@ -1146,6 +1486,19 @@ object ThumbnailUtils {
         deleteFromDisk(context.applicationContext, key)
     }
 
+    fun hasCachedVideoPlaybackSnapshot(context: Context, videoPath: String): Boolean {
+        // Conservé pour compatibilité binaire avec les anciens appelants, mais les miniatures
+        // vidéo ne dépendent plus d'un snapshot capturé pendant la lecture.
+        return false
+    }
+
+    /**
+     * Compatibilité avec l'ancien système de snapshot pendant lecture. On ne l'utilise plus pour
+     * alimenter les miniatures : la galerie et le navigateur passent par l'extraction légère
+     * cachée, qui remplit les vidéos jamais lues et évite les cases noires.
+     */
+    fun cacheVideoPlaybackSnapshot(context: Context, videoPath: String, bitmap: Bitmap?): Boolean = false
+
     /** Retourne une pochette déjà cachée en JPEG, prête à être remise dans MediaMetadata. */
     fun getCachedThumbnailJpegBytes(context: Context, path: String): ByteArray? {
         val bitmap = getCachedThumbnailBitmap(context, path) ?: return null
@@ -1167,7 +1520,7 @@ object ThumbnailUtils {
             cache.put(key, scaled)
             writeToDisk(context.applicationContext, key, scaled)
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "Failed to cache artwork for $path", e)
+            android.util.Log.w("ThumbnailUtils", "Failed to cache artwork for ${safePathForLog(path)}", e)
         }
     }
 
@@ -1210,20 +1563,29 @@ object ThumbnailUtils {
         // Cache mémoire immédiat avant de passer sur IO.
         cache.get(key)?.let { return@coroutineScope it }
 
+        // Cache disque persistant avant toute extraction.
+        readFromDisk(context.applicationContext, key)?.let { fromDisk ->
+            cache.put(key, fromDisk)
+            return@coroutineScope fromDisk
+        }
+
         // Déduplique les demandes simultanées causées par RecyclerView + notification.
         inFlight[key]?.let { return@coroutineScope it.await() }
 
         val deferred = async(Dispatchers.IO) {
-            withTimeoutOrNull(if (isNetworkVideoPath(path)) 6_000L else 6_000L) {
-                if (isNetworkVideoPath(path)) {
-                    networkThumbnailSemaphore.withPermit {
-                        extractThumbnailInternal(context.applicationContext, path, timeUs)
-                    }
+            val timeoutMs = when {
+                isAudioPath(path) -> 6_000L
+                isNetworkVideoPath(path) -> 4_500L
+                else -> 2_500L
+            }
+            withTimeoutOrNull(timeoutMs) {
+                if (!isAudioPath(path) && isNetworkVideoPath(path)) {
+                    networkThumbnailSemaphore.withPermit { extractThumbnailInternal(context.applicationContext, path, timeUs) }
                 } else {
                     extractThumbnailInternal(context.applicationContext, path, timeUs)
                 }
             } ?: run {
-                android.util.Log.w("ThumbnailUtils", "Thumbnail timeout for $path")
+                android.util.Log.w("ThumbnailUtils", "Thumbnail timeout for ${safePathForLog(path)}")
                 null
             }
         }
@@ -1232,6 +1594,17 @@ object ThumbnailUtils {
             deferred.await()
         } finally {
             inFlight.remove(key, deferred)
+        }
+    }
+
+
+    private fun tryLoadSystemVideoThumbnail(context: Context, path: String): Bitmap? {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) return null
+        if (!path.startsWith("content://", ignoreCase = true)) return null
+        return try {
+            context.contentResolver.loadThumbnail(Uri.parse(path), android.util.Size(512, 512), null)
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -1262,12 +1635,25 @@ object ThumbnailUtils {
                     val scaled = scaleBitmap(it, 160)
                     cache.put(key, scaled)
                     writeToDisk(context, key, scaled)
+                    val simpleThumbKey = "audio-thumb-v3:${audioNoProbeKey(path)}"
+                    cache.put(simpleThumbKey, scaled)
+                    writeToDisk(context, simpleThumbKey, scaled)
                     scaled
                 }
             } else {
-                // Frame vidéo à 10s, y compris pour les Uri SAF content:// provenant de fournisseurs distants.
-                // On passe par openFileDescriptor en priorité : c'est plus fiable que setDataSource(context, uri)
-                // pour certains conteneurs comme AVI exposés par des fournisseurs de fichiers distants.
+                // 1) D'abord demander la miniature système pour les vidéos locales content:// :
+                // Android la sert souvent depuis son propre cache MediaStore, donc c'est beaucoup
+                // plus léger que d'ouvrir le conteneur vidéo nous-mêmes.
+                tryLoadSystemVideoThumbnail(context, path)?.let { systemThumb ->
+                    val scaled = scaleBitmap(systemThumb, 360)
+                    cache.put(key, scaled)
+                    writeToDisk(context, key, scaled)
+                    return scaled
+                }
+
+                // 2) Fallback borné : une seule frame proche de 10s/20% selon la durée. Le tout
+                // est déjà sous timeout dans getThumbnailBitmap(), donc un MP4 bizarre ou un NAS
+                // lent ne bloque pas le scroll.
                 val retriever = MediaMetadataRetriever()
                 var closeable: AutoCloseable? = null
                 try {
@@ -1276,18 +1662,17 @@ object ThumbnailUtils {
                     val durationUs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                         ?.toLongOrNull()
                         ?.let { it * 1000L }
-                    val targetUs = if (durationUs != null && durationUs in 1 until timeUs) {
-                        (durationUs * 0.10f).toLong().coerceAtLeast(500_000L)
-                    } else {
-                        timeUs
+                    val targetUs = when {
+                        durationUs != null && durationUs < 5_000_000L -> (durationUs / 2L).coerceAtLeast(250_000L)
+                        durationUs != null && durationUs < timeUs -> (durationUs * 0.20f).toLong().coerceAtLeast(500_000L)
+                        else -> timeUs
                     }
                     var bitmap = retriever.getFrameAtTime(targetUs, option)
-                    if (bitmap == null) bitmap = retriever.getFrameAtTime(10_000_000L, MediaMetadataRetriever.OPTION_CLOSEST)
-                    if (bitmap == null) bitmap = retriever.getFrameAtTime(5_000_000L, option)
+                    if (bitmap == null && !isNetworkVideoPath(path)) bitmap = retriever.getFrameAtTime(targetUs, MediaMetadataRetriever.OPTION_CLOSEST)
                     if (bitmap == null) bitmap = retriever.getFrameAtTime(1_000_000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
                     if (bitmap == null && !isNetworkVideoPath(path)) bitmap = retriever.frameAtTime
                     bitmap?.let {
-                        val scaled = scaleBitmap(it, if (isNetworkVideoPath(path)) 144 else 160)
+                        val scaled = scaleBitmap(it, if (isNetworkVideoPath(path)) 180 else 360)
                         cache.put(key, scaled)
                         writeToDisk(context, key, scaled)
                         scaled
@@ -1298,8 +1683,122 @@ object ThumbnailUtils {
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("ThumbnailUtils", "Failed to get thumbnail bitmap for $path", e)
+            android.util.Log.e("ThumbnailUtils", "Failed to get thumbnail bitmap for ${safePathForLog(path)}", e)
             null
+        }
+    }
+
+    suspend fun getImageThumbnailBitmap(
+        context: Context,
+        path: String,
+        maxSize: Int = 360
+    ): Bitmap? = withContext(imageThumbnailDispatcher) {
+        val appContext = context.applicationContext
+        val key = imageThumbnailKey(appContext, path, maxSize)
+
+        cache.get(key)?.let { return@withContext it }
+        readFromDisk(appContext, key)?.let { fromDisk ->
+            cache.put(key, fromDisk)
+            return@withContext fromDisk
+        }
+
+        val existing = inFlight[key]
+        if (existing != null) return@withContext existing.await()
+
+        val deferred = kotlinx.coroutines.CompletableDeferred<Bitmap?>()
+        val winner = inFlight.putIfAbsent(key, deferred)
+        if (winner != null) return@withContext winner.await()
+
+        try {
+            val result = extractImageThumbnailInternal(appContext, path, key, maxSize)
+            deferred.complete(result)
+            result
+        } catch (throwable: Throwable) {
+            deferred.completeExceptionally(throwable)
+            throw throwable
+        } finally {
+            inFlight.remove(key, deferred)
+        }
+    }
+
+    private fun extractImageThumbnailInternal(context: Context, path: String, key: String, maxSize: Int): Bitmap? {
+        return try {
+            cache.get(key)?.let { return it }
+            readFromDisk(context, key)?.let { fromDisk ->
+                cache.put(key, fromDisk)
+                return fromDisk
+            }
+            val decoded = decodeSampledImageBitmap(context, path, maxSize) ?: return null
+            val scaled = scaleBitmap(decoded, maxSize)
+            cache.put(key, scaled)
+            writeToDisk(context, key, scaled)
+            scaled
+        } catch (e: Exception) {
+            android.util.Log.w("ThumbnailUtils", "Failed to cache gallery image thumbnail for ${safePathForLog(path)}", e)
+            null
+        }
+    }
+
+    private fun openImageInputStream(context: Context, path: String): java.io.InputStream? = when {
+        path.startsWith("content://", true) -> context.contentResolver.openInputStream(Uri.parse(path))
+        path.startsWith("file://", true) -> localFileForImagePath(path)?.takeIf { it.exists() && it.isFile }?.inputStream()
+        else -> localFileForImagePath(path)?.takeIf { it.exists() && it.isFile }?.inputStream()
+    }
+
+    private fun decodeSampledImageBitmap(context: Context, path: String, maxSize: Int): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        openImageInputStream(context, path)?.use { input -> BitmapFactory.decodeStream(input, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+        var sample = 1
+        while ((bounds.outWidth / sample) > maxSize * 2 || (bounds.outHeight / sample) > maxSize * 2) {
+            sample *= 2
+        }
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = sample.coerceAtLeast(1)
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        return openImageInputStream(context, path)?.use { input -> BitmapFactory.decodeStream(input, null, options) }
+    }
+
+    private fun decodeByteArraySampled(data: ByteArray, length: Int, maxSize: Int): Bitmap? {
+        if (length <= 0) return null
+        val safeLength = length.coerceAtMost(data.size)
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(data, 0, safeLength, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sample = 1
+        while ((bounds.outWidth / sample) > maxSize * 2 || (bounds.outHeight / sample) > maxSize * 2) {
+            sample *= 2
+        }
+        return BitmapFactory.decodeByteArray(
+            data,
+            0,
+            safeLength,
+            BitmapFactory.Options().apply {
+                inSampleSize = sample.coerceAtLeast(1)
+                inPreferredConfig = Bitmap.Config.RGB_565
+            }
+        )
+    }
+
+    suspend fun loadImageThumbnail(
+        context: Context,
+        path: String,
+        imageView: ImageView,
+        maxSize: Int = 360
+    ): Boolean {
+        val bitmap = getImageThumbnailBitmap(context, path, maxSize)
+        return withContext(Dispatchers.Main) {
+            if (imageView.getTag(R.id.ivThumbnail) != path) return@withContext false
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap)
+                imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                imageView.setBackgroundColor(0x00000000)
+                true
+            } else {
+                false
+            }
         }
     }
 
@@ -1325,6 +1824,22 @@ object ThumbnailUtils {
                 imageView.setBackgroundColor(0xFF1A1D2E.toInt())
             }
             // Vidéo sans miniature : laisse le placeholder XML existant, comme avant.
+        }
+    }
+
+
+    /** Invalidation ciblée quand un fichier audio est remplacé/modifié.
+     *  Les pochettes audio sont cachées par path ; si le NAS remplace le fichier au même chemin,
+     *  on doit supprimer les alias no-probe pour éviter d'afficher l'ancienne cover. */
+    fun invalidateAudioArtwork(context: Context, path: String) {
+        if (path.isBlank()) return
+        val keys = linkedSetOf<String>()
+        runCatching { keys += audioNoProbeKey(path) }
+        runCatching { keys += audioKey(path) }
+        val expanded = keys.toList().flatMap { listOf(it, "audio-thumb-v3:$it") }
+        expanded.forEach { key ->
+            runCatching { cache.remove(key) }
+            runCatching { deleteFromDisk(context.applicationContext, key) }
         }
     }
 

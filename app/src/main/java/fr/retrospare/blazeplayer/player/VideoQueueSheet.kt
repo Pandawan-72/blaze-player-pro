@@ -11,7 +11,7 @@ import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.playlist.PlaylistCategory
@@ -41,7 +41,7 @@ object VideoQueueSheet {
         val btnClear = view.findViewById<TextView>(R.id.btnClearVideoQueue)
         ButtonTextFitter.fitRecursively(view, minSp = 9, maxSp = 13)
 
-        recycler.layoutManager = GridLayoutManager(context, 2)
+        recycler.layoutManager = LinearLayoutManager(context)
         lateinit var adapter: VideoQueueAdapter
 
         fun refreshHeader(adapter: VideoQueueAdapter? = null) {
@@ -116,7 +116,7 @@ object VideoQueueSheet {
         recycler.adapter = adapter
         var movedDuringDrag = false
         val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT,
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,
             0
         ) {
             override fun isLongPressDragEnabled(): Boolean = true

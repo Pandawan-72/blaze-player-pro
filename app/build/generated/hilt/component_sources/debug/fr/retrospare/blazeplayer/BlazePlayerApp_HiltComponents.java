@@ -44,7 +44,6 @@ import dagger.hilt.android.scopes.ViewScoped;
 import dagger.hilt.components.SingletonComponent;
 import dagger.hilt.internal.GeneratedComponent;
 import dagger.hilt.migration.DisableInstallInCheck;
-import fr.retrospare.blazeplayer.auth.AuthViewModel_HiltModules;
 import fr.retrospare.blazeplayer.browser.BrowserFragment_GeneratedInjector;
 import fr.retrospare.blazeplayer.browser.BrowserViewModel_HiltModules;
 import fr.retrospare.blazeplayer.di.AppModule;
@@ -57,8 +56,10 @@ import fr.retrospare.blazeplayer.paywall.PaywallFragment_GeneratedInjector;
 import fr.retrospare.blazeplayer.paywall.PaywallViewModel_HiltModules;
 import fr.retrospare.blazeplayer.player.AudioBrowserActivity_GeneratedInjector;
 import fr.retrospare.blazeplayer.player.AudioLibraryActivity_GeneratedInjector;
+import fr.retrospare.blazeplayer.player.AudioLibraryViewModel_HiltModules;
 import fr.retrospare.blazeplayer.player.AudioPlayerActivity_GeneratedInjector;
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment_GeneratedInjector;
+import fr.retrospare.blazeplayer.player.AudioProSettingsActivity_GeneratedInjector;
 import fr.retrospare.blazeplayer.player.MiniPlayerViewModel_HiltModules;
 import fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity_GeneratedInjector;
 import fr.retrospare.blazeplayer.player.PlayerActivity_GeneratedInjector;
@@ -173,7 +174,7 @@ public final class BlazePlayerApp_HiltComponents {
 
   @Subcomponent(
       modules = {
-          AuthViewModel_HiltModules.KeyModule.class,
+          AudioLibraryViewModel_HiltModules.KeyModule.class,
           ActivityCBuilderModule.class,
           ViewModelCBuilderModule.class,
           BrowserViewModel_HiltModules.KeyModule.class,
@@ -215,6 +216,7 @@ public final class BlazePlayerApp_HiltComponents {
       AudioBrowserActivity_GeneratedInjector,
       AudioLibraryActivity_GeneratedInjector,
       AudioPlayerActivity_GeneratedInjector,
+      AudioProSettingsActivity_GeneratedInjector,
       NetworkVideoBrowserActivity_GeneratedInjector,
       PlayerActivity_GeneratedInjector {
     @Subcomponent.Builder
@@ -224,7 +226,7 @@ public final class BlazePlayerApp_HiltComponents {
 
   @Subcomponent(
       modules = {
-          AuthViewModel_HiltModules.BindsModule.class,
+          AudioLibraryViewModel_HiltModules.BindsModule.class,
           BrowserViewModel_HiltModules.BindsModule.class,
           HiltWrapper_HiltViewModelFactory_ViewModelModule.class,
           HomeViewModel_HiltModules.BindsModule.class,

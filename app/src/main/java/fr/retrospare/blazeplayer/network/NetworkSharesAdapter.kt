@@ -12,11 +12,12 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.switchmaterial.SwitchMaterial
 import fr.retrospare.blazeplayer.R
+import fr.retrospare.blazeplayer.ui.ButtonTextFitter
 import fr.retrospare.blazeplayer.data.model.NetworkShare
 import fr.retrospare.blazeplayer.data.model.ShareType
 
 class NetworkSharesAdapter(
-    private val onBrowse: (NetworkShare) -> Unit,
+    private val onTestConnection: (NetworkShare) -> Unit,
     private val onSetDefault: (NetworkShare) -> Unit,
     private val onEdit: (NetworkShare) -> Unit,
     private val onDelete: (NetworkShare) -> Unit
@@ -59,7 +60,8 @@ class NetworkSharesAdapter(
             val starColor = if (share.isDefault) R.color.yellow_accent else R.color.on_surface_variant
             ivStar.setColorFilter(itemView.context.getColor(starColor))
 
-            btnBrowse.setOnClickListener { onBrowse(share) }
+            ButtonTextFitter.fit(btnBrowse as android.widget.TextView, minSp = 8, maxSp = 11)
+            btnBrowse.setOnClickListener { onTestConnection(share) }
             btnEdit.setOnClickListener {
                 android.app.AlertDialog.Builder(itemView.context)
                     .setItems(arrayOf(itemView.context.getString(fr.retrospare.blazeplayer.R.string.action_edit), itemView.context.getString(fr.retrospare.blazeplayer.R.string.action_delete))) { _, which ->

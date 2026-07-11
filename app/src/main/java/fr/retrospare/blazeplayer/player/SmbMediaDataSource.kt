@@ -29,23 +29,33 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
         // getShare() lui-même avait réussi juste avant.
         fun attemptOpen(): Triple<DiskShare, SmbFile, Long> {
             val share = SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
-            val file = share.openFile(
-                parsed.filePath,
-                EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
-                null,
-                SMB2ShareAccess.ALL,
-                SMB2CreateDisposition.FILE_OPEN,
-                EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
-            )
-            val size = file.getFileInformation(FileStandardInformation::class.java).endOfFile
-            return Triple(share, file, size)
+            var file: SmbFile? = null
+            return try {
+                val openedFile = share.openFile(
+                    parsed.filePath,
+                    EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
+                    null,
+                    SMB2ShareAccess.ALL,
+                    SMB2CreateDisposition.FILE_OPEN,
+                    EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
+                )
+                file = openedFile
+                val size = openedFile.getFileInformation(FileStandardInformation::class.java).endOfFile
+                Triple(share, openedFile, size)
+            } catch (error: Exception) {
+                try { file?.close() } catch (_: Exception) {}
+                try { share.close() } catch (_: Exception) {}
+                throw error
+            }
         }
 
         val (share, file, size) = try {
             attemptOpen()
         } catch (e: Exception) {
-            android.util.Log.w("SmbMediaDataSource", "Ouverture échouée (share invalidé entre-temps ?), nouvelle tentative", e)
-            SmbSessionPool.invalidate(parsed.host, parsed.port, parsed.username, parsed.shareName)
+            if (SmbDataSource.isMissingPathError(e)) throw e
+            // Une extraction de métadonnées/pochette est non critique : elle ne doit jamais
+            // invalider la session/connexion partagée et couper le flux audio en cours.
+            android.util.Log.w("SmbMediaDataSource", "Ouverture SMB metadata échouée, nouvelle tentative locale: ${e.message}")
             attemptOpen()
         }
         diskShare = share
@@ -53,7 +63,7 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
         fileSize = size
     }
 
-    private var retryBudget = 25 // limite cumulée sur la durée de vie de cette instance
+    private var retryBudget = 2 // éviter des dizaines de secondes de tentatives sur une cover
 
     override fun readAt(position: Long, buffer: ByteArray, offset: Int, size: Int): Int {
         // MediaMetadataRetriever/MediaExtractor peuvent demander une lecture unique de plusieurs
@@ -80,7 +90,7 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
             // accès aléatoire à un offset donné — exactement le schéma d'accès utilisé par
             // MediaExtractor/le parseur EBML pour sonder la structure d'un conteneur MKV/MP4.
             // Budget limité : observé en pratique jusqu'à 46s+ de tentatives en rafale sans lui.
-            android.util.Log.w("SmbMediaDataSource", "readAt failed at position $position, nouvelle tentative avec un handle/share frais (budget restant: $retryBudget)", e)
+            android.util.Log.w("SmbMediaDataSource", "readAt failed at position $position, tentative locale restante: $retryBudget (${e.message})")
             try {
                 val share = SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
                 val freshFile = share.openFile(
@@ -124,12 +134,8 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
 
     override fun close() {
         // DiskShare n'est plus partagé : on ferme le handle puis le share privé de cette source.
-        try { smbFile?.close() } catch (e: Exception) {
-            android.util.Log.e("SmbMediaDataSource", "Failed to close smbFile", e)
-        }
-        try { diskShare?.close() } catch (e: Exception) {
-            android.util.Log.e("SmbMediaDataSource", "Failed to close diskShare", e)
-        }
+        try { smbFile?.close() } catch (_: Exception) {}
+        try { diskShare?.close() } catch (_: Exception) {}
         smbFile = null
         diskShare = null
     }

@@ -6,6 +6,7 @@ data class MediaItem(
     val path: String = "",
     val size: Long = 0L,
     val duration: Long = 0L,
+    val modifiedAt: Long = 0L,
     val lastPosition: Long = 0L,
     val lastPlayedAt: Long = 0L,
     val isNetwork: Boolean = false,

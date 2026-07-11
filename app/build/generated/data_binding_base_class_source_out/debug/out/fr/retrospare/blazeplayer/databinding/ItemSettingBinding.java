@@ -11,7 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import fr.retrospare.blazeplayer.R;
 import java.lang.NullPointerException;
 import java.lang.Override;
@@ -28,7 +28,7 @@ public final class ItemSettingBinding implements ViewBinding {
   public final ImageView ivIcon;
 
   @NonNull
-  public final SwitchMaterial switchToggle;
+  public final MaterialSwitch switchToggle;
 
   @NonNull
   public final TextView tvSubtitle;
@@ -37,7 +37,7 @@ public final class ItemSettingBinding implements ViewBinding {
   public final TextView tvTitle;
 
   private ItemSettingBinding(@NonNull LinearLayout rootView, @NonNull ImageView ivChevron,
-      @NonNull ImageView ivIcon, @NonNull SwitchMaterial switchToggle, @NonNull TextView tvSubtitle,
+      @NonNull ImageView ivIcon, @NonNull MaterialSwitch switchToggle, @NonNull TextView tvSubtitle,
       @NonNull TextView tvTitle) {
     this.rootView = rootView;
     this.ivChevron = ivChevron;
@@ -87,7 +87,7 @@ public final class ItemSettingBinding implements ViewBinding {
       }
 
       id = R.id.switchToggle;
-      SwitchMaterial switchToggle = ViewBindings.findChildViewById(rootView, id);
+      MaterialSwitch switchToggle = ViewBindings.findChildViewById(rootView, id);
       if (switchToggle == null) {
         break missingId;
       }

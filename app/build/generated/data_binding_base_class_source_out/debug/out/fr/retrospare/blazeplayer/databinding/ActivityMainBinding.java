@@ -15,7 +15,6 @@ import androidx.fragment.app.FragmentContainerView;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import fr.retrospare.blazeplayer.R;
-import fr.retrospare.blazeplayer.widget.MiniEqualizerView;
 import java.lang.NullPointerException;
 import java.lang.Override;
 import java.lang.String;
@@ -43,10 +42,10 @@ public final class ActivityMainBinding implements ViewBinding {
   public final View miniEqOverlay;
 
   @NonNull
-  public final MiniEqualizerView miniEqView;
+  public final LinearLayout miniPlayerBar;
 
   @NonNull
-  public final LinearLayout miniPlayerBar;
+  public final ImageView miniPlayingIndicator;
 
   @NonNull
   public final FragmentContainerView navHostFragment;
@@ -64,7 +63,7 @@ public final class ActivityMainBinding implements ViewBinding {
       @NonNull ImageButton btnMiniClose, @NonNull ImageButton btnMiniNext,
       @NonNull ImageButton btnMiniPlayPause, @NonNull ImageButton btnMiniPrev,
       @NonNull ImageView ivMiniArtwork, @NonNull View miniEqOverlay,
-      @NonNull MiniEqualizerView miniEqView, @NonNull LinearLayout miniPlayerBar,
+      @NonNull LinearLayout miniPlayerBar, @NonNull ImageView miniPlayingIndicator,
       @NonNull FragmentContainerView navHostFragment, @NonNull TextView tvMiniArtist,
       @NonNull TextView tvMiniTime, @NonNull TextView tvMiniTitle) {
     this.rootView = rootView;
@@ -74,8 +73,8 @@ public final class ActivityMainBinding implements ViewBinding {
     this.btnMiniPrev = btnMiniPrev;
     this.ivMiniArtwork = ivMiniArtwork;
     this.miniEqOverlay = miniEqOverlay;
-    this.miniEqView = miniEqView;
     this.miniPlayerBar = miniPlayerBar;
+    this.miniPlayingIndicator = miniPlayingIndicator;
     this.navHostFragment = navHostFragment;
     this.tvMiniArtist = tvMiniArtist;
     this.tvMiniTime = tvMiniTime;
@@ -145,15 +144,15 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.miniEqView;
-      MiniEqualizerView miniEqView = ViewBindings.findChildViewById(rootView, id);
-      if (miniEqView == null) {
-        break missingId;
-      }
-
       id = R.id.miniPlayerBar;
       LinearLayout miniPlayerBar = ViewBindings.findChildViewById(rootView, id);
       if (miniPlayerBar == null) {
+        break missingId;
+      }
+
+      id = R.id.miniPlayingIndicator;
+      ImageView miniPlayingIndicator = ViewBindings.findChildViewById(rootView, id);
+      if (miniPlayingIndicator == null) {
         break missingId;
       }
 
@@ -182,8 +181,8 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       return new ActivityMainBinding((CoordinatorLayout) rootView, btnMiniClose, btnMiniNext,
-          btnMiniPlayPause, btnMiniPrev, ivMiniArtwork, miniEqOverlay, miniEqView, miniPlayerBar,
-          navHostFragment, tvMiniArtist, tvMiniTime, tvMiniTitle);
+          btnMiniPlayPause, btnMiniPrev, ivMiniArtwork, miniEqOverlay, miniPlayerBar,
+          miniPlayingIndicator, navHostFragment, tvMiniArtist, tvMiniTime, tvMiniTitle);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

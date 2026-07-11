@@ -11,7 +11,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.network.SmbBrowser
+import fr.retrospare.blazeplayer.network.UpnpBrowser
 import fr.retrospare.blazeplayer.data.model.NetworkShare
+import fr.retrospare.blazeplayer.data.model.ShareType
 import fr.retrospare.blazeplayer.data.repository.NetworkRepository
 import kotlinx.coroutines.Dispatchers
 import androidx.datastore.core.DataStore
@@ -29,9 +31,10 @@ import javax.inject.Inject
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val mediaRepository: MediaRepository,
     private val smbBrowser: SmbBrowser,
+    private val upnpBrowser: UpnpBrowser,
     private val networkRepository: NetworkRepository
 ) : ViewModel() {
 
@@ -43,6 +46,13 @@ class BrowserViewModel @Inject constructor(
 
     private val _state = MutableStateFlow<BrowserState>(BrowserState.Loading)
     val state: StateFlow<BrowserState> = _state.asStateFlow()
+
+    // Annule logiquement les anciens refresh : les extractions metadata d'un dossier précédent
+    // peuvent continuer quelques secondes, mais elles ne doivent plus réémettre dans l'UI ni
+    // faire sauter le scroll du navigateur courant.
+    private var loadGeneration = 0
+    private fun nextLoadGeneration(): Int = ++loadGeneration
+    private fun isCurrentLoad(generation: Int): Boolean = generation == loadGeneration
 
     private val _currentPath = MutableStateFlow("")
     val currentPath: StateFlow<String> = _currentPath.asStateFlow()
@@ -71,9 +81,11 @@ class BrowserViewModel @Inject constructor(
     fun setAudioOnlyMode(v: Boolean) { _audioOnlyMode.value = v }
 
     fun loadNetworkShares() {
+        val generation = nextLoadGeneration()
         viewModelScope.launch {
             _state.value = BrowserState.Loading
             val shares = networkRepository.getShares().first()
+            if (!isCurrentLoad(generation)) return@launch
             if (shares.isEmpty()) {
                 _state.value = BrowserState.Error(resId = fr.retrospare.blazeplayer.R.string.toast_no_network_path_configured)
             } else {
@@ -87,7 +99,7 @@ class BrowserViewModel @Inject constructor(
                         isNetwork = true
                     )
                 }
-                _state.value = BrowserState.Success(items)
+                if (isCurrentLoad(generation)) _state.value = BrowserState.Success(items)
             }
         }
     }
@@ -102,6 +114,7 @@ class BrowserViewModel @Inject constructor(
     enum class SortMode { NAME_ASC, NAME_DESC, DATE_DESC, SIZE_DESC }
 
     fun loadLocalFiles(path: String = "") {
+        val generation = nextLoadGeneration()
         viewModelScope.launch {
             _state.value = BrowserState.Loading
             _currentPath.value = path
@@ -113,34 +126,38 @@ class BrowserViewModel @Inject constructor(
                     val audioItems = if (_showAudio.value || _audioOnlyMode.value) scanLocalAudio(path) else emptyList()
                     videoItems + audioItems
                 }
-                // Même pipeline de badges que le réseau : affichage immédiat depuis MediaStore/cache,
-                // puis extraction complète en arrière-plan pour compléter les codecs et persister.
+                if (!isCurrentLoad(generation)) return@launch
+                // Affichage immédiat depuis MediaStore/cache. L'enrichissement léger complète
+                // seulement les infos manquantes, sans reset complet de liste ni extraction lourde.
                 var currentItems = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(context, items)
                 _state.value = BrowserState.Success(applySortMode(currentItems))
                 fr.retrospare.blazeplayer.player.VideoMetadataExtractor.enrichVideoItemsIncremental(
                     context, currentItems, maxConcurrent = 2
-                ) { index, enriched ->
-                    if (index < currentItems.size) {
+                ) update@{ index, enriched ->
+                    if (!isCurrentLoad(generation)) return@update
+                    if (index < currentItems.size && currentItems[index] != enriched) {
                         currentItems = currentItems.toMutableList().also { it[index] = enriched }
                         _state.value = BrowserState.Success(applySortMode(currentItems))
                     }
                 }
             } catch (e: Exception) {
-                _state.value = BrowserState.Error(e.message ?: "")
+                if (isCurrentLoad(generation)) _state.value = BrowserState.Error(e.message ?: "")
             }
         }
     }
 
     fun loadNetworkFilesById(shareId: String, path: String = "") {
+        val generation = nextLoadGeneration()
         viewModelScope.launch {
             _state.value = BrowserState.Loading
             try {
                 val share = networkRepository.getShareById(shareId)
+                if (!isCurrentLoad(generation)) return@launch
                 if (share == null) { _state.value = BrowserState.Error(resId = fr.retrospare.blazeplayer.R.string.toast_share_not_found); return@launch }
                 currentShare = share
                 loadNetworkFiles(share, path)
             } catch (e: Exception) {
-                _state.value = BrowserState.Error(e.message ?: "")
+                if (isCurrentLoad(generation)) _state.value = BrowserState.Error(e.message ?: "")
             }
         }
     }
@@ -148,34 +165,39 @@ class BrowserViewModel @Inject constructor(
     var currentShare: NetworkShare? = null
 
     fun loadNetworkFiles(share: NetworkShare, path: String = "") {
+        val generation = nextLoadGeneration()
         viewModelScope.launch {
             _state.value = BrowserState.Loading
             _currentPath.value = path
+            currentShare = share
             try {
-                val result = smbBrowser.listFiles(share, path)
+                val result = when (share.type) {
+                    fr.retrospare.blazeplayer.data.model.ShareType.UPNP -> upnpBrowser.listFiles(share, path)
+                    else -> smbBrowser.listFiles(share, path)
+                }
+                if (!isCurrentLoad(generation)) return@launch
                 result.onSuccess { items ->
-                    // Affichage immédiat avec des badges devinés depuis l'extension (ou déjà en
-                    // cache) — plutôt que d'attendre l'extraction de tout le dossier, ce qui
-                    // faisait dépendre l'affichage entier du fichier le plus lent.
-                    var currentItems = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(items)
+                    // Affichage immédiat avec des badges devinés depuis l'extension ou déjà en cache.
+                    var currentItems = fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(context, items)
                     _state.value = BrowserState.Success(applySortMode(currentItems))
 
-                    // Enrichissement réel en arrière-plan, ligne par ligne : chaque élément prêt
-                    // réémet un état mis à jour, et l'adapter (ListAdapter + DiffUtil) ne
-                    // rafraîchit que la ligne concernée.
+                    // Les callbacks d'un ancien dossier sont ignorés : plus de clignotement ni de
+                    // retour intempestif à une ancienne liste pendant le scroll.
                     fr.retrospare.blazeplayer.player.VideoMetadataExtractor.enrichVideoItemsIncremental(
-                        context, currentItems
-                    ) { index, enriched ->
-                        if (index < currentItems.size) {
+                        context, currentItems,
+                        maxConcurrent = if (share.type == fr.retrospare.blazeplayer.data.model.ShareType.UPNP) 2 else 1
+                    ) update@{ index, enriched ->
+                        if (!isCurrentLoad(generation)) return@update
+                        if (index < currentItems.size && currentItems[index] != enriched) {
                             currentItems = currentItems.toMutableList().also { it[index] = enriched }
                             _state.value = BrowserState.Success(applySortMode(currentItems))
                         }
                     }
                 }.onFailure { e ->
-                    _state.value = BrowserState.Error(e.message ?: "SMB")
+                    if (isCurrentLoad(generation)) _state.value = BrowserState.Error(e.message ?: "Network")
                 }
             } catch (e: Exception) {
-                _state.value = BrowserState.Error(e.message ?: "Network")
+                if (isCurrentLoad(generation)) _state.value = BrowserState.Error(e.message ?: "Network")
             }
         }
     }
@@ -199,10 +221,12 @@ class BrowserViewModel @Inject constructor(
         SortMode.SIZE_DESC -> "Taille"
     }
 
-    /** Recherche des vidéos locales par nom, tous dossiers confondus — s'appuie sur l'index déjà
-     *  tenu à jour par MediaStore plutôt que de parcourir le système de fichiers dossier par
-     *  dossier, ce qui serait à la fois plus lent et redondant avec ce que le système fait déjà. */
-    suspend fun searchAllLocalVideos(query: String): List<MediaItem> = withContext(Dispatchers.IO) {
+    /** Recherche globale dans toute la vidéothèque locale indexée par MediaStore.
+     *  On ne limite plus au dossier courant : la requête SQL sur DISPLAY_NAME reste très rapide,
+     *  même avec beaucoup de dossiers, et on coupe à [maxResults] pour préserver la fluidité. */
+    suspend fun searchLocalVideos(query: String, maxResults: Int = 300): List<MediaItem> = withContext(Dispatchers.IO) {
+        val q = query.trim()
+        if (q.isBlank()) return@withContext emptyList()
         val items = mutableListOf<MediaItem>()
         val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         val projection = arrayOf(
@@ -216,7 +240,7 @@ class BrowserViewModel @Inject constructor(
         context.contentResolver.query(
             collection, projection,
             "${MediaStore.Video.Media.DISPLAY_NAME} LIKE ?",
-            arrayOf("%$query%"),
+            arrayOf("%$q%"),
             MediaStore.Video.Media.DISPLAY_NAME
         )?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
@@ -225,10 +249,11 @@ class BrowserViewModel @Inject constructor(
             val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
             val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
             val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
-            while (cursor.moveToNext()) {
+            while (cursor.moveToNext() && items.size < maxResults) {
                 val id = cursor.getLong(idCol)
                 val name = cursor.getString(nameCol) ?: continue
                 val filePath = cursor.getString(dataCol) ?: continue
+                if (!_showHidden.value && name.startsWith(".")) continue
                 items.add(
                     MediaItem(
                         id = id.toString(),
@@ -243,12 +268,43 @@ class BrowserViewModel @Inject constructor(
                 )
             }
         }
-        fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(context, items)
+        fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(context, applySortMode(items))
     }
 
+    fun canSearchCurrentNetworkFolder(): Boolean {
+        val share = currentShare ?: return false
+        return share.type == ShareType.SMB && (share.shareName.isNotBlank() || _currentPath.value.isNotBlank())
+    }
+
+    /** Recherche globale dans tous les chemins SMB sauvegardés, pas seulement dans le dossier
+     *  affiché. Les parcours restent séquentiels et bornés pour ne pas saturer le NAS ni l'UI. */
+    suspend fun searchNetworkVideos(query: String, maxResults: Int = 240): List<MediaItem> = withContext(Dispatchers.IO) {
+        val q = query.trim()
+        if (q.isBlank()) return@withContext emptyList()
+        val savedShares = networkRepository.getShares().first()
+            .filter { it.type == ShareType.SMB }
+        val merged = mutableListOf<MediaItem>()
+        for (share in savedShares) {
+            if (merged.size >= maxResults) break
+            val remaining = maxResults - merged.size
+            val result = smbBrowser.searchVideoFiles(
+                share = share,
+                startPath = "",
+                query = q,
+                maxResults = remaining.coerceAtMost(120),
+                maxDepth = 10
+            ).getOrDefault(emptyList())
+            merged += result.take(remaining)
+        }
+        fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(context, applySortMode(merged))
+    }
+
+    @Deprecated("Use searchNetworkVideos() for the unified Blaze Video browser search.")
+    suspend fun searchCurrentNetworkVideos(query: String): List<MediaItem> = searchNetworkVideos(query)
+
     private fun applySortMode(items: List<MediaItem>): List<MediaItem> {
-        val folders = items.filter { it.mimeType == "folder" }
-        val files = items.filter { it.mimeType != "folder" }
+        val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" || it.mimeType == "network" }
+        val files = items.filter { it.mimeType != "folder" && it.mimeType != "share" && it.mimeType != "network" }
         val sortedFiles = when (_sortMode.value) {
             SortMode.NAME_ASC -> files.sortedBy { it.name.lowercase() }
             SortMode.NAME_DESC -> files.sortedByDescending { it.name.lowercase() }

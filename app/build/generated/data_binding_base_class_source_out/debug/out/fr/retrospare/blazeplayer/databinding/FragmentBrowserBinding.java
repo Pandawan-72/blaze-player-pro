@@ -42,6 +42,12 @@ public final class FragmentBrowserBinding implements ViewBinding {
   public final ImageButton btnHome;
 
   @NonNull
+  public final MaterialButton btnLocal;
+
+  @NonNull
+  public final MaterialButton btnNetwork;
+
+  @NonNull
   public final ImageButton btnSearch;
 
   @NonNull
@@ -63,10 +69,16 @@ public final class FragmentBrowserBinding implements ViewBinding {
   public final TextView tvPath;
 
   @NonNull
+  public final TextView tvSearchProgress;
+
+  @NonNull
   public final TextView tvSortLabel;
 
   @NonNull
   public final TextView tvTitle;
+
+  @NonNull
+  public final LinearLayout videoBrowserSourceTabs;
 
   @NonNull
   public final LinearLayout videoSelectionActions;
@@ -74,10 +86,12 @@ public final class FragmentBrowserBinding implements ViewBinding {
   private FragmentBrowserBinding(@NonNull LinearLayout rootView,
       @NonNull LinearLayout breadcrumbContainer, @NonNull LinearLayout browserHeaderCard,
       @NonNull MaterialButton btnAddToPlaylist, @NonNull MaterialButton btnAddToQueue,
-      @NonNull ImageButton btnBack, @NonNull ImageButton btnHome, @NonNull ImageButton btnSearch,
+      @NonNull ImageButton btnBack, @NonNull ImageButton btnHome, @NonNull MaterialButton btnLocal,
+      @NonNull MaterialButton btnNetwork, @NonNull ImageButton btnSearch,
       @NonNull LinearLayout btnSort, @NonNull ImageButton btnToggleAudio,
       @NonNull EditText etSearch, @NonNull RecyclerView recyclerView, @NonNull TextView tvFileCount,
-      @NonNull TextView tvPath, @NonNull TextView tvSortLabel, @NonNull TextView tvTitle,
+      @NonNull TextView tvPath, @NonNull TextView tvSearchProgress, @NonNull TextView tvSortLabel,
+      @NonNull TextView tvTitle, @NonNull LinearLayout videoBrowserSourceTabs,
       @NonNull LinearLayout videoSelectionActions) {
     this.rootView = rootView;
     this.breadcrumbContainer = breadcrumbContainer;
@@ -86,6 +100,8 @@ public final class FragmentBrowserBinding implements ViewBinding {
     this.btnAddToQueue = btnAddToQueue;
     this.btnBack = btnBack;
     this.btnHome = btnHome;
+    this.btnLocal = btnLocal;
+    this.btnNetwork = btnNetwork;
     this.btnSearch = btnSearch;
     this.btnSort = btnSort;
     this.btnToggleAudio = btnToggleAudio;
@@ -93,8 +109,10 @@ public final class FragmentBrowserBinding implements ViewBinding {
     this.recyclerView = recyclerView;
     this.tvFileCount = tvFileCount;
     this.tvPath = tvPath;
+    this.tvSearchProgress = tvSearchProgress;
     this.tvSortLabel = tvSortLabel;
     this.tvTitle = tvTitle;
+    this.videoBrowserSourceTabs = videoBrowserSourceTabs;
     this.videoSelectionActions = videoSelectionActions;
   }
 
@@ -161,6 +179,18 @@ public final class FragmentBrowserBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnLocal;
+      MaterialButton btnLocal = ViewBindings.findChildViewById(rootView, id);
+      if (btnLocal == null) {
+        break missingId;
+      }
+
+      id = R.id.btnNetwork;
+      MaterialButton btnNetwork = ViewBindings.findChildViewById(rootView, id);
+      if (btnNetwork == null) {
+        break missingId;
+      }
+
       id = R.id.btnSearch;
       ImageButton btnSearch = ViewBindings.findChildViewById(rootView, id);
       if (btnSearch == null) {
@@ -203,6 +233,12 @@ public final class FragmentBrowserBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.tvSearchProgress;
+      TextView tvSearchProgress = ViewBindings.findChildViewById(rootView, id);
+      if (tvSearchProgress == null) {
+        break missingId;
+      }
+
       id = R.id.tvSortLabel;
       TextView tvSortLabel = ViewBindings.findChildViewById(rootView, id);
       if (tvSortLabel == null) {
@@ -215,6 +251,12 @@ public final class FragmentBrowserBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.videoBrowserSourceTabs;
+      LinearLayout videoBrowserSourceTabs = ViewBindings.findChildViewById(rootView, id);
+      if (videoBrowserSourceTabs == null) {
+        break missingId;
+      }
+
       id = R.id.videoSelectionActions;
       LinearLayout videoSelectionActions = ViewBindings.findChildViewById(rootView, id);
       if (videoSelectionActions == null) {
@@ -222,8 +264,9 @@ public final class FragmentBrowserBinding implements ViewBinding {
       }
 
       return new FragmentBrowserBinding((LinearLayout) rootView, breadcrumbContainer,
-          browserHeaderCard, btnAddToPlaylist, btnAddToQueue, btnBack, btnHome, btnSearch, btnSort,
-          btnToggleAudio, etSearch, recyclerView, tvFileCount, tvPath, tvSortLabel, tvTitle,
+          browserHeaderCard, btnAddToPlaylist, btnAddToQueue, btnBack, btnHome, btnLocal,
+          btnNetwork, btnSearch, btnSort, btnToggleAudio, etSearch, recyclerView, tvFileCount,
+          tvPath, tvSearchProgress, tvSortLabel, tvTitle, videoBrowserSourceTabs,
           videoSelectionActions);
     }
     String missingId = rootView.getResources().getResourceName(id);

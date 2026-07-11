@@ -33,6 +33,7 @@ object AudioProSettings {
     const val KEY_SYNCED_LYRICS = "synced_lyrics"
     const val KEY_DOWNLOAD_COVERS = "download_covers"
     const val KEY_WATCHED_FOLDERS = "watched_folders"
+    private const val KEY_LIBRARY_REFRESH_PENDING = "library_refresh_pending"
 
     const val REPLAYGAIN_OFF = 0
     const val REPLAYGAIN_TRACK = 1
@@ -54,7 +55,7 @@ object AudioProSettings {
         val autoScan: Boolean = true,
         val trackOrder: Boolean = true,
         val ignoreShort: Boolean = false,
-        val dynamicTheme: Boolean = false,
+        val dynamicTheme: Boolean = true,
         val coverBorder: Boolean = true,
         val lyricsPlayer: Boolean = true,
         val artworkSize: Int = ARTWORK_MEDIUM,
@@ -79,7 +80,7 @@ object AudioProSettings {
             autoScan = p.getBoolean(KEY_AUTO_SCAN, true),
             trackOrder = p.getBoolean(KEY_TRACK_ORDER, true),
             ignoreShort = p.getBoolean(KEY_IGNORE_SHORT, false),
-            dynamicTheme = p.getBoolean(KEY_DYNAMIC_THEME, false),
+            dynamicTheme = p.getBoolean(KEY_DYNAMIC_THEME, true),
             coverBorder = p.getBoolean(KEY_COVER_BORDER, true),
             lyricsPlayer = p.getBoolean(KEY_LYRICS_PLAYER, true),
             artworkSize = p.getInt(KEY_ARTWORK_SIZE, ARTWORK_MEDIUM).coerceIn(ARTWORK_SMALL, ARTWORK_LARGE),
@@ -132,7 +133,24 @@ object AudioProSettings {
         if (current.any { sameFolder(it, clean) }) return false
         current += clean
         saveWatchedFolders(context, current)
+        markLibraryRefreshPending(context)
         return true
+    }
+
+
+    /** Un ajout de dossier peut être réalisé depuis les réglages alors que la bibliothèque n'est
+     *  pas ouverte. Ce drapeau persistant garantit que le premier retour/ouverture déclenche le
+     *  scan complet une seule fois. */
+    fun markLibraryRefreshPending(context: Context) {
+        prefs(context).edit().putBoolean(KEY_LIBRARY_REFRESH_PENDING, true).apply()
+    }
+
+    fun consumeLibraryRefreshPending(context: Context): Boolean {
+        val preferences = prefs(context)
+        if (!preferences.getBoolean(KEY_LIBRARY_REFRESH_PENDING, false)) return false
+        // commit() est volontaire : l'opération est minuscule et évite deux consommations si deux
+        // écrans se réveillent presque simultanément.
+        return preferences.edit().remove(KEY_LIBRARY_REFRESH_PENDING).commit()
     }
 
     fun removeWatchedFolder(context: Context, folder: WatchedFolder) {

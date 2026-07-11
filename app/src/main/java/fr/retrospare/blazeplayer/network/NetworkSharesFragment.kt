@@ -38,14 +38,27 @@ class NetworkSharesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // Applique les insets système
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
-            val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars())
-            view.setPadding(0, bars.top, 0, 0)
-            insets
+        val embeddedInHome = arguments?.getBoolean("embeddedInHome", false) == true ||
+            parentFragment is fr.retrospare.blazeplayer.home.HomeFragment
+        if (embeddedInHome) {
+            // Quand l'écran Réseau est affiché comme onglet de Home, le parent gère déjà les
+            // insets, le titre/statut et le bouton de scan dans la carte haute de Home.
+            binding.root.setPadding(0, 0, 0, 0)
+            binding.networkHeader.visibility = View.GONE
+            binding.btnBack.visibility = View.GONE
+        } else {
+            binding.networkHeader.visibility = View.VISIBLE
+            // Applique les insets système uniquement lorsque cette page est ouverte en destination
+            // plein écran historique depuis le nav graph.
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+                val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                view.setPadding(0, bars.top, 0, 0)
+                insets
+            }
+            binding.btnBack.visibility = View.VISIBLE
         }
         setupRecyclerViews()
-        setupButtons()
+        setupButtons(embeddedInHome)
         observeViewModel()
         viewModel.scanNetwork() // Scan automatique à l'ouverture
     }
@@ -60,11 +73,7 @@ class NetworkSharesFragment : Fragment() {
 
         // Adapteur des chemins sauvegardés
         savedAdapter = NetworkSharesAdapter(
-            onBrowse = { share ->
-                val intent = android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.NetworkVideoBrowserActivity::class.java)
-                intent.putExtra("shareId", share.id)
-                startActivity(intent)
-            },
+            onTestConnection = { share -> testNetworkPath(share) },
             onSetDefault = { share -> viewModel.setDefault(share) },
             onEdit = { share -> showAddEditDialog(share) },
             onDelete = { share -> confirmDelete(share) }
@@ -73,8 +82,39 @@ class NetworkSharesFragment : Fragment() {
         binding.recyclerView.adapter = savedAdapter
     }
 
-    private fun setupButtons() {
-        binding.btnBack.setOnClickListener { findNavController().popBackStack() }
+
+    private fun testNetworkPath(share: NetworkShare) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ok = viewModel.testConnection(share)
+            if (!isAdded || _binding == null) return@launch
+            val title = getString(R.string.network_path_test_title)
+            val message = if (ok) {
+                getString(R.string.network_path_test_success_message, share.name)
+            } else {
+                getString(R.string.network_path_test_failure_message, share.name)
+            }
+            fr.retrospare.blazeplayer.ui.InfoDialog.show(
+                requireContext(),
+                title,
+                message,
+                iconRes = if (ok) R.drawable.ic_check_circle else R.drawable.ic_info
+            )
+        }
+    }
+
+    fun requestScanFromParent() {
+        if (_binding == null || !isAdded) return
+        viewModel.scanNetwork()
+    }
+
+    private fun setupButtons(embeddedInHome: Boolean) {
+        binding.btnBack.setOnClickListener {
+            if (embeddedInHome) {
+                (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.switchToTab(1)
+            } else {
+                findNavController().popBackStack()
+            }
+        }
         binding.btnAdd.setOnClickListener { showAddEditDialog(null) }
         binding.btnScan.setOnClickListener { viewModel.scanNetwork() }
     }
@@ -116,6 +156,8 @@ class NetworkSharesFragment : Fragment() {
                         binding.btnScan.isEnabled = !scanning
                         binding.btnScan.alpha = if (scanning) 0.5f else 1f
                         binding.tvSubtitle.text = if (scanning) getString(R.string.scan_in_progress) else getString(R.string.scan_complete)
+                        (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)
+                            ?.updateEmbeddedNetworkScanState(scanning)
                     }
                 }
 
@@ -128,8 +170,6 @@ class NetworkSharesFragment : Fragment() {
                                     android.widget.Toast.makeText(requireContext(), getString(R.string.toast_path_saved), android.widget.Toast.LENGTH_SHORT).show()
                                 fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.PATH_DELETED ->
                                     android.widget.Toast.makeText(requireContext(), getString(R.string.toast_path_deleted), android.widget.Toast.LENGTH_SHORT).show()
-                                fr.retrospare.blazeplayer.network.NetworkSharesViewModel.NetworkMessage.SCAN_UNAVAILABLE_EMULATOR ->
-                                    fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_info), getString(R.string.toast_scan_unavailable_emulator))
                             }
                             viewModel.clearMessage()
                         }

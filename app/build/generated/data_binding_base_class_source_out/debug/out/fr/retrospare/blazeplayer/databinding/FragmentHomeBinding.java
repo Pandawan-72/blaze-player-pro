@@ -63,10 +63,16 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final ImageButton btnGalleryTypeVideo;
 
   @NonNull
+  public final MaterialButton btnHistoryDeleteOverlay;
+
+  @NonNull
   public final MaterialButton btnHistoryLocal;
 
   @NonNull
   public final MaterialButton btnHistoryNetwork;
+
+  @NonNull
+  public final MaterialButton btnNetworkHeaderScan;
 
   @NonNull
   public final TextView btnPlaylistLocal1;
@@ -120,6 +126,9 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final LinearLayout emptyStateNetwork;
 
   @NonNull
+  public final LinearLayout galleryTypeHeaderToggle;
+
+  @NonNull
   public final LinearLayout headerCard;
 
   @NonNull
@@ -142,6 +151,9 @@ public final class FragmentHomeBinding implements ViewBinding {
 
   @NonNull
   public final RecyclerView listNetwork;
+
+  @NonNull
+  public final FrameLayout networkConfigContainer;
 
   @NonNull
   public final LinearLayout scrollContent;
@@ -198,6 +210,12 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final TextView tvEmptyStateGallery;
 
   @NonNull
+  public final TextView tvNetworkHeaderSubtitle;
+
+  @NonNull
+  public final TextView tvNetworkHeaderTitle;
+
+  @NonNull
   public final TextView tvSectionGallery;
 
   @NonNull
@@ -210,8 +228,9 @@ public final class FragmentHomeBinding implements ViewBinding {
       @NonNull MaterialButton btnEmptyStateBrowseNetwork, @NonNull MaterialButton btnFavoritesLocal,
       @NonNull MaterialButton btnFavoritesNetwork, @NonNull MaterialButton btnGalleryPrimary,
       @NonNull MaterialButton btnGallerySecondary, @NonNull ImageButton btnGalleryTypePhoto,
-      @NonNull ImageButton btnGalleryTypeVideo, @NonNull MaterialButton btnHistoryLocal,
-      @NonNull MaterialButton btnHistoryNetwork, @NonNull TextView btnPlaylistLocal1,
+      @NonNull ImageButton btnGalleryTypeVideo, @NonNull MaterialButton btnHistoryDeleteOverlay,
+      @NonNull MaterialButton btnHistoryLocal, @NonNull MaterialButton btnHistoryNetwork,
+      @NonNull MaterialButton btnNetworkHeaderScan, @NonNull TextView btnPlaylistLocal1,
       @NonNull TextView btnPlaylistLocal2, @NonNull TextView btnPlaylistLocal3,
       @NonNull TextView btnPlaylistLocal4, @NonNull TextView btnPlaylistLocal5,
       @NonNull TextView btnPlaylistNetwork1, @NonNull TextView btnPlaylistNetwork2,
@@ -220,19 +239,21 @@ public final class FragmentHomeBinding implements ViewBinding {
       @NonNull ImageButton btnSettings, @NonNull ImageButton btnVideoQueueLocal,
       @NonNull ImageButton btnVideoQueueNetwork, @NonNull LinearLayout emptyStateGallery,
       @NonNull LinearLayout emptyStateLocal, @NonNull LinearLayout emptyStateNetwork,
-      @NonNull LinearLayout headerCard, @NonNull LinearLayout headerControlsGallery,
-      @NonNull LinearLayout headerControlsLocal, @NonNull LinearLayout headerControlsNetwork,
-      @NonNull ImageView ivLogo, @NonNull RecyclerView listGallery, @NonNull RecyclerView listLocal,
-      @NonNull RecyclerView listNetwork, @NonNull LinearLayout scrollContent,
-      @NonNull LinearLayout sectionGallery, @NonNull LinearLayout sectionLocal,
-      @NonNull LinearLayout sectionNetwork, @NonNull TextView tabAll,
-      @NonNull LinearLayout tabAudio, @NonNull ImageView tabAudioIcon,
+      @NonNull LinearLayout galleryTypeHeaderToggle, @NonNull LinearLayout headerCard,
+      @NonNull LinearLayout headerControlsGallery, @NonNull LinearLayout headerControlsLocal,
+      @NonNull LinearLayout headerControlsNetwork, @NonNull ImageView ivLogo,
+      @NonNull RecyclerView listGallery, @NonNull RecyclerView listLocal,
+      @NonNull RecyclerView listNetwork, @NonNull FrameLayout networkConfigContainer,
+      @NonNull LinearLayout scrollContent, @NonNull LinearLayout sectionGallery,
+      @NonNull LinearLayout sectionLocal, @NonNull LinearLayout sectionNetwork,
+      @NonNull TextView tabAll, @NonNull LinearLayout tabAudio, @NonNull ImageView tabAudioIcon,
       @NonNull TextView tabAudioText, @NonNull LinearLayout tabGallery,
       @NonNull ImageView tabGalleryIcon, @NonNull TextView tabGalleryText,
       @NonNull LinearLayout tabLocal, @NonNull ImageView tabLocalIcon,
       @NonNull TextView tabLocalText, @NonNull LinearLayout tabNetwork,
       @NonNull ImageView tabNetworkIcon, @NonNull TextView tabNetworkText,
-      @NonNull TextView tvEmptyStateGallery, @NonNull TextView tvSectionGallery,
+      @NonNull TextView tvEmptyStateGallery, @NonNull TextView tvNetworkHeaderSubtitle,
+      @NonNull TextView tvNetworkHeaderTitle, @NonNull TextView tvSectionGallery,
       @NonNull TextView tvVersionBadge) {
     this.rootView = rootView;
     this.audioContainer = audioContainer;
@@ -247,8 +268,10 @@ public final class FragmentHomeBinding implements ViewBinding {
     this.btnGallerySecondary = btnGallerySecondary;
     this.btnGalleryTypePhoto = btnGalleryTypePhoto;
     this.btnGalleryTypeVideo = btnGalleryTypeVideo;
+    this.btnHistoryDeleteOverlay = btnHistoryDeleteOverlay;
     this.btnHistoryLocal = btnHistoryLocal;
     this.btnHistoryNetwork = btnHistoryNetwork;
+    this.btnNetworkHeaderScan = btnNetworkHeaderScan;
     this.btnPlaylistLocal1 = btnPlaylistLocal1;
     this.btnPlaylistLocal2 = btnPlaylistLocal2;
     this.btnPlaylistLocal3 = btnPlaylistLocal3;
@@ -266,6 +289,7 @@ public final class FragmentHomeBinding implements ViewBinding {
     this.emptyStateGallery = emptyStateGallery;
     this.emptyStateLocal = emptyStateLocal;
     this.emptyStateNetwork = emptyStateNetwork;
+    this.galleryTypeHeaderToggle = galleryTypeHeaderToggle;
     this.headerCard = headerCard;
     this.headerControlsGallery = headerControlsGallery;
     this.headerControlsLocal = headerControlsLocal;
@@ -274,6 +298,7 @@ public final class FragmentHomeBinding implements ViewBinding {
     this.listGallery = listGallery;
     this.listLocal = listLocal;
     this.listNetwork = listNetwork;
+    this.networkConfigContainer = networkConfigContainer;
     this.scrollContent = scrollContent;
     this.sectionGallery = sectionGallery;
     this.sectionLocal = sectionLocal;
@@ -292,6 +317,8 @@ public final class FragmentHomeBinding implements ViewBinding {
     this.tabNetworkIcon = tabNetworkIcon;
     this.tabNetworkText = tabNetworkText;
     this.tvEmptyStateGallery = tvEmptyStateGallery;
+    this.tvNetworkHeaderSubtitle = tvNetworkHeaderSubtitle;
+    this.tvNetworkHeaderTitle = tvNetworkHeaderTitle;
     this.tvSectionGallery = tvSectionGallery;
     this.tvVersionBadge = tvVersionBadge;
   }
@@ -395,6 +422,12 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnHistoryDeleteOverlay;
+      MaterialButton btnHistoryDeleteOverlay = ViewBindings.findChildViewById(rootView, id);
+      if (btnHistoryDeleteOverlay == null) {
+        break missingId;
+      }
+
       id = R.id.btnHistoryLocal;
       MaterialButton btnHistoryLocal = ViewBindings.findChildViewById(rootView, id);
       if (btnHistoryLocal == null) {
@@ -404,6 +437,12 @@ public final class FragmentHomeBinding implements ViewBinding {
       id = R.id.btnHistoryNetwork;
       MaterialButton btnHistoryNetwork = ViewBindings.findChildViewById(rootView, id);
       if (btnHistoryNetwork == null) {
+        break missingId;
+      }
+
+      id = R.id.btnNetworkHeaderScan;
+      MaterialButton btnNetworkHeaderScan = ViewBindings.findChildViewById(rootView, id);
+      if (btnNetworkHeaderScan == null) {
         break missingId;
       }
 
@@ -509,6 +548,12 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.galleryTypeHeaderToggle;
+      LinearLayout galleryTypeHeaderToggle = ViewBindings.findChildViewById(rootView, id);
+      if (galleryTypeHeaderToggle == null) {
+        break missingId;
+      }
+
       id = R.id.headerCard;
       LinearLayout headerCard = ViewBindings.findChildViewById(rootView, id);
       if (headerCard == null) {
@@ -554,6 +599,12 @@ public final class FragmentHomeBinding implements ViewBinding {
       id = R.id.listNetwork;
       RecyclerView listNetwork = ViewBindings.findChildViewById(rootView, id);
       if (listNetwork == null) {
+        break missingId;
+      }
+
+      id = R.id.networkConfigContainer;
+      FrameLayout networkConfigContainer = ViewBindings.findChildViewById(rootView, id);
+      if (networkConfigContainer == null) {
         break missingId;
       }
 
@@ -665,6 +716,18 @@ public final class FragmentHomeBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.tvNetworkHeaderSubtitle;
+      TextView tvNetworkHeaderSubtitle = ViewBindings.findChildViewById(rootView, id);
+      if (tvNetworkHeaderSubtitle == null) {
+        break missingId;
+      }
+
+      id = R.id.tvNetworkHeaderTitle;
+      TextView tvNetworkHeaderTitle = ViewBindings.findChildViewById(rootView, id);
+      if (tvNetworkHeaderTitle == null) {
+        break missingId;
+      }
+
       id = R.id.tvSectionGallery;
       TextView tvSectionGallery = ViewBindings.findChildViewById(rootView, id);
       if (tvSectionGallery == null) {
@@ -680,16 +743,18 @@ public final class FragmentHomeBinding implements ViewBinding {
       return new FragmentHomeBinding((CoordinatorLayout) rootView, audioContainer, btnBrowseLocal,
           btnBrowseNetwork, btnCast, btnEmptyStateBrowseLocal, btnEmptyStateBrowseNetwork,
           btnFavoritesLocal, btnFavoritesNetwork, btnGalleryPrimary, btnGallerySecondary,
-          btnGalleryTypePhoto, btnGalleryTypeVideo, btnHistoryLocal, btnHistoryNetwork,
-          btnPlaylistLocal1, btnPlaylistLocal2, btnPlaylistLocal3, btnPlaylistLocal4,
-          btnPlaylistLocal5, btnPlaylistNetwork1, btnPlaylistNetwork2, btnPlaylistNetwork3,
-          btnPlaylistNetwork4, btnPlaylistNetwork5, btnScreenCast, btnSettings, btnVideoQueueLocal,
-          btnVideoQueueNetwork, emptyStateGallery, emptyStateLocal, emptyStateNetwork, headerCard,
+          btnGalleryTypePhoto, btnGalleryTypeVideo, btnHistoryDeleteOverlay, btnHistoryLocal,
+          btnHistoryNetwork, btnNetworkHeaderScan, btnPlaylistLocal1, btnPlaylistLocal2,
+          btnPlaylistLocal3, btnPlaylistLocal4, btnPlaylistLocal5, btnPlaylistNetwork1,
+          btnPlaylistNetwork2, btnPlaylistNetwork3, btnPlaylistNetwork4, btnPlaylistNetwork5,
+          btnScreenCast, btnSettings, btnVideoQueueLocal, btnVideoQueueNetwork, emptyStateGallery,
+          emptyStateLocal, emptyStateNetwork, galleryTypeHeaderToggle, headerCard,
           headerControlsGallery, headerControlsLocal, headerControlsNetwork, ivLogo, listGallery,
-          listLocal, listNetwork, scrollContent, sectionGallery, sectionLocal, sectionNetwork,
-          tabAll, tabAudio, tabAudioIcon, tabAudioText, tabGallery, tabGalleryIcon, tabGalleryText,
-          tabLocal, tabLocalIcon, tabLocalText, tabNetwork, tabNetworkIcon, tabNetworkText,
-          tvEmptyStateGallery, tvSectionGallery, tvVersionBadge);
+          listLocal, listNetwork, networkConfigContainer, scrollContent, sectionGallery,
+          sectionLocal, sectionNetwork, tabAll, tabAudio, tabAudioIcon, tabAudioText, tabGallery,
+          tabGalleryIcon, tabGalleryText, tabLocal, tabLocalIcon, tabLocalText, tabNetwork,
+          tabNetworkIcon, tabNetworkText, tvEmptyStateGallery, tvNetworkHeaderSubtitle,
+          tvNetworkHeaderTitle, tvSectionGallery, tvVersionBadge);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

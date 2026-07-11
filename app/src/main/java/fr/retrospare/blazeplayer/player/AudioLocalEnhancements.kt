@@ -18,12 +18,20 @@ import java.security.MessageDigest
 import java.text.Normalizer
 import java.util.Locale
 import java.util.EnumSet
+import java.util.concurrent.ConcurrentHashMap
 
 /** Paroles locales + métadonnées utilisateur non destructives.
  *  Le tag editor Pro+ sauvegarde des overrides locaux pour l'affichage et la bibliothèque sans
  *  réécrire physiquement les fichiers audio (plus sûr avec Android/SAF/SMB). */
 object AudioLocalEnhancements {
     private const val PREFS_META = "blaze_audio_metadata_overrides"
+
+    // Cache positif partagé entre le service de lecture et l'overlay du player. Lors d'une
+    // transition, le service commence la lecture du .LRC sur son dispatcher IO ; si le Fragment
+    // demande le même fichier en parallèle, il rejoint le même verrou au lieu d'ouvrir deux fois
+    // le NAS ou le stockage local.
+    private val lyricsCache = ConcurrentHashMap<String, LocalLyrics>()
+    private val lyricsLookupLocks = Array(32) { Any() }
 
     data class MetadataOverride(
         val title: String = "",
@@ -89,7 +97,22 @@ object AudioLocalEnhancements {
         if (path.isBlank()) return null
         val settings = AudioProSettings.read(context)
         if (!settings.syncedLyrics) return null
+        lyricsCache[path]?.let { return it }
 
+        val lookupIndex = (path.hashCode() and Int.MAX_VALUE) % lyricsLookupLocks.size
+        return synchronized(lyricsLookupLocks[lookupIndex]) {
+            lyricsCache[path]?.let { return@synchronized it }
+            val loaded = findLocalLyricsDataUncached(context, path, settings)
+            if (loaded != null) lyricsCache[path] = loaded
+            loaded
+        }
+    }
+
+    private fun findLocalLyricsDataUncached(
+        context: Context,
+        path: String,
+        settings: AudioProSettings.Values
+    ): LocalLyrics? {
         // NAS / SMB : la bibliothèque peut stocker les pistes en smb://. Dans ce cas File() et
         // MediaStore ne voient jamais le .lrc voisin. On ouvre donc directement le fichier paroles
         // dans le même dossier SMB avec la même infrastructure réseau que le lecteur.

@@ -34,6 +34,20 @@ class SmbBrowser @Inject constructor() {
         "mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "dts", "ac3", "mka"
     )
 
+    // La bibliothèque audio a besoin de voir les pochettes explicites dans les dossiers NAS
+    // pour pouvoir les indexer sans ouvrir les fichiers audio réseau. On ne remonte pas toutes
+    // les images du partage : uniquement les noms conventionnels de cover d'album.
+    private val COVER_IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png")
+    private val COVER_IMAGE_NAMES = setOf(
+        "cover", "folder", "front", "album", "albumart", "album art", "artwork", "jaquette", "pochette"
+    )
+
+    private fun lastWriteTimeMillis(info: FileIdBothDirectoryInformation): Long = runCatching {
+        val value = info.javaClass.methods.firstOrNull { it.name == "getLastWriteTime" }?.invoke(info)
+        val millis = value?.javaClass?.methods?.firstOrNull { it.name == "toEpochMillis" }?.invoke(value)
+        (millis as? Number)?.toLong() ?: 0L
+    }.getOrDefault(0L)
+
     private fun createClient(): SMBClient {
         val config = SmbConfig.builder()
             .withTimeout(30, TimeUnit.SECONDS)
@@ -84,7 +98,8 @@ class SmbBrowser @Inject constructor() {
 
     suspend fun listFiles(
         share: NetworkShare,
-        path: String = ""
+        path: String = "",
+        includeAudioCoverImages: Boolean = false
     ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
         // Si aucun nom de partage n'est defini, on liste les partages disponibles
         if (share.shareName.isBlank()) {
@@ -95,15 +110,16 @@ class SmbBrowser @Inject constructor() {
             val parts = path.split("/", limit = 2)
             val actualShareName = parts[0]
             val actualPath = if (parts.size > 1) parts[1] else ""
-            return@withContext listFilesInShare(share.copy(shareName = actualShareName), actualPath, actualShareName)
+            return@withContext listFilesInShare(share.copy(shareName = actualShareName), actualPath, actualShareName, includeAudioCoverImages)
         }
-        listFilesInShare(share, path, null)
+        listFilesInShare(share, path, null, includeAudioCoverImages)
     }
 
     private suspend fun listFilesInShare(
         share: NetworkShare,
         path: String,
-        sharePrefix: String?
+        sharePrefix: String?,
+        includeAudioCoverImages: Boolean
     ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
         listSemaphore.withPermit {
             runCatching {
@@ -150,7 +166,7 @@ class SmbBrowser @Inject constructor() {
                                         networkShareId = share.id
                                     )
                                 )
-                            } else if (ext in VIDEO_EXTENSIONS || ext in AUDIO_EXTENSIONS) {
+                            } else if (ext in VIDEO_EXTENSIONS || ext in AUDIO_EXTENSIONS || (includeAudioCoverImages && isAudioCoverImage(name, ext))) {
                                 val smbUri = buildSmbUri(share, fullPath)
                                 items.add(
                                     MediaItem(
@@ -158,7 +174,8 @@ class SmbBrowser @Inject constructor() {
                                         name = name,
                                         path = smbUri,
                                         size = info.endOfFile,
-                                        mimeType = getMimeType(ext),
+                                        modifiedAt = lastWriteTimeMillis(info),
+                                        mimeType = if (includeAudioCoverImages && isAudioCoverImage(name, ext)) getCoverMimeType(ext) else getMimeType(ext),
                                         extension = ext,
                                         isNetwork = true,
                                         networkShareId = share.id
@@ -171,6 +188,117 @@ class SmbBrowser @Inject constructor() {
             }
                 items.sortWith(compareBy({ it.mimeType != "folder" }, { it.name.lowercase() }))
                 items
+            }
+        }
+    }
+
+    /** Recherche récursive de vidéos dans le dossier SMB courant. Un seul Visual/Browser ne doit
+     *  pas lancer plusieurs connexions concurrentes au NAS : on réutilise le même sémaphore que le
+     *  listing normal, et on limite les résultats pour garder le navigateur fluide. */
+    suspend fun searchVideoFiles(
+        share: NetworkShare,
+        startPath: String = "",
+        query: String,
+        maxResults: Int = 200,
+        maxDepth: Int = 8
+    ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+        val q = query.trim()
+        if (q.isBlank()) return@withContext Result.success(emptyList())
+
+        if (share.shareName.isBlank()) {
+            val cleanStart = startPath.trim('/').replace("\\", "/")
+            if (cleanStart.isBlank()) {
+                val merged = mutableListOf<MediaItem>()
+                val shares = listShares(share).getOrDefault(emptyList())
+                    .filter { it.mimeType == "share" }
+                    .sortedBy { it.name.lowercase() }
+                for (shareItem in shares) {
+                    if (merged.size >= maxResults) break
+                    val remaining = maxResults - merged.size
+                    val found = searchVideoFilesInShare(
+                        share.copy(shareName = shareItem.name),
+                        "",
+                        q,
+                        remaining,
+                        maxDepth
+                    ).getOrDefault(emptyList())
+                    merged += found.take(remaining)
+                }
+                return@withContext Result.success(merged.sortedBy { it.name.lowercase() })
+            }
+            val parts = cleanStart.split("/", limit = 2)
+            val actualShareName = parts[0]
+            val actualPath = if (parts.size > 1) parts[1] else ""
+            return@withContext searchVideoFilesInShare(
+                share.copy(shareName = actualShareName),
+                actualPath,
+                q,
+                maxResults,
+                maxDepth
+            )
+        }
+
+        searchVideoFilesInShare(share, "", q, maxResults, maxDepth)
+    }
+
+    private suspend fun searchVideoFilesInShare(
+        share: NetworkShare,
+        startPath: String,
+        query: String,
+        maxResults: Int,
+        maxDepth: Int
+    ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+        listSemaphore.withPermit {
+            runCatching {
+                val client = createClient()
+                val authContext = buildAuthContext(share)
+                val host = share.host
+                val port = share.port ?: 445
+                val results = mutableListOf<MediaItem>()
+                val start = startPath.trim('/').replace("\\", "/")
+
+                client.connect(host, port).use { connection ->
+                    connection.authenticate(authContext).use { session ->
+                        (session.connectShare(share.shareName) as? DiskShare)?.use { diskShare ->
+                            val queue: java.util.ArrayDeque<Pair<String, Int>> = java.util.ArrayDeque()
+                            queue.add(start to 0)
+                            while (!queue.isEmpty() && results.size < maxResults) {
+                                val (path, depth) = queue.removeFirst()
+                                val smbSearchPath = path.replace("/", "\\")
+                                val entries = runCatching { diskShare.list(smbSearchPath) }.getOrElse { emptyList<FileIdBothDirectoryInformation>() }
+                                entries.forEach { info ->
+                                    if (results.size >= maxResults) return@forEach
+                                    val name = info.fileName
+                                    if (name == "." || name == ".." || name.startsWith(".")) return@forEach
+                                    val isDir = info.fileAttributes and 0x10L != 0L
+                                    val fullPath = if (path.isEmpty()) name else "$path/$name"
+                                    if (isDir) {
+                                        if (depth < maxDepth) queue.add(fullPath to (depth + 1))
+                                    } else {
+                                        val ext = name.substringAfterLast('.', "").lowercase()
+                                        if (ext in VIDEO_EXTENSIONS && name.contains(query, ignoreCase = true)) {
+                                            val smbUri = buildSmbUri(share, fullPath)
+                                            results.add(
+                                                MediaItem(
+                                                    id = smbUri,
+                                                    name = name,
+                                                    path = smbUri,
+                                                    size = info.endOfFile,
+                                                    modifiedAt = lastWriteTimeMillis(info),
+                                                    mimeType = getMimeType(ext),
+                                                    extension = ext,
+                                                    isNetwork = true,
+                                                    networkShareId = share.id
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                results.sortedBy { it.name.lowercase() }
             }
         }
     }
@@ -206,13 +334,29 @@ class SmbBrowser @Inject constructor() {
     }
 
     private fun buildSmbUri(share: NetworkShare, path: String): String {
-        val cleanPath = path.replace("\\", "/")
-        val auth = if (!share.username.isNullOrEmpty()) {
-            val pass = share.password?.let { ":${java.net.URLEncoder.encode(it, "UTF-8")}" } ?: ""
-            "${java.net.URLEncoder.encode(share.username, "UTF-8")}$pass@"
-        } else ""
-        val port = if (share.port != null && share.port != 445) ":${share.port}" else ""
-        return "smb://$auth${share.host}$port/${share.shareName}/$cleanPath"
+        return fr.retrospare.blazeplayer.player.SmbDataSource.buildSmbUri(
+            host = share.host,
+            port = share.port ?: 445,
+            shareName = share.shareName,
+            filePath = path,
+            username = share.username,
+            password = share.password
+        )
+    }
+
+    private fun isAudioCoverImage(name: String, ext: String): Boolean {
+        if (ext.lowercase() !in COVER_IMAGE_EXTENSIONS) return false
+        val base = name.substringBeforeLast('.', name)
+            .replace('_', ' ')
+            .replace('-', ' ')
+            .trim()
+            .lowercase()
+        return COVER_IMAGE_NAMES.any { base == it || base.startsWith(it) }
+    }
+
+    private fun getCoverMimeType(ext: String): String = when (ext.lowercase()) {
+        "png" -> "image/png"
+        else -> "image/jpeg"
     }
 
     private fun getMimeType(ext: String): String = when (ext) {

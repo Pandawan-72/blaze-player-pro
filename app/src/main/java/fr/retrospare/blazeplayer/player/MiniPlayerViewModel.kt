@@ -17,6 +17,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.debug.CrashReporter
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,9 +32,7 @@ data class MiniPlayerState(
     val isVisible: Boolean = false,
     val title: String = "",
     val artist: String = "",
-    // Uniquement un vrai tag ID3/FLAC (AudioMetadataExtractor) : jamais de nom de dossier ici,
-    // contrairement à ce que peut afficher Track.album côté bibliothèque. Vide si le morceau n'a
-    // pas de vraie tag album, auquel cas rien ne doit être affiché.
+    // Album dérivé du dossier qui contient le titre, sans extraction ID3/FLAC.
     val album: String = "",
     val artworkData: ByteArray? = null,
     val isPlaying: Boolean = false,
@@ -163,6 +162,8 @@ class MiniPlayerViewModel @Inject constructor(
     }
 
     private var colorComputeToken = 0
+    private var currentArtworkPath = ""
+    private var artworkLoadJob: Job? = null
 
     /** Met à jour la pochette affichée ET recalcule la couleur dynamique associée (même
      *  algorithme que l'écran Blaze Audio, cf. AudioDynamicColor), pour que le mini player suive
@@ -210,45 +211,37 @@ class MiniPlayerViewModel @Inject constructor(
                 applyArtwork(null)
                 return
             }
-            val cached = AudioMetadataExtractor.getCached(context, path)
-            _title.value = meta?.title?.toString()?.ifEmpty { null }
-                ?: cached?.title?.ifEmpty { null }
-                ?: path.substringAfterLast('/').substringBeforeLast('.')
-            val unknownArtist = context.getString(fr.retrospare.blazeplayer.R.string.unknown_artist)
-            val metaArtist = meta?.artist?.toString()?.trim()
-                ?.takeIf { it.isNotEmpty() && !it.equals(unknownArtist, ignoreCase = true) && !it.equals("unknown", ignoreCase = true) }
-            _artist.value = cached?.artist?.ifEmpty { null }
-                ?: metaArtist
-                ?: ""
-            // Uniquement le vrai tag album (AudioMetadataExtractor) : pas de repli sur
-            // meta.albumTitle ni sur un quelconque nom de dossier. Vide si aucune vraie tag.
-            _album.value = cached?.album?.ifEmpty { null } ?: ""
-            // Priorité au cache ThumbnailUtils (qui respecte déjà l'ordre cover-dossier > pochette
-            // embarquée) plutôt qu'à meta.artworkData brut : sinon une pochette embarquée "de
-            // secours" fournie par Media3 gagnait systématiquement contre un cover.jpg/png déjà
-            // résolu et caché juste avant, y compris pour la couleur dynamique du mini player.
-            val cachedArtwork = if (path.isNotEmpty()) fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, path) else null
-            applyArtwork(cachedArtwork ?: meta?.artworkData)
+            val originalName = meta?.extras?.getString("blaze_original_name")
+                .orEmpty().ifBlank { AudioLibraryHeuristics.fileNameFromPath(path) }
+            val folder = AudioLibraryHeuristics.folderMetadata(path, originalName)
+            _title.value = folder.title
+            _artist.value = folder.artist
+            _album.value = folder.album
 
-            // hasPreferredFolderCoverForAudio() ne sait rien dire pour smb:// sans I/O réseau (elle
-            // reste volontairement synchrone/locale) : on force donc toujours une résolution complète
-            // en tâche de fond pour le réseau, en plus du cas "aucune pochette du tout" déjà couvert.
-            val mightHaveBetterCover = path.startsWith("smb://", true) ||
-                fr.retrospare.blazeplayer.ui.ThumbnailUtils.hasPreferredFolderCoverForAudio(path)
-            if (path.isNotEmpty() && (cached == null || cachedArtwork == null || mightHaveBetterCover)) {
-                viewModelScope.launch(Dispatchers.IO) {
-                    val name = path.substringAfterLast('/')
-                    val info = AudioMetadataExtractor.extract(context, path, name)
-                    val art = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytes(context, path)
+            // La seule extraction autorisée ici est celle de la pochette : cover.jpg, cover.png,
+            // puis embedded. On attend la résolution centrale au lieu d'afficher immédiatement
+            // artworkData, qui peut contenir une ancienne embedded moins prioritaire.
+            val pathChanged = currentArtworkPath != path
+            if (pathChanged) {
+                currentArtworkPath = path
+                artworkLoadJob?.cancel()
+            }
+            val cachedArtwork = AudioArtworkResolver.cachedJpegBytes(context, path)
+            if (cachedArtwork != null) {
+                applyArtwork(cachedArtwork)
+            } else if (pathChanged) {
+                // Conserver la pochette pendant les simples événements play/pause/buffering ; le
+                // placeholder n'est appliqué qu'au vrai changement de piste.
+                applyArtwork(null)
+            }
+            if (pathChanged || (cachedArtwork == null && artworkLoadJob?.isActive != true)) {
+                artworkLoadJob = viewModelScope.launch(Dispatchers.IO) {
+                    val art = AudioArtworkResolver.resolveJpegBytes(context, path)
                     kotlinx.coroutines.withContext(Dispatchers.Main) {
                         val currentItem = controller?.currentMediaItem
-                        val current = currentItem?.mediaMetadata?.extras?.getString("blaze_original_path") ?: currentItem?.mediaId.orEmpty()
-                        if (current == path) {
-                            if (info.title.isNotEmpty()) _title.value = info.title
-                            if (info.artist.isNotEmpty()) _artist.value = info.artist
-                            if (info.album.isNotEmpty()) _album.value = info.album
-                            if (art != null) applyArtwork(art)
-                        }
+                        val current = currentItem?.mediaMetadata?.extras?.getString("blaze_original_path")
+                            ?: currentItem?.mediaId.orEmpty()
+                        if (current == path) applyArtwork(art)
                     }
                 }
             }

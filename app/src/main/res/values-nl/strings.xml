@@ -6,58 +6,39 @@
 
     <string name="tab_local">Lokaal</string>
     <string name="tab_network">Netwerk</string>
-    <string name="tab_audio">Blaze Audio</string>
-
-    <!-- Version badge -->
+    <string name="tab_blaze_video">Blaze Video</string>
+<!-- Version badge -->
     <string name="version_badge_free">Gratis</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
-
-    <string name="section_local_history">Lokale geschiedenis</string>
-    <string name="section_network_history">Netwerkgeschiedenis</string>
-    <string name="local_files">Lokale bestanden</string>
-    <string name="network_files">Netwerkbestanden</string>
-    <string name="favorites">Favorieten</string>
-    <string name="playlists_label">Afspeellijsten</string>
-    <string name="my_playlists">MIJN AFSPEELLIJSTEN</string>
-    <string name="cast_screen">Telefoonscherm casten</string>
-
-    <string name="add_network_path">Netwerkpad toevoegen</string>
+<string name="favorites">Favorieten</string>
+<string name="add_network_path">Netwerkpad toevoegen</string>
     <string name="add_manually">Handmatig toevoegen</string>
     <string name="saved_paths">OPGESLAGEN PADEN</string>
     <string name="detected_devices">GEDETECTEERDE APPARATEN</string>
     <string name="available_devices">Beschikbare apparaten</string>
     <string name="no_path_configured">Geen pad geconfigureerd.\nTik op Scannen om apparaten te detecteren.</string>
     <string name="default_path">Standaardpad</string>
-    <string name="browse_this_path">Dit pad doorbladeren</string>
-    <string name="example_smb_path">smb://192.168.1.10/Films</string>
+    <string name="test_network_path">Pad testen</string>
+    <string name="network_path_test_title">Netwerkpad testen</string>
+    <string name="network_path_test_success_message">Het pad “%1$s” is bereikbaar.</string>
+    <string name="network_path_test_failure_message">Kan “%1$s” niet bereiken. Controleer netwerk, aanmeldgegevens of sharemachtigingen.</string>
+<string name="example_smb_path">smb://192.168.1.10/Films</string>
     <string name="name_label">Naam</string>
 
     <string name="unknown_artist">Onbekende artiest</string>
     <string name="unknown_title">Onbekende titel</string>
     <string name="audio_track">Audiospoor</string>
-    <string name="tracks">Nummers</string>
-    <string name="subtitles_short">OND</string>
-    <string name="ratio_label">BEELDVERHOUDING</string>
-    <string name="timer">Timer</string>
+<string name="timer">Timer</string>
     <string name="equalizer">Equalizer</string>
-    <string name="rewind_10s">-10s</string>
-    <string name="forward_10s">+10s</string>
-    <string name="loading">Laden…</string>
+<string name="loading">Laden…</string>
     <string name="no_track_found">0 nummers gevonden</string>
     <string name="zero_time">0:00</string>
-    <string name="zero_time_long">0:00:00</string>
-
-    <string name="add_tracks">Nummers toevoegen</string>
-    <string name="add_selection_to_playlist">Selectie toevoegen aan afspeellijst</string>
-    <string name="add_to_playlist_short">Toevoegen aan playlist</string>
+<string name="add_tracks">Nummers toevoegen</string>
+<string name="add_to_playlist_short">Toevoegen aan playlist</string>
     <string name="add_to_party_short">Toevoegen aan Party</string>
-    <string name="play_selection">Selectie afspelen</string>
-    <string name="add_all">Alles toevoegen</string>
-    <string name="save_current_list">Huidige lijst opslaan</string>
-    <string name="sort_name_az">Naam A–Z</string>
-    <string name="now_playing">NU AAN HET SPELEN</string>
-    <string name="queue">WACHTRIJ</string>
+<string name="sort_name_az">Naam A–Z</string>
+<string name="queue">WACHTRIJ</string>
     <string name="queue_short">Wachtrij</string>
     <string name="add">Toevoegen</string>
     <string name="info">Info</string>
@@ -74,31 +55,11 @@
 
     <string name="settings">Instellingen</string>
     <string name="login_optional">Inloggen (optioneel)</string>
-    <string name="login_to_continue">Log in om door te gaan</string>
-    <string name="create_my_account">Mijn account aanmaken</string>
-    <string name="create_account">Account aanmaken</string>
-    <string name="sign_in">Inloggen</string>
-    <string name="sign_up">Registreren</string>
-    <string name="no_account_yet">Nog geen account? </string>
-    <string name="or_separator">of</string>
-    <string name="forgot_password">Wachtwoord vergeten</string>
-    <string name="forgot_password_question">Wachtwoord vergeten?</string>
-    <string name="forgot_password_description">Voer je e-mailadres in en we sturen je een resetlink.</string>
-    <string name="send_link">Link versturen</string>
-    <string name="email_sent">E-mail verzonden! Controleer je inbox.</string>
-    <string name="upgrade_to_pro">⭐ Overstappen naar Blaze Player Pro of Pro+</string>
-    <string name="free_trial_15_days">15 dagen gratis proberen</string>
-    <string name="enjoy_free_trial">Profiteer van 15 dagen gratis proefperiode</string>
-    <string name="buy_pro_lifetime">Pro kopen — € 3,99 levenslang</string>
-    <string name="one_time_payment">Eenmalige betaling, levenslang.\nGeen abonnement, geen verrassingen.</string>
-    <string name="secure_payment_google_play">Veilig betalen via Google Play. Geen automatische verlenging.\nDoor door te gaan, ga je akkoord met onze gebruiksvoorwaarden en ons privacybeleid.</string>
-    <string name="no_commitment_cancel_anytime">Geen verplichtingen · Altijd opzegbaar</string>
+<string name="upgrade_to_pro">⭐ Overstappen naar Blaze Player Pro of Pro+</string>
+<string name="settings_rate_app">Beoordeel de app</string>
+    <string name="settings_rate_app_desc">Deel je beoordeling in de Play Store</string>
     <string name="restore_purchases">Aankopen herstellen</string>
-    <string name="restore_existing_purchase">Bestaande aankoop herstellen</string>
-    <string name="free_label">Gratis</string>
-    <string name="pro_label">Pro</string>
-    <string name="pro_badge">PRO</string>
-    <string name="about_section">OVER</string>
+<string name="about_section">OVER</string>
     <string name="interface_section">INTERFACE</string>
     <string name="data_section">GEGEVENS</string>
     <string name="contact_section">CONTACT</string>
@@ -165,6 +126,7 @@
     <string name="settings_language">Taal</string>
     <string name="language_system_auto">Systeem (automatisch)</string>
     <string name="dialog_choose_language">Taal kiezen</string>
+    <string name="toast_play_store_unavailable">Kan de Play Store niet openen</string>
     <string name="toast_restore_purchases_soon">Aankopen herstellen… (binnenkort beschikbaar)</string>
 
     <string name="ratio_auto">Auto</string>
@@ -189,11 +151,7 @@
 
     <string name="toast_no_track_selected">Geen nummer geselecteerd</string>
     <string name="toast_select_tracks_first">Selecteer eerst nummers (vakje links van elk bestand)</string>
-    <string name="search_hint_all_folders">Zoeken in alle mappen…</string>
-    <string name="action_search">Zoeken</string>
-    <string name="action_show_results">Resultaten weergeven</string>
-    <string name="search_enter_term">Voer een zoekterm in</string>
-    <string name="toast_no_network_path_configured">Geen netwerkpad geconfigureerd</string>
+<string name="toast_no_network_path_configured">Geen netwerkpad geconfigureerd</string>
     <string name="dialog_choose_network_path">Netwerkpad kiezen</string>
     <string name="local_storage">Lokale opslag</string>
     <string name="lossless_label">Lossless</string>
@@ -225,6 +183,7 @@
     <string name="toast_click_device_to_explore">Tik op een apparaat om het te verkennen.</string>
     <string name="scan_in_progress">Bezig met scannen…</string>
     <string name="scan_complete">Scan voltooid</string>
+    <string name="audio_scan_deferred_playback">Afspelen is actief: de audioscan wordt uitgesteld om onderbrekingen te voorkomen.</string>
     <string name="dialog_choose_share">Kies een gedeelde map</string>
     <string name="action_add_to_favorites">Toevoegen aan favorieten</string>
     <string name="toast_added_to_favorites">%1$s toegevoegd aan favorieten</string>
@@ -261,8 +220,7 @@
     <string name="action_remove">Verwijderen</string>
 
     <string name="unknown_generic">Onbekend</string>
-    <string name="dialog_track_info_message">Titel: %1$s\nArtiest: %2$s\nAlbum: %3$s</string>
-    <string name="sleep_timer_title">Slaaptimer</string>
+<string name="sleep_timer_title">Slaaptimer</string>
     <string name="minutes_5">5 minuten</string>
     <string name="minutes_15">15 minuten</string>
     <string name="minutes_30">30 minuten</string>
@@ -276,7 +234,7 @@
     <string name="dialog_which_playlist">Aan welke afspeellijst toevoegen?</string>
     <string name="playlist_slot_name">Afspeellijst %1$d</string>
     <string name="playlist_empty">(leeg)</string>
-    <string name="action_to_playlist">Wachtrij naar afspeellijst</string>
+    <string name="action_to_playlist">Naar playlist</string>
     <string name="content_desc_queue_to_playlist">Wachtrij opslaan in een afspeellijst</string>
     <string name="playlist_existing_with_count">(bestaand — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">Bestaande afspeellijst</string>
@@ -301,9 +259,7 @@
         <item quantity="one">%1$d al aanwezig</item>
         <item quantity="other">%1$d al aanwezig</item>
     </plurals>
-
-    <string name="category_local">Lokaal</string>
-    <string name="category_network">Netwerk</string>
+<string name="category_network">Netwerk</string>
     <string name="category_audio">Audio</string>
 
     <string name="toast_error_generic">Fout: %1$s</string>
@@ -332,12 +288,9 @@
 
     <string name="dialog_permission_needed">Toestemming vereist</string>
 
-
     <string name="dialog_permission_intro_title">Toestemmingen vereist</string>
 
-
     <string name="dialog_permission_intro_message">Om goed te werken, vraagt Blaze Player een paar toestemmingen tegelijk:\n\n• Foto\'s, muziek en video\'s: om je bibliotheek en Blaze Gallery te tonen\n• Meldingen: voor de afspeelbediening\n• Lokaal netwerk: om Blaze Party-gasten te vinden\n• Microfoon: alleen voor de dynamische visuele equalizer — er wordt nooit audio opgenomen</string>
-
 
     <string name="action_continue">Doorgaan</string>
     <string name="dialog_permission_message">Blaze Player heeft toegang tot je videobestanden nodig om te werken.</string>
@@ -346,39 +299,26 @@
 
     <string name="action_edit">Bewerken</string>
     <string name="browser_files_audio">Mijn audiobestanden</string>
-    <string name="browser_files_local">Mijn lokale bestanden</string>
-    <string name="breadcrumb_home">Start</string>
+<string name="breadcrumb_home">Start</string>
     <string name="toast_path_saved">Pad opgeslagen</string>
     <string name="toast_path_deleted">Pad verwijderd</string>
-    <string name="toast_scan_unavailable_emulator">Scannen niet beschikbaar in emulator</string>
-
-    <string name="search_hint_video">Video zoeken</string>
+<string name="search_hint_video">Video zoeken</string>
+    <string name="browser_search_in_progress">Zoeken…</string>
     <string name="hint_path_name">Padnaam</string>
     <string name="hint_shared_folder">Gedeelde map</string>
-    <string name="hint_email_address">E-mailadres</string>
-
-    <string name="hint_ip_host">IP-adres / Host</string>
+<string name="hint_ip_host">IP-adres / Host</string>
     <string name="hint_port">Poort</string>
     <string name="hint_shared_folder_example">Gedeelde map (bijv. videos)</string>
     <string name="hint_username_optional">Gebruikersnaam (optioneel)</string>
     <string name="hint_password_optional">Wachtwoord (optioneel)</string>
     <string name="hint_username">Gebruikersnaam</string>
     <string name="hint_password">Wachtwoord</string>
-    <string name="hint_confirm_password">Wachtwoord bevestigen</string>
+<string name="history_empty_blaze_video_subtitle">Blader door je lokale of netwerkvideo\'s om te beginnen</string>
 
-    <string name="history_network">Netwerkgeschiedenis</string>
-    <string name="history_local">Lokale geschiedenis</string>
+    <string name="history_empty_blaze_video_title">Geen recent bekeken video\'s</string>
 
-    <string name="history_empty_local_title">Geen recent bekeken video\'s</string>
-
-    <string name="history_empty_local_subtitle">Blader door je lokale bibliotheek om te beginnen</string>
-
-    <string name="history_empty_network_title">Geen recent bekeken video\'s</string>
-
-    <string name="history_empty_network_subtitle">Blader door je netwerkshares om te beginnen</string>
-    <string name="history_label">Geschiedenis</string>
-
-    <!-- Historique : gestion par sélection -->
+    <string name="history_blaze_video">Geschiedenis</string>
+<!-- Historique : gestion par sélection -->
     <string name="history_selection_active">Selectie actief: %1$d miniatuur/miniaturen geselecteerd.</string>
     <string name="history_action_prompt">Kies een actie voor deze geschiedenis.</string>
     <string name="history_delete_selection">Selectie verwijderen (%1$d)</string>
@@ -389,11 +329,9 @@
     <string name="history_confirm_delete_all_local">Alle lokale geschiedenis verwijderen?</string>
     <string name="history_confirm_delete_all_network">Alle netwerkgeschiedenis verwijderen?</string>
     <string name="history_toast_select_thumbnails">Selecteer de miniaturen die je uit de geschiedenis wilt verwijderen</string>
-    <string name="browse_files_network">Bladeren</string>
-    <string name="browse_files_local">Bladeren</string>
-    <string name="action_close_favorites">Favorieten sluiten</string>
-
-    <plurals name="file_count">
+    <string name="permission_gallery_required">Sta toegang tot foto’s en video’s toe om Blaze Gallery weer te geven.</string>
+<string name="browse_files_local">Bladeren</string>
+<plurals name="file_count">
         <item quantity="one">%1$d bestand</item>
         <item quantity="other">%1$d bestanden</item>
     </plurals>
@@ -410,13 +348,7 @@
         <item quantity="one">%1$d nummer geselecteerd</item>
         <item quantity="other">%1$d nummers geselecteerd</item>
     </plurals>
-
-    <plurals name="items_selected_count">
-        <item quantity="one">%1$d geselecteerd</item>
-        <item quantity="other">%1$d geselecteerd</item>
-    </plurals>
-
-    <string name="settings_section_playback">AFSPELEN</string>
+<string name="settings_section_playback">AFSPELEN</string>
     <string name="settings_section_audio">AUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
     <string name="label_default">Standaard</string>
@@ -438,8 +370,7 @@
     <string name="content_desc_repeat">Herhalen</string>
     <string name="content_desc_timer">Timer</string>
     <string name="content_desc_options">Opties</string>
-    <string name="action_pause">Pauzeren</string>
-    <string name="error_loading_media">Kan het afspelen van video niet starten.</string>
+<string name="error_loading_media">Kan het afspelen van video niet starten.</string>
 
     <string name="cast_dialog_status">Casten bezig</string>
     <string name="cast_dialog_stop">Casten stoppen</string>
@@ -474,20 +405,8 @@
     <string name="action_reset">Resetten</string>
 
     <!-- TMDb -->
-    <string name="tmdb_section_title">Filminfo</string>
-    <string name="tmdb_no_summary">Geen samenvatting beschikbaar.</string>
-    <string name="tmdb_no_result">Geen poster of samenvatting online gevonden.</string>
-    <string name="tmdb_refresh">Info vernieuwen</string>
-    <string name="tmdb_api_key_missing"></string>
-    <string name="movie_runtime_label">Duur:</string>
-    <string name="movie_genres_label">Genres:</string>
-    <string name="movie_actors_label">Acteurs:</string>
-    <string name="movie_studio_label">Studio:</string>
-    <string name="tmdb_title_not_found">Titel niet gevonden</string>
-
-    <!-- Blaze Gallery -->
-    <string name="gallery_title">Gallery</string>
-    <string name="gallery_folders">Gallery</string>
+<!-- Blaze Gallery -->
+<string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Nog geen mappen — maak er een aan om te beginnen</string>
 
@@ -498,8 +417,7 @@
     <string name="gallery_type_video">Video\'s</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Sorteren</string>
-    <string name="gallery_sort_folder">Mapnaam</string>
-    <string name="gallery_sort_date_desc">Nieuwste eerst</string>
+<string name="gallery_sort_date_desc">Nieuwste eerst</string>
     <string name="gallery_sort_date_asc">Oudste eerst</string>
     <string name="gallery_sort_name">Alfabetische volgorde</string>
     <string name="gallery_sort_size">Bestandsgrootte</string>
@@ -513,8 +431,7 @@
     <string name="gallery_delete">Verwijderen</string>
     <string name="gallery_delete_folder">Map verwijderen</string>
     <string name="gallery_delete_permanently_from_trash">Permanent uit prullenbak verwijderen</string>
-    <string name="gallery_moved_to_trash">Foto naar prullenbak verplaatst</string>
-    <string name="gallery_delete_all">Alles verwijderen</string>
+<string name="gallery_delete_all">Alles verwijderen</string>
     <string name="gallery_share_all">Alles delen</string>
     <string name="gallery_selected_count">%1$d geselecteerd</string>
     <string name="confirm_delete_title">Verwijderen bevestigen</string>
@@ -545,7 +462,6 @@
         <item quantity="one">%d nummer toegevoegd aan Blaze Party</item>
         <item quantity="other">%d nummers toegevoegd aan Blaze Party</item>
     </plurals>
-
 
     <string name="blaze_party_launch">Starten</string>
     <string name="blaze_party_vote">Stemmen</string>
@@ -590,11 +506,9 @@
     <string name="blaze_party_share_code">Adres: %1$s
 Token: %2$s</string>
     <string name="blaze_party_host_waiting">Sessie klaar: gasten kunnen deze code scannen.</string>
-    <string name="blaze_party_manual_hint">Plak de link of voer de code in</string>
-    <string name="blaze_party_scan_unavailable">QR-scanner niet beschikbaar. Installeer een QR-scanner of voer de code handmatig in.</string>
+<string name="blaze_party_scan_unavailable">QR-scanner niet beschikbaar. Installeer een QR-scanner of voer de code handmatig in.</string>
     <string name="blaze_party_joined">Deelgenomen aan Blaze Party-sessie</string>
-    <string name="action_join">Deelnemen</string>
-    <string name="blaze_party_not_host_queue">Alleen de host kan deze wachtrij wijzigen</string>
+<string name="blaze_party_not_host_queue">Alleen de host kan deze wachtrij wijzigen</string>
     <string name="blaze_party_remove_vote">Mijn stem verwijderen</string>
     <string name="blaze_party_vote_removed">Stem verwijderd</string>
     <string name="blaze_party_default_host">Host</string>
@@ -631,8 +545,7 @@ Token: %2$s</string>
     <string name="editor_tab_crop">Bijsnijden</string>
     <string name="editor_tab_rotate">Draaien</string>
     <string name="editor_tab_blur">Vervagen</string>
-    <string name="blur_enable_label">Vervagen inschakelen</string>
-    <string name="blur_effect_blur">Vervagen</string>
+<string name="blur_effect_blur">Vervagen</string>
     <string name="blur_effect_mosaic">Mozaïek</string>
     <string name="blur_shape_circle">Cirkel</string>
     <string name="blur_shape_square">Vierkant</string>
@@ -648,9 +561,7 @@ Token: %2$s</string>
     <string name="action_compare_hold">Ingedrukt houden om te vergelijken</string>
     <string name="content_desc_rotate_left">Linksom draaien</string>
     <string name="content_desc_rotate_right">Rechtsom draaien</string>
-    <string name="straighten_label">Rechttrekken</string>
-    <string name="toast_photo_saved">Foto opgeslagen in Blaze Gallery</string>
-    <string name="toast_photo_save_failed">Opslaan mislukt</string>
+<string name="toast_photo_save_failed">Opslaan mislukt</string>
     <string name="photo_details_no_exif">Geen metadata beschikbaar voor deze foto</string>
     <string name="photo_details_dimensions">Afmetingen: %1$s</string>
     <string name="photo_details_size">Grootte: %1$s</string>
@@ -671,10 +582,7 @@ Token: %2$s</string>
     <string name="toast_mp3_saved">MP3 opgeslagen in Blaze MP3 Cut</string>
     <string name="toast_mp3_export_failed">MP3 exporteren mislukt</string>
     <string name="gallery_menu_cut">Bijsnijden</string>
-    <string name="exporting_progress">Bezig met exporteren…</string>
-    <string name="export_fast_hint">Snel: bijna direct, knipt bij het dichtstbijzijnde keyframe</string>
-    <string name="export_precise_hint">Precies: codeert de video opnieuw voor een exacte knip, trager</string>
-    <!-- Video queue additions -->
+<!-- Video queue additions -->
     <string name="add_to_playlist_fixed_short">Naar afspeellijst</string>
     <string name="add_to_video_queue_short">wachtrij</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -692,18 +600,20 @@ Token: %2$s</string>
 
     <!-- Blaze Audio Pro+ library and premium settings -->
     <string name="audio_library_title">Bibliotheek</string>
-    <string name="audio_library_subtitle">Pro+ audioalbums, nummers en playlists</string>
+    <string name="audio_library_subtitle">Je Pro+ muziekbibliotheek</string>
+    <string name="audio_loading_in_progress">Laden...</string>
     <string name="audio_search">Zoeken</string>
-    <string name="audio_search_coming_soon">Audio zoeken komt binnenkort</string>
-    <string name="audio_library_sections_hint">Deze premiumweergave komt stapsgewijs per sectie.</string>
-    <string name="audio_tab_albums">Albums</string>
+<string name="audio_tab_albums">Albums</string>
     <string name="audio_tab_artists">Artiesten</string>
     <string name="audio_tab_titles">Nummers</string>
     <string name="audio_tab_playlists">Playlists</string>
-    <string name="audio_resume_listening">Verder luisteren</string>
-    <string name="audio_recent_albums">Onlangs toegevoegde albums</string>
+    <string name="audio_resume_listening">Recent beluisterd</string>
+    <string name="audio_recent_albums">Mijn albums</string>
     <string name="audio_played_tracks">Nummers</string>
     <string name="audio_all">Alles tonen</string>
+    <string name="audio_album_view_grid_3">Raster 3</string>
+    <string name="audio_album_view_grid_4">Raster 4</string>
+    <string name="audio_album_view_list">Lijst</string>
     <string name="audio_no_music">Geen muziek gevonden</string>
     <string name="audio_settings_title">Audio-instellingen</string>
     <string name="audio_settings_subtitle">Pas je Pro+ luisterervaring aan</string>
@@ -730,8 +640,7 @@ Token: %2$s</string>
     <string name="audio_auto_scan_subtitle">Nieuwe bestanden toevoegen</string>
     <string name="audio_watched_folders">Bewaakte mappen</string>
     <string name="audio_watched_folders_subtitle">Audiomappen selecteren</string>
-    <string name="audio_watched_folders_count">12 mappen</string>
-    <string name="audio_sort_album_track">Sorteren op tracknummer</string>
+<string name="audio_sort_album_track">Sorteren op tracknummer</string>
     <string name="audio_sort_album_track_subtitle">Album- en schijfvolgorde respecteren</string>
     <string name="audio_ignore_short_files">Korte bestanden negeren</string>
     <string name="audio_ignore_short_files_subtitle">Minder dan 30 seconden</string>
@@ -740,9 +649,7 @@ Token: %2$s</string>
     <string name="audio_dynamic_theme_subtitle">Standaard Blaze-groen, coverkleuren wanneer ingeschakeld</string>
     <string name="audio_cover_border">Gekleurde coverrand</string>
     <string name="audio_cover_border_subtitle">Dynamisch accent rond artwork</string>
-    <string name="audio_show_lyrics_player">Songteksten in player</string>
-    <string name="audio_show_lyrics_player_subtitle">Songteksten in de player tonen</string>
-    <string name="audio_artwork_size">Covergrootte</string>
+<string name="audio_artwork_size">Covergrootte</string>
     <string name="audio_size_small">Klein</string>
     <string name="audio_size_medium">Gemiddeld</string>
     <string name="audio_size_large">Groot</string>
@@ -751,16 +658,7 @@ Token: %2$s</string>
     <string name="audio_synced_lyrics_subtitle">Hoofdschakelaar voor lokale LRC/TXT-songteksten</string>
     <string name="audio_tag_editor">Tag-editor</string>
     <string name="audio_tag_editor_subtitle">Titel, artiest, album, genre, track en disc bewerken</string>
-    <string name="audio_download_covers">Covers downloaden</string>
-    <string name="audio_download_covers_subtitle">Ontbrekende covers ophalen</string>
-    <string name="audio_section_about_pro">Over Pro+</string>
-    <string name="audio_pro_version">Pro+ versie</string>
-    <string name="audio_pro_version_subtitle">Bedankt voor je steun</string>
-    <string name="audio_restore_purchase">Aankoop herstellen</string>
-    <string name="audio_restore_purchase_subtitle">Pro+ voordelen opnieuw activeren</string>
-    <string name="audio_watched_folders_info">Blaze Audio gebruikt de Android-muziekbibliotheek en de bestanden die je toevoegt via de lokale/netwerkbrowser. Automatisch scannen vernieuwt de bibliotheek telkens wanneer deze wordt geopend.</string>
-    <string name="audio_restore_purchase_info">Pro+ herstellen is gekoppeld aan het aankoopsysteem van de app. Als je bent ingelogd met het aankoopaccount, worden je voordelen automatisch opnieuw geactiveerd.</string>
-    <string name="audio_no_current_track">Geen huidig nummer</string>
+<string name="audio_no_current_track">Geen huidig nummer</string>
     <string name="audio_tag_title">Titel</string>
     <string name="audio_tag_artist">Artiest</string>
     <string name="audio_tag_album">Album</string>
@@ -789,6 +687,7 @@ Token: %2$s</string>
     <string name="audio_add_to_watched">Toevoegen aan bewaakte mappen</string>
     <string name="audio_add_to_favorites">Toevoegen aan favorieten</string>
     <string name="audio_watched_folder_added">Map toegevoegd aan bewaakte mappen</string>
+    <string name="audio_watched_folder_refresh_hint">De map is toegevoegd aan bewaakte mappen. Bij terugkeer naar de bibliotheek start automatisch een volledige vernieuwing.</string>
     <string name="audio_watched_folder_removed">Map verwijderd uit bewaakte mappen</string>
     <string name="audio_watched_folder_already">Deze map wordt al bewaakt</string>
     <string name="audio_tag_genre">Genre</string>
@@ -801,8 +700,7 @@ Token: %2$s</string>
     <string name="audio_tag_network_not_supported">Direct schrijven is beschikbaar voor lokale bestanden en SMB/NAS-netwerkbestanden. Deze bron staat bewerken op afstand niet toe.</string>
     <string name="action_scan">Scannen</string>
     <string name="action_done">Klaar</string>
-    <string name="audio_add_current_folder">Deze map toevoegen</string>
-    <string name="audio_play_album">Volledig album afspelen</string>
+<string name="audio_play_album">Volledig album afspelen</string>
     <string name="audio_add_album_queue">Album aan wachtrij toevoegen</string>
     <string name="audio_select_tracks">Nummers selecteren</string>
     <string name="audio_add_playlist_blaze_party">Playlist aan Blaze Party toevoegen</string>
@@ -818,4 +716,17 @@ Token: %2$s</string>
     <string name="audio_add_track_blaze_party">Aan Blaze Party toevoegen</string>
     <string name="audio_back_to_albums">Terug naar albums</string>
     <string name="audio_back_to_albums_hint">Terug naar de volledige bibliotheekweergave</string>
+
+    <string name="action_refresh">Vernieuwen</string>
+    <string name="audio_watched_folders_empty_short">Geen bewaakte map</string>
+    <string name="audio_watched_folders_summary_mixed">%1$d lokaal · %2$d %3$s</string>
+    <string name="audio_watched_folders_summary_network">%1$d %2$s</string>
+    <string name="audio_watched_folders_summary_local">%1$d lokale map(pen)</string>
+    <string name="audio_library_refresh_started">Vernieuwen gestart op de achtergrond</string>
+    <string name="audio_library_refresh_done">Bibliotheek bijgewerkt</string>
+    <string name="audio_library_refresh_in_progress_message">Bibliotheek wordt vernieuwd. Wacht even voordat je het afspelen start.</string>
+    <string name="audio_library_refresh_failed">Vernieuwen mislukt</string>
+    <string name="audio_library_network_synced">Netwerk gesynchroniseerd</string>
+    <string name="audio_album_sort_album">Albumnaam</string>
+    <string name="audio_album_sort_artist">Artiestennaam</string>
 </resources>

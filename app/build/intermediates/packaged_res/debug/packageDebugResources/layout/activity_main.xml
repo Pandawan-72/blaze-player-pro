@@ -52,11 +52,14 @@
                 android:layout_height="match_parent"
                 android:background="#66000000" />
 
-            <fr.retrospare.blazeplayer.widget.MiniEqualizerView
-                android:id="@+id/miniEqView"
-                android:layout_width="46dp"
-                android:layout_height="32dp"
+            <ImageView
+                android:id="@+id/miniPlayingIndicator"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
                 android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_playing_spinner"
                 android:visibility="gone" />
 
         </FrameLayout>

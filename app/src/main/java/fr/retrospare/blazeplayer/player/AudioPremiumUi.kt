@@ -14,11 +14,11 @@ object AudioPremiumUi {
     fun resolveAccentColor(context: Context): Int {
         val blazeGreen = ContextCompat.getColor(context, R.color.green_accent)
         val prefs = AudioProSettings.prefs(context)
-        if (!prefs.getBoolean(AudioProSettings.KEY_DYNAMIC_THEME, false)) return blazeGreen
+        if (!prefs.getBoolean(AudioProSettings.KEY_DYNAMIC_THEME, true)) return blazeGreen
         return runCatching {
             val state = AudioRepository.loadState(context)
             val item = state.items.getOrNull(state.index) ?: return@runCatching blazeGreen
-            val bytes = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(context, item.path)
+            val bytes = AudioMediaCache.getCachedArtworkJpegBytes(context, item.path)
                 ?: return@runCatching blazeGreen
             val bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 ?: return@runCatching blazeGreen

@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "fr.retrospare.blazeplayer.app-mergeDebugResources-80:/values-zh-rCN/values-zh-rCN.xml",
+            "outputFile": "fr.retrospare.blazeplayer.app-mergeDebugResources-81:/values-zh-rCN/values-zh-rCN.xml",
             "map": [
                 {
                     "source": "/Users/pandawan/.gradle/caches/9.4.1/transforms/ebc8c2969cff8684652c616f2caf3bb3/transformed/material/res/values-zh-rCN/values-zh-rCN.xml",

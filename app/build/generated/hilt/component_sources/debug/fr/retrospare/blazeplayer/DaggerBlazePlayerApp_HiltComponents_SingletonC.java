@@ -32,10 +32,6 @@ import dagger.internal.DoubleCheck;
 import dagger.internal.LazyClassKeyMap;
 import dagger.internal.Preconditions;
 import dagger.internal.Provider;
-import fr.retrospare.blazeplayer.auth.AuthViewModel;
-import fr.retrospare.blazeplayer.auth.AuthViewModel_HiltModules;
-import fr.retrospare.blazeplayer.auth.AuthViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
-import fr.retrospare.blazeplayer.auth.AuthViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
 import fr.retrospare.blazeplayer.browser.BrowserFragment;
 import fr.retrospare.blazeplayer.browser.BrowserViewModel;
 import fr.retrospare.blazeplayer.browser.BrowserViewModel_HiltModules;
@@ -69,10 +65,16 @@ import fr.retrospare.blazeplayer.paywall.PaywallViewModel_HiltModules_KeyModule_
 import fr.retrospare.blazeplayer.player.AudioBrowserActivity;
 import fr.retrospare.blazeplayer.player.AudioBrowserActivity_MembersInjector;
 import fr.retrospare.blazeplayer.player.AudioLibraryActivity;
-import fr.retrospare.blazeplayer.player.AudioLibraryActivity_MembersInjector;
+import fr.retrospare.blazeplayer.player.AudioLibraryRepository;
+import fr.retrospare.blazeplayer.player.AudioLibraryViewModel;
+import fr.retrospare.blazeplayer.player.AudioLibraryViewModel_HiltModules;
+import fr.retrospare.blazeplayer.player.AudioLibraryViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
+import fr.retrospare.blazeplayer.player.AudioLibraryViewModel_HiltModules_KeyModule_Provide_LazyMapKey;
 import fr.retrospare.blazeplayer.player.AudioPlayerActivity;
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment;
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment_MembersInjector;
+import fr.retrospare.blazeplayer.player.AudioProSettingsActivity;
+import fr.retrospare.blazeplayer.player.AudioProSettingsActivity_MembersInjector;
 import fr.retrospare.blazeplayer.player.MiniPlayerViewModel;
 import fr.retrospare.blazeplayer.player.MiniPlayerViewModel_HiltModules;
 import fr.retrospare.blazeplayer.player.MiniPlayerViewModel_HiltModules_BindsModule_Binds_LazyMapKey;
@@ -378,29 +380,29 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     }
 
     @Override
-    public void injectBrowserFragment(BrowserFragment arg0) {
+    public void injectBrowserFragment(BrowserFragment browserFragment) {
     }
 
     @Override
-    public void injectHomeFragment(HomeFragment arg0) {
-      injectHomeFragment2(arg0);
+    public void injectHomeFragment(HomeFragment homeFragment) {
+      injectHomeFragment2(homeFragment);
     }
 
     @Override
-    public void injectNetworkSharesFragment(NetworkSharesFragment arg0) {
+    public void injectNetworkSharesFragment(NetworkSharesFragment networkSharesFragment) {
     }
 
     @Override
-    public void injectPaywallFragment(PaywallFragment arg0) {
+    public void injectPaywallFragment(PaywallFragment paywallFragment) {
     }
 
     @Override
-    public void injectAudioPlayerFragment(AudioPlayerFragment arg0) {
-      injectAudioPlayerFragment2(arg0);
+    public void injectAudioPlayerFragment(AudioPlayerFragment audioPlayerFragment) {
+      injectAudioPlayerFragment2(audioPlayerFragment);
     }
 
     @Override
-    public void injectSettingsFragment(SettingsFragment arg0) {
+    public void injectSettingsFragment(SettingsFragment settingsFragment) {
     }
 
     @CanIgnoreReturnValue
@@ -453,7 +455,7 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
 
     ImmutableMap keySetMapOfClassOfAndBooleanBuilder() {
       ImmutableMap.Builder mapBuilder = ImmutableMap.<String, Boolean>builderWithExpectedSize(7);
-      mapBuilder.put(AuthViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, AuthViewModel_HiltModules.KeyModule.provide());
+      mapBuilder.put(AudioLibraryViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, AudioLibraryViewModel_HiltModules.KeyModule.provide());
       mapBuilder.put(BrowserViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, BrowserViewModel_HiltModules.KeyModule.provide());
       mapBuilder.put(HomeViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, HomeViewModel_HiltModules.KeyModule.provide());
       mapBuilder.put(MiniPlayerViewModel_HiltModules_KeyModule_Provide_LazyMapKey.lazyClassKeyName, MiniPlayerViewModel_HiltModules.KeyModule.provide());
@@ -489,31 +491,36 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     }
 
     @Override
-    public void injectMainActivity(MainActivity arg0) {
+    public void injectMainActivity(MainActivity mainActivity) {
     }
 
     @Override
-    public void injectAudioBrowserActivity(AudioBrowserActivity arg0) {
-      injectAudioBrowserActivity2(arg0);
+    public void injectAudioBrowserActivity(AudioBrowserActivity audioBrowserActivity) {
+      injectAudioBrowserActivity2(audioBrowserActivity);
     }
 
     @Override
-    public void injectAudioLibraryActivity(AudioLibraryActivity arg0) {
-      injectAudioLibraryActivity2(arg0);
+    public void injectAudioLibraryActivity(AudioLibraryActivity audioLibraryActivity) {
     }
 
     @Override
-    public void injectAudioPlayerActivity(AudioPlayerActivity arg0) {
+    public void injectAudioPlayerActivity(AudioPlayerActivity audioPlayerActivity) {
     }
 
     @Override
-    public void injectNetworkVideoBrowserActivity(NetworkVideoBrowserActivity arg0) {
-      injectNetworkVideoBrowserActivity2(arg0);
+    public void injectAudioProSettingsActivity(AudioProSettingsActivity audioProSettingsActivity) {
+      injectAudioProSettingsActivity2(audioProSettingsActivity);
     }
 
     @Override
-    public void injectPlayerActivity(PlayerActivity arg0) {
-      injectPlayerActivity2(arg0);
+    public void injectNetworkVideoBrowserActivity(
+        NetworkVideoBrowserActivity networkVideoBrowserActivity) {
+      injectNetworkVideoBrowserActivity2(networkVideoBrowserActivity);
+    }
+
+    @Override
+    public void injectPlayerActivity(PlayerActivity playerActivity) {
+      injectPlayerActivity2(playerActivity);
     }
 
     @CanIgnoreReturnValue
@@ -525,10 +532,9 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     }
 
     @CanIgnoreReturnValue
-    private AudioLibraryActivity injectAudioLibraryActivity2(AudioLibraryActivity instance2) {
-      AudioLibraryActivity_MembersInjector.injectNetworkRepository(instance2, singletonCImpl.provideNetworkRepositoryProvider.get());
-      AudioLibraryActivity_MembersInjector.injectSmbBrowser(instance2, singletonCImpl.provideSmbBrowserProvider.get());
-      AudioLibraryActivity_MembersInjector.injectUpnpBrowser(instance2, singletonCImpl.upnpBrowserProvider.get());
+    private AudioProSettingsActivity injectAudioProSettingsActivity2(
+        AudioProSettingsActivity instance2) {
+      AudioProSettingsActivity_MembersInjector.injectDataStore(instance2, singletonCImpl.provideDataStoreProvider.get());
       return instance2;
     }
 
@@ -556,7 +562,7 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
 
     private final ViewModelCImpl viewModelCImpl = this;
 
-    Provider<AuthViewModel> authViewModelProvider;
+    Provider<AudioLibraryViewModel> audioLibraryViewModelProvider;
 
     Provider<BrowserViewModel> browserViewModelProvider;
 
@@ -581,7 +587,7 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
 
     ImmutableMap hiltViewModelMapMapOfClassOfAndProviderOfViewModelBuilder() {
       ImmutableMap.Builder mapBuilder = ImmutableMap.<String, javax.inject.Provider<ViewModel>>builderWithExpectedSize(7);
-      mapBuilder.put(AuthViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (authViewModelProvider)));
+      mapBuilder.put(AudioLibraryViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (audioLibraryViewModelProvider)));
       mapBuilder.put(BrowserViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (browserViewModelProvider)));
       mapBuilder.put(HomeViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (homeViewModelProvider)));
       mapBuilder.put(MiniPlayerViewModel_HiltModules_BindsModule_Binds_LazyMapKey.lazyClassKeyName, ((Provider) (miniPlayerViewModelProvider)));
@@ -594,7 +600,7 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
     @SuppressWarnings("unchecked")
     private void initialize(final SavedStateHandle savedStateHandleParam,
         final ViewModelLifecycle viewModelLifecycleParam) {
-      this.authViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 0);
+      this.audioLibraryViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 0);
       this.browserViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 1);
       this.homeViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 2);
       this.miniPlayerViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 3);
@@ -634,11 +640,11 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
       @SuppressWarnings("unchecked")
       public T get() {
         switch (id) {
-          case 0: // fr.retrospare.blazeplayer.auth.AuthViewModel
-          return (T) new AuthViewModel();
+          case 0: // fr.retrospare.blazeplayer.player.AudioLibraryViewModel
+          return (T) new AudioLibraryViewModel(singletonCImpl.audioLibraryRepositoryProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           case 1: // fr.retrospare.blazeplayer.browser.BrowserViewModel
-          return (T) new BrowserViewModel(singletonCImpl.provideDataStoreProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.mediaRepositoryProvider.get(), singletonCImpl.provideSmbBrowserProvider.get(), singletonCImpl.provideNetworkRepositoryProvider.get());
+          return (T) new BrowserViewModel(singletonCImpl.provideDataStoreProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.mediaRepositoryProvider.get(), singletonCImpl.provideSmbBrowserProvider.get(), singletonCImpl.upnpBrowserProvider.get(), singletonCImpl.provideNetworkRepositoryProvider.get());
 
           case 2: // fr.retrospare.blazeplayer.home.HomeViewModel
           return (T) new HomeViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.mediaRepositoryProvider.get());
@@ -647,7 +653,7 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
           return (T) new MiniPlayerViewModel(ApplicationContextModule_ProvideApplicationFactory.provideApplication(singletonCImpl.applicationContextModule), singletonCImpl.provideDataStoreProvider.get());
 
           case 4: // fr.retrospare.blazeplayer.network.NetworkSharesViewModel
-          return (T) new NetworkSharesViewModel(singletonCImpl.provideNetworkRepositoryProvider.get(), singletonCImpl.networkScannerProvider.get());
+          return (T) new NetworkSharesViewModel(singletonCImpl.provideNetworkRepositoryProvider.get(), singletonCImpl.networkScannerProvider.get(), singletonCImpl.provideSmbBrowserProvider.get(), singletonCImpl.upnpBrowserProvider.get());
 
           case 5: // fr.retrospare.blazeplayer.paywall.PaywallViewModel
           return (T) new PaywallViewModel(singletonCImpl.userRepositoryProvider.get());
@@ -747,6 +753,8 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
 
     Provider<UserRepository> userRepositoryProvider;
 
+    Provider<AudioLibraryRepository> audioLibraryRepositoryProvider;
+
     Provider<NetworkScanner> networkScannerProvider;
 
     SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
@@ -763,7 +771,8 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
       this.upnpBrowserProvider = DoubleCheck.provider(new SwitchingProvider<UpnpBrowser>(singletonCImpl, 3));
       this.mediaRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<MediaRepository>(singletonCImpl, 4));
       this.userRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<UserRepository>(singletonCImpl, 5));
-      this.networkScannerProvider = DoubleCheck.provider(new SwitchingProvider<NetworkScanner>(singletonCImpl, 6));
+      this.audioLibraryRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AudioLibraryRepository>(singletonCImpl, 6));
+      this.networkScannerProvider = DoubleCheck.provider(new SwitchingProvider<NetworkScanner>(singletonCImpl, 7));
     }
 
     @Override
@@ -817,7 +826,10 @@ public final class DaggerBlazePlayerApp_HiltComponents_SingletonC {
           case 5: // fr.retrospare.blazeplayer.data.repository.UserRepository
           return (T) new UserRepository(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.provideDataStoreProvider.get());
 
-          case 6: // fr.retrospare.blazeplayer.network.NetworkScanner
+          case 6: // fr.retrospare.blazeplayer.player.AudioLibraryRepository
+          return (T) new AudioLibraryRepository(singletonCImpl.provideNetworkRepositoryProvider.get(), singletonCImpl.provideSmbBrowserProvider.get(), singletonCImpl.upnpBrowserProvider.get());
+
+          case 7: // fr.retrospare.blazeplayer.network.NetworkScanner
           return (T) new NetworkScanner(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           default: throw new AssertionError(id);

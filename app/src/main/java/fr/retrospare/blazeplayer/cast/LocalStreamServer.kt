@@ -272,6 +272,7 @@ class LocalStreamServer(
      * même temps — ce qui cassait le cast pour TOUTES les sources (locales et réseau), puisque
      * l'URL HTTP générée était injoignable dans les deux cas.
      */
+    @Suppress("DEPRECATION")
     private fun getLocalIpAddress(): String? {
         try {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager

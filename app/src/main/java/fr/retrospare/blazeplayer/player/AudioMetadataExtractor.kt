@@ -34,17 +34,21 @@ object AudioMetadataExtractor {
 
     private val cache = ConcurrentHashMap<String, AudioTechnicalInfo>()
     private const val DISK_CACHE_PREFS = "blaze_audio_metadata_cache"
-    private const val CACHE_VERSION = 4
-    private val LOSSLESS_EXTENSIONS = setOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+    private const val CACHE_VERSION = 5
+    private val LOSSLESS_EXTENSIONS = setOf("FLAC", "WAV", "ALAC", "APE", "AIFF", "WV")
     private val inFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<AudioTechnicalInfo>>()
-    private val metadataDispatcher = Executors.newSingleThreadExecutor { runnable ->
+    private val durationInFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<Long>>()
+    private val qualityInFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<AudioTechnicalInfo>>()
+    private val metadataDispatcher = Executors.newFixedThreadPool(4) { runnable ->
         Thread {
-            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + 6) } catch (_: Exception) {}
+            // Pool technique borné : les durées manquantes sont calculées hors UI, sans modifier
+            // les noms issus des dossiers. Priorité normale pour ne pas gêner la lecture audio.
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DEFAULT) } catch (_: Exception) {}
             runnable.run()
         }.apply {
-            name = "BlazeAudioMetadataBg"
+            name = "BlazeAudioMetadataPriority"
             isDaemon = true
-            priority = Thread.MIN_PRIORITY
+            priority = (Thread.NORM_PRIORITY + 1).coerceAtMost(Thread.MAX_PRIORITY)
         }
     }.asCoroutineDispatcher()
 
@@ -86,7 +90,21 @@ object AudioMetadataExtractor {
         )
     }
 
-    suspend fun extract(context: Context, path: String, name: String): AudioTechnicalInfo {
+    suspend fun extract(context: Context, path: String, name: String): AudioTechnicalInfo =
+        extractCached(context, path, name, highPriority = false)
+
+    /** Extraction prioritaire utilisée par l'accueil « Mes albums ». Elle partage le même cache et
+     *  le même verrou in-flight que l'extraction normale, mais obtient les premiers créneaux du pool
+     *  de tags et tolère davantage la latence d'un NAS avant de rendre une valeur vide. */
+    suspend fun extractHighPriority(context: Context, path: String, name: String): AudioTechnicalInfo =
+        extractCached(context, path, name, highPriority = true)
+
+    private suspend fun extractCached(
+        context: Context,
+        path: String,
+        name: String,
+        highPriority: Boolean
+    ): AudioTechnicalInfo {
         cache[path]?.takeIf { isCompleteEnough(it) }?.let { return it }
         return withContext(metadataDispatcher) {
             val cached = cache[path] ?: loadFromDisk(context, path)?.also { cache[path] = it }
@@ -94,7 +112,13 @@ object AudioMetadataExtractor {
             inFlight[path]?.let { return@withContext it.await() }
             val deferred = async {
                 val fallbackExt = name.substringAfterLast(".", "").uppercase().ifBlank { cached?.extension.orEmpty() }
-                val extracted = kotlinx.coroutines.withTimeoutOrNull(if (path.startsWith("smb://")) 3_000L else 5_000L) {
+                val timeoutMs = when {
+                    path.startsWith("smb://", true) && highPriority -> 10_000L
+                    path.startsWith("smb://", true) -> 4_000L
+                    highPriority -> 7_000L
+                    else -> 5_000L
+                }
+                val extracted = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
                     extractInternal(context, path, name)
                 } ?: AudioTechnicalInfo(extension = fallbackExt)
                 val info = mergeKnownMetadata(extracted, cached)
@@ -104,6 +128,85 @@ object AudioMetadataExtractor {
             }
             inFlight[path] = deferred
             try { deferred.await() } finally { inFlight.remove(path, deferred) }
+        }
+    }
+
+
+
+    /**
+     * Extrait uniquement les informations nécessaires au badge qualité : durée, débit moyen,
+     * extension et caractère lossless. Aucun tag texte (titre/artiste/album) n'est lu ni utilisé.
+     * Cette passe est déclenchée à la demande par les vues qui affichent déjà le badge conteneur.
+     */
+    suspend fun extractQualityOnly(context: Context, path: String, name: String): AudioTechnicalInfo {
+        if (path.isBlank()) return AudioTechnicalInfo()
+        val appContext = context.applicationContext
+        val fallbackExt = name.substringBefore('?').substringBefore('#')
+            .substringAfterLast('.', "").uppercase()
+            .ifBlank {
+                path.substringBefore('?').substringBefore('#').substringAfterLast('.', "").uppercase()
+            }
+        val previous = cache[path] ?: loadFromDisk(appContext, path)?.also { cache[path] = it }
+        previous?.takeIf { hasQualityBadge(it) }?.let { return it }
+
+        // Le statut lossless est déterministe à partir du conteneur : inutile d'ouvrir le fichier.
+        if (fallbackExt in LOSSLESS_EXTENSIONS) {
+            val merged = mergeKnownMetadata(
+                AudioTechnicalInfo(extension = fallbackExt, isLossless = true),
+                previous
+            )
+            cache[path] = merged
+            saveToDisk(appContext, path, merged)
+            return merged
+        }
+
+        return withContext(metadataDispatcher) {
+            qualityInFlight[path]?.let { return@withContext it.await() }
+            val deferred = async {
+                val timeoutMs = if (path.startsWith("smb://", true)) 8_000L else 5_000L
+                val fresh = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+                    extractQualityInternal(appContext, path, name)
+                } ?: AudioTechnicalInfo(extension = fallbackExt)
+                val merged = mergeKnownMetadata(fresh, previous)
+                cache[path] = merged
+                saveToDisk(appContext, path, merged)
+                merged
+            }
+            qualityInFlight[path] = deferred
+            try { deferred.await() } finally { qualityInFlight.remove(path, deferred) }
+        }
+    }
+
+    /** Calcule uniquement la durée, sans lire ni utiliser les tags titre/artiste/album. Le
+     *  résultat est fusionné dans le cache technique existant et réutilisé par Room. */
+    suspend fun extractDurationOnly(context: Context, path: String): Long {
+        cache[path]?.duration?.takeIf { it > 0L }?.let { return it }
+        return withContext(metadataDispatcher) {
+            val previous = cache[path] ?: loadFromDisk(context, path)?.also { cache[path] = it }
+            previous?.duration?.takeIf { it > 0L }?.let { return@withContext it }
+            durationInFlight[path]?.let { return@withContext it.await() }
+            val deferred = async {
+                val timeoutMs = if (path.startsWith("smb://", true)) 8_000L else 5_000L
+                val durationMs = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+                    extractDurationMsInternal(context.applicationContext, path)
+                } ?: 0L
+                val seconds = if (durationMs > 0L) ((durationMs + 500L) / 1000L).coerceAtLeast(1L) else 0L
+                if (seconds > 0L) {
+                    val merged = mergeKnownMetadata(
+                        AudioTechnicalInfo(
+                            duration = seconds,
+                            extension = path.substringBefore('?').substringBefore('#')
+                                .substringAfterLast('.', "").uppercase()
+                        ),
+                        previous
+                    )
+                    cache[path] = merged
+                    saveToDisk(context, path, merged)
+                }
+                seconds
+            }
+            durationInFlight[path] = deferred
+            try { deferred.await() } finally { durationInFlight.remove(path, deferred) }
         }
     }
 
@@ -118,7 +221,32 @@ object AudioMetadataExtractor {
         return disk
     }
 
-    fun clearCache() = cache.clear()
+
+    /** Invalidation ciblée quand Room détecte qu'un fichier a changé (size/mtime).
+     *  Le cache disque metadata est indexé par path ; sans ça, un fichier remplacé sur le NAS
+     *  avec le même chemin pouvait réinjecter les anciens tags dans la bibliothèque. */
+    fun removeCached(context: Context, path: String) {
+        if (path.isBlank()) return
+        cache.remove(path)
+        inFlight.remove(path)
+        durationInFlight.remove(path)
+        qualityInFlight.remove(path)
+        try {
+            context.getSharedPreferences(DISK_CACHE_PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .remove(diskKey(path))
+                .commit()
+        } catch (e: Exception) {
+            android.util.Log.w("AudioMetadataExtractor", "Failed to remove metadata cache for ${SmbDataSource.redactForLog(path)}", e)
+        }
+    }
+
+    fun clearCache() {
+        cache.clear()
+        inFlight.clear()
+        durationInFlight.clear()
+        qualityInFlight.clear()
+    }
 
     /** Met à jour le cache mémoire + disque avec des métadonnées déjà connues par Media3 ou le player.
      *  Utilisé notamment à la restauration de la file audio : évite que l'artiste retombe sur
@@ -143,7 +271,7 @@ object AudioMetadataExtractor {
     /** Vide aussi le cache disque persistant. */
     fun clearDiskCache(context: Context) {
         try {
-            context.getSharedPreferences(DISK_CACHE_PREFS, Context.MODE_PRIVATE).edit().clear().apply()
+            context.getSharedPreferences(DISK_CACHE_PREFS, Context.MODE_PRIVATE).edit().clear().commit()
         } catch (e: Exception) {
             android.util.Log.w("AudioMetadataExtractor", "Failed to clear disk metadata cache", e)
         }
@@ -165,7 +293,7 @@ object AudioMetadataExtractor {
         return try {
             val parts = raw.split("|")
             val version = parts.firstOrNull()?.toIntOrNull()
-            if (version != null && version in 2..CACHE_VERSION) {
+            if (version == CACHE_VERSION) {
                 AudioTechnicalInfo(
                     artist = dec(parts.getOrNull(1).orEmpty()),
                     duration = parts.getOrNull(2)?.toLongOrNull() ?: 0L,
@@ -212,6 +340,98 @@ object AudioMetadataExtractor {
             .toIntOrNull()
             ?.takeIf { it > 0 }
             ?: 0
+    }
+
+
+
+    private fun extractQualityInternal(context: Context, path: String, name: String): AudioTechnicalInfo {
+        var smbDataSource: SmbMediaDataSource? = null
+        var closeable: AutoCloseable? = null
+        val retriever = android.media.MediaMetadataRetriever()
+        return try {
+            when {
+                path.startsWith("smb://", true) -> {
+                    smbDataSource = SmbMediaDataSource(path)
+                    retriever.setDataSource(smbDataSource)
+                }
+                path.startsWith("content://", true) -> {
+                    val uri = android.net.Uri.parse(path)
+                    val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                    if (pfd != null) {
+                        retriever.setDataSource(pfd.fileDescriptor)
+                        closeable = pfd
+                    } else retriever.setDataSource(context, uri)
+                }
+                path.startsWith("file://", true) -> retriever.setDataSource(context, android.net.Uri.parse(path))
+                path.startsWith("http://", true) || path.startsWith("https://", true) -> retriever.setDataSource(path, emptyMap())
+                else -> retriever.setDataSource(path)
+            }
+            val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull()?.coerceAtLeast(0L) ?: 0L
+            val rawBitrate = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                ?.toLongOrNull()?.coerceAtLeast(0L) ?: 0L
+            val bitrate = when {
+                rawBitrate > 0L -> rawBitrate
+                durationMs > 0L -> {
+                    val sizeBytes = fileSizeBytes(context, path, smbDataSource)
+                    if (sizeBytes > 0L) (sizeBytes * 8_000L) / durationMs else 0L
+                }
+                else -> 0L
+            }
+            val ext = name.substringBefore('?').substringBefore('#')
+                .substringAfterLast('.', "").uppercase()
+                .ifBlank { path.substringBefore('?').substringBefore('#').substringAfterLast('.', "").uppercase() }
+            AudioTechnicalInfo(
+                duration = if (durationMs > 0L) ((durationMs + 500L) / 1000L).coerceAtLeast(1L) else 0L,
+                bitrate = bitrate,
+                extension = ext,
+                isLossless = ext in LOSSLESS_EXTENSIONS
+            )
+        } catch (_: Exception) {
+            val ext = name.substringBefore('?').substringBefore('#')
+                .substringAfterLast('.', "").uppercase()
+                .ifBlank { path.substringBefore('?').substringBefore('#').substringAfterLast('.', "").uppercase() }
+            AudioTechnicalInfo(extension = ext, isLossless = ext in LOSSLESS_EXTENSIONS)
+        } finally {
+            try { retriever.release() } catch (_: Exception) {}
+            try { closeable?.close() } catch (_: Exception) {}
+            try { smbDataSource?.close() } catch (_: Exception) {}
+        }
+    }
+
+    private fun extractDurationMsInternal(context: Context, path: String): Long {
+        var smbDataSource: SmbMediaDataSource? = null
+        var closeable: AutoCloseable? = null
+        val retriever = android.media.MediaMetadataRetriever()
+        return try {
+            when {
+                path.startsWith("smb://", true) -> {
+                    smbDataSource = SmbMediaDataSource(path)
+                    retriever.setDataSource(smbDataSource)
+                }
+                path.startsWith("content://", true) -> {
+                    val uri = android.net.Uri.parse(path)
+                    val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                    if (pfd != null) {
+                        retriever.setDataSource(pfd.fileDescriptor)
+                        closeable = pfd
+                    } else retriever.setDataSource(context, uri)
+                }
+                path.startsWith("file://", true) -> retriever.setDataSource(context, android.net.Uri.parse(path))
+                path.startsWith("http://", true) || path.startsWith("https://", true) -> retriever.setDataSource(path, emptyMap())
+                else -> retriever.setDataSource(path)
+            }
+            retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull()
+                ?.coerceAtLeast(0L)
+                ?: 0L
+        } catch (_: Exception) {
+            0L
+        } finally {
+            try { retriever.release() } catch (_: Exception) {}
+            try { closeable?.close() } catch (_: Exception) {}
+            try { smbDataSource?.close() } catch (_: Exception) {}
+        }
     }
 
     private fun extractInternal(context: Context, path: String, name: String): AudioTechnicalInfo {

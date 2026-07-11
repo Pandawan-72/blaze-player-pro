@@ -29,25 +29,33 @@ public final class NetworkSharesViewModel_Factory implements Factory<NetworkShar
 
   private final Provider<NetworkScanner> networkScannerProvider;
 
+  private final Provider<SmbBrowser> smbBrowserProvider;
+
+  private final Provider<UpnpBrowser> upnpBrowserProvider;
+
   private NetworkSharesViewModel_Factory(Provider<NetworkRepository> networkRepositoryProvider,
-      Provider<NetworkScanner> networkScannerProvider) {
+      Provider<NetworkScanner> networkScannerProvider, Provider<SmbBrowser> smbBrowserProvider,
+      Provider<UpnpBrowser> upnpBrowserProvider) {
     this.networkRepositoryProvider = networkRepositoryProvider;
     this.networkScannerProvider = networkScannerProvider;
+    this.smbBrowserProvider = smbBrowserProvider;
+    this.upnpBrowserProvider = upnpBrowserProvider;
   }
 
   @Override
   public NetworkSharesViewModel get() {
-    return newInstance(networkRepositoryProvider.get(), networkScannerProvider.get());
+    return newInstance(networkRepositoryProvider.get(), networkScannerProvider.get(), smbBrowserProvider.get(), upnpBrowserProvider.get());
   }
 
   public static NetworkSharesViewModel_Factory create(
       Provider<NetworkRepository> networkRepositoryProvider,
-      Provider<NetworkScanner> networkScannerProvider) {
-    return new NetworkSharesViewModel_Factory(networkRepositoryProvider, networkScannerProvider);
+      Provider<NetworkScanner> networkScannerProvider, Provider<SmbBrowser> smbBrowserProvider,
+      Provider<UpnpBrowser> upnpBrowserProvider) {
+    return new NetworkSharesViewModel_Factory(networkRepositoryProvider, networkScannerProvider, smbBrowserProvider, upnpBrowserProvider);
   }
 
   public static NetworkSharesViewModel newInstance(NetworkRepository networkRepository,
-      NetworkScanner networkScanner) {
-    return new NetworkSharesViewModel(networkRepository, networkScanner);
+      NetworkScanner networkScanner, SmbBrowser smbBrowser, UpnpBrowser upnpBrowser) {
+    return new NetworkSharesViewModel(networkRepository, networkScanner, smbBrowser, upnpBrowser);
   }
 }

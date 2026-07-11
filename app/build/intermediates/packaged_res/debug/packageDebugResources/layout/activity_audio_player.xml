@@ -326,20 +326,21 @@
             android:paddingTop="6dp"
             android:paddingBottom="8dp">
 
-            <!-- Combiné "Titre - Artiste" en un seul TextView : un texte enrichi (gras + couleur
-                 d'accent uniquement sur la partie artiste) se centre naturellement selon la largeur
-                 réelle du texte et s'ellipse comme un tout — impossible à obtenir avec deux
-                 TextView à largeur fixe 50/50, qui centraient chaque moitié indépendamment plutôt
-                 que l'ensemble selon la taille effective du titre et de l'artiste. -->
+            <!-- Ligne unique "Titre - Artiste". La taille se réduit automatiquement pour que
+                 le texte reste intégralement visible, sans troncature par points de suspension. -->
             <TextView
                 android:id="@+id/tvTitleArtist"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="@dimen/audio_player_title_text_size"
                 android:fontFamily="sans-serif-condensed"
-                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
                 android:singleLine="true"
-                android:gravity="center" />
+                android:textStyle="bold"
+                android:autoSizeMaxTextSize="@dimen/audio_player_title_text_size"
+                android:autoSizeMinTextSize="8sp"
+                android:autoSizeStepGranularity="1sp"
+                android:autoSizeTextType="uniform" />
 
             <!-- Conservés invisibles : simples porteurs de données (titre/artiste bruts), lus par
                  updateCombinedTitleArtist() pour construire le texte enrichi ci-dessus. Évite de
@@ -362,10 +363,14 @@
                 android:id="@+id/tvAlbum"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
                 android:textColor="@color/on_surface_variant"
-                android:textSize="11sp"
+                android:textSize="12sp"
+                android:textStyle="normal"
                 android:fontFamily="sans-serif-condensed"
                 android:gravity="center"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:visibility="gone" />
 
         </LinearLayout>
@@ -814,7 +819,7 @@
                     android:minHeight="0dp"
                     android:paddingHorizontal="12dp"
                     android:text="@string/action_to_playlist"
-                    android:textColor="@color/on_surface"
+                    android:textColor="@color/white"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif-condensed"

@@ -1,10 +1,5 @@
 [
   {
-    "name": "nav_audio_pick",
-    "navigationXmlIds": [],
-    "deepLinks": []
-  },
-  {
     "name": "nav_graph",
     "navigationXmlIds": [],
     "deepLinks": []

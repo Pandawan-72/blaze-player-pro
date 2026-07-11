@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.os.Bundle
@@ -19,29 +22,36 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
+import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
+import fr.retrospare.blazeplayer.settings.SettingsViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class AudioProSettingsActivity : AppCompatActivity() {
+
+    @Inject lateinit var dataStore: DataStore<Preferences>
 
     private lateinit var prefs: SharedPreferences
     private var refreshAfterWatchedBrowser = false
     private val accentColor by lazy { resolveAccentColor() }
+    private val heroAccentColor by lazy { ContextCompat.getColor(this, R.color.green_accent) }
     private val textMain by lazy { ContextCompat.getColor(this, R.color.on_background) }
     private val textMuted by lazy { ContextCompat.getColor(this, R.color.on_surface_variant) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_blaze_audio_settings)
-        window.statusBarColor = ContextCompat.getColor(this, R.color.background)
-        window.navigationBarColor = ContextCompat.getColor(this, R.color.background)
+        applySystemBarColors(ContextCompat.getColor(this, R.color.background))
         prefs = AudioProSettings.prefs(this)
-        AudioPremiumUi.applyDynamicHero(findViewById<View>(R.id.audioSettingsHero), accentColor)
+        AudioPremiumUi.applyDynamicHero(findViewById<View>(R.id.audioSettingsHero), heroAccentColor)
         findViewById<TextView>(R.id.badgeSettingsPro)?.let {
-            it.setTextColor(accentColor)
-            it.backgroundTintList = ColorStateList.valueOf(AudioDynamicColor.mix(0xFF111A28.toInt(), accentColor, 0.18f))
+            it.setTextColor(heroAccentColor)
+            it.backgroundTintList = ColorStateList.valueOf(AudioDynamicColor.mix(0xFF111A28.toInt(), heroAccentColor, 0.18f))
         }
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
@@ -73,8 +83,13 @@ class AudioProSettingsActivity : AppCompatActivity() {
             addView(separator())
             addView(switchRow(AudioProSettings.KEY_IGNORE_SHORT, R.drawable.ic_delete_sweep, R.string.audio_ignore_short_files, R.string.audio_ignore_short_files_subtitle, false))
         })
+        container.addView(section(R.string.settings_section_blaze_audio).apply {
+            addView(dataStoreSwitchRow(SettingsViewModel.KEY_MINI_PLAYER, R.drawable.ic_layout_list, R.string.settings_mini_player, R.string.settings_mini_player_desc, false))
+            addView(separator())
+            addView(dataStoreSwitchRow(SettingsViewModel.KEY_AUDIO_SPECTRUM, R.drawable.ic_equalizer, R.string.settings_audio_spectrum, R.string.settings_audio_spectrum_desc, true))
+        })
         container.addView(section(R.string.audio_section_interface).apply {
-            addView(switchRow(AudioProSettings.KEY_DYNAMIC_THEME, R.drawable.ic_flame, R.string.audio_dynamic_theme, R.string.audio_dynamic_theme_subtitle, false))
+            addView(switchRow(AudioProSettings.KEY_DYNAMIC_THEME, R.drawable.ic_flame, R.string.audio_dynamic_theme, R.string.audio_dynamic_theme_subtitle, true))
             addView(separator())
             addView(switchRow(AudioProSettings.KEY_COVER_BORDER, R.drawable.ic_shape_square, R.string.audio_cover_border, R.string.audio_cover_border_subtitle, true))
             addView(separator())
@@ -117,11 +132,12 @@ class AudioProSettingsActivity : AppCompatActivity() {
         val texts = textColumn(getString(titleRes), subRes?.let { getString(it) })
         root.addView(texts, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(14) })
         val sw = MaterialSwitch(this).apply {
+            applyAudioStyleToggle(this)
             isChecked = prefs.getBoolean(key, defaultValue)
             setOnCheckedChangeListener { _, checked ->
                 val edit = prefs.edit().putBoolean(key, checked)
-                if (key == AudioProSettings.KEY_SYNCED_LYRICS && !checked) {
-                    edit.putBoolean(AudioProSettings.KEY_LYRICS_PLAYER, false)
+                if (key == AudioProSettings.KEY_SYNCED_LYRICS) {
+                    edit.putBoolean(AudioProSettings.KEY_LYRICS_PLAYER, checked)
                 }
                 edit.apply()
                 if (key == AudioProSettings.KEY_DYNAMIC_THEME) recreate()
@@ -130,6 +146,57 @@ class AudioProSettingsActivity : AppCompatActivity() {
         root.addView(sw, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         return root
     }
+
+    private fun dataStoreSwitchRow(key: Preferences.Key<Boolean>, iconRes: Int, titleRes: Int, subRes: Int?, defaultValue: Boolean): View {
+        val root = baseRow(iconRes)
+        val texts = textColumn(getString(titleRes), subRes?.let { getString(it) })
+        root.addView(texts, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(14) })
+        val sw = MaterialSwitch(this).apply {
+            applyAudioStyleToggle(this)
+            isEnabled = false
+            isChecked = defaultValue
+        }
+        root.addView(sw, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        lifecycleScope.launch {
+            var ready = false
+            val current = dataStore.data.first()[key] ?: defaultValue
+            sw.isChecked = current
+            sw.isEnabled = true
+            ready = true
+            sw.setOnCheckedChangeListener { _, checked ->
+                if (!ready) return@setOnCheckedChangeListener
+                lifecycleScope.launch {
+                    dataStore.edit { prefs -> prefs[key] = checked }
+                }
+            }
+        }
+        return root
+    }
+
+    private fun applyAudioStyleToggle(sw: MaterialSwitch) {
+        val trackStates = arrayOf(
+            intArrayOf(android.R.attr.state_checked, android.R.attr.state_enabled),
+            intArrayOf(-android.R.attr.state_checked, android.R.attr.state_enabled),
+            intArrayOf(-android.R.attr.state_enabled)
+        )
+        sw.trackTintList = ColorStateList(
+            trackStates,
+            intArrayOf(
+                AudioDynamicColor.mix(0xFF101827.toInt(), accentColor, 0.36f),
+                ContextCompat.getColor(this, R.color.surface_variant),
+                ContextCompat.getColor(this, R.color.surface)
+            )
+        )
+        sw.thumbTintList = ColorStateList(
+            trackStates,
+            intArrayOf(
+                accentColor,
+                ContextCompat.getColor(this, R.color.on_surface_variant),
+                ContextCompat.getColor(this, R.color.text_hint)
+            )
+        )
+    }
+
 
     private fun sliderRow(key: String, iconRes: Int, titleRes: Int, subRes: Int?, min: Int, max: Int, defaultValue: Int, suffix: String): View {
         val root = baseRow(iconRes)
@@ -329,7 +396,7 @@ class AudioProSettingsActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, R.string.audio_no_current_track, android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-        val cached = AudioMetadataExtractor.getCached(this, item.path)
+        val cached = AudioMediaCache.getCachedMetadata(this, item.path)
         val override = AudioLocalEnhancements.getOverride(this, item.path)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -407,4 +474,10 @@ class AudioProSettingsActivity : AppCompatActivity() {
     companion object {
         private const val PREFS = "blaze_audio_pro_settings"
     }
+    @Suppress("DEPRECATION")
+    private fun applySystemBarColors(color: Int) {
+        window.statusBarColor = color
+        window.navigationBarColor = color
+    }
+
 }

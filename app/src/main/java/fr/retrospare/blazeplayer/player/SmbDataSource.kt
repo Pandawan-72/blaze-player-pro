@@ -52,16 +52,24 @@ class SmbDataSource : BaseDataSource(true) {
 
     private fun openSmbFile(parsed: ParsedSmbUri): Triple<DiskShare, SmbFile, Long> {
         val share = SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
-        val file = share.openFile(
-            parsed.filePath,
-            EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
-            null,
-            SMB2ShareAccess.ALL,
-            SMB2CreateDisposition.FILE_OPEN,
-            EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
-        )
-        val size = file.getFileInformation(FileStandardInformation::class.java).endOfFile
-        return Triple(share, file, size)
+        var file: SmbFile? = null
+        return try {
+            val openedFile = share.openFile(
+                parsed.filePath,
+                EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
+                null,
+                SMB2ShareAccess.ALL,
+                SMB2CreateDisposition.FILE_OPEN,
+                EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
+            )
+            file = openedFile
+            val size = openedFile.getFileInformation(FileStandardInformation::class.java).endOfFile
+            Triple(share, openedFile, size)
+        } catch (error: Exception) {
+            try { file?.close() } catch (_: Exception) {}
+            try { share.close() } catch (_: Exception) {}
+            throw error
+        }
     }
 
     private fun reopenAfterReadFailure(error: Exception): Boolean {
@@ -99,6 +107,7 @@ class SmbDataSource : BaseDataSource(true) {
         val (share, file, fileSize) = try {
             attemptOpen()
         } catch (e: Exception) {
+            if (isMissingPathError(e)) throw e
             // Ressource potentiellement cassee (timeout, NAS redemarre, invalidée par un autre
             // consommateur concurrent...) -> on invalide et on reessaie une fois
             SmbSessionPool.invalidate(parsed.host, parsed.port, parsed.username, parsed.shareName)
@@ -109,7 +118,7 @@ class SmbDataSource : BaseDataSource(true) {
 
         val position = dataSpec.position
         if (position > fileSize) {
-            throw androidx.media3.datasource.DataSourceException(androidx.media3.datasource.DataSourceException.POSITION_OUT_OF_RANGE)
+            throw androidx.media3.datasource.DataSourceException(androidx.media3.common.PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE)
         }
         currentPosition = position
         bytesRemaining = if (dataSpec.length != C.LENGTH_UNSET.toLong()) dataSpec.length else fileSize - position
@@ -187,12 +196,8 @@ class SmbDataSource : BaseDataSource(true) {
     override fun close() {
         // DiskShare n'est plus partagé : on ferme le handle puis le share privé de CE DataSource,
         // sans toucher à la session/connexion mutualisée.
-        try { smbFile?.close() } catch (e: Exception) {
-            android.util.Log.e("SmbDataSource", "Failed to close smbFile", e)
-        }
-        try { diskShare?.close() } catch (e: Exception) {
-            android.util.Log.e("SmbDataSource", "Failed to close diskShare", e)
-        }
+        try { smbFile?.close() } catch (_: Exception) {}
+        try { diskShare?.close() } catch (_: Exception) {}
         smbFile = null
         diskShare = null
         transferEnded()
@@ -212,21 +217,68 @@ class SmbDataSource : BaseDataSource(true) {
 
         fun parseSmbUri(uri: Uri): ParsedSmbUri {
             // smb://[user[:pass]@]host[:port]/share/path/to/file
-            val userInfo = uri.userInfo
+            val userInfo = uri.encodedUserInfo
             var username: String? = null
             var password: String? = null
             if (!userInfo.isNullOrEmpty()) {
                 val parts = userInfo.split(":", limit = 2)
-                username = java.net.URLDecoder.decode(parts.getOrNull(0) ?: "", "UTF-8")
-                password = if (parts.size > 1) java.net.URLDecoder.decode(parts[1], "UTF-8") else null
+                username = Uri.decode(parts.getOrNull(0).orEmpty())
+                password = if (parts.size > 1) Uri.decode(parts[1]) else null
             }
             val host = uri.host ?: ""
             val port = if (uri.port != -1) uri.port else 445
-            val pathSegments = uri.path?.trim('/')?.split("/") ?: emptyList()
+            // pathSegments est déjà décodé par android.net.Uri. Le redécoder avec URLDecoder
+            // transformait notamment les '+' en espaces et cassait certains noms accentués.
+            val pathSegments = uri.pathSegments
             val shareName = pathSegments.getOrNull(0) ?: ""
-            // Decode l'URL-encoding (espaces, accents, caracteres speciaux) avant de construire le chemin SMB
-            val filePath = pathSegments.drop(1).joinToString("\\") { java.net.URLDecoder.decode(it, "UTF-8") }
+            val filePath = pathSegments.drop(1).joinToString("\\")
             return ParsedSmbUri(username, password, host, port, shareName, filePath)
+        }
+
+        fun buildSmbUri(
+            host: String,
+            port: Int,
+            shareName: String,
+            filePath: String,
+            username: String?,
+            password: String?
+        ): String {
+            val auth = if (username.isNullOrEmpty()) "" else {
+                val encodedPassword = password?.let { ":${Uri.encode(it)}" }.orEmpty()
+                "${Uri.encode(username)}$encodedPassword@"
+            }
+            val safeHost = if (host.contains(':') && !host.startsWith("[")) "[$host]" else host
+            val portPart = if (port != 445) ":$port" else ""
+            val segments = buildList {
+                add(shareName)
+                addAll(filePath.replace('\\', '/').split('/').filter { it.isNotEmpty() })
+            }.joinToString("/") { Uri.encode(it) }
+            return "smb://$auth$safeHost$portPart/$segments"
+        }
+
+        fun isMissingPathError(error: Throwable): Boolean {
+            var current: Throwable? = error
+            while (current != null) {
+                val message = current.message.orEmpty().uppercase()
+                if (message.contains("STATUS_OBJECT_PATH_NOT_FOUND") ||
+                    message.contains("STATUS_OBJECT_NAME_NOT_FOUND") ||
+                    message.contains("STATUS_NO_SUCH_FILE") ||
+                    message.contains("STATUS_NOT_A_DIRECTORY")
+                ) return true
+                current = current.cause
+            }
+            return false
+        }
+
+        /** Retire user/password des URI SMB avant écriture dans logcat. */
+        fun redactForLog(value: String): String {
+            if (!value.startsWith("smb://", ignoreCase = true)) return value
+            return runCatching {
+                val parsed = Uri.parse(value)
+                val safeHost = parsed.host.orEmpty().ifBlank { "unknown-host" }
+                val port = if (parsed.port != -1 && parsed.port != 445) ":${parsed.port}" else ""
+                "smb://$safeHost$port${parsed.encodedPath.orEmpty()}"
+            }.getOrDefault("smb://<redacted>")
         }
     }
 

@@ -46,6 +46,14 @@ import fr.retrospare.blazeplayer.cast.BlazeCastMediaItemConverter
 @UnstableApi
 class VideoPlaybackService : MediaSessionService() {
 
+    @Suppress("DEPRECATION")
+    private fun compatWifiLockMode(): Int =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            android.net.wifi.WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        } else {
+            android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF
+        }
+
     companion object {
         // Distinct de BlazePlayerService (audio) pour que les deux notifications ne se marchent
         // pas dessus.
@@ -100,7 +108,7 @@ class VideoPlaybackService : MediaSessionService() {
         // retomber en veille, coupant la connexion Cast en cours de route.
         try {
             val wifiManager = applicationContext.getSystemService(android.content.Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
-            wifiLock = wifiManager?.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "BlazePlayer:videoWifiLock")
+            wifiLock = wifiManager?.createWifiLock(compatWifiLockMode(), "BlazePlayer:videoWifiLock")
             wifiLock?.setReferenceCounted(false)
             wifiLock?.acquire()
             val powerManager = applicationContext.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager

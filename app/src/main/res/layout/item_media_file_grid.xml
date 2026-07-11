@@ -115,8 +115,19 @@
             android:paddingVertical="1dp"
             android:textSize="9sp"
             android:textColor="@color/on_surface_variant"
-            android:text="AAC"
-            android:visibility="visible" />
+            android:layout_marginEnd="3dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvAudioQuality"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_badge_gray"
+            android:paddingHorizontal="5dp"
+            android:paddingVertical="1dp"
+            android:textSize="9sp"
+            android:textColor="@color/on_surface_variant"
+            android:visibility="gone" />
 
     </LinearLayout>
 

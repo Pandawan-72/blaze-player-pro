@@ -8,6 +8,16 @@ val localProperties = Properties().apply {
     }
 }
 
+val releaseKeystorePath = localProperties.getProperty("BLAZE_KEYSTORE_FILE", "../blaze-player.keystore")
+val releaseStorePassword = localProperties.getProperty("BLAZE_KEYSTORE_PASSWORD")
+    ?: System.getenv("BLAZE_KEYSTORE_PASSWORD").orEmpty()
+val releaseKeyAlias = localProperties.getProperty("BLAZE_KEY_ALIAS")
+    ?: System.getenv("BLAZE_KEY_ALIAS").orEmpty()
+val releaseKeyPassword = localProperties.getProperty("BLAZE_KEY_PASSWORD")
+    ?: System.getenv("BLAZE_KEY_PASSWORD").orEmpty()
+val hasReleaseSigning = rootProject.file(releaseKeystorePath).exists() &&
+    releaseStorePassword.isNotBlank() && releaseKeyAlias.isNotBlank() && releaseKeyPassword.isNotBlank()
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -18,11 +28,13 @@ plugins {
 
 android {
     signingConfigs {
-        create("release") {
-            storeFile = file("../blaze-player.keystore")
-            storePassword = "123456"
-            keyAlias = "blaze-player"
-            keyPassword = "123456"
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
         }
     }
     namespace = "fr.retrospare.blazeplayer"
@@ -54,7 +66,7 @@ android {
             optimization {
                 enable = false
             }
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
@@ -90,6 +102,7 @@ dependencies {
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.fragment.ktx)
+    implementation("androidx.recyclerview:recyclerview:1.4.0")
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -133,7 +146,6 @@ dependencies {
     implementation("androidx.mediarouter:mediarouter:1.7.0")
     implementation("androidx.media:media:1.7.0")
     // REMOVED: implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
-    implementation("androidx.media:media:1.7.0")
     // LibVLC pour codecs legacy (AVI, XVID, DIVX, FLAC, DTS, etc.)
     // implementation("androidx.media3:media3-exoplayer:1.5.1")
     // implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
@@ -147,6 +159,11 @@ dependencies {
 
     // DataStore
     implementation(libs.datastore.preferences)
+
+    // Bibliothèque audio locale : Room est la source de vérité persistante de l’UI.
+    implementation("androidx.room:room-runtime:2.8.3")
+    implementation("androidx.room:room-ktx:2.8.3")
+    ksp("androidx.room:room-compiler:2.8.3")
 
     // RevenueCat
     implementation(libs.revenuecat)

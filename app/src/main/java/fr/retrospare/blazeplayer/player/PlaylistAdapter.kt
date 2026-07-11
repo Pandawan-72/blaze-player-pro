@@ -16,32 +16,21 @@ import fr.retrospare.blazeplayer.R
  */
 class PlaylistAdapter(
     private val player: () -> Player?,
-    // Lu à chaque bind plutôt que poussé explicitement : le fragment appelle juste refresh()
-    // quand la couleur dynamique change, et chaque ligne relit la valeur courante ici.
-    private val accentColorProvider: () -> Int = { android.graphics.Color.rgb(63, 215, 143) },
     private val onItemClick: (Int) -> Unit
 ) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
 
-    /** Artiste en gras + couleur d'accent dynamique, suivi de l'album (texte normal) s'il existe
-     *  vraiment comme tag — jamais de nom de dossier ici : [album] doit venir uniquement d'une
-     *  extraction ID3/FLAC réelle (AudioTechnicalInfo), qui ne retombe jamais sur le dossier. */
-    private fun buildArtistAlbumText(artist: String, album: String): CharSequence {
+    /** Ligne artiste uniquement, en gras mais dans la couleur neutre du layout. La coloration
+     *  dynamique reste réservée au lecteur et aux mini-players, pas aux files d'attente. */
+    private fun buildArtistText(artist: String): CharSequence {
         val builder = android.text.SpannableStringBuilder(artist)
         builder.setSpan(
             android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
             0, artist.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         )
-        builder.setSpan(
-            android.text.style.ForegroundColorSpan(accentColorProvider()),
-            0, artist.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        if (album.isNotBlank()) builder.append("  •  ").append(album)
         return builder
     }
 
     companion object {
-        // Pool limite a 2 threads concurrents pour eviter de saturer le NAS/reseau lors du scroll
-        private val loadExecutor = java.util.concurrent.Executors.newFixedThreadPool(2)
         private const val PAYLOAD_TIME = "payload_time"
     }
 
@@ -51,21 +40,9 @@ class PlaylistAdapter(
     private var currentDurationMs = 0L
     private var overrideItems: List<MediaItem>? = null
     private var queueDragInProgress = false
-    @Volatile private var metadataLoadsEnabled = true
-    private val metadataLoadGeneration = java.util.concurrent.atomic.AtomicInteger(0)
-
-    /**
-     * Pendant un scroll rapide, on évite de lancer des extractions MediaMetadataRetriever par ligne
-     * (surtout sur SMB/NAS), sinon la file d'attente devient saccadée. Les métadonnées déjà
-     * en cache restent affichées ; les extractions lourdes reprennent seulement quand la liste
-     * redevient idle.
-     */
-    fun setMetadataLoadsEnabled(enabled: Boolean) {
-        if (metadataLoadsEnabled != enabled) {
-            metadataLoadsEnabled = enabled
-            metadataLoadGeneration.incrementAndGet()
-        }
-    }
+    /** Conservé pour l'API de la feuille de file : aucune extraction de tags n'est désormais
+     *  déclenchée au scroll, donc il n'y a plus rien à suspendre/réactiver. */
+    fun setMetadataLoadsEnabled(enabled: Boolean) = Unit
 
     /**
      * File affichée indépendante du Player. Utilisé pendant Blaze Party pour que la
@@ -153,14 +130,24 @@ class PlaylistAdapter(
         return player()?.let { if (position in 0 until it.mediaItemCount) it.getMediaItemAt(position) else null }
     }
 
-    private fun pathAt(position: Int): String =
-        itemAt(position)?.localConfiguration?.uri?.toString() ?: ""
+    private fun pathAt(position: Int): String {
+        val item = itemAt(position) ?: return ""
+        return item.mediaMetadata.extras?.getString("blaze_original_path")?.takeIf { it.isNotBlank() }
+            ?: item.mediaId.takeIf { it.isNotBlank() }
+            ?: item.localConfiguration?.uri?.toString().orEmpty()
+    }
 
     private fun nameAt(position: Int): String {
         val item = itemAt(position) ?: return ""
-        val title = item.mediaMetadata.title?.toString()
-        if (!title.isNullOrEmpty()) return title
-        return item.localConfiguration?.uri?.lastPathSegment ?: ""
+        val path = pathAt(position)
+        if (path.startsWith("content://", ignoreCase = true)) {
+            return item.mediaMetadata.extras?.getString("blaze_original_name").orEmpty().ifBlank {
+                item.localConfiguration?.uri?.lastPathSegment.orEmpty()
+            }
+        }
+        return AudioLibraryHeuristics.fileNameFromPath(path).ifBlank {
+            item.localConfiguration?.uri?.lastPathSegment.orEmpty()
+        }
     }
 
     private fun containerExtFor(item: MediaItem?, name: String, path: String): String =
@@ -205,11 +192,7 @@ class PlaylistAdapter(
         private val tvFormatBadge: TextView? = view.findViewById(R.id.tvPlaylistFormatBadge)
         private val tvBitrate: TextView? = view.findViewById(R.id.tvPlaylistBitrate)
 
-        @Volatile private var loadToken: String? = null
-
-        fun cancelPendingLoad() {
-            loadToken = null
-        }
+        fun cancelPendingLoad() = Unit
 
         fun bind(position: Int, isCurrent: Boolean, isPlaying: Boolean) {
             val path = pathAt(position)
@@ -220,57 +203,22 @@ class PlaylistAdapter(
             indicator.visibility = if (isCurrent) View.VISIBLE else View.INVISIBLE
             queueCard.setBackgroundResource(if (isCurrent) R.drawable.bg_queue_card_current else R.drawable.bg_surface_card)
 
-            // Affiche d'abord ce qu'on a directement depuis le MediaItem (rapide, pas de connexion)
+            // Les libellés de la file viennent uniquement de l'arborescence, sans extraction
+            // ID3/FLAC. Les données techniques éventuelles sont seulement relues du cache.
             val mediaItem = itemAt(position)
-            val metaArtist = mediaItem?.mediaMetadata?.artist?.toString()
-
-            // Pas de pochette dans la file d'attente : pour des raisons de performance réseau
-            // (un scroll dans une longue liste de morceaux réseau ne doit pas déclencher une
-            // extraction par ligne). Les pochettes restent affichées dans le lecteur audio et
-            // le mini-lecteur, qui n'en chargent qu'une à la fois.
-
-            val cached = if (metadataLoadsEnabled) AudioMetadataExtractor.getCached(itemView.context, path) else AudioMetadataExtractor.getCached(path)
-            if (cached != null) {
-                applyMeta(cached, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvFormatBadge, tvBitrate, tvName, isCurrent)
-            } else {
-                // Pas encore de vraie extraction ID3/FLAC ici : pas d'album fiable disponible,
-                // seulement l'artiste (bold + accent), appliqué dès que applyMeta() tourne plus bas.
-                tvArtist?.text = buildArtistAlbumText(metaArtist ?: itemView.context.getString(R.string.unknown_artist), "")
+            val folderMeta = AudioLibraryHeuristics.folderMetadata(path, name)
+            tvName.text = folderMeta.title.ifBlank { trackTitle }
+            if (folderMeta.artist.isNotBlank()) {
+                tvArtist?.text = buildArtistText(folderMeta.artist)
                 tvArtist?.visibility = View.VISIBLE
-                val extFromItem = containerExtFor(mediaItem, name, path)
-                if (extFromItem.isNotBlank()) {
-                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, extFromItem)
-                    tvCodec?.visibility = View.VISIBLE
-                } else {
-                    tvCodec?.visibility = View.GONE
-                }
-                tvFormatBadge?.visibility = View.GONE
-                tvBitrate?.visibility = View.GONE
-
-                if (path.isNotEmpty() && metadataLoadsEnabled) {
-                    val token = path
-                    val generation = metadataLoadGeneration.get()
-                    loadToken = token
-                    loadExecutor.submit {
-                        // Si la vue a deja ete recyclee ou si un scroll a désactivé les chargements
-                        // lourds avant le début de cette tâche, on annule immédiatement.
-                        if (loadToken != token || !metadataLoadsEnabled || metadataLoadGeneration.get() != generation) return@submit
-                        // Extension toujours derivee du path (URI reelle), pas du nom affiche (titre sans extension)
-                        val meta = kotlinx.coroutines.runBlocking {
-                            kotlinx.coroutines.withTimeoutOrNull(3_000L) {
-                                AudioMetadataExtractor.extract(itemView.context, path, path.substringAfterLast("/"))
-                            }
-                        }
-                        if (meta != null) {
-                            android.os.Handler(android.os.Looper.getMainLooper()).post {
-                                if (loadToken == token && metadataLoadsEnabled && metadataLoadGeneration.get() == generation) {
-                                    applyMeta(meta, trackTitle, containerExtFor(mediaItem, name, path), tvArtist, tvCodec, tvFormatBadge, tvBitrate, tvName, isCurrent)
-                                }
-                            }
-                        }
-                    }
-                }
+            } else {
+                tvArtist?.text = ""
+                tvArtist?.visibility = View.GONE
             }
+            val cached = AudioMediaCache.getCachedMetadata(itemView.context, path)
+            val extension = containerExtFor(mediaItem, name, path)
+            AudioQualityBadgeBinder.bind(tvCodec, tvFormatBadge, path, name, extension)
+            applyTimeBadge(tvBitrate, (cached?.duration ?: 0L) * 1000L, isCurrent)
 
             val eqView = itemView.findViewById<fr.retrospare.blazeplayer.widget.MiniEqualizerView>(R.id.eqView)
             if (isPlaying) {
@@ -286,52 +234,35 @@ class PlaylistAdapter(
             itemView.setOnClickListener { val pos = adapterPosition; if (pos != RecyclerView.NO_ID.toInt()) onItemClick(pos) }
         }
 
-        private fun applyMeta(
-            meta: AudioTechnicalInfo,
-            trackTitle: String,
+        private fun applyTechnicalMeta(
+            meta: AudioTechnicalInfo?,
             fallbackExtension: String,
-            tvArtist: TextView?,
             tvCodec: TextView?,
             tvFormatBadge: TextView?,
-            tvBitrate: TextView?,
-            tvName: TextView,
+            tvTime: TextView?,
             isCurrent: Boolean
         ) {
-            if (meta.title.isNotEmpty()) tvName.text = meta.title
-            // meta.album vient uniquement d'AudioMetadataExtractor (tag ID3/FLAC réel) : jamais de
-            // repli sur le nom de dossier ici, contrairement à ce que fait la bibliothèque pour son
-            // propre regroupement par album.
-            tvArtist?.text = buildArtistAlbumText(
-                meta.artist.ifEmpty { itemView.context.getString(R.string.unknown_artist) },
-                meta.album
-            )
-            tvArtist?.visibility = View.VISIBLE
-
-            val ext = meta.extension.ifBlank { fallbackExtension }.uppercase()
+            val ext = meta?.extension?.ifBlank { fallbackExtension }?.uppercase()
+                ?: fallbackExtension.uppercase()
             if (ext.isNotEmpty()) {
                 fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
                 tvCodec?.visibility = View.VISIBLE
             } else {
                 tvCodec?.visibility = View.GONE
             }
-
-            // Badge lossless ou bitrate, juste à droite du badge conteneur (mp3, flac...).
-            val lossless = meta.isLossless || ext in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+            val lossless = meta?.isLossless == true || ext in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF", "WV")
             when {
                 lossless -> {
                     tvFormatBadge?.text = itemView.context.getString(R.string.lossless_label)
                     tvFormatBadge?.visibility = View.VISIBLE
                 }
-                meta.bitrate > 0L -> {
-                    tvFormatBadge?.text = "${meta.bitrate / 1000} kbps"
+                (meta?.bitrate ?: 0L) > 0L -> {
+                    tvFormatBadge?.text = "${meta!!.bitrate / 1000} kbps"
                     tvFormatBadge?.visibility = View.VISIBLE
                 }
                 else -> tvFormatBadge?.visibility = View.GONE
             }
-
-            applyTimeBadge(tvBitrate, meta.duration * 1000L, isCurrent)
-
-            tvName.text = meta.title.ifEmpty { trackTitle }
+            applyTimeBadge(tvTime, (meta?.duration ?: 0L) * 1000L, isCurrent)
         }
 
         fun updateTimeBadge(isCurrent: Boolean) {

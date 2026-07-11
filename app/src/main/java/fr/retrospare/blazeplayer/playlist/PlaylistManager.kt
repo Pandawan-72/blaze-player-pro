@@ -35,7 +35,7 @@ enum class PlaylistCategory(val prefKey: String, val label: String) {
 
 /** Nom traduit à afficher pour une catégorie de playlist. */
 fun PlaylistCategory.displayLabel(context: Context): String = when (this) {
-    PlaylistCategory.LOCAL_VIDEO -> context.getString(fr.retrospare.blazeplayer.R.string.category_local)
+    PlaylistCategory.LOCAL_VIDEO -> context.getString(fr.retrospare.blazeplayer.R.string.tab_blaze_video)
     PlaylistCategory.NETWORK_VIDEO -> context.getString(fr.retrospare.blazeplayer.R.string.category_network)
     PlaylistCategory.AUDIO -> context.getString(fr.retrospare.blazeplayer.R.string.category_audio)
 }
@@ -135,8 +135,23 @@ object PlaylistManager {
 
     fun getPlaylist(context: Context, category: PlaylistCategory, slot: Int): List<PlaylistTrackRef> {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val json = prefs.getString(key(category, slot), null) ?: return emptyList()
-        return parsePlaylist(json)
+        val base = prefs.getString(key(category, slot), null)?.let { parsePlaylist(it) }.orEmpty()
+
+        // Blaze Video utilise désormais les 5 playlists LOCAL_VIDEO comme playlists unifiées.
+        // Les anciens slots réseau sont rapatriés à la première lecture pour que les vidéos NAS
+        // déjà sauvegardées restent accessibles depuis l'onglet unique.
+        if (category == PlaylistCategory.LOCAL_VIDEO) {
+            val legacyNetwork = prefs.getString(key(PlaylistCategory.NETWORK_VIDEO, slot), null)
+                ?.let { parsePlaylist(it) }
+                .orEmpty()
+            if (legacyNetwork.isNotEmpty()) {
+                val merged = (base + legacyNetwork).distinctBy { it.path }
+                savePlaylist(context, PlaylistCategory.LOCAL_VIDEO, slot, merged)
+                prefs.edit().remove(key(PlaylistCategory.NETWORK_VIDEO, slot)).apply()
+                return merged
+            }
+        }
+        return base
     }
 
     fun getAllSlotCounts(context: Context, category: PlaylistCategory): List<Int> =

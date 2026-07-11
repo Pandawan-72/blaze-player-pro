@@ -33,6 +33,9 @@ public final class FragmentNetworkSharesBinding implements ViewBinding {
   public final ImageButton btnScan;
 
   @NonNull
+  public final LinearLayout networkHeader;
+
+  @NonNull
   public final ProgressBar progressBar;
 
   @NonNull
@@ -55,14 +58,15 @@ public final class FragmentNetworkSharesBinding implements ViewBinding {
 
   private FragmentNetworkSharesBinding(@NonNull LinearLayout rootView,
       @NonNull MaterialButton btnAdd, @NonNull ImageButton btnBack, @NonNull ImageButton btnScan,
-      @NonNull ProgressBar progressBar, @NonNull RecyclerView recyclerDiscovered,
-      @NonNull RecyclerView recyclerView, @NonNull TextView tvEmpty,
-      @NonNull TextView tvSectionDiscovered, @NonNull TextView tvSectionSaved,
-      @NonNull TextView tvSubtitle) {
+      @NonNull LinearLayout networkHeader, @NonNull ProgressBar progressBar,
+      @NonNull RecyclerView recyclerDiscovered, @NonNull RecyclerView recyclerView,
+      @NonNull TextView tvEmpty, @NonNull TextView tvSectionDiscovered,
+      @NonNull TextView tvSectionSaved, @NonNull TextView tvSubtitle) {
     this.rootView = rootView;
     this.btnAdd = btnAdd;
     this.btnBack = btnBack;
     this.btnScan = btnScan;
+    this.networkHeader = networkHeader;
     this.progressBar = progressBar;
     this.recyclerDiscovered = recyclerDiscovered;
     this.recyclerView = recyclerView;
@@ -117,6 +121,12 @@ public final class FragmentNetworkSharesBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.networkHeader;
+      LinearLayout networkHeader = ViewBindings.findChildViewById(rootView, id);
+      if (networkHeader == null) {
+        break missingId;
+      }
+
       id = R.id.progressBar;
       ProgressBar progressBar = ViewBindings.findChildViewById(rootView, id);
       if (progressBar == null) {
@@ -160,8 +170,8 @@ public final class FragmentNetworkSharesBinding implements ViewBinding {
       }
 
       return new FragmentNetworkSharesBinding((LinearLayout) rootView, btnAdd, btnBack, btnScan,
-          progressBar, recyclerDiscovered, recyclerView, tvEmpty, tvSectionDiscovered,
-          tvSectionSaved, tvSubtitle);
+          networkHeader, progressBar, recyclerDiscovered, recyclerView, tvEmpty,
+          tvSectionDiscovered, tvSectionSaved, tvSubtitle);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

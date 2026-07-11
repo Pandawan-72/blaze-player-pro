@@ -6,7 +6,7 @@
          colonne de largeur raisonnable — même principe que Spotify/Apple Music sur tablette. -->
     <dimen name="audio_player_horizontal_margin">96dp</dimen>
 
-    <dimen name="audio_player_title_text_size">28sp</dimen>
+    <dimen name="audio_player_title_text_size">31sp</dimen>
 
     <!-- Décale légèrement le bloc cover + commandes vers le bas pour aérer l'espace entre
          la barre Party/file d'attente du haut et la pochette, en récupérant l'espace libre sous

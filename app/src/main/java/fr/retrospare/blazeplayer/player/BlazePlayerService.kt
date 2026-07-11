@@ -84,6 +84,12 @@ class BlazePlayerService : MediaSessionService() {
         // vidéo écrasait purement et simplement la notification audio (même slot de notification).
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "blaze_audio_channel"
+
+        /** Signal léger lu par la bibliothèque audio : quand une piste joue, les scans
+         *  métadonnées/covers doivent rester strictement non prioritaires pour éviter
+         *  toute coupure, surtout avec des fichiers sur NAS. */
+        @Volatile var isAudioPlaybackActive: Boolean = false
+            private set
     }
 
     private var mediaSession: MediaSession? = null
@@ -203,6 +209,9 @@ class BlazePlayerService : MediaSessionService() {
                 if (playbackState == androidx.media3.common.Player.STATE_BUFFERING) {
                     android.util.Log.i("BlazePlayerService", "Audio buffering…")
                 }
+                isAudioPlaybackActive = exoPlayer.playWhenReady &&
+                    playbackState != androidx.media3.common.Player.STATE_IDLE &&
+                    playbackState != androidx.media3.common.Player.STATE_ENDED
             }
         })
         player = exoPlayer
@@ -229,12 +238,24 @@ class BlazePlayerService : MediaSessionService() {
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 persistAudioQueue()
                 prepareReplayGainForItem(mediaItem)
+
+                // Précharge le .LRC correspondant en parallèle de la préparation/lecture audio.
+                // Le cache/verrou dans AudioLocalEnhancements évite une seconde ouverture lorsque
+                // l'overlay du Fragment réclame les mêmes paroles quelques millisecondes après.
+                val lyricsPath = mediaItem?.let { BlazePartyQueue.originalPathOf(it) }.orEmpty()
+                if (lyricsPath.isNotBlank() && audioProValues.syncedLyrics) {
+                    serviceScope.launch {
+                        AudioLocalEnhancements.findLocalLyricsData(applicationContext, lyricsPath)
+                    }
+                }
+
                 if (!crossfadeInProgress && audioProValues.crossfade) {
                     fadePlayerTo(AudioProSettings.playerVolume(audioProValues, currentReplayGainDb), (audioProValues.crossfadeDurationSec * 450L).coerceIn(180L, 1500L))
                 }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                isAudioPlaybackActive = isPlaying
                 scheduleCrossfadeCheck()
             }
 
@@ -311,11 +332,19 @@ class BlazePlayerService : MediaSessionService() {
         partyStateSnapshot = null
     }
 
+    @Suppress("DEPRECATION")
+    private fun compatWifiLockMode(): Int =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+        } else {
+            WifiManager.WIFI_MODE_FULL_HIGH_PERF
+        }
+
     private fun acquirePartyWifiLock() {
         try {
             if (partyWifiLock?.isHeld == true) return
             val wifi = applicationContext.getSystemService(WifiManager::class.java) ?: return
-            partyWifiLock = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "BlazePartyHostLock").apply {
+            partyWifiLock = wifi.createWifiLock(compatWifiLockMode(), "BlazePartyHostLock").apply {
                 setReferenceCounted(false)
                 acquire()
             }
@@ -491,7 +520,7 @@ class BlazePlayerService : MediaSessionService() {
             p.prepare()
             p.play()
             persistAudioQueue()
-            // Enrichissement non bloquant du morceau courant pour la notification/lockscreen.
+            // Chargement non bloquant de la pochette du morceau courant pour la notification/lockscreen.
             clean.getOrNull(safeIndex)?.let { enrichExternalAudioMetadataAsync(it.path, it.name) }
         } catch (e: Exception) {
             fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Play audio queue failed", e)
@@ -584,7 +613,8 @@ class BlazePlayerService : MediaSessionService() {
                     p.addMediaItems(mediaItems)
                     persistAudioQueue()
                     mediaItems.forEach { item ->
-                        enrichExternalAudioMetadataAsync(originalPathFromItem(item), item.mediaMetadata.title?.toString().orEmpty())
+                        val itemPath = originalPathFromItem(item)
+                        enrichExternalAudioMetadataAsync(itemPath, AudioLibraryHeuristics.fileNameFromPath(itemPath))
                     }
                 }
             } else {
@@ -625,8 +655,8 @@ class BlazePlayerService : MediaSessionService() {
         if (path.isBlank()) return
         serviceScope.launch {
             val enriched = try {
-                // Lecture des tags/pochettes hors thread principal : la notification Media3 est
-                // ensuite mise à jour en remplaçant le MediaItem courant dans la session stable.
+                // Seule la pochette est extraite hors thread principal. Les textes de la
+                // notification restent dérivés du nom de fichier et des dossiers.
                 AudioRepository.buildMediaItemWithMetadata(applicationContext, path, fallbackName)
             } catch (e: Exception) {
                 fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Audio notification metadata enrichment failed for $path", e)
@@ -853,9 +883,11 @@ class BlazePlayerService : MediaSessionService() {
             val items = (0 until p.mediaItemCount).map { i ->
                 val mi = p.getMediaItemAt(i)
                 val path = originalPathFromItem(mi)
-                val name = mi.mediaMetadata.title?.toString()?.ifBlank { null }
-                    ?: mi.localConfiguration?.uri?.lastPathSegment
-                    ?: path.substringAfterLast('/')
+                val name = mi.mediaMetadata.extras?.getString("blaze_original_name").orEmpty().ifBlank {
+                    AudioLibraryHeuristics.fileNameFromPath(path).ifBlank {
+                        mi.localConfiguration?.uri?.lastPathSegment ?: path.substringAfterLast('/')
+                    }
+                }
                 PlaylistItem(path, name)
             }.filter { it.path.isNotBlank() && !isObsoleteLocalRelayUrl(it.path) && AudioRepository.isAudioExtension(it.path) }
             if (items.isNotEmpty()) {
@@ -881,6 +913,7 @@ class BlazePlayerService : MediaSessionService() {
         // que la notification avait disparu. On intercepte précisément COMMAND_STOP ici plutôt que
         // de deviner via les transitions d'état du player (IDLE arrive aussi normalement pendant
         // le chargement, ce qui coupait le service à tort).
+        @Deprecated("Deprecated by Media3, still needed to intercept COMMAND_STOP from the media notification.")
         override fun onPlayerCommandRequest(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
@@ -956,6 +989,7 @@ class BlazePlayerService : MediaSessionService() {
     override fun onTaskRemoved(rootIntent: Intent?) {
         persistAudioQueue()
         try {
+            isAudioPlaybackActive = false
             sessionPlayer?.stop()
             sessionPlayer?.clearMediaItems()
         } catch (e: Exception) {
@@ -966,6 +1000,7 @@ class BlazePlayerService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        isAudioPlaybackActive = false
         try { eqApplyHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { crossfadeHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { playerVolumeAnimator?.cancel() } catch (_: Exception) {}

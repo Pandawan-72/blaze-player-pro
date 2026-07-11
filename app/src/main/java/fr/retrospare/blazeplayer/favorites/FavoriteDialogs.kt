@@ -6,6 +6,11 @@ import android.widget.Toast
 
 object FavoriteDialogs {
 
+    private data class FavoriteListEntry(
+        val category: FavoriteCategory,
+        val folder: FavoriteFolder
+    )
+
     /** Modal de confirmation pour ajouter le dossier courant aux favoris. */
     fun showAddFavoriteDialog(context: Context, category: FavoriteCategory, folder: FavoriteFolder) {
         val alreadyFavorite = FavoritesManager.isFavorite(context, category, folder.path, folder.shareId)
@@ -35,8 +40,22 @@ object FavoriteDialogs {
         category: FavoriteCategory,
         onOpenFavorite: (FavoriteFolder) -> Unit
     ) {
-        val favorites = FavoritesManager.getFavorites(context, category)
-        if (favorites.isEmpty()) {
+        showFavoritesList(context, listOf(category)) { _, favorite -> onOpenFavorite(favorite) }
+    }
+
+    /** Variante multi-catégories utilisée par Blaze Video : depuis que l'onglet vidéo est unifié,
+     *  le même bouton "Favoris" doit afficher les dossiers locaux et les dossiers réseau. Les
+     *  favoris restent stockés dans leurs catégories d'origine pour ne pas casser les anciens
+     *  réglages ni l'écran de gestion. */
+    fun showFavoritesList(
+        context: Context,
+        categories: List<FavoriteCategory>,
+        onOpenFavorite: (FavoriteCategory, FavoriteFolder) -> Unit
+    ) {
+        val entries = categories.distinct().flatMap { category ->
+            FavoritesManager.getFavorites(context, category).map { FavoriteListEntry(category, it) }
+        }
+        if (entries.isEmpty()) {
             android.app.AlertDialog.Builder(context)
                 .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.favorites))
                 .setMessage(context.getString(fr.retrospare.blazeplayer.R.string.dialog_no_favorite_folders))
@@ -57,25 +76,32 @@ object FavoriteDialogs {
             .create()
 
         recycler.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
-            override fun getItemCount() = favorites.size
+            override fun getItemCount() = entries.size
             override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
                 val v = android.view.LayoutInflater.from(parent.context)
                     .inflate(fr.retrospare.blazeplayer.R.layout.item_favorite_folder, parent, false)
                 return object : androidx.recyclerview.widget.RecyclerView.ViewHolder(v) {}
             }
             override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
-                val f = favorites[position]
+                val entry = entries[position]
+                val f = entry.folder
                 holder.itemView.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.tvFavoriteName)?.text = f.name
                 val tvSubtitle = holder.itemView.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.tvFavoriteSubtitle)
-                if (!f.shareName.isNullOrEmpty()) {
-                    tvSubtitle?.text = f.shareName
+                val subtitle = when {
+                    !f.shareName.isNullOrEmpty() -> f.shareName
+                    entry.category == FavoriteCategory.NETWORK -> context.getString(fr.retrospare.blazeplayer.R.string.tab_network)
+                    entry.category == FavoriteCategory.LOCAL -> context.getString(fr.retrospare.blazeplayer.R.string.tab_blaze_video)
+                    else -> null
+                }
+                if (!subtitle.isNullOrEmpty()) {
+                    tvSubtitle?.text = subtitle
                     tvSubtitle?.visibility = android.view.View.VISIBLE
                 } else {
                     tvSubtitle?.visibility = android.view.View.GONE
                 }
                 holder.itemView.setOnClickListener {
                     dialog.dismiss()
-                    onOpenFavorite(f)
+                    onOpenFavorite(entry.category, f)
                 }
             }
         }
@@ -86,23 +112,28 @@ object FavoriteDialogs {
         // avec des boutons par ligne.
         dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)?.setOnClickListener {
             dialog.dismiss()
-            showManageFavorites(context, category)
+            showManageFavorites(context, entries)
         }
     }
 
-    private fun showManageFavorites(context: Context, category: FavoriteCategory) {
-        val favorites = FavoritesManager.getFavorites(context, category)
-        if (favorites.isEmpty()) return
-        val labels = favorites.map { f ->
-            if (!f.shareName.isNullOrEmpty()) "${f.shareName} — ${f.name}" else f.name
+    private fun showManageFavorites(context: Context, entries: List<FavoriteListEntry>) {
+        if (entries.isEmpty()) return
+        val labels = entries.map { entry ->
+            val f = entry.folder
+            when {
+                !f.shareName.isNullOrEmpty() -> "${f.shareName} — ${f.name}"
+                entry.category == FavoriteCategory.NETWORK -> "${context.getString(fr.retrospare.blazeplayer.R.string.tab_network)} — ${f.name}"
+                else -> f.name
+            }
         }.toTypedArray()
-        val checked = BooleanArray(favorites.size)
+        val checked = BooleanArray(entries.size)
         android.app.AlertDialog.Builder(context)
             .setTitle(context.getString(fr.retrospare.blazeplayer.R.string.dialog_remove_favorites))
             .setMultiChoiceItems(labels, checked) { _, i, isChecked -> checked[i] = isChecked }
             .setPositiveButton(context.getString(fr.retrospare.blazeplayer.R.string.action_remove)) { _, _ ->
-                favorites.forEachIndexed { i, f ->
-                    if (checked[i]) FavoritesManager.removeFavorite(context, category, f.path, f.shareId)
+                entries.forEachIndexed { i, entry ->
+                    val f = entry.folder
+                    if (checked[i]) FavoritesManager.removeFavorite(context, entry.category, f.path, f.shareId)
                 }
             }
             .setNegativeButton(context.getString(fr.retrospare.blazeplayer.R.string.action_cancel), null)

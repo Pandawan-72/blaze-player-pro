@@ -3,8 +3,8 @@ package fr.retrospare.blazeplayer.settings
 
 import fr.retrospare.blazeplayer.ui.showPremium
 import android.os.Bundle
+import android.content.res.ColorStateList
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import android.view.LayoutInflater
 import android.view.View
@@ -15,7 +15,8 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.switchmaterial.SwitchMaterial
+import androidx.core.content.ContextCompat
+import com.google.android.material.materialswitch.MaterialSwitch
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.BuildConfig
@@ -35,6 +36,10 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        fr.retrospare.blazeplayer.player.AudioPremiumUi.applyDynamicHero(
+            binding.settingsHero,
+            ContextCompat.getColor(requireContext(), R.color.green_accent)
+        )
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
         binding.btnBecomePro.setOnClickListener {
             val navController = findNavController()
@@ -44,6 +49,7 @@ class SettingsFragment : Fragment() {
         }
         setupSettings()
         setupLogout()
+        setupRateApp()
     }
 
     private fun setupSettings() {
@@ -146,27 +152,6 @@ class SettingsFragment : Fragment() {
 
 
         // INTERFACE
-        viewLifecycleOwner.lifecycleScope.launch {
-            val miniVm = (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.getMiniPlayerViewModel()
-            val enabled = miniVm?.getMiniPlayerEnabled()?.first() ?: false
-            setupToggle(
-                binding.settingMiniPlayer.root,
-                fr.retrospare.blazeplayer.R.drawable.ic_layout_list,
-                getString(R.string.settings_mini_player),
-                getString(R.string.settings_mini_player_desc),
-                enabled
-            ) { isEnabled ->
-                miniVm?.setMiniPlayerEnabled(isEnabled)
-            }
-        }
-
-        setupToggle(
-            binding.settingAudioSpectrum.root,
-            R.drawable.ic_equalizer,
-            getString(R.string.settings_audio_spectrum),
-            getString(R.string.settings_audio_spectrum_desc),
-            viewModel.getAudioSpectrumEnabled()
-        ) { viewModel.setAudioSpectrumEnabled(it) }
         setupToggle(
             binding.settingShowHidden.root,
             R.drawable.ic_settings,
@@ -302,7 +287,7 @@ class SettingsFragment : Fragment() {
         view.findViewById<ImageView>(R.id.ivIcon).setImageResource(icon)
         view.findViewById<TextView>(R.id.tvTitle).text = title
         view.findViewById<TextView>(R.id.tvSubtitle).apply { text = subtitle; visibility = View.VISIBLE }
-        val sw = view.findViewById<SwitchMaterial>(R.id.switchToggle)
+        val sw = view.findViewById<MaterialSwitch>(R.id.switchToggle)
 
         // Les lignes de réglage sont incluses plusieurs fois et contiennent toutes un switch avec
         // le même id (`switchToggle`). Lors d'un changement de langue, AppCompat recrée le fragment
@@ -315,11 +300,33 @@ class SettingsFragment : Fragment() {
         sw.isSaveFromParentEnabled = false
 
         sw.visibility = View.VISIBLE
+        applyAudioStyleToggle(sw)
         sw.setOnCheckedChangeListener(null)
         sw.isChecked = value
         sw.setOnCheckedChangeListener { _, checked -> onChange(checked) }
         view.setOnClickListener { sw.isChecked = !sw.isChecked }
     }
+
+    private fun applyAudioStyleToggle(sw: MaterialSwitch) {
+        val accent = ContextCompat.getColor(requireContext(), R.color.green_accent)
+        val checkedTrack = ColorStateList.valueOf(fr.retrospare.blazeplayer.player.AudioDynamicColor.mix(0xFF101827.toInt(), accent, 0.36f))
+        val uncheckedTrack = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
+        val disabledTrack = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface))
+        val trackStates = arrayOf(
+            intArrayOf(android.R.attr.state_checked, android.R.attr.state_enabled),
+            intArrayOf(-android.R.attr.state_checked, android.R.attr.state_enabled),
+            intArrayOf(-android.R.attr.state_enabled)
+        )
+        sw.trackTintList = ColorStateList(
+            trackStates,
+            intArrayOf(checkedTrack.defaultColor, uncheckedTrack.defaultColor, disabledTrack.defaultColor)
+        )
+        sw.thumbTintList = ColorStateList(
+            trackStates,
+            intArrayOf(accent, ContextCompat.getColor(requireContext(), R.color.on_surface_variant), ContextCompat.getColor(requireContext(), R.color.text_hint))
+        )
+    }
+
 
     private fun setupChoice(view: View, icon: Int, title: String, choices: List<String>, selectedIndex: Int, dialogTitle: String, onSelected: (Int) -> Unit) {
         view.findViewById<ImageView>(R.id.ivIcon).setImageResource(icon)
@@ -349,6 +356,44 @@ class SettingsFragment : Fragment() {
     private fun setupLogout() {
         binding.btnRestorePurchases.setOnClickListener {
             fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_info), getString(R.string.toast_restore_purchases_soon))
+        }
+    }
+
+    private fun setupRateApp() {
+        binding.btnRateApp.setOnClickListener {
+            openPlayStoreListing()
+        }
+    }
+
+    private fun openPlayStoreListing() {
+        val packageName = requireContext().packageName
+        val marketIntent = android.content.Intent(
+            android.content.Intent.ACTION_VIEW,
+            android.net.Uri.parse("market://details?id=$packageName")
+        ).apply {
+            setPackage("com.android.vending")
+            addFlags(
+                android.content.Intent.FLAG_ACTIVITY_NO_HISTORY or
+                    android.content.Intent.FLAG_ACTIVITY_NEW_DOCUMENT or
+                    android.content.Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+            )
+        }
+
+        try {
+            startActivity(marketIntent)
+            return
+        } catch (_: Exception) {
+            // Si le Play Store n'est pas installé/disponible, on retombe sur la page web.
+        }
+
+        val webIntent = android.content.Intent(
+            android.content.Intent.ACTION_VIEW,
+            android.net.Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+        )
+        try {
+            startActivity(webIntent)
+        } catch (_: Exception) {
+            Toast.makeText(requireContext(), getString(R.string.toast_play_store_unavailable), Toast.LENGTH_SHORT).show()
         }
     }
 

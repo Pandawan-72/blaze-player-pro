@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import dagger.hilt.android.qualifiers.ApplicationContext
-import fr.retrospare.blazeplayer.data.model.NetworkShare
 import fr.retrospare.blazeplayer.data.model.ShareType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -27,7 +26,7 @@ import java.net.URL
 
 @Singleton
 class NetworkScanner @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
 
     companion object {

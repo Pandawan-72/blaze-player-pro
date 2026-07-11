@@ -1,6 +1,7 @@
 package fr.retrospare.blazeplayer.player
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
@@ -59,7 +60,7 @@ class AudioPlayerActivity : AppCompatActivity() {
             })
             consumeIntent(intent)
             finish()
-            overridePendingTransition(0, 0)
+            overrideNoAnimationTransition()
             return true
         }
 
@@ -97,8 +98,17 @@ class AudioPlayerActivity : AppCompatActivity() {
         })
         consumeIntent(intent)
         finish()
-        overridePendingTransition(0, 0)
+        overrideNoAnimationTransition()
         return true
+    }
+
+    private fun overrideNoAnimationTransition() {
+        if (Build.VERSION.SDK_INT >= 34) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
+        }
     }
 
     private fun consumeIntent(intent: Intent?) {

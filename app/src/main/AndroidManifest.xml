@@ -53,6 +53,7 @@
     <application
         android:name=".BlazePlayerApp"
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:localeConfig="@xml/locales_config"
         android:icon="@mipmap/ic_launcher"
@@ -182,6 +183,7 @@ android:name=".player.BlazePlayerService"
             android:name=".player.AudioLibraryActivity"
             android:exported="false"
             android:screenOrientation="portrait"
+            android:stateNotNeeded="true"
             android:theme="@style/Theme.BlazePlayer" />
 
         <activity

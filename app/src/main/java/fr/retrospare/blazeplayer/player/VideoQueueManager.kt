@@ -25,8 +25,25 @@ object VideoQueueManager {
     }
 
     fun getQueue(context: Context, category: PlaylistCategory): List<PlaylistTrackRef> {
-        val json = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(key(category), null) ?: return emptyList()
-        return parseQueue(json)
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val json = prefs.getString(key(category), null)
+        val base = json?.let { parseQueue(it) }.orEmpty()
+
+        // Blaze Video est désormais l'onglet historique unique. On conserve LOCAL_VIDEO comme
+        // stockage canonique, mais on rapatrie les anciennes entrées réseau pour ne pas perdre
+        // les files créées avant la refonte.
+        if (category == PlaylistCategory.LOCAL_VIDEO) {
+            val legacyNetwork = prefs.getString(key(PlaylistCategory.NETWORK_VIDEO), null)
+                ?.let { parseQueue(it) }
+                .orEmpty()
+            if (legacyNetwork.isNotEmpty()) {
+                val merged = (base + legacyNetwork).distinctBy { it.path }
+                saveQueue(context, PlaylistCategory.LOCAL_VIDEO, merged)
+                prefs.edit().remove(key(PlaylistCategory.NETWORK_VIDEO)).apply()
+                return merged
+            }
+        }
+        return base
     }
 
     fun addToQueue(context: Context, category: PlaylistCategory, tracks: List<PlaylistTrackRef>): Int {

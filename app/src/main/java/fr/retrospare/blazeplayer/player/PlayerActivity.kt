@@ -4,6 +4,7 @@ import fr.retrospare.blazeplayer.ui.showPremium
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.media.AudioManager
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
 import android.os.Build
@@ -58,6 +59,7 @@ import fr.retrospare.blazeplayer.debug.CrashReporter
 import fr.retrospare.blazeplayer.databinding.ActivityPlayerBinding
 import fr.retrospare.blazeplayer.playlist.PlaylistCategory
 import fr.retrospare.blazeplayer.ui.InfoDialog
+import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -164,6 +166,9 @@ class PlayerActivity : AppCompatActivity() {
     private var networkPlaybackReachedNaturalEnd = false
     private var prematureLocalEndRecoveries = 0
     private var lastLocalRecoverAtMs = 0L
+    private val playbackThumbnailCapturedPaths = linkedSetOf<String>()
+    private val playbackThumbnailRetryAfter = mutableMapOf<String, Long>()
+    private var playbackThumbnailCaptureInProgress = false
 
 
     override fun onNewIntent(intent: Intent) {
@@ -242,7 +247,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         lifecycleScope.launch {
             val orientIdx = dataStore.data.first()[intPreferencesKey("orientation")] ?: 0
             requestedOrientation = when (orientIdx) {
@@ -1593,6 +1598,97 @@ class PlayerActivity : AppCompatActivity() {
 
 
 
+    private fun maybeCapturePlaybackThumbnail(posMs: Long, durMs: Long) {
+        if (!::player.isInitialized || mediaPath.isBlank()) return
+        if (player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE) return
+        val path = mediaPath
+        if (playbackThumbnailCapturedPaths.contains(path) || playbackThumbnailCaptureInProgress) return
+        if (ThumbnailUtils.hasCustomVideoThumbnail(applicationContext, path) ||
+            ThumbnailUtils.hasCachedVideoPlaybackSnapshot(applicationContext, path)) {
+            playbackThumbnailCapturedPaths.add(path)
+            return
+        }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val retryAt = playbackThumbnailRetryAfter[path] ?: 0L
+        if (now < retryAt) return
+
+        val thresholdMs = if (durMs in 1L until 20_000L) {
+            5_000L.coerceAtMost((durMs * 0.60f).toLong().coerceAtLeast(1_000L))
+        } else {
+            20_000L
+        }
+        if (posMs < thresholdMs) return
+        capturePlaybackThumbnailSilently(path)
+    }
+
+    private fun capturePlaybackThumbnailSilently(path: String) {
+        if (isDestroyed || isFinishing) return
+        playbackThumbnailCaptureInProgress = true
+
+        fun failQuietly() {
+            playbackThumbnailCaptureInProgress = false
+            playbackThumbnailRetryAfter[path] = android.os.SystemClock.elapsedRealtime() + 7_500L
+        }
+
+        fun commit(bitmap: Bitmap?) {
+            if (bitmap == null || bitmap.width <= 0 || bitmap.height <= 0) {
+                failQuietly()
+                return
+            }
+            lifecycleScope.launch(Dispatchers.IO) {
+                val saved = ThumbnailUtils.cacheVideoPlaybackSnapshot(applicationContext, path, bitmap)
+                withContext(Dispatchers.Main) {
+                    playbackThumbnailCaptureInProgress = false
+                    if (saved) {
+                        playbackThumbnailCapturedPaths.add(path)
+                        if (path == mediaPath) loadNotificationArtwork(path)
+                    } else {
+                        playbackThumbnailRetryAfter[path] = android.os.SystemClock.elapsedRealtime() + 10_000L
+                    }
+                }
+            }
+        }
+
+        val activeView = activePlayerView()
+        val textureView = activeView.videoSurfaceView as? TextureView
+        if (textureView != null && textureView.isAvailable && textureView.width > 0 && textureView.height > 0) {
+            val bitmap = try {
+                textureView.bitmap ?: textureView.getBitmap(textureView.width, textureView.height)
+            } catch (e: Exception) {
+                CrashReporter.log(this, "Silent playback thumbnail TextureView capture failed for $path", e)
+                null
+            }
+            commit(bitmap)
+            return
+        }
+
+        val surfaceView = activeView.videoSurfaceView as? SurfaceView
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && surfaceView != null &&
+            surfaceView.width > 0 && surfaceView.height > 0 && surfaceView.holder.surface.isValid) {
+            val bitmap = Bitmap.createBitmap(surfaceView.width, surfaceView.height, Bitmap.Config.ARGB_8888)
+            val thread = HandlerThread("BlazeVideoSilentThumb").apply { start() }
+            try {
+                PixelCopy.request(surfaceView, bitmap, { result ->
+                    try { thread.quitSafely() } catch (_: Exception) {}
+                    runOnUiThread {
+                        if (result == PixelCopy.SUCCESS) commit(bitmap) else {
+                            try { bitmap.recycle() } catch (_: Exception) {}
+                            failQuietly()
+                        }
+                    }
+                }, Handler(thread.looper))
+            } catch (e: Exception) {
+                try { thread.quitSafely() } catch (_: Exception) {}
+                try { bitmap.recycle() } catch (_: Exception) {}
+                CrashReporter.log(this, "Silent playback thumbnail SurfaceView PixelCopy failed for $path", e)
+                failQuietly()
+            }
+            return
+        }
+
+        failQuietly()
+    }
+
     /** Capture uniquement la surface vidéo. Le lecteur principal utilise maintenant SurfaceView
      * pour un rendu vidéo plus fluide ; la capture passe donc par PixelCopy quand nécessaire. */
     private fun captureCurrentVideoFrame() {
@@ -1604,7 +1700,7 @@ class PlayerActivity : AppCompatActivity() {
 
         val activeView = activePlayerView()
         val textureView = activeView.videoSurfaceView as? TextureView
-        if (textureView != null && textureView.isAvailable) {
+        if (textureView != null && textureView.isAvailable && textureView.width > 0 && textureView.height > 0) {
             val bitmap = try {
                 textureView.bitmap ?: textureView.getBitmap(textureView.width, textureView.height)
             } catch (e: Exception) {
@@ -1695,8 +1791,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (!dir.exists() && !dir.mkdirs()) return false
                 val file = File(dir, filename)
                 file.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out) }
-                @Suppress("DEPRECATION")
-                sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)))
+                MediaScannerConnection.scanFile(this, arrayOf(file.absolutePath), arrayOf("image/jpeg"), null)
                 true
             }
         } catch (e: Exception) {
@@ -2190,6 +2285,7 @@ class PlayerActivity : AppCompatActivity() {
                     } else {
                         lastKnownRemotePosition = pos
                     }
+                    maybeCapturePlaybackThumbnail(pos, dur)
                     val now = android.os.SystemClock.elapsedRealtime()
                     if (pos > 0L && now - lastProgressPersistAt >= 5_000L) {
                         lastProgressPersistAt = now

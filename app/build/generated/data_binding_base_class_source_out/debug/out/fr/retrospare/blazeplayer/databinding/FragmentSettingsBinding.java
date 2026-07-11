@@ -4,6 +4,7 @@ package fr.retrospare.blazeplayer.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
@@ -17,13 +18,16 @@ import java.lang.String;
 
 public final class FragmentSettingsBinding implements ViewBinding {
   @NonNull
-  private final LinearLayout rootView;
+  private final FrameLayout rootView;
 
   @NonNull
   public final ImageButton btnBack;
 
   @NonNull
   public final LinearLayout btnBecomePro;
+
+  @NonNull
+  public final LinearLayout btnRateApp;
 
   @NonNull
   public final LinearLayout btnRestorePurchases;
@@ -35,9 +39,6 @@ public final class FragmentSettingsBinding implements ViewBinding {
   public final ItemSettingBinding settingAudioLang;
 
   @NonNull
-  public final ItemSettingBinding settingAudioSpectrum;
-
-  @NonNull
   public final ItemSettingBinding settingAutoPlay;
 
   @NonNull
@@ -45,9 +46,6 @@ public final class FragmentSettingsBinding implements ViewBinding {
 
   @NonNull
   public final ItemSettingBinding settingLanguage;
-
-  @NonNull
-  public final ItemSettingBinding settingMiniPlayer;
 
   @NonNull
   public final ItemSettingBinding settingOrientation;
@@ -76,27 +74,30 @@ public final class FragmentSettingsBinding implements ViewBinding {
   @NonNull
   public final ItemSettingBinding settingSuggestions;
 
-  private FragmentSettingsBinding(@NonNull LinearLayout rootView, @NonNull ImageButton btnBack,
-      @NonNull LinearLayout btnBecomePro, @NonNull LinearLayout btnRestorePurchases,
-      @NonNull ItemSettingBinding settingAbout, @NonNull ItemSettingBinding settingAudioLang,
-      @NonNull ItemSettingBinding settingAudioSpectrum, @NonNull ItemSettingBinding settingAutoPlay,
+  @NonNull
+  public final LinearLayout settingsHero;
+
+  private FragmentSettingsBinding(@NonNull FrameLayout rootView, @NonNull ImageButton btnBack,
+      @NonNull LinearLayout btnBecomePro, @NonNull LinearLayout btnRateApp,
+      @NonNull LinearLayout btnRestorePurchases, @NonNull ItemSettingBinding settingAbout,
+      @NonNull ItemSettingBinding settingAudioLang, @NonNull ItemSettingBinding settingAutoPlay,
       @NonNull ItemSettingBinding settingClearHistory, @NonNull ItemSettingBinding settingLanguage,
-      @NonNull ItemSettingBinding settingMiniPlayer, @NonNull ItemSettingBinding settingOrientation,
-      @NonNull ItemSettingBinding settingPip, @NonNull ItemSettingBinding settingRememberVolume,
+      @NonNull ItemSettingBinding settingOrientation, @NonNull ItemSettingBinding settingPip,
+      @NonNull ItemSettingBinding settingRememberVolume,
       @NonNull ItemSettingBinding settingReportBug, @NonNull ItemSettingBinding settingResume,
       @NonNull ItemSettingBinding settingSeekTime, @NonNull ItemSettingBinding settingShowHidden,
-      @NonNull ItemSettingBinding settingSpeed, @NonNull ItemSettingBinding settingSuggestions) {
+      @NonNull ItemSettingBinding settingSpeed, @NonNull ItemSettingBinding settingSuggestions,
+      @NonNull LinearLayout settingsHero) {
     this.rootView = rootView;
     this.btnBack = btnBack;
     this.btnBecomePro = btnBecomePro;
+    this.btnRateApp = btnRateApp;
     this.btnRestorePurchases = btnRestorePurchases;
     this.settingAbout = settingAbout;
     this.settingAudioLang = settingAudioLang;
-    this.settingAudioSpectrum = settingAudioSpectrum;
     this.settingAutoPlay = settingAutoPlay;
     this.settingClearHistory = settingClearHistory;
     this.settingLanguage = settingLanguage;
-    this.settingMiniPlayer = settingMiniPlayer;
     this.settingOrientation = settingOrientation;
     this.settingPip = settingPip;
     this.settingRememberVolume = settingRememberVolume;
@@ -106,11 +107,12 @@ public final class FragmentSettingsBinding implements ViewBinding {
     this.settingShowHidden = settingShowHidden;
     this.settingSpeed = settingSpeed;
     this.settingSuggestions = settingSuggestions;
+    this.settingsHero = settingsHero;
   }
 
   @Override
   @NonNull
-  public LinearLayout getRoot() {
+  public FrameLayout getRoot() {
     return rootView;
   }
 
@@ -147,6 +149,12 @@ public final class FragmentSettingsBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.btnRateApp;
+      LinearLayout btnRateApp = ViewBindings.findChildViewById(rootView, id);
+      if (btnRateApp == null) {
+        break missingId;
+      }
+
       id = R.id.btnRestorePurchases;
       LinearLayout btnRestorePurchases = ViewBindings.findChildViewById(rootView, id);
       if (btnRestorePurchases == null) {
@@ -166,13 +174,6 @@ public final class FragmentSettingsBinding implements ViewBinding {
         break missingId;
       }
       ItemSettingBinding binding_settingAudioLang = ItemSettingBinding.bind(settingAudioLang);
-
-      id = R.id.settingAudioSpectrum;
-      View settingAudioSpectrum = ViewBindings.findChildViewById(rootView, id);
-      if (settingAudioSpectrum == null) {
-        break missingId;
-      }
-      ItemSettingBinding binding_settingAudioSpectrum = ItemSettingBinding.bind(settingAudioSpectrum);
 
       id = R.id.settingAutoPlay;
       View settingAutoPlay = ViewBindings.findChildViewById(rootView, id);
@@ -194,13 +195,6 @@ public final class FragmentSettingsBinding implements ViewBinding {
         break missingId;
       }
       ItemSettingBinding binding_settingLanguage = ItemSettingBinding.bind(settingLanguage);
-
-      id = R.id.settingMiniPlayer;
-      View settingMiniPlayer = ViewBindings.findChildViewById(rootView, id);
-      if (settingMiniPlayer == null) {
-        break missingId;
-      }
-      ItemSettingBinding binding_settingMiniPlayer = ItemSettingBinding.bind(settingMiniPlayer);
 
       id = R.id.settingOrientation;
       View settingOrientation = ViewBindings.findChildViewById(rootView, id);
@@ -265,13 +259,19 @@ public final class FragmentSettingsBinding implements ViewBinding {
       }
       ItemSettingBinding binding_settingSuggestions = ItemSettingBinding.bind(settingSuggestions);
 
-      return new FragmentSettingsBinding((LinearLayout) rootView, btnBack, btnBecomePro,
+      id = R.id.settingsHero;
+      LinearLayout settingsHero = ViewBindings.findChildViewById(rootView, id);
+      if (settingsHero == null) {
+        break missingId;
+      }
+
+      return new FragmentSettingsBinding((FrameLayout) rootView, btnBack, btnBecomePro, btnRateApp,
           btnRestorePurchases, binding_settingAbout, binding_settingAudioLang,
-          binding_settingAudioSpectrum, binding_settingAutoPlay, binding_settingClearHistory,
-          binding_settingLanguage, binding_settingMiniPlayer, binding_settingOrientation,
-          binding_settingPip, binding_settingRememberVolume, binding_settingReportBug,
-          binding_settingResume, binding_settingSeekTime, binding_settingShowHidden,
-          binding_settingSpeed, binding_settingSuggestions);
+          binding_settingAutoPlay, binding_settingClearHistory, binding_settingLanguage,
+          binding_settingOrientation, binding_settingPip, binding_settingRememberVolume,
+          binding_settingReportBug, binding_settingResume, binding_settingSeekTime,
+          binding_settingShowHidden, binding_settingSpeed, binding_settingSuggestions,
+          settingsHero);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

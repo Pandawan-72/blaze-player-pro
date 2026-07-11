@@ -15,7 +15,6 @@ object SmbSessionPool {
 
     data class ConnKey(val host: String, val port: Int)
     data class SessionKey(val host: String, val port: Int, val username: String?, val password: String?)
-    data class ShareKey(val host: String, val port: Int, val username: String?, val password: String?, val shareName: String)
 
     private val connections = ConcurrentHashMap<ConnKey, Connection>()
     private val sessions = ConcurrentHashMap<SessionKey, Session>()

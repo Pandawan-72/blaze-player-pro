@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -12,6 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.button.MaterialButton
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
@@ -21,15 +23,20 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class BrowserFragment : Fragment() {
-    private var audioPickMode = false
+    private enum class SourceMode { LOCAL, NETWORK }
+    private data class BrowserCrumb(val name: String, val path: String, val shareId: String? = null)
+
+    private var audioOnlyMode = false
     private var videoActionsEnabled = true
+    private var sourceMode = SourceMode.LOCAL
 
     private val viewModel: BrowserViewModel by viewModels()
     private var _binding: FragmentBrowserBinding? = null
     private val binding get() = _binding!!
     private lateinit var adapter: BrowserAdapter
-    private val breadcrumbParts = mutableListOf<String>()
+    private val breadcrumbParts = mutableListOf<BrowserCrumb>()
     private var globalSearchJob: kotlinx.coroutines.Job? = null
+    private var searchGeneration = 0
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentBrowserBinding.inflate(inflater, container, false)
@@ -38,35 +45,36 @@ class BrowserFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        audioPickMode = arguments?.getBoolean("audioPickMode") ?: false
-        val audioOnlyMode = arguments?.getBoolean("audioOnlyMode") ?: false
-        val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
-        videoActionsEnabled = !audioOnlyMode && !audioPickMode
+        audioOnlyMode = arguments?.getBoolean("audioOnlyMode") ?: false
+        sourceMode = if (arguments?.getBoolean("isNetwork", false) == true) SourceMode.NETWORK else SourceMode.LOCAL
+        videoActionsEnabled = !audioOnlyMode
         binding.videoSelectionActions.visibility = if (videoActionsEnabled) View.VISIBLE else View.GONE
-        if (audioOnlyMode) {
-            viewModel.setAudioOnlyMode(true)
-            // Titre correct selon le type de navigateur
-            binding.tvTitle.text = if (isNetwork) getString(R.string.tab_network) else getString(R.string.browser_files_audio)
-        }
+        binding.videoBrowserSourceTabs.visibility = View.VISIBLE
+        if (audioOnlyMode) viewModel.setAudioOnlyMode(true)
 
         setupRecyclerView()
         setupButtons()
         observeViewModel()
         setupSelectionToolbar()
+        updateSourceTabs()
+
         val shareId = arguments?.getString("shareId")
         val initPath = arguments?.getString("path") ?: ""
-
         when {
-            isNetwork && !shareId.isNullOrEmpty() -> viewModel.loadNetworkFilesById(shareId, initPath)
-            isNetwork -> viewModel.loadNetworkShares() // Affiche la liste des partages réseau
+            sourceMode == SourceMode.NETWORK && !shareId.isNullOrEmpty() -> {
+                if (initPath.isNotBlank()) breadcrumbParts += BrowserCrumb(initPath.substringAfterLast('/').ifBlank { initPath }, initPath, shareId)
+                viewModel.loadNetworkFilesById(shareId, initPath)
+            }
+            sourceMode == SourceMode.NETWORK -> viewModel.loadNetworkShares()
             else -> viewModel.loadLocalFiles(initPath)
         }
+        updateBreadcrumb()
     }
 
     private fun isVideoItem(item: MediaItem): Boolean {
         if (item.mimeType == "folder" || item.mimeType == "share" || item.mimeType == "network") return false
         val ext = item.extension.lowercase().ifBlank { item.name.substringAfterLast('.', "").lowercase() }
-        return item.mimeType.startsWith("video/") || ext in setOf("mp4", "mkv", "avi", "mov", "flv", "wmv", "webm", "m4v", "ts", "m2ts", "mts", "3gp", "3g2")
+        return item.mimeType.startsWith("video/") || ext in setOf("mp4", "mkv", "avi", "mov", "flv", "wmv", "webm", "m4v", "ts", "m2ts", "mts", "3gp", "3g2", "mpg", "mpeg", "divx")
     }
 
     private fun selectedVideoRefs(): List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef> =
@@ -74,11 +82,10 @@ class BrowserFragment : Fragment() {
             .filter { isVideoItem(it) }
             .map { fr.retrospare.blazeplayer.player.VideoQueueManager.fromMediaItem(it) }
 
-    private fun currentVideoCategory(): fr.retrospare.blazeplayer.playlist.PlaylistCategory {
-        val isNetwork = arguments?.getBoolean("isNetwork", false) ?: false
-        return if (isNetwork) fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
-        else fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
-    }
+    /** Depuis l'onglet unique Blaze Video, les playlists 1–5 et la file d'attente sont unifiées :
+     *  elles acceptent les fichiers locaux, SMB et UPnP dans la même catégorie historique. */
+    private fun currentVideoCategory(): fr.retrospare.blazeplayer.playlist.PlaylistCategory =
+        fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
 
     private fun clearVideoSelection() {
         adapter.clearSelection()
@@ -110,68 +117,61 @@ class BrowserFragment : Fragment() {
                 android.widget.Toast.makeText(requireContext(), msg, android.widget.Toast.LENGTH_SHORT).show()
                 clearVideoSelection()
             }
-        // Les boutons restent fixes en haut du navigateur. La sélection se fait uniquement via
-        // les cases à cocher ; aucun bandeau contextuel ne doit apparaître/disparaître.
         adapter.onSelectionChanged = { }
     }
 
-
     private fun setupRecyclerView() {
-        // Toolbar sélection multiple
         adapter = BrowserAdapter(
-            onFolderClick = { item ->
-                breadcrumbParts.add(item.name)
-                updateBreadcrumb()
-                val share = viewModel.currentShare
-                when {
-                    share != null -> viewModel.loadNetworkFiles(share, item.path)
-                    item.mimeType == "network" -> {
-                        // Clic sur un favori réseau — charge ses fichiers
-                        viewModel.loadNetworkFilesById(item.id, "")
-                    }
-                    else -> viewModel.loadLocalFiles(item.path)
-                }
-            },
-            onFileClick = { item ->
-                PlayerRouter.open(requireContext(), item.path, item.name)
-            }
+            onFolderClick = { item -> openFolderLikeItem(item) },
+            onFileClick = { item -> PlayerRouter.open(requireContext(), item.path, item.name) }
         )
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.adapter = adapter
+    }
+
+    private fun openFolderLikeItem(item: MediaItem) {
+        when {
+            item.mimeType == "network" -> {
+                sourceMode = SourceMode.NETWORK
+                breadcrumbParts.clear()
+                breadcrumbParts += BrowserCrumb(item.name, "", item.id)
+                updateSourceTabs()
+                updateBreadcrumb()
+                viewModel.loadNetworkFilesById(item.id, "")
+            }
+            sourceMode == SourceMode.NETWORK || item.isNetwork -> {
+                val shareId = item.networkShareId ?: viewModel.currentShare?.id
+                breadcrumbParts += BrowserCrumb(item.name, item.path, shareId)
+                updateBreadcrumb()
+                val share = viewModel.currentShare
+                if (share != null) viewModel.loadNetworkFiles(share, item.path)
+                else if (!shareId.isNullOrEmpty()) viewModel.loadNetworkFilesById(shareId, item.path)
+            }
+            else -> {
+                breadcrumbParts += BrowserCrumb(item.name, item.path)
+                updateBreadcrumb()
+                viewModel.loadLocalFiles(item.path)
+            }
+        }
     }
 
     private fun setupButtons() {
         binding.btnHome?.setOnClickListener {
             findNavController().popBackStack(R.id.homeFragment, false)
         }
-        binding.btnBack.setOnClickListener {
-            if (breadcrumbParts.isNotEmpty()) {
-                breadcrumbParts.removeAt(breadcrumbParts.lastIndex)
-                updateBreadcrumb()
-                val share = viewModel.currentShare
-                val path = if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last()
-                if (share != null) {
-                    viewModel.loadNetworkFiles(share, path)
-                } else {
-                    viewModel.loadLocalFiles(path)
-                }
-            } else {
-                findNavController().popBackStack()
-            }
-        }
+        binding.btnLocal.setOnClickListener { switchToLocalRoot() }
+        binding.btnNetwork.setOnClickListener { switchToNetworkRoot() }
+        binding.btnBack.setOnClickListener { navigateBack() }
         binding.btnSort.setOnClickListener {
             viewModel.cycleSortMode()
             binding.tvSortLabel.text = when (viewModel.sortMode.value) {
-                fr.retrospare.blazeplayer.browser.BrowserViewModel.SortMode.NAME_ASC -> getString(R.string.sort_name_az)
-                fr.retrospare.blazeplayer.browser.BrowserViewModel.SortMode.NAME_DESC -> getString(R.string.sort_name_za)
-                fr.retrospare.blazeplayer.browser.BrowserViewModel.SortMode.DATE_DESC -> getString(R.string.sort_date_recent)
-                fr.retrospare.blazeplayer.browser.BrowserViewModel.SortMode.SIZE_DESC -> getString(R.string.sort_size)
+                BrowserViewModel.SortMode.NAME_ASC -> getString(R.string.sort_name_az)
+                BrowserViewModel.SortMode.NAME_DESC -> getString(R.string.sort_name_za)
+                BrowserViewModel.SortMode.DATE_DESC -> getString(R.string.sort_date_recent)
+                BrowserViewModel.SortMode.SIZE_DESC -> getString(R.string.sort_size)
             }
         }
 
-        // showAudio et showHidden sont chargés automatiquement depuis DataStore dans le ViewModel
-
-        // Si le paramètre global est activé, l'icone est non cliquable
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.showAudio.collect { active ->
                 val settingEnabled = viewModel.isShowAudioFromSettings()
@@ -190,20 +190,18 @@ class BrowserFragment : Fragment() {
             }
         }
         binding.btnToggleAudio.setOnClickListener {
-            if (!viewModel.isShowAudioFromSettings()) {
-                viewModel.toggleShowAudio()
-            }
+            if (!viewModel.isShowAudioFromSettings()) viewModel.toggleShowAudio()
         }
         binding.btnSearch.setOnClickListener {
             val searchView = binding.root.findViewById<android.widget.EditText>(R.id.etSearch)
-            val searchVisible = searchView?.visibility == android.view.View.VISIBLE
+            val searchVisible = searchView?.visibility == View.VISIBLE
             if (searchVisible) {
-                binding.root.findViewById<android.widget.EditText>(R.id.etSearch).visibility = android.view.View.GONE
-                binding.root.findViewById<android.widget.EditText>(R.id.etSearch).text?.clear()
+                searchView.visibility = View.GONE
+                searchView.text?.clear()
                 adapter.filter("")
             } else {
                 val et = binding.root.findViewById<android.widget.EditText>(R.id.etSearch)
-                et.visibility = android.view.View.VISIBLE
+                et.visibility = View.VISIBLE
                 et.requestFocus()
                 val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                 imm.showSoftInput(et, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
@@ -212,27 +210,114 @@ class BrowserFragment : Fragment() {
         binding.root.findViewById<android.widget.EditText>(R.id.etSearch)?.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val query = s?.toString() ?: ""
-                globalSearchJob?.cancel()
-                val isNetworkMode = arguments?.getBoolean("isNetwork", false) ?: false
-                if (!isNetworkMode && query.length >= 3) {
-                    // Recherche globale parmi toutes les vidéos locales (tous dossiers confondus)
-                    // via l'index MediaStore, plutôt que de filtrer seulement le dossier courant.
-                    globalSearchJob = viewLifecycleOwner.lifecycleScope.launch {
-                        kotlinx.coroutines.delay(300)
-                        val results = viewModel.searchAllLocalVideos(query)
-                        adapter.setFullList(results)
-                        adapter.filter("")
-                    }
-                } else {
-                    // Repasse en filtrage simple du dossier courant (comportement d'origine)
-                    val current = (viewModel.state.value as? BrowserViewModel.BrowserState.Success)?.items
-                    if (current != null) adapter.setFullList(current)
-                    adapter.filter(query)
-                }
+                performBrowserSearch(s?.toString().orEmpty())
             }
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
+    }
+
+    private fun restoreVisibleBrowserItems(filterQuery: String = "") {
+        val current = (viewModel.state.value as? BrowserViewModel.BrowserState.Success)?.items
+        if (current != null) adapter.setFullList(current)
+        adapter.filter(filterQuery)
+    }
+
+    private fun performBrowserSearch(rawQuery: String) {
+        val query = rawQuery.trim()
+        globalSearchJob?.cancel()
+        val generation = ++searchGeneration
+        setSearchProgressVisible(false)
+        if (query.isBlank()) {
+            restoreVisibleBrowserItems("")
+            return
+        }
+
+        if (query.length < 2) {
+            restoreVisibleBrowserItems(query)
+            return
+        }
+
+        globalSearchJob = viewLifecycleOwner.lifecycleScope.launch {
+            kotlinx.coroutines.delay(250)
+            if (generation == searchGeneration) setSearchProgressVisible(true)
+            try {
+                val results = when {
+                    sourceMode == SourceMode.LOCAL -> viewModel.searchLocalVideos(query)
+                    sourceMode == SourceMode.NETWORK -> viewModel.searchNetworkVideos(query)
+                    else -> null
+                }
+                if (generation != searchGeneration) return@launch
+                if (results != null) {
+                    adapter.setFullList(results)
+                    adapter.filter("")
+                } else {
+                    restoreVisibleBrowserItems(query)
+                }
+            } finally {
+                if (generation == searchGeneration) setSearchProgressVisible(false)
+            }
+        }
+    }
+
+    private fun setSearchProgressVisible(visible: Boolean) {
+        _binding?.tvSearchProgress?.visibility = if (visible) View.VISIBLE else View.GONE
+    }
+
+    private fun switchToLocalRoot() {
+        sourceMode = SourceMode.LOCAL
+        breadcrumbParts.clear()
+        updateSourceTabs()
+        updateBreadcrumb()
+        viewModel.currentShare = null
+        viewModel.loadLocalFiles("")
+    }
+
+    private fun switchToNetworkRoot() {
+        sourceMode = SourceMode.NETWORK
+        breadcrumbParts.clear()
+        updateSourceTabs()
+        updateBreadcrumb()
+        viewModel.loadNetworkShares()
+    }
+
+    private fun navigateBack() {
+        if (breadcrumbParts.isNotEmpty()) {
+            breadcrumbParts.removeAt(breadcrumbParts.lastIndex)
+            updateBreadcrumb()
+            when (sourceMode) {
+                SourceMode.LOCAL -> viewModel.loadLocalFiles(breadcrumbParts.lastOrNull()?.path.orEmpty())
+                SourceMode.NETWORK -> {
+                    val target = breadcrumbParts.lastOrNull()
+                    if (target == null) {
+                        viewModel.currentShare = null
+                        viewModel.loadNetworkShares()
+                    } else {
+                        val shareId = target.shareId ?: viewModel.currentShare?.id
+                        if (!shareId.isNullOrEmpty()) viewModel.loadNetworkFilesById(shareId, target.path)
+                        else viewModel.loadNetworkShares()
+                    }
+                }
+            }
+        } else {
+            findNavController().popBackStack()
+        }
+    }
+
+    private fun updateSourceTabs() {
+        fun style(button: MaterialButton, selected: Boolean) {
+            button.setTextColor(ContextCompat.getColor(requireContext(), if (selected) R.color.black else R.color.on_surface))
+            button.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), if (selected) R.color.black else R.color.on_surface))
+            button.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), if (selected) R.color.green_accent else R.color.surface_variant))
+            button.strokeColor = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_accent_stroke))
+            button.strokeWidth = if (selected) 0 else (resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        }
+        style(binding.btnLocal, sourceMode == SourceMode.LOCAL)
+        style(binding.btnNetwork, sourceMode == SourceMode.NETWORK)
+        binding.tvTitle.text = when {
+            audioOnlyMode -> getString(R.string.browser_files_audio)
+            sourceMode == SourceMode.NETWORK -> getString(R.string.tab_network)
+            else -> getString(R.string.tab_blaze_video)
+        }
     }
 
     private fun observeViewModel() {
@@ -245,8 +330,8 @@ class BrowserFragment : Fragment() {
                             is BrowserViewModel.BrowserState.Success -> {
                                 binding.recyclerView.visibility = View.VISIBLE
                                 adapter.setFullList(state.items)
-                                val folders = state.items.count { it.mimeType == "folder" }
-                                val files = state.items.count { it.mimeType != "folder" }
+                                val folders = state.items.count { it.mimeType == "folder" || it.mimeType == "share" || it.mimeType == "network" }
+                                val files = state.items.count { it.mimeType != "folder" && it.mimeType != "share" && it.mimeType != "network" }
                                 val folderText = resources.getQuantityString(R.plurals.folder_count, folders, folders)
                                 val fileText = resources.getQuantityString(R.plurals.file_count, files, files)
                                 binding.tvFileCount.text = getString(R.string.browser_folder_file_count, folderText, fileText)
@@ -260,14 +345,16 @@ class BrowserFragment : Fragment() {
                 }
                 launch {
                     viewModel.currentPath.collect { path ->
-                        binding.tvPath.text = path.ifEmpty { getString(R.string.path_internal_storage) }
-                        val audioOnly = arguments?.getBoolean("audioOnlyMode") ?: false
-                        val isNet = arguments?.getBoolean("isNetwork", false) ?: false
+                        binding.tvPath.text = when {
+                            sourceMode == SourceMode.NETWORK && breadcrumbParts.isEmpty() -> getString(R.string.tab_network)
+                            path.isEmpty() -> getString(R.string.path_internal_storage)
+                            else -> path
+                        }
                         binding.tvTitle.text = when {
-                            breadcrumbParts.isNotEmpty() -> breadcrumbParts.last()
-                            audioOnly && isNet -> getString(R.string.tab_network)
-                            audioOnly -> getString(R.string.browser_files_audio)
-                            else -> getString(R.string.browser_files_local)
+                            breadcrumbParts.isNotEmpty() -> breadcrumbParts.last().name
+                            audioOnlyMode -> getString(R.string.browser_files_audio)
+                            sourceMode == SourceMode.NETWORK -> getString(R.string.tab_network)
+                            else -> getString(R.string.tab_blaze_video)
                         }
                     }
                 }
@@ -277,36 +364,51 @@ class BrowserFragment : Fragment() {
 
     private fun updateBreadcrumb() {
         binding.breadcrumbContainer.removeAllViews()
-        val allParts = listOf(getString(R.string.breadcrumb_home)) + breadcrumbParts
+        val rootLabel = if (sourceMode == SourceMode.NETWORK) getString(R.string.tab_network) else getString(R.string.breadcrumb_home)
+        val allParts = listOf(BrowserCrumb(rootLabel, "", null)) + breadcrumbParts
         allParts.forEachIndexed { index, part ->
             val tv = TextView(requireContext()).apply {
-                text = part
+                text = part.name
                 textSize = 12f
                 val isLast = index == allParts.lastIndex
                 setTextColor(resources.getColor(if (isLast) R.color.green_accent else R.color.on_surface_variant, null))
                 setPadding(8, 6, 8, 6)
                 setOnClickListener {
                     if (!isLast) {
-                        repeat(allParts.size - 1 - index) { if (breadcrumbParts.isNotEmpty()) breadcrumbParts.removeAt(breadcrumbParts.lastIndex) }
+                        val keep = index.coerceAtLeast(0)
+                        while (breadcrumbParts.size > keep) breadcrumbParts.removeAt(breadcrumbParts.lastIndex)
                         updateBreadcrumb()
-                        viewModel.loadLocalFiles(if (breadcrumbParts.isEmpty()) "" else breadcrumbParts.last())
+                        when (sourceMode) {
+                            SourceMode.LOCAL -> viewModel.loadLocalFiles(breadcrumbParts.lastOrNull()?.path.orEmpty())
+                            SourceMode.NETWORK -> {
+                                val target = breadcrumbParts.lastOrNull()
+                                if (target == null) {
+                                    viewModel.currentShare = null
+                                    viewModel.loadNetworkShares()
+                                } else {
+                                    val shareId = target.shareId ?: viewModel.currentShare?.id
+                                    if (!shareId.isNullOrEmpty()) viewModel.loadNetworkFilesById(shareId, target.path)
+                                    else viewModel.loadNetworkShares()
+                                }
+                            }
+                        }
                     }
                 }
             }
             binding.breadcrumbContainer.addView(tv)
             if (index < allParts.lastIndex) {
-                val sep = TextView(requireContext()).apply {
+                binding.breadcrumbContainer.addView(TextView(requireContext()).apply {
                     text = "›"
                     textSize = 12f
                     setTextColor(resources.getColor(R.color.on_surface_variant, null))
                     setPadding(4, 6, 4, 6)
-                }
-                binding.breadcrumbContainer.addView(sep)
+                })
             }
         }
     }
 
     override fun onDestroyView() {
+        globalSearchJob?.cancel()
         super.onDestroyView()
         _binding = null
     }

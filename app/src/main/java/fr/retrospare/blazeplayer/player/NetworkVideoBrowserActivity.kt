@@ -422,20 +422,20 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                     v.findViewById<TextView>(R.id.tvFileName)?.text = video.name
                     v.findViewById<TextView>(R.id.tvDuration)?.text = video.formattedDuration
 
-                    // Miniature réseau à gauche du titre : cache local d'abord, extraction SMB
-                    // asynchrone ensuite via ThumbnailUtils si rien n'est encore en cache.
+                    // Miniature réseau : uniquement miniature personnalisée ou snapshot de lecture.
+                    // Aucune extraction de frame depuis le navigateur, pour préserver le scroll SMB.
                     v.findViewById<android.widget.ImageView>(R.id.ivThumbnail)?.let { thumb ->
                         (thumb.parent as? android.view.View)?.visibility = android.view.View.VISIBLE
                         thumb.setImageDrawable(null)
+                        thumb.setBackgroundResource(R.drawable.bg_thumbnail)
+                        thumb.scaleType = android.widget.ImageView.ScaleType.CENTER
+                        thumb.setImageResource(R.drawable.ic_video_camera)
                         thumb.setTag(R.id.ivThumbnail, video.path)
                         val cached = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailBitmap(this@NetworkVideoBrowserActivity, video.path)
                         if (cached != null) {
                             thumb.setImageBitmap(cached)
-                        } else {
-                            lifecycleScope.launch {
-                                val bitmap = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getThumbnailBitmap(this@NetworkVideoBrowserActivity, video.path)
-                                if (thumb.getTag(R.id.ivThumbnail) == video.path && bitmap != null) thumb.setImageBitmap(bitmap)
-                            }
+                            thumb.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                            thumb.setBackgroundColor(0x00000000)
                         }
                     }
                     v.findViewById<android.widget.ImageView>(R.id.ivPlayOverlay)?.visibility = android.view.View.VISIBLE

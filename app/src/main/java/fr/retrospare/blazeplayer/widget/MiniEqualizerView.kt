@@ -6,19 +6,21 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
 import fr.retrospare.blazeplayer.R
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
 
 /**
- * Mini visualiseur audio pour les mini-players.
+ * Mini visualiseur audio pour les mini-players et les files d’attente.
  *
- * Il utilise le même principe que AudioEqualizerView du grand lecteur : les valeurs viennent du
- * FFT réel du Visualizer associé à la session audio. start()/stop() restent conservés pour les
- * anciens appels UI, mais ne génèrent plus de fausse animation autonome.
+ * Quand une FFT réelle est fournie, elle est utilisée. Dans les listes (file d’attente normale et
+ * Blaze Party), aucune FFT n’est poussée ligne par ligne : start() active donc une animation légère
+ * fictive pour signaler visuellement le titre en cours sans coût audio/réseau.
  */
 class MiniEqualizerView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyle: Int = 0
@@ -33,6 +35,9 @@ class MiniEqualizerView @JvmOverloads constructor(
     private var bottomColor: Int = context.getColor(R.color.green_accent)
     private var middleColor: Int = context.getColor(R.color.green_accent)
     private var topColor: Int = Color.WHITE
+    private var running = false
+    private var lastFftAtMs = 0L
+    private var syntheticPhase = 0f
 
     init {
         alpha = 0.96f
@@ -49,16 +54,23 @@ class MiniEqualizerView @JvmOverloads constructor(
     }
 
     fun start() {
+        running = true
         visibility = VISIBLE
-        invalidate()
+        // Les files d’attente et Blaze Party utilisent ce composant comme mini equalizer
+        // purement visuel : aucune FFT n’est poussée ligne par ligne. On force donc une
+        // invalidation frame-by-frame et on génère une animation légère tant qu’aucune FFT
+        // réelle récente n’est disponible.
+        postInvalidateOnAnimation()
     }
 
     fun stop() {
+        running = false
         visibility = GONE
         setIdle()
     }
 
     fun updateFft(fft: ByteArray?) {
+        lastFftAtMs = SystemClock.uptimeMillis()
         if (fft == null || fft.size < 4) {
             setIdle()
             return
@@ -136,6 +148,8 @@ class MiniEqualizerView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        val now = SystemClock.uptimeMillis()
+        if (running && now - lastFftAtMs > 450L) updateSyntheticTargets(now)
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
@@ -151,16 +165,30 @@ class MiniEqualizerView @JvmOverloads constructor(
             val top = h - barH
             canvas.drawRoundRect(left, top, left + barW, h, radius, radius, paint)
         }
-        if (isShown) postInvalidateOnAnimation()
+        if (running && isShown) postInvalidateOnAnimation()
+    }
+
+    private fun updateSyntheticTargets(nowMs: Long) {
+        syntheticPhase = (nowMs % 2400L).toFloat() / 2400f
+        for (i in 0 until barCount) {
+            val waveA = (sin((syntheticPhase * 6.28318f * 2.15f) + i * 0.72f) + 1f) * 0.5f
+            val waveB = (sin((syntheticPhase * 6.28318f * 3.70f) + i * 1.31f) + 1f) * 0.5f
+            val emphasis = 0.72f + ((i % 4) * 0.075f)
+            targetValues[i] = (0.12f + ((waveA * 0.52f + waveB * 0.28f) * emphasis)).coerceIn(0.10f, 0.92f)
+        }
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        running = false
         setIdle()
     }
 
     override fun onVisibilityChanged(changedView: View, visibility: Int) {
         super.onVisibilityChanged(changedView, visibility)
-        if (visibility != VISIBLE) setIdle()
+        if (visibility != VISIBLE) {
+            running = false
+            setIdle()
+        }
     }
 }

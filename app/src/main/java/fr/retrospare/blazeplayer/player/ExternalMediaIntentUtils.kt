@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -32,8 +33,8 @@ object ExternalMediaIntentUtils {
         val safeIntent = intent ?: return null
         val uri = when (safeIntent.action) {
             Intent.ACTION_VIEW -> safeIntent.data
-            Intent.ACTION_SEND -> safeIntent.getParcelableExtra(Intent.EXTRA_STREAM)
-            Intent.ACTION_SEND_MULTIPLE -> safeIntent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)?.firstOrNull()
+            Intent.ACTION_SEND -> safeIntent.streamUriExtra()
+            Intent.ACTION_SEND_MULTIPLE -> safeIntent.streamUriListExtra()?.firstOrNull()
             else -> null
         } ?: return null
         // Important ANR: certains gestionnaires de fichiers bloquent longtemps dans
@@ -55,6 +56,24 @@ object ExternalMediaIntentUtils {
             else -> ExternalMedia.Kind.UNKNOWN
         }
         return ExternalMedia(uri, uri.toString(), name, mime, kind)
+    }
+
+    private fun Intent.streamUriExtra(): Uri? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            getParcelableExtra(Intent.EXTRA_STREAM)
+        }
+    }
+
+    private fun Intent.streamUriListExtra(): ArrayList<Uri>? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            getParcelableArrayListExtra(Intent.EXTRA_STREAM)
+        }
     }
 
     fun isAudioFileName(name: String): Boolean = extensionFrom(name) in AUDIO_EXTENSIONS

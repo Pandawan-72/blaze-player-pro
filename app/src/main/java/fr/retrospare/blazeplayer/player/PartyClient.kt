@@ -172,6 +172,7 @@ class PartyClient(context: Context, private val connection: PartyConnection) {
      * parce que le Wi‑Fi n'a pas d'Internet : sans ce forçage, les appels vers 192.168.x.x partent sur
      * la mauvaise interface, le QR semble accepté, puis la file partagée ne charge jamais.
      */
+    @Suppress("DEPRECATION")
     private fun candidateNetworksForLan(): List<Network?> {
         val cm = try { appContext.getSystemService(ConnectivityManager::class.java) } catch (_: Exception) { null }
             ?: return listOf(null)

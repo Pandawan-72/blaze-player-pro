@@ -18,7 +18,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val mediaRepository: MediaRepository
 ) : ViewModel() {
 
@@ -83,7 +83,8 @@ class HomeViewModel @Inject constructor(
                 MediaStore.Video.Media.WIDTH,
                 MediaStore.Video.Media.HEIGHT,
                 MediaStore.Video.Media.MIME_TYPE,
-                MediaStore.Video.Media.DISPLAY_NAME
+                MediaStore.Video.Media.DISPLAY_NAME,
+                MediaStore.Video.Media.DURATION
             )
             // Cherche par DATA path ou par ID
             val uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
@@ -108,7 +109,9 @@ class HomeViewModel @Inject constructor(
                         else -> null
                     }
                     val ext = item.name.substringAfterLast('.', "").lowercase()
+                    val duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)) / 1000L
                     return item.copy(
+                        duration = if (duration > 0L) duration else item.duration,
                         resolution = resolution,
                         videoCodec = videoCodecFromExt(ext),
                         audioCodec = audioCodecFromExt(ext)
@@ -158,13 +161,14 @@ class HomeViewModel @Inject constructor(
     private fun applyTab(tab: Int) {
         when (tab) {
             1 -> {
-                // Onglet Local (index UI 1)
-                _recentLocalItems.value = allItems.filter { !it.isNetwork }
+                // Onglet Blaze Video : historique vidéo unique, local + réseau.
+                _recentLocalItems.value = allItems
                 _recentNetworkItems.value = emptyList()
             }
             2 -> {
-                // Onglet Réseau (index UI 2)
-                _recentNetworkItems.value = allItems.filter { it.isNetwork }
+                // L'onglet Réseau n'affiche plus d'historique : il ouvre directement
+                // la page de configuration/navigation des sources SMB/UPnP depuis HomeFragment.
+                _recentNetworkItems.value = emptyList()
                 _recentLocalItems.value = emptyList()
             }
             3 -> {
@@ -173,7 +177,7 @@ class HomeViewModel @Inject constructor(
                 _recentNetworkItems.value = emptyList()
             }
             else -> {
-                _recentLocalItems.value = allItems.filter { !it.isNetwork }
+                _recentLocalItems.value = allItems
                 _recentNetworkItems.value = emptyList()
             }
         }

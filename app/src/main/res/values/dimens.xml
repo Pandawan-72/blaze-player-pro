@@ -7,7 +7,7 @@
 
     <!-- Titre et nom d'artiste (même ligne, séparés par un tiret) : même taille pour les deux,
          plus grande sur tablette. -->
-    <dimen name="audio_player_title_text_size">21sp</dimen>
+    <dimen name="audio_player_title_text_size">24sp</dimen>
 
     <!-- Décale légèrement le bloc cover + commandes vers le bas pour aérer l'espace entre
          la barre Party/file d'attente du haut et la pochette, en récupérant l'espace libre sous

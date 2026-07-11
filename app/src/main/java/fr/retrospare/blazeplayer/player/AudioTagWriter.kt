@@ -1,7 +1,7 @@
 package fr.retrospare.blazeplayer.player
 
 import android.content.Context
-import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
@@ -98,7 +98,7 @@ object AudioTagWriter {
                 inputFile.outputStream().use { output ->
                     outputFile.inputStream().use { input -> input.copyTo(output) }
                 }
-                context.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(inputFile)))
+                MediaScannerConnection.scanFile(context, arrayOf(inputFile.absolutePath), null, null)
             }
             outputFile.delete()
             tempInputs.forEach { it.delete() }

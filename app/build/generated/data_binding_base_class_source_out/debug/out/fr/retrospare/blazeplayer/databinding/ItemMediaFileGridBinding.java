@@ -41,6 +41,9 @@ public final class ItemMediaFileGridBinding implements ViewBinding {
   public final TextView tvAudioCodec;
 
   @NonNull
+  public final TextView tvAudioQuality;
+
+  @NonNull
   public final TextView tvDuration;
 
   @NonNull
@@ -58,8 +61,8 @@ public final class ItemMediaFileGridBinding implements ViewBinding {
   private ItemMediaFileGridBinding(@NonNull LinearLayout rootView, @NonNull ImageButton btnMore,
       @NonNull CheckBox checkboxSelect, @NonNull ImageView ivPlayOverlay,
       @NonNull ImageView ivThumbnail, @NonNull View progressFill, @NonNull TextView tvAudioCodec,
-      @NonNull TextView tvDuration, @NonNull TextView tvFileName, @NonNull TextView tvFormat,
-      @NonNull TextView tvResolution, @NonNull TextView tvVideoCodec) {
+      @NonNull TextView tvAudioQuality, @NonNull TextView tvDuration, @NonNull TextView tvFileName,
+      @NonNull TextView tvFormat, @NonNull TextView tvResolution, @NonNull TextView tvVideoCodec) {
     this.rootView = rootView;
     this.btnMore = btnMore;
     this.checkboxSelect = checkboxSelect;
@@ -67,6 +70,7 @@ public final class ItemMediaFileGridBinding implements ViewBinding {
     this.ivThumbnail = ivThumbnail;
     this.progressFill = progressFill;
     this.tvAudioCodec = tvAudioCodec;
+    this.tvAudioQuality = tvAudioQuality;
     this.tvDuration = tvDuration;
     this.tvFileName = tvFileName;
     this.tvFormat = tvFormat;
@@ -137,6 +141,12 @@ public final class ItemMediaFileGridBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.tvAudioQuality;
+      TextView tvAudioQuality = ViewBindings.findChildViewById(rootView, id);
+      if (tvAudioQuality == null) {
+        break missingId;
+      }
+
       id = R.id.tvDuration;
       TextView tvDuration = ViewBindings.findChildViewById(rootView, id);
       if (tvDuration == null) {
@@ -168,8 +178,8 @@ public final class ItemMediaFileGridBinding implements ViewBinding {
       }
 
       return new ItemMediaFileGridBinding((LinearLayout) rootView, btnMore, checkboxSelect,
-          ivPlayOverlay, ivThumbnail, progressFill, tvAudioCodec, tvDuration, tvFileName, tvFormat,
-          tvResolution, tvVideoCodec);
+          ivPlayOverlay, ivThumbnail, progressFill, tvAudioCodec, tvAudioQuality, tvDuration,
+          tvFileName, tvFormat, tvResolution, tvVideoCodec);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

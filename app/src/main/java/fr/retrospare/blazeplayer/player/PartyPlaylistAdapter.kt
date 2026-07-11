@@ -18,7 +18,6 @@ class PartyPlaylistAdapter(
 ) : RecyclerView.Adapter<PartyPlaylistAdapter.ViewHolder>() {
 
     companion object {
-        private val loadExecutor = java.util.concurrent.Executors.newFixedThreadPool(2)
         private const val PAYLOAD_TIME = "payload_time"
     }
 
@@ -27,15 +26,8 @@ class PartyPlaylistAdapter(
     private var currentPath: String? = null
     private var currentPositionMs: Long = 0L
     private var currentDurationMs: Long = 0L
-    @Volatile private var metadataLoadsEnabled = true
-    private val metadataLoadGeneration = java.util.concurrent.atomic.AtomicInteger(0)
-
-    fun setMetadataLoadsEnabled(enabled: Boolean) {
-        if (metadataLoadsEnabled != enabled) {
-            metadataLoadsEnabled = enabled
-            metadataLoadGeneration.incrementAndGet()
-        }
-    }
+    /** Compatibilité avec le contrôleur de scroll : aucune extraction de tags n'est lancée. */
+    fun setMetadataLoadsEnabled(enabled: Boolean) = Unit
 
     fun submitList(newItems: List<PlaylistTrackRef>) {
         rawItems = newItems
@@ -109,14 +101,14 @@ class PartyPlaylistAdapter(
         private val tvFormatBadge: TextView? = view.findViewById(R.id.tvPlaylistFormatBadge)
         private val tvTime: TextView? = view.findViewById(R.id.tvPlaylistBitrate)
         private val eqView: fr.retrospare.blazeplayer.widget.MiniEqualizerView? = view.findViewById(R.id.eqView)
-        @Volatile private var loadToken: String? = null
         private var boundDurationMs: Long = 0L
 
-        fun cancelPendingLoad() { loadToken = null }
+        fun cancelPendingLoad() = Unit
 
         fun bind(track: PlaylistTrackRef, isCurrent: Boolean) {
             val path = track.path
-            val title = track.title.ifBlank { track.name.substringBeforeLast(".") }
+            val folderMeta = AudioLibraryHeuristics.folderMetadata(path, track.name)
+            val title = folderMeta.title.ifBlank { track.name.substringBeforeLast(".") }
             val voteCount = voteCountProvider(path)
             tvIndex.text = voteCount.toString()
             tvIndex.setTextColor(itemView.context.getColor(R.color.yellow_accent))
@@ -126,40 +118,18 @@ class PartyPlaylistAdapter(
             try { indicator.backgroundTintList = android.content.res.ColorStateList.valueOf(itemView.context.getColor(R.color.yellow_accent)) } catch (_: Exception) {}
             queueCard.setBackgroundResource(if (isCurrent) R.drawable.bg_queue_card_party_current else R.drawable.bg_surface_card)
 
-            val cached = if (metadataLoadsEnabled) AudioMetadataExtractor.getCached(itemView.context, path) else AudioMetadataExtractor.getCached(path)
-            val provided = trackProvidedMeta(track)
-            if (cached != null) {
-                applyMeta(cached, title, fallbackExt(track), isCurrent)
-            } else if (provided != null) {
-                applyMeta(provided, title, fallbackExt(track), isCurrent)
-            } else {
-                boundDurationMs = 0L
-                tvArtist?.text = track.artist.ifBlank { itemView.context.getString(R.string.unknown_artist) }
+            if (folderMeta.artist.isNotBlank()) {
+                tvArtist?.text = folderMeta.artist
                 tvArtist?.visibility = View.VISIBLE
-                val ext = fallbackExt(track)
-                if (ext.isNotBlank()) {
-                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
-                    tvCodec?.visibility = View.VISIBLE
-                } else tvCodec?.visibility = View.GONE
-                tvFormatBadge?.visibility = View.GONE
-                tvTime?.visibility = View.GONE
-                if (metadataLoadsEnabled) {
-                    val token = path
-                    val generation = metadataLoadGeneration.get()
-                    loadToken = token
-                    loadExecutor.submit {
-                        if (loadToken != token || !metadataLoadsEnabled || metadataLoadGeneration.get() != generation) return@submit
-                        val meta = kotlinx.coroutines.runBlocking {
-                            kotlinx.coroutines.withTimeoutOrNull(3_000L) {
-                                AudioMetadataExtractor.extract(itemView.context, path, track.name)
-                            }
-                        }
-                        if (meta != null) android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            if (loadToken == token && metadataLoadsEnabled && metadataLoadGeneration.get() == generation) applyMeta(meta, title, fallbackExt(track), currentPath == path)
-                        }
-                    }
-                }
+            } else {
+                tvArtist?.text = ""
+                tvArtist?.visibility = View.GONE
             }
+            val cached = AudioMediaCache.getCachedMetadata(itemView.context, path)
+            AudioQualityBadgeBinder.bind(tvCodec, tvFormatBadge, path, track.name, fallbackExt(track))
+            boundDurationMs = (cached?.duration ?: 0L) * 1000L
+            applyTimeBadge(isCurrent)
+
 
             if (isCurrent) { eqView?.visibility = View.VISIBLE; eqView?.start() } else { eqView?.stop(); eqView?.visibility = View.GONE }
             itemView.setOnClickListener { onItemClick(track) }
@@ -168,36 +138,19 @@ class PartyPlaylistAdapter(
         private fun fallbackExt(track: PlaylistTrackRef): String =
             track.extension.ifBlank { track.name.substringAfterLast('.', "").ifBlank { track.path.substringBefore('?').substringAfterLast('.', "") } }
 
-        private fun trackProvidedMeta(track: PlaylistTrackRef): AudioTechnicalInfo? {
-            val hasAny = track.artist.isNotBlank() || track.title.isNotBlank() || track.extension.isNotBlank() ||
-                track.bitrate > 0L || track.isLossless || track.durationMs > 0L
-            if (!hasAny) return null
-            return AudioTechnicalInfo(
-                artist = track.artist,
-                title = track.title,
-                extension = track.extension,
-                bitrate = track.bitrate,
-                isLossless = track.isLossless,
-                duration = (track.durationMs / 1000L).coerceAtLeast(0L)
-            )
-        }
-
-        private fun applyMeta(meta: AudioTechnicalInfo, fallbackTitle: String, fallbackExt: String, isCurrent: Boolean) {
-            tvName.text = meta.title.ifEmpty { fallbackTitle }
-            tvArtist?.text = meta.artist.ifEmpty { itemView.context.getString(R.string.unknown_artist) }
-            tvArtist?.visibility = View.VISIBLE
-            val ext = meta.extension.ifBlank { fallbackExt }.uppercase()
+        private fun applyTechnicalMeta(meta: AudioTechnicalInfo?, fallbackExt: String, isCurrent: Boolean) {
+            val ext = meta?.extension?.ifBlank { fallbackExt }?.uppercase() ?: fallbackExt.uppercase()
             if (ext.isNotEmpty()) {
                 fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
                 tvCodec?.visibility = View.VISIBLE
             } else tvCodec?.visibility = View.GONE
-            val lossless = meta.isLossless || ext in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
+            val lossless = meta?.isLossless == true || ext in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF", "WV")
             when {
                 lossless -> { tvFormatBadge?.text = itemView.context.getString(R.string.lossless_label); tvFormatBadge?.visibility = View.VISIBLE }
-                meta.bitrate > 0L -> { tvFormatBadge?.text = "${meta.bitrate / 1000} kbps"; tvFormatBadge?.visibility = View.VISIBLE }
+                (meta?.bitrate ?: 0L) > 0L -> { tvFormatBadge?.text = "${meta!!.bitrate / 1000} kbps"; tvFormatBadge?.visibility = View.VISIBLE }
                 else -> tvFormatBadge?.visibility = View.GONE
             }
-            boundDurationMs = meta.duration * 1000L
+            boundDurationMs = (meta?.duration ?: 0L) * 1000L
             applyTimeBadge(isCurrent)
         }
 

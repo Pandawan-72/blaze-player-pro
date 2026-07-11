@@ -2,47 +2,27 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/libraryRoot"
+    android:saveEnabled="false"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
     android:fitsSystemWindows="true">
 
-    <ScrollView
-        android:id="@+id/libraryScroll"
+    <LinearLayout
+        android:id="@+id/libraryScreenContainer"
+        android:saveEnabled="false"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:clipToPadding="false"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="0dp"
-            android:paddingTop="0dp"
-            android:paddingEnd="0dp"
-            android:paddingBottom="0dp">
-
-            <LinearLayout
-                android:id="@+id/libraryGlobalCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@android:color/transparent"
-                android:orientation="vertical"
-                android:paddingStart="18dp"
-                android:paddingTop="16dp"
-                android:paddingEnd="18dp"
-                android:paddingBottom="18dp">
+        android:orientation="vertical">
 
                 <LinearLayout
                     android:id="@+id/libraryHero"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingStart="0dp"
-                    android:paddingTop="0dp"
-                    android:paddingEnd="0dp"
+                    android:paddingStart="18dp"
+                    android:paddingTop="16dp"
+                    android:paddingEnd="18dp"
                     android:paddingBottom="2dp">
 
                     <LinearLayout
@@ -76,6 +56,7 @@
                                 android:orientation="horizontal">
 
                                 <TextView
+                                    android:id="@+id/tvLibraryTitle"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:fontFamily="sans-serif-condensed"
@@ -103,6 +84,7 @@
                             </LinearLayout>
 
                             <TextView
+                                android:id="@+id/tvLibrarySubtitle"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="4dp"
@@ -139,98 +121,18 @@
 
                     </LinearLayout>
 
-                    <HorizontalScrollView
+                    <View
+                        android:id="@+id/dividerLibraryHero"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:overScrollMode="never"
-                        android:scrollbars="none">
+                        android:layout_height="1dp"
+                        android:layout_marginTop="14dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="@drawable/bg_audio_library_section_divider" />
 
-                        <LinearLayout
-                            android:id="@+id/tabContainer"
-                            android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:orientation="horizontal" />
-
-                    </HorizontalScrollView>
-
-                </LinearLayout>
-
-                <View
-                    android:id="@+id/dividerLibraryHero"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="14dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@drawable/bg_audio_library_section_divider" />
-
-                <LinearLayout
-                    android:id="@+id/libraryStats"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="10dp">
-
-                    <TextView
-                        android:id="@+id/tvTrackCount"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:fontFamily="sans-serif-condensed"
-                        android:gravity="center"
-                        android:includeFontPadding="false"
-                        android:textColor="@color/on_surface"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="22dp"
-                        android:background="#22FFFFFF" />
-
-                    <TextView
-                        android:id="@+id/tvAlbumCount"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:fontFamily="sans-serif-condensed"
-                        android:gravity="center"
-                        android:includeFontPadding="false"
-                        android:textColor="@color/on_surface"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="22dp"
-                        android:background="#22FFFFFF" />
-
-                    <TextView
-                        android:id="@+id/tvArtistCount"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:fontFamily="sans-serif-condensed"
-                        android:gravity="center"
-                        android:includeFontPadding="false"
-                        android:textColor="@color/on_surface"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <View
-                    android:id="@+id/dividerLibraryStats"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="14dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@drawable/bg_audio_library_section_divider" />
-
-                <LinearLayout
+                    <LinearLayout
                     android:id="@+id/libraryMiniPlayer"
                     android:layout_width="match_parent"
+                    android:layout_marginTop="12dp"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_audio_library_pill"
                     android:clickable="true"
@@ -241,7 +143,7 @@
                     android:paddingTop="9dp"
                     android:paddingEnd="10dp"
                     android:paddingBottom="9dp"
-                    android:visibility="gone">
+                    android:visibility="visible">
 
                     <FrameLayout
                         android:layout_width="58dp"
@@ -260,14 +162,17 @@
                             android:id="@+id/libraryMiniEqOverlay"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:background="#66000000" />
+                            android:background="#66000000"
+                            android:visibility="gone" />
 
-                        <fr.retrospare.blazeplayer.widget.MiniEqualizerView
-                            android:id="@+id/libraryMiniEqView"
-                            android:layout_width="46dp"
-                            android:layout_height="32dp"
+                        <ImageView
+                            android:id="@+id/libraryMiniPlayingIndicator"
+                            android:layout_width="34dp"
+                            android:layout_height="34dp"
                             android:layout_gravity="center"
+                            android:contentDescription="@null"
                             android:importantForAccessibility="no"
+                            android:src="@drawable/ic_playing_spinner"
                             android:visibility="gone" />
 
                     </FrameLayout>
@@ -286,7 +191,7 @@
                             android:fontFamily="sans-serif-condensed"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:text="@string/unknown_title"
+                            android:text="@string/audio_no_current_track"
                             android:textColor="@color/on_surface"
                             android:textSize="15sp"
                             android:textStyle="bold" />
@@ -300,6 +205,7 @@
                             android:fontFamily="sans-serif-condensed"
                             android:includeFontPadding="false"
                             android:maxLines="1"
+                            android:text=""
                             android:textColor="@color/audio_library_text_muted"
                             android:textSize="12sp" />
 
@@ -359,14 +265,27 @@
 
                 </LinearLayout>
 
-                <View
-                    android:id="@+id/dividerLibraryMiniPlayer"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="14dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@drawable/bg_audio_library_section_divider"
-                    android:visibility="gone" />
+                    <LinearLayout
+                        android:id="@+id/albumStickyHeader"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical"
+                        android:visibility="gone" />
+
+
+                </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/libraryGlobalCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:orientation="vertical"
+            android:paddingStart="18dp"
+            android:paddingTop="0dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="8dp">
 
                 <LinearLayout
                     android:id="@+id/watchedSummaryCard"
@@ -430,11 +349,10 @@
                         android:gravity="center"
                         android:includeFontPadding="false"
                         android:paddingHorizontal="12dp"
-                        android:text="@string/action_scan"
+                        android:text="@string/action_refresh"
                         android:textColor="@color/audio_library_accent"
                         android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:visibility="gone" />
+                        android:textStyle="bold" />
 
                     <TextView
                         android:id="@+id/btnManageWatched"
@@ -452,16 +370,94 @@
 
                 </LinearLayout>
 
+                <LinearLayout
+                    android:id="@+id/tabContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_audio_library_pill"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:padding="4dp"
+                    android:visibility="gone" />
+
+<LinearLayout
+                    android:id="@+id/libraryStats"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="10dp">
+
+                    <TextView
+                        android:id="@+id/tvTrackCount"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-condensed"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="22dp"
+                        android:background="#22FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tvAlbumCount"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-condensed"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="22dp"
+                        android:background="#22FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tvArtistCount"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="sans-serif-condensed"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+<View
+                    android:id="@+id/dividerLibraryStats"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_audio_library_section_divider"
+                    android:visibility="gone" />
+
                 <View
                     android:id="@+id/dividerLibraryResume"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginTop="14dp"
                     android:layout_marginBottom="12dp"
-                    android:background="@drawable/bg_audio_library_section_divider" />
+                    android:background="@drawable/bg_audio_library_section_divider"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/resumeSectionHeader"
+                    android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
@@ -479,52 +475,11 @@
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
-                    <LinearLayout
-                        android:id="@+id/resumeModeToggle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="40dp"
-                        android:background="@drawable/bg_audio_library_pill"
-                        android:gravity="center"
-                        android:orientation="horizontal"
-                        android:padding="3dp">
-
-                        <TextView
-                            android:id="@+id/btnResumeTracks"
-                            android:layout_width="wrap_content"
-                            android:layout_height="34dp"
-                            android:background="@drawable/bg_audio_library_pill"
-                            android:fontFamily="sans-serif-condensed"
-                            android:gravity="center"
-                            android:includeFontPadding="false"
-                            android:minWidth="72dp"
-                            android:paddingHorizontal="12dp"
-                            android:text="@string/audio_tab_titles"
-                            android:textColor="@color/audio_library_accent"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/btnResumeAlbums"
-                            android:layout_width="wrap_content"
-                            android:layout_height="34dp"
-                            android:layout_marginStart="4dp"
-                            android:background="@drawable/bg_audio_library_pill"
-                            android:fontFamily="sans-serif-condensed"
-                            android:gravity="center"
-                            android:includeFontPadding="false"
-                            android:minWidth="72dp"
-                            android:paddingHorizontal="12dp"
-                            android:text="@string/audio_tab_albums"
-                            android:textColor="@color/audio_library_text_muted"
-                            android:textSize="13sp"
-                            android:textStyle="bold" />
-
-                    </LinearLayout>
-
                 </LinearLayout>
 
                 <HorizontalScrollView
                     android:id="@+id/resumeScroll"
+                    android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -545,7 +500,8 @@
                     android:layout_height="1dp"
                     android:layout_marginTop="14dp"
                     android:layout_marginBottom="12dp"
-                    android:background="@drawable/bg_audio_library_section_divider" />
+                    android:background="@drawable/bg_audio_library_section_divider"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/albumsSectionHeader"
@@ -566,16 +522,75 @@
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
+                    <!-- Toggle de tri Album/Artiste supprimé : la bibliothèque trie toujours les
+                         albums par nom d'artiste alphabétique, sans réglage utilisateur. Les ids
+                         tvAlbumSortMode/switchAlbumSortMode restent en tant que vues invisibles
+                         0dp pour ne pas casser les références R.id.* encore présentes en code. -->
                     <TextView
-                        android:id="@+id/tvShowAllAlbums"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-condensed"
-                        android:text="@string/audio_all"
-                        android:textColor="@color/audio_library_accent"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
+                        android:id="@+id/tvAlbumSortMode"
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
                         android:visibility="gone" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchAlbumSortMode"
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:visibility="gone" />
+
+                    <LinearLayout
+                        android:id="@+id/albumViewModeContainer"
+                        android:visibility="gone"
+                        android:layout_width="wrap_content"
+                        android:layout_height="34dp"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvAlbumViewGrid3"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/bg_audio_library_pill"
+                            android:fontFamily="sans-serif-condensed"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:paddingHorizontal="10dp"
+                            android:text="@string/audio_album_view_grid_3"
+                            android:textColor="@color/audio_library_accent"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAlbumViewGrid4"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/bg_audio_library_pill"
+                            android:fontFamily="sans-serif-condensed"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:paddingHorizontal="10dp"
+                            android:text="@string/audio_album_view_grid_4"
+                            android:textColor="@color/audio_library_accent"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAlbumViewList"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:background="@drawable/bg_audio_library_pill"
+                            android:fontFamily="sans-serif-condensed"
+                            android:gravity="center"
+                            android:includeFontPadding="false"
+                            android:paddingHorizontal="10dp"
+                            android:text="@string/audio_album_view_list"
+                            android:textColor="@color/audio_library_accent"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -601,10 +616,12 @@
                     android:layout_height="1dp"
                     android:layout_marginTop="14dp"
                     android:layout_marginBottom="12dp"
-                    android:background="@drawable/bg_audio_library_section_divider" />
+                    android:background="@drawable/bg_audio_library_section_divider"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/tracksSectionHeader"
+                    android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
@@ -637,16 +654,22 @@
 
                 </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/tracksContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="vertical" />
-
-            </LinearLayout>
-
         </LinearLayout>
-    </ScrollView>
+
+        <!-- Seule zone scrollable de l'écran : "Dossiers surveillés", les onglets, les compteurs
+             et le titre "Mes albums" + toggle (dans libraryGlobalCard ci-dessus) restent fixes ;
+             le RecyclerView ajouté ici en code (buildUi()) remplit tout l'espace restant et gère
+             lui-même son propre scroll — plus de ScrollView englobante, donc plus de double-scroll
+             imbriqué entre elle et le RecyclerView. -->
+        <LinearLayout
+            android:id="@+id/tracksContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:orientation="vertical" />
+
+    </LinearLayout>
 
 </FrameLayout>

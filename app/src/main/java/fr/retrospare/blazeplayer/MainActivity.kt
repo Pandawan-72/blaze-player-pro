@@ -25,10 +25,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.media3.session.SessionCommand
 import androidx.navigation.fragment.NavHostFragment
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.databinding.ActivityMainBinding
+import fr.retrospare.blazeplayer.player.AudioLibraryHeuristics
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -43,14 +43,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var miniBgAnimator: android.animation.ValueAnimator? = null
     private var currentMiniBgColor: Int = fr.retrospare.blazeplayer.player.AudioDynamicColor.DEFAULT_BACKGROUND
-    private var miniAudioVisualizerSessionId: Int = 0
+    private var miniPlayingAnimator: android.animation.ObjectAnimator? = null
 
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        val allGranted = permissions.values.all { it }
-        if (!allGranted) {
+        val denied = permissions.filterValues { !it }.keys
+        val videoAccessDenied = denied.any {
+            it == Manifest.permission.READ_MEDIA_VIDEO || it == Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        if (videoAccessDenied) {
             showPermissionRationale()
         }
     }
@@ -76,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         binding.btnMiniClose.setOnClickListener {
             miniPlayerVm.dismiss()
             binding.miniPlayerBar.visibility = android.view.View.GONE
-            binding.miniEqView.stop()
+            stopMiniPlayingAnimation(keepVisible = false)
         }
         binding.miniPlayerBar.setOnClickListener { openBlazeAudio() }
         setupMiniPlayerDrag()
@@ -113,7 +116,9 @@ class MainActivity : AppCompatActivity() {
             if (state.isVisible) android.view.View.VISIBLE else android.view.View.GONE
         if (state.isVisible) {
             binding.tvMiniTitle.text = state.title.ifEmpty { getString(R.string.unknown_title) }
-            binding.tvMiniArtist.text = buildMiniArtistAlbumText(state.artist, state.album, state.accentColor)
+            val miniTags = buildMiniArtistAlbumText(state.artist, state.album, state.accentColor)
+            binding.tvMiniArtist.text = miniTags
+            binding.tvMiniArtist.visibility = if (miniTags.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
             val art = state.artworkData
             if (art != null) {
                 binding.ivMiniArtwork.setImageBitmap(
@@ -126,80 +131,70 @@ class MainActivity : AppCompatActivity() {
                 if (state.isPlaying) fr.retrospare.blazeplayer.R.drawable.ic_pause
                 else fr.retrospare.blazeplayer.R.drawable.ic_play
             )
-            binding.miniEqView.setAccentColor(state.accentColor)
-            binding.miniEqOverlay.visibility = if (state.isPlaying) android.view.View.VISIBLE else android.view.View.GONE
-            if (state.isPlaying) {
-                binding.miniEqView.start()
-                ensureMiniAudioVisualizer()
-            } else {
-                stopMiniAudioVisualizer()
-                binding.miniEqView.stop()
-            }
+            binding.miniPlayingIndicator.imageTintList = android.content.res.ColorStateList.valueOf(state.accentColor)
+            binding.miniEqOverlay.visibility = android.view.View.VISIBLE
+            updateMiniPlayingIndicator(state.isPlaying)
             applyMiniPlayerColor(state.backgroundColor, state.accentColor)
         } else {
-            stopMiniAudioVisualizer()
             binding.miniEqOverlay.visibility = android.view.View.GONE
-            binding.miniEqView.stop()
+            stopMiniPlayingAnimation(keepVisible = false)
         }
     }
 
-    private fun ensureMiniAudioVisualizer() {
-        val c = miniPlayerVm.controller ?: return
-        val future = c.sendCustomCommand(
-            SessionCommand(fr.retrospare.blazeplayer.player.BlazePlayerService.COMMAND_GET_AUDIO_SESSION_ID, Bundle.EMPTY),
-            Bundle.EMPTY
-        )
-        future.addListener({
-            val sessionId = try {
-                future.get().extras.getInt(fr.retrospare.blazeplayer.player.BlazePlayerService.EXTRA_AUDIO_SESSION_ID, 0)
-            } catch (_: Exception) { 0 }
-            if (sessionId != 0) startMiniAudioVisualizer(sessionId) else binding.miniEqView.setIdle()
-        }, ContextCompat.getMainExecutor(this))
+    private fun updateMiniPlayingIndicator(isPlaying: Boolean) {
+        binding.miniEqOverlay.visibility = android.view.View.VISIBLE
+        binding.miniPlayingIndicator.visibility = android.view.View.VISIBLE
+        binding.miniPlayingIndicator.alpha = if (isPlaying) 1f else 0.72f
+        if (isPlaying) startMiniPlayingAnimation() else stopMiniPlayingAnimation(keepVisible = true)
     }
 
-    private fun startMiniAudioVisualizer(sessionId: Int) {
-        if (sessionId == 0) return
-        if (android.os.Build.VERSION.SDK_INT >= 23 &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
-        ) {
-            binding.miniEqView.setIdle()
-            return
-        }
-        if (miniAudioVisualizerSessionId == sessionId) return
-        miniAudioVisualizerSessionId = sessionId
-        try {
-            fr.retrospare.blazeplayer.player.AudioFftStream.attach("main-mini-player", sessionId) { fft ->
-                if (::binding.isInitialized && binding.miniEqView.isShown) {
-                    binding.miniEqView.updateFft(fft)
-                }
-            }
-        } catch (_: Exception) {
-            binding.miniEqView.setIdle()
-            stopMiniAudioVisualizer()
+    private fun startMiniPlayingAnimation() {
+        val indicator = binding.miniPlayingIndicator
+        if (miniPlayingAnimator?.isStarted == true) return
+        miniPlayingAnimator?.cancel()
+        miniPlayingAnimator = android.animation.ObjectAnimator.ofFloat(
+            indicator,
+            android.view.View.ROTATION,
+            indicator.rotation,
+            indicator.rotation + 360f
+        ).apply {
+            duration = 1500L
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            interpolator = android.view.animation.LinearInterpolator()
+            start()
         }
     }
 
-    private fun stopMiniAudioVisualizer() {
-        fr.retrospare.blazeplayer.player.AudioFftStream.detach("main-mini-player")
-        miniAudioVisualizerSessionId = 0
+    private fun stopMiniPlayingAnimation(keepVisible: Boolean) {
+        miniPlayingAnimator?.cancel()
+        miniPlayingAnimator = null
+        if (!::binding.isInitialized) return
+        binding.miniPlayingIndicator.visibility = if (keepVisible) android.view.View.VISIBLE else android.view.View.GONE
+        binding.miniEqOverlay.visibility = if (keepVisible) android.view.View.VISIBLE else android.view.View.GONE
     }
 
-    /** Artiste en gras + couleur d'accent dynamique (même traitement que l'écran Blaze Audio et la
-     *  file d'attente), suivi de l'album quand une vraie tag existe. state.album ne vient jamais
-     *  d'un nom de dossier (cf. MiniPlayerViewModel/AudioMetadataExtractor) : vide, il ne s'affiche
-     *  simplement pas. */
+    /** Artiste et album affichés tels qu'ils sont dérivés de l'arborescence Artiste/Album/Titre.
+     *  Aucun filtre de "tag faible" ne doit masquer un nom de dossier choisi par l'utilisateur. */
     private fun buildMiniArtistAlbumText(artist: String, album: String, accentColor: Int): CharSequence {
-        val safeArtist = artist.ifBlank { getString(R.string.unknown_artist) }
-        val builder = android.text.SpannableStringBuilder(safeArtist)
-        builder.setSpan(
-            android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
-            0, safeArtist.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        builder.setSpan(
-            android.text.style.ForegroundColorSpan(accentColor),
-            0, safeArtist.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-        )
-        if (album.isNotBlank()) builder.append("  •  ").append(album)
+        val safeArtist = artist.trim()
+        val safeAlbum = album.trim()
+        val builder = android.text.SpannableStringBuilder()
+        if (safeArtist.isNotBlank()) {
+            val start = builder.length
+            builder.append(safeArtist)
+            builder.setSpan(
+                android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                start, builder.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            builder.setSpan(
+                android.text.style.ForegroundColorSpan(accentColor),
+                start, builder.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        if (safeAlbum.isNotBlank()) {
+            if (builder.isNotEmpty()) builder.append("  •  ")
+            builder.append(safeAlbum)
+        }
         return builder
     }
 
@@ -307,8 +302,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        stopMiniAudioVisualizer()
-        if (::binding.isInitialized) binding.miniEqView.setIdle()
+        stopMiniPlayingAnimation(keepVisible = true)
         super.onPause()
     }
 
@@ -636,7 +630,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         handler.removeCallbacks(miniTimeTicker)
-        stopMiniAudioVisualizer()
+        stopMiniPlayingAnimation(keepVisible = false)
         super.onDestroy()
     }
 
@@ -670,7 +664,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
         setupNavigation()
-        maybeShowPermissionIntro()
+        maybeRequestBlazeVideoPermissionsOnFirstLaunch()
         // Connecte le mini player seulement si activé dans les préférences
         setupMiniPlayer()
         handleAudioIntent(intent)
@@ -687,73 +681,65 @@ class MainActivity : AppCompatActivity() {
         navController.setGraph(graph, null)
     }
 
-    /** Toutes les autorisations dont l'app a besoin, quel que soit l'écran où elles servent
-     *  (bibliothèque média, notifications de lecture, découverte réseau pour Blaze Party, et
-     *  microphone pour l'égaliseur visuel dynamique côté lecteur audio). Centralisées ici pour
-     *  qu'elles soient toutes demandées ensemble, une seule fois, à la première ouverture de
-     *  l'app, plutôt qu'au coup par coup au fil de l'utilisation. */
-    private fun requiredPermissions(): Array<String> {
-        val base = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    /** Au lancement de l'app, on ne demande plus toutes les permissions de toute l'app.
+     *  L'ouverture par défaut est Blaze Video : seules les permissions utiles à la vidéo locale
+     *  et aux contrôles de lecture sont donc demandées ici. Blaze Gallery et Blaze Audio gèrent
+     *  leurs permissions au premier accès à leur onglet respectif depuis HomeFragment. */
+    private fun blazeVideoPermissions(): Array<String> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             arrayOf(
-                Manifest.permission.READ_MEDIA_IMAGES,
                 Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.READ_MEDIA_AUDIO,
-                Manifest.permission.NEARBY_WIFI_DEVICES,
                 Manifest.permission.POST_NOTIFICATIONS
             )
         } else {
             arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
-        // RECORD_AUDIO est requis par android.media.audiofx.Visualizer (l'égaliseur visuel
-        // dynamique du lecteur audio) même s'il ne s'agit jamais d'un véritable enregistrement du
-        // micro — c'est une contrainte de l'API Android, pas un besoin fonctionnel de capter du son.
-        return base + Manifest.permission.RECORD_AUDIO
     }
 
-    private fun missingPermissions(): List<String> =
-        requiredPermissions().filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+    private fun missingPermissions(permissions: Array<String>): Array<String> =
+        permissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+            .toTypedArray()
 
-    private fun requestMissingPermissions() {
-        val notGranted = missingPermissions()
-        if (notGranted.isNotEmpty()) permissionLauncher.launch(notGranted.toTypedArray())
-    }
+    private var lastPermissionRequest: Array<String> = emptyArray()
 
-    /** Affiche, une seule fois (mémorisé dans les préférences), une explication groupée avant les
-     *  popups système, puis déclenche la demande groupée elle-même. Si l'explication a déjà été
-     *  montrée lors d'un lancement précédent (l'utilisateur avait par exemple refusé), on redemande
-     *  directement sans reposer la question, comme le fait déjà tout le reste de l'app. */
-    private fun maybeShowPermissionIntro() {
-        val notGranted = missingPermissions()
+    private fun launchRuntimePermissions(permissions: Array<String>) {
+        val notGranted = missingPermissions(permissions)
         if (notGranted.isEmpty()) return
+        lastPermissionRequest = notGranted
+        permissionLauncher.launch(notGranted)
+    }
 
+    private fun launchTargetsAnotherBlazeModule(): Boolean {
+        val requestedTab = intent?.getIntExtra("requestedTab", -1) ?: -1
+        return intent?.getBooleanExtra("openBlazeGallery", false) == true ||
+            intent?.getBooleanExtra("openBlazeAudio", false) == true ||
+            requestedTab == 3 || requestedTab == 4
+    }
+
+    private fun maybeRequestBlazeVideoPermissionsOnFirstLaunch() {
+        // Si l'utilisateur démarre directement depuis l'icône Blaze Gallery ou Blaze Audio, on ne
+        // lui affiche pas une permission vidéo avant même d'arriver dans le module demandé.
+        if (launchTargetsAnotherBlazeModule()) return
         val prefs = getSharedPreferences(PREFS_ONBOARDING, android.content.Context.MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_PERMISSION_INTRO_SHOWN, false)) {
-            permissionLauncher.launch(notGranted.toTypedArray())
-            return
-        }
-
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(getString(R.string.dialog_permission_intro_title))
-            .setMessage(getString(R.string.dialog_permission_intro_message))
-            .setCancelable(false)
-            .setPositiveButton(getString(R.string.action_continue)) { _, _ ->
-                prefs.edit().putBoolean(KEY_PERMISSION_INTRO_SHOWN, true).apply()
-                permissionLauncher.launch(notGranted.toTypedArray())
-            }
-            .showPremium()
+        if (prefs.getBoolean(KEY_VIDEO_PERMISSIONS_PROMPTED, false)) return
+        val permissions = blazeVideoPermissions()
+        if (missingPermissions(permissions).isEmpty()) return
+        prefs.edit().putBoolean(KEY_VIDEO_PERMISSIONS_PROMPTED, true).apply()
+        launchRuntimePermissions(permissions)
     }
 
     private fun showPermissionRationale() {
+        val retryPermissions = lastPermissionRequest.takeIf { it.isNotEmpty() } ?: blazeVideoPermissions()
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(getString(R.string.dialog_permission_needed))
             .setMessage(getString(R.string.dialog_permission_message))
-            .setPositiveButton(getString(R.string.action_allow)) { _, _ -> requestMissingPermissions() }
+            .setPositiveButton(getString(R.string.action_allow)) { _, _ -> launchRuntimePermissions(retryPermissions) }
             .setNegativeButton(getString(R.string.action_ignore), null)
             .showPremium()
     }
 
     companion object {
         private const val PREFS_ONBOARDING = "blaze_onboarding"
-        private const val KEY_PERMISSION_INTRO_SHOWN = "permission_intro_shown"
+        private const val KEY_VIDEO_PERMISSIONS_PROMPTED = "video_permissions_prompted"
     }
 }

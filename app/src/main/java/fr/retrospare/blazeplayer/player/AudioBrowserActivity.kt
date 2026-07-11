@@ -393,7 +393,17 @@ class AudioBrowserActivity : AppCompatActivity() {
             if (added) getString(R.string.audio_watched_folder_added) else getString(R.string.audio_watched_folder_already),
             Toast.LENGTH_SHORT
         ).show()
+        if (added) showWatchedFolderRefreshHint()
         renderCurrentAudioList()
+    }
+
+    private fun showWatchedFolderRefreshHint() {
+        if (isFinishing || isDestroyed) return
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.audio_watched_folder_added))
+            .setMessage(getString(R.string.audio_watched_folder_refresh_hint))
+            .setPositiveButton(getString(R.string.action_ok), null)
+            .showPremium()
     }
 
     private fun removeWatchedFolder(folder: AudioProSettings.WatchedFolder) {
@@ -639,15 +649,16 @@ class AudioBrowserActivity : AppCompatActivity() {
                 // Dossiers navigables
                 val folderNames = folders.map { "📁 ${it.name}" }
                 val fileItems = audioFiles.map { item ->
-                    val cached = AudioMetadataExtractor.getCached(this@AudioBrowserActivity, item.path)
+                    val folderMeta = AudioLibraryHeuristics.folderMetadata(item.path, item.name)
+                    val cached = AudioMediaCache.getCachedMetadata(this@AudioBrowserActivity, item.path)
                     AudioFile(
-                        name = cached?.title?.takeIf { it.isNotBlank() } ?: item.name,
+                        name = folderMeta.title,
                         path = item.path,
-                        duration = if ((cached?.duration ?: 0L) > 0L) cached!!.duration else item.duration,
-                        artist = cached?.artist?.takeIf { it.isNotBlank() } ?: getString(R.string.tab_network),
+                        duration = item.duration.takeIf { it > 0L } ?: (cached?.duration ?: 0L),
+                        artist = folderMeta.artist,
                         bitrate = (cached?.bitrate ?: 0L).toInt(),
-                        album = cached?.album.orEmpty(),
-                        trackNumber = cached?.trackNumber ?: 0,
+                        album = folderMeta.album,
+                        trackNumber = AudioLibraryHeuristics.inferTrackNo(item.name),
                         size = item.size,
                         modifiedAt = item.lastPlayedAt
                     )
@@ -658,34 +669,8 @@ class AudioBrowserActivity : AppCompatActivity() {
                 networkAudioFiles = fileItems
                 renderCurrentAudioList()
 
-                // Enrichissement asynchrone des titres audio réseau depuis les tags ID3/FLAC.
-                // Le cache disque est consulté avant extraction ; l'extraction est bornée dans
-                // AudioMetadataExtractor pour ne pas bloquer le listing SMB.
-                audioFiles.forEachIndexed { idx, item ->
-                    if (idx >= fileItems.size) return@forEachIndexed
-                    lifecycleScope.launch {
-                        val meta = if (share.type == ShareType.UPNP) {
-                            AudioMetadataExtractor.getCached(this@AudioBrowserActivity, item.path)
-                                ?: AudioTechnicalInfo(title = item.name, duration = item.duration, extension = item.extension.uppercase())
-                        } else {
-                            AudioMetadataExtractor.extract(this@AudioBrowserActivity, item.path, item.name)
-                        }
-                        if (isFinishing || isDestroyed) return@launch
-                        val updated = fileItems[idx].copy(
-                            name = meta.title.takeIf { it.isNotBlank() } ?: fileItems[idx].name,
-                            artist = meta.artist.takeIf { it.isNotBlank() } ?: fileItems[idx].artist,
-                            duration = if (meta.duration > 0L) meta.duration else fileItems[idx].duration,
-                            bitrate = if (meta.bitrate > 0L) meta.bitrate.toInt() else fileItems[idx].bitrate,
-                            album = meta.album.takeIf { it.isNotBlank() } ?: fileItems[idx].album,
-                            trackNumber = if (meta.trackNumber > 0) meta.trackNumber else fileItems[idx].trackNumber
-                        )
-                        if (updated != fileItems[idx]) {
-                            fileItems[idx] = updated
-                            networkAudioFiles = fileItems
-                            if (audioListKind == AudioListKind.NETWORK_MIXED) renderCurrentAudioList()
-                        }
-                    }
-                }
+                // Aucun tag texte n'est extrait : l'arborescence est la source unique.
+
             }.onFailure { e ->
                 val message = e.message ?: e.javaClass.simpleName
                 fr.retrospare.blazeplayer.ui.InfoDialog.show(this@AudioBrowserActivity, getString(R.string.info_dialog_title_error), getString(R.string.toast_error_generic, message))
@@ -708,35 +693,28 @@ class AudioBrowserActivity : AppCompatActivity() {
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.DISPLAY_NAME,
             MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.BITRATE,
             MediaStore.Audio.Media.SIZE,
             MediaStore.Audio.Media.DATE_MODIFIED,
-            MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ALBUM,
-            MediaStore.Audio.Media.TRACK
+            MediaStore.Audio.Media.DATA
         )
-        contentResolver.query(collection, projection, null, null, MediaStore.Audio.Media.TITLE)?.use { cursor ->
+        contentResolver.query(collection, projection, null, null, MediaStore.Audio.Media.DISPLAY_NAME)?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
             val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
             val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-            val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-            val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val bitrateCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.BITRATE) } catch (_: Exception) { -1 }
             val sizeCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE) } catch (_: Exception) { -1 }
             val modifiedCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED) } catch (_: Exception) { -1 }
-            val albumCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM) } catch (_: Exception) { -1 }
-            val trackCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK) } catch (_: Exception) { -1 }
+            val dataCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA) } catch (_: Exception) { -1 }
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
                 val name = cursor.getString(nameCol) ?: continue
                 val durationMs = cursor.getLong(durationCol)
                 val duration = durationMs / 1000
-                val artist = cursor.getString(artistCol) ?: ""
-                val title = cursor.getString(titleCol) ?: name
+                val dataPath = if (dataCol >= 0) cursor.getString(dataCol).orEmpty() else ""
+                val folderMeta = AudioLibraryHeuristics.folderMetadata(dataPath.ifBlank { name }, name)
                 val rawBitrate = if (bitrateCol >= 0) cursor.getInt(bitrateCol) else 0
-                val album = if (albumCol >= 0) cursor.getString(albumCol).orEmpty() else ""
-                val trackNumber = if (trackCol >= 0) cursor.getInt(trackCol) % 1000 else 0
+                val trackNumber = AudioLibraryHeuristics.inferTrackNo(name)
                 // La colonne BITRATE de MediaStore est très souvent vide pour l'audio (fiable
                 // surtout pour la vidéo) : on calcule un débit moyen de repli à partir de la
                 // taille et de la durée plutôt que de ne jamais afficher de badge.
@@ -748,7 +726,8 @@ class AudioBrowserActivity : AppCompatActivity() {
                     ((sizeBytes * 8_000L) / durationMs).toInt()
                 } else 0
                 val uri = ContentUris.withAppendedId(collection, id).toString()
-                items.add(AudioFile(title.takeIf { it.isNotBlank() } ?: name, uri, duration, artist, bitrate, album, trackNumber, sizeBytes, modifiedAt))
+                val playbackPath = dataPath.takeIf { it.isNotBlank() } ?: uri
+                items.add(AudioFile(folderMeta.title, playbackPath, duration, folderMeta.artist, bitrate, folderMeta.album, trackNumber, sizeBytes, modifiedAt))
             }
         }
         return items
@@ -836,19 +815,16 @@ class AudioBrowserActivity : AppCompatActivity() {
             ?.filter { it.isFile && it.extension.lowercase() in audioExtensions }
             ?.sortedBy { it.name }
             ?.map { file ->
-                // extract() (et non getCached()) : déclenche une vraie extraction si le fichier n'a
-                // jamais été ouvert, pour que le badge bitrate/lossless apparaisse dès la première
-                // visite du dossier plutôt que de rester à 0 tant qu'aucun autre écran ne l'a mis en
-                // cache. Fichiers locaux uniquement ici, donc coût réseau nul et extraction rapide.
-                val info = AudioMetadataExtractor.extract(this@AudioBrowserActivity, file.absolutePath, file.name)
+                val folderMeta = AudioLibraryHeuristics.folderMetadata(file.absolutePath, file.name)
+                val cached = AudioMediaCache.getCachedMetadata(this@AudioBrowserActivity, file.absolutePath)
                 AudioFile(
-                    name = info.title.takeIf { it.isNotBlank() } ?: file.name,
+                    name = folderMeta.title,
                     path = file.absolutePath,
-                    duration = info.duration.takeIf { it > 0L } ?: 0L,
-                    artist = info.artist,
-                    bitrate = info.bitrate.toInt(),
-                    album = info.album,
-                    trackNumber = info.trackNumber,
+                    duration = cached?.duration ?: 0L,
+                    artist = folderMeta.artist,
+                    bitrate = (cached?.bitrate ?: 0L).toInt(),
+                    album = folderMeta.album,
+                    trackNumber = AudioLibraryHeuristics.inferTrackNo(file.name),
                     size = file.length(),
                     modifiedAt = file.lastModified()
                 )
@@ -890,7 +866,7 @@ private fun bindCachedAudioCover(row: android.view.View, path: String) {
     cover.setImageDrawable(null)
     cover.setTag(fr.retrospare.blazeplayer.R.id.ivAudioCover, path)
 
-    val cached = fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedAudioArtworkJpegBytes(row.context, path)
+    val cached = AudioMediaCache.getCachedArtworkJpegBytes(row.context, path)
     if (cached != null) {
         android.graphics.BitmapFactory.decodeByteArray(cached, 0, cached.size)?.let { cover.setImageBitmap(it) }
         return
@@ -898,7 +874,7 @@ private fun bindCachedAudioCover(row: android.view.View, path: String) {
 
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
         val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            fr.retrospare.blazeplayer.ui.ThumbnailUtils.getAudioArtworkJpegBytes(row.context.applicationContext, path)
+            AudioMediaCache.extractArtworkJpegBytes(row.context.applicationContext, path)
         }
         if (cover.getTag(fr.retrospare.blazeplayer.R.id.ivAudioCover) != path || bytes == null) return@launch
         android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { cover.setImageBitmap(it) }
@@ -961,24 +937,8 @@ class AudioBrowserAdapter(
             checkbox.setOnCheckedChangeListener { _, checked -> onToggle(checked) }
             itemView.setOnClickListener { checkbox.isChecked = !checkbox.isChecked }
 
-            // Codec depuis extension
-            val ext = item.path.substringAfterLast(".", "").uppercase()
-            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
-            tvCodec.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
-
-            // Badge lossless ou bitrate
-            val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
-            when {
-                lossless -> {
-                    tvBitrate.text = itemView.context.getString(R.string.lossless_label)
-                    tvBitrate.visibility = android.view.View.VISIBLE
-                }
-                item.bitrate > 0 -> {
-                    tvBitrate.text = "${item.bitrate / 1000} kbps"
-                    tvBitrate.visibility = android.view.View.VISIBLE
-                }
-                else -> tvBitrate.visibility = android.view.View.GONE
-            }
+            val ext = item.path.substringBefore('?').substringAfterLast(".", "").uppercase()
+            AudioQualityBadgeBinder.bind(tvCodec, tvBitrate, item.path, item.name, ext)
 
             // Cover à gauche du titre : cache local d'abord, extraction asynchrone ensuite.
             bindCachedAudioCover(itemView, item.path)
@@ -1055,16 +1015,10 @@ class CombinedAudioAdapter(
             holder.itemView.findViewById<TextView>(R.id.tvAudioArtist)?.text = file.artist
             holder.itemView.findViewById<TextView>(R.id.tvAudioDuration)?.text =
                 if (file.duration > 0) "%d:%02d".format(file.duration / 60, file.duration % 60) else ""
-            val ext = file.path.substringAfterLast(".", "").uppercase()
+            val ext = file.path.substringBefore('?').substringAfterLast(".", "").uppercase()
             val tvCodec = holder.itemView.findViewById<TextView>(R.id.tvAudioCodec)
-            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
-            tvCodec?.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
             val tvBitrate = holder.itemView.findViewById<TextView>(R.id.tvAudioBitrate)
-            when {
-                ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF") -> { tvBitrate?.text = holder.itemView.context.getString(R.string.lossless_label); tvBitrate?.visibility = android.view.View.VISIBLE }
-                file.bitrate > 0 -> { tvBitrate?.text = "${file.bitrate / 1000} kbps"; tvBitrate?.visibility = android.view.View.VISIBLE }
-                else -> tvBitrate?.visibility = android.view.View.GONE
-            }
+            AudioQualityBadgeBinder.bind(tvCodec, tvBitrate, file.path, file.name, ext)
             bindCachedAudioCover(holder.itemView, file.path)
             val cb = holder.itemView.findViewById<CheckBox>(R.id.checkAudio)
             cb?.setOnCheckedChangeListener(null)
@@ -1134,22 +1088,10 @@ class FolderBrowserAdapter(
             TYPE_FILE -> {
                 val file = files[position - 1 - folders.size]
                 holder.itemView.findViewById<TextView>(R.id.tvAudioSimpleName)?.text = file.name
-                val ext = file.path.substringAfterLast(".", "").uppercase()
+                val ext = file.path.substringBefore('?').substringAfterLast(".", "").uppercase()
                 val tvCodec = holder.itemView.findViewById<TextView>(R.id.tvAudioSimpleCodec)
-                fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
-                tvCodec?.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                 val tvFormatBadge = holder.itemView.findViewById<TextView>(R.id.tvAudioSimpleFormatBadge)
-                when {
-                    ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF") -> {
-                        tvFormatBadge?.text = holder.itemView.context.getString(R.string.lossless_label)
-                        tvFormatBadge?.visibility = android.view.View.VISIBLE
-                    }
-                    file.bitrate > 0 -> {
-                        tvFormatBadge?.text = "${file.bitrate / 1000} kbps"
-                        tvFormatBadge?.visibility = android.view.View.VISIBLE
-                    }
-                    else -> tvFormatBadge?.visibility = android.view.View.GONE
-                }
+                AudioQualityBadgeBinder.bind(tvCodec, tvFormatBadge, file.path, file.name, ext)
                 holder.itemView.setOnClickListener { 
                     onAddAll(listOf(file))
                 }
@@ -1261,17 +1203,10 @@ class MixedAudioAdapter(
             v.findViewById<android.widget.TextView>(R.id.tvAudioArtist)?.text = item.artist.ifEmpty { v.context.getString(R.string.unknown_artist) }
             val dur = item.duration
             v.findViewById<android.widget.TextView>(R.id.tvAudioDuration)?.text = if (dur > 0) "%d:%02d".format(dur / 60, dur % 60) else ""
-            val ext = item.path.substringAfterLast(".", "").uppercase()
+            val ext = item.path.substringBefore('?').substringAfterLast(".", "").uppercase()
             val tvCodec = v.findViewById<android.widget.TextView>(R.id.tvAudioCodec)
-            fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
-            tvCodec?.visibility = if (ext.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
-            val lossless = ext in listOf("FLAC", "WAV", "ALAC", "APE", "AIFF")
             val tvBitrate = v.findViewById<android.widget.TextView>(R.id.tvAudioBitrate)
-            when {
-                lossless -> { tvBitrate?.text = v.context.getString(R.string.lossless_label); tvBitrate?.visibility = android.view.View.VISIBLE }
-                item.bitrate > 0 -> { tvBitrate?.text = "${item.bitrate / 1000} kbps"; tvBitrate?.visibility = android.view.View.VISIBLE }
-                else -> tvBitrate?.visibility = android.view.View.GONE
-            }
+            AudioQualityBadgeBinder.bind(tvCodec, tvBitrate, item.path, item.name, ext)
             val checkbox = v.findViewById<android.widget.CheckBox>(R.id.checkAudio)
             val isSelected = filePos in selected
             checkbox?.setOnCheckedChangeListener(null)

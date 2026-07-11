@@ -4,35 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
     app:startDestination="@id/homeFragment">
-
-    <fragment android:id="@+id/loginFragment"
-        android:name="fr.retrospare.blazeplayer.auth.LoginFragment"
-        android:label="Connexion"
-        tools:layout="@layout/fragment_login">
-        <action android:id="@+id/action_login_to_home" app:destination="@id/homeFragment"
-            app:popUpTo="@id/nav_graph" app:popUpToInclusive="true" />
-        <action android:id="@+id/action_login_to_register" app:destination="@id/registerFragment" />
-        <action android:id="@+id/action_login_to_forgot" app:destination="@id/forgotPasswordFragment" />
-    </fragment>
-
-    <fragment android:id="@+id/registerFragment"
-        android:name="fr.retrospare.blazeplayer.auth.RegisterFragment"
-        android:label="Inscription"
-        tools:layout="@layout/fragment_register">
-        <action android:id="@+id/action_register_to_home" app:destination="@id/homeFragment"
-            app:popUpTo="@id/nav_graph" app:popUpToInclusive="true" />
-        <action android:id="@+id/action_register_to_login" app:destination="@id/loginFragment"
-            app:popUpTo="@id/loginFragment" app:popUpToInclusive="true" />
-    </fragment>
-
-    <fragment android:id="@+id/forgotPasswordFragment"
-        android:name="fr.retrospare.blazeplayer.auth.ForgotPasswordFragment"
-        android:label="Mot de passe oublié"
-        tools:layout="@layout/fragment_forgot_password">
-        <action android:id="@+id/action_forgot_to_login" app:destination="@id/loginFragment"
-            app:popUpTo="@id/loginFragment" app:popUpToInclusive="true" />
-    </fragment>
-
     <fragment android:id="@+id/homeFragment"
         android:name="fr.retrospare.blazeplayer.home.HomeFragment"
         android:label="Accueil"
@@ -49,7 +20,6 @@
         android:name="fr.retrospare.blazeplayer.browser.BrowserFragment"
         android:label="Navigateur"
         tools:layout="@layout/fragment_browser">
-        <argument android:name="audioPickMode" app:argType="boolean" android:defaultValue="false" />
         <argument android:name="path" app:argType="string" android:defaultValue="" />
         <argument android:name="isNetwork" app:argType="boolean" android:defaultValue="false" />
         <argument android:name="shareId" app:argType="string" android:defaultValue="" />

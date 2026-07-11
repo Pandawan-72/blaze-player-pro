@@ -27,19 +27,18 @@ object BlazePartyQueue {
             .map { indexed ->
                 val track = indexed.value
                 val path = track.path
-                val cached = AudioMetadataExtractor.getCached(context, path)
+                val cached = AudioMediaCache.getCachedMetadata(context, path)
                 val fromPlayer = playerMeta[path]
                 val ext = cached?.extension?.takeIf { it.isNotBlank() }
                     ?: fromPlayer?.extension?.takeIf { it.isNotBlank() }
                     ?: track.extension.takeIf { it.isNotBlank() }
                     ?: fallbackExt(track.name, path)
-                val title = cached?.title?.takeIf { it.isNotBlank() }
-                    ?: fromPlayer?.title?.takeIf { it.isNotBlank() }
-                    ?: track.title.takeIf { it.isNotBlank() }
-                    ?: track.name.substringBeforeLast('.')
-                val artist = cached?.artist?.takeIf { it.isNotBlank() }
-                    ?: fromPlayer?.artist?.takeIf { it.isNotBlank() }
-                    ?: track.artist
+                val originalName = track.name.ifBlank {
+                    AudioLibraryHeuristics.fileNameFromPath(path)
+                }
+                val folder = AudioLibraryHeuristics.folderMetadata(path, originalName)
+                val title = folder.title
+                val artist = folder.artist
                 val bitrate = cached?.bitrate?.takeIf { it > 0L }
                     ?: fromPlayer?.bitrate?.takeIf { it > 0L }
                     ?: track.bitrate
@@ -97,10 +96,10 @@ object BlazePartyQueue {
             val item = player.getMediaItemAt(index)
             val path = originalPathOf(item).takeIf { it.isNotBlank() } ?: return@mapNotNull null
             if (!AudioRepository.isSupportedAudioPath(path)) return@mapNotNull null
-            val title = item.mediaMetadata.title?.toString()?.takeIf { it.isNotBlank() }
-                ?: android.net.Uri.parse(path).lastPathSegment?.substringAfterLast('/')
-                ?: path.substringAfterLast('/')
-            fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(path, title)
+            val fileName = item.mediaMetadata.extras?.getString("blaze_original_name").orEmpty().ifBlank {
+                AudioLibraryHeuristics.fileNameFromPath(path)
+            }
+            fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(path, fileName)
         }
     }
 
@@ -109,12 +108,12 @@ object BlazePartyQueue {
         return (0 until player.mediaItemCount).mapNotNull { index ->
             val item = player.getMediaItemAt(index)
             val path = originalPathOf(item).takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val meta = item.mediaMetadata
-            val ext = meta.extras?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION).orEmpty()
+            val ext = item.mediaMetadata.extras?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION).orEmpty()
+            val folder = AudioLibraryHeuristics.folderMetadata(path, AudioLibraryHeuristics.fileNameFromPath(path))
             path to AudioTechnicalInfo(
-                artist = meta.artist?.toString().orEmpty(),
-                title = meta.title?.toString().orEmpty(),
-                album = meta.albumTitle?.toString().orEmpty(),
+                artist = folder.artist,
+                title = folder.title,
+                album = folder.album,
                 extension = ext,
                 isLossless = ext.uppercase() in LOSSLESS_EXTENSIONS
             )

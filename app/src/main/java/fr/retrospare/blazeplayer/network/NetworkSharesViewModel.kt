@@ -11,17 +11,20 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
 class NetworkSharesViewModel @Inject constructor(
     private val networkRepository: NetworkRepository,
-    private val networkScanner: NetworkScanner
+    private val networkScanner: NetworkScanner,
+    private val smbBrowser: SmbBrowser,
+    private val upnpBrowser: UpnpBrowser
 ) : ViewModel() {
 
     /** Type de message plutôt que texte brut : le ViewModel n'a pas de Context pour traduire,
      *  c'est donc NetworkSharesFragment (qui en a un) qui fait la traduction à l'affichage. */
-    enum class NetworkMessage { PATH_SAVED, PATH_DELETED, SCAN_UNAVAILABLE_EMULATOR }
+    enum class NetworkMessage { PATH_SAVED, PATH_DELETED }
 
     val shares: StateFlow<List<NetworkShare>> get() = _shares.asStateFlow()
     private val _shares = MutableStateFlow<List<NetworkShare>>(emptyList())
@@ -54,24 +57,30 @@ class NetworkSharesViewModel @Inject constructor(
         username: String?, password: String?, type: ShareType, isDefault: Boolean
     ) = networkRepository.createShare(name, host, port, shareName, username, password, type, isDefault)
 
-    sealed class ScanState {
-        object Idle : ScanState()
-        object Scanning : ScanState()
-        data class Results(val devices: List<fr.retrospare.blazeplayer.data.model.NetworkShare>) : ScanState()
-        data class Error(val msg: String) : ScanState()
-    }
-
-    private val _scanState = kotlinx.coroutines.flow.MutableStateFlow<ScanState>(ScanState.Idle)
-    val scanState: kotlinx.coroutines.flow.StateFlow<ScanState> = _scanState.asStateFlow()
-
-    private val _scannedShares = kotlinx.coroutines.flow.MutableStateFlow<List<fr.retrospare.blazeplayer.data.model.NetworkShare>>(emptyList())
-    val scannedShares: kotlinx.coroutines.flow.StateFlow<List<fr.retrospare.blazeplayer.data.model.NetworkShare>> = _scannedShares.asStateFlow()
-
     private val _discoveredDevices = kotlinx.coroutines.flow.MutableStateFlow<List<NetworkScanner.DiscoveredDevice>>(emptyList())
     val discoveredDevices: kotlinx.coroutines.flow.StateFlow<List<NetworkScanner.DiscoveredDevice>> = _discoveredDevices.asStateFlow()
 
     private val _isScanning = kotlinx.coroutines.flow.MutableStateFlow(false)
     val isScanning: kotlinx.coroutines.flow.StateFlow<Boolean> = _isScanning.asStateFlow()
+
+
+    suspend fun testConnection(share: NetworkShare): Boolean {
+        return withTimeoutOrNull(15_000L) {
+            runCatching {
+                when (share.type) {
+                    ShareType.SMB -> {
+                        if (share.shareName.isBlank()) {
+                            smbBrowser.listFiles(share, "").isSuccess
+                        } else {
+                            smbBrowser.checkConnection(share)
+                        }
+                    }
+                    ShareType.UPNP -> upnpBrowser.listFiles(share, "0").isSuccess
+                    ShareType.FTP -> false
+                }
+            }.getOrDefault(false)
+        } ?: false
+    }
 
     fun scanNetwork() {
         viewModelScope.launch {
@@ -90,11 +99,6 @@ class NetworkSharesViewModel @Inject constructor(
 
     suspend fun listShares(host: String, username: String?, password: String?) =
         networkScanner.listShares(host, username, password)
-
-    fun scanNetwork_old() {
-        // old stub
-        _message.value = NetworkMessage.SCAN_UNAVAILABLE_EMULATOR
-    }
 
     fun clearMessage() { _message.value = null }
 }
