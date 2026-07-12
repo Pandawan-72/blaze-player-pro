@@ -190,7 +190,7 @@ class VideoPlaybackService : MediaSessionService() {
         // MediaTrack Cast. Aucun RemoteMediaClient.load() manuel dans l'app.
         val sessionPlayer: Player = try {
             val remotePlayer = RemoteCastPlayer.Builder(this)
-                .setMediaItemConverter(BlazeCastMediaItemConverter())
+                .setMediaItemConverter(BlazeCastMediaItemConverter(applicationContext))
                 .build()
 
             val cp = CastPlayer.Builder(this)
@@ -210,6 +210,19 @@ class VideoPlaybackService : MediaSessionService() {
                     // PlayerActivity pendant un Cast. Le CastPlayer stoppera ensuite l'inactif.
                     if (goingRemote) {
                         try { localPlayer.clearVideoSurface() } catch (_: Exception) {}
+                        // Un transfert vers Chromecast doit toujours démarrer la lecture, même si
+                        // le lecteur local était momentanément en pause au moment de la connexion.
+                        // Cela couvre aussi les médias sélectionnés depuis la file d'attente.
+                        try {
+                            if (targetPlayer.currentMediaItem != null) {
+                                targetPlayer.playWhenReady = true
+                                if (targetPlayer.playbackState == Player.STATE_IDLE) targetPlayer.prepare()
+                                targetPlayer.play()
+                                android.util.Log.i("CAST", "Autoplay forced by transfer callback media=${targetPlayer.currentMediaItem?.mediaId}")
+                            }
+                        } catch (e: Exception) {
+                            fr.retrospare.blazeplayer.debug.CrashReporter.log(this@VideoPlaybackService, "Failed to force autoplay during Cast transfer", e)
+                        }
                     }
 
                     // Quand la session Cast se termine alors que l'activité n'a plus de Surface
@@ -329,6 +342,19 @@ class VideoPlaybackService : MediaSessionService() {
             .build()
 
         sessionPlayer.addListener(object : Player.Listener {
+            override fun onDeviceInfoChanged(deviceInfo: androidx.media3.common.DeviceInfo) {
+                if (deviceInfo.playbackType != androidx.media3.common.DeviceInfo.PLAYBACK_TYPE_REMOTE) return
+                val sourcePath = sessionPlayer.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() } ?: return
+                runCatching { fr.retrospare.blazeplayer.cast.VideoStreamServerManager.startServer(applicationContext, sourcePath) }
+                    .onFailure {
+                        fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                            applicationContext,
+                            "Failed to keep Cast relay alive for $sourcePath",
+                            it
+                        )
+                    }
+            }
+
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 fr.retrospare.blazeplayer.debug.CrashReporter.log(
                     applicationContext,
@@ -499,6 +525,7 @@ class VideoPlaybackService : MediaSessionService() {
         try { exoPlayer?.clearVideoSurface() } catch (_: Exception) {}
         exoPlayer = null
         castPlayer = null
+        try { fr.retrospare.blazeplayer.cast.VideoStreamServerManager.stopServer() } catch (_: Exception) {}
         super.onDestroy()
     }
 }

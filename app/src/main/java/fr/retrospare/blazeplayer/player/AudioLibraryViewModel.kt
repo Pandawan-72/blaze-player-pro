@@ -104,7 +104,10 @@ class AudioLibraryViewModel @Inject constructor(
         // visite.
         viewModelScope.launch {
             libraryTracksFlow.collect { tracks ->
-                if (tracks.isNotEmpty()) scheduleDurationEnrichment(tracks)
+                // Pendant un scan NAS, ne pas ouvrir en parallèle chaque fichier pour calculer sa
+                // durée : cela multiplie les requêtes SMB et ralentit fortement l'indexation.
+                // L'enrichissement est lancé explicitement à la fin de refresh().
+                if (tracks.isNotEmpty() && !_isRefreshing.value) scheduleDurationEnrichment(tracks)
             }
         }
     }
@@ -170,17 +173,31 @@ class AudioLibraryViewModel @Inject constructor(
         // démarrer deux scans concurrents avant que la coroutine ait eu le temps de s'exécuter.
         _isRefreshing.value = true
         viewModelScope.launch {
+            AudioLibraryWorkState.beginIndexing()
+            var tracksToEnrich: List<LibraryTrack> = emptyList()
             try {
                 artworkAttemptedThisSession.clear()
                 durationEnrichmentJob?.cancel()
                 durationAttemptedThisSession.clear()
                 ThumbnailUtils.invalidateAudioFolderCoverLookups()
                 AudioArtworkResolver.invalidateIndexedPaths()
-                val result = repository.refresh(appContext, manual, isPlaybackCritical)
-                scheduleEnrichment(result.activeTracks)
+                tracksToEnrich = repository.refresh(appContext, manual, isPlaybackCritical).activeTracks
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                // Une erreur SMB/Room ne doit jamais remonter jusqu'au handler principal et
+                // redémarrer le processus sur l'onglet Accueil. Les lots déjà écrits restent
+                // disponibles et le prochain refresh pourra reprendre.
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                    appContext,
+                    "Audio library refresh failed",
+                    error
+                )
             } finally {
                 _isRefreshing.value = false
+                AudioLibraryWorkState.endIndexing()
             }
+            if (tracksToEnrich.isNotEmpty()) scheduleEnrichment(tracksToEnrich)
         }
         return true
     }
@@ -205,6 +222,7 @@ class AudioLibraryViewModel @Inject constructor(
 
         artworkEnrichmentJob?.cancel()
         artworkEnrichmentJob = viewModelScope.launch {
+            AudioLibraryWorkState.awaitEnrichmentWindow()
             val artworkCandidates = withContext(Dispatchers.Default) {
                 source.asSequence()
                     // Une seule extraction automatique par album suffit à la grille. Les autres
@@ -224,7 +242,7 @@ class AudioLibraryViewModel @Inject constructor(
                 loadArtwork = { track ->
                     if (artworkAttemptedThisSession.add(track.path)) loadArtworkBitmapForTrack(track) != null else false
                 },
-                concurrency = 2
+                concurrency = 1
             )
         }
     }
@@ -243,6 +261,7 @@ class AudioLibraryViewModel @Inject constructor(
         if (candidates.isEmpty()) return
 
         val job = viewModelScope.launch {
+            AudioLibraryWorkState.awaitEnrichmentWindow()
             repository.enrichMetadata(
                 context = appContext,
                 candidates = candidates,
@@ -261,7 +280,7 @@ class AudioLibraryViewModel @Inject constructor(
                         } else null
                     }
                 },
-                concurrency = 2,
+                concurrency = 1,
                 batchSize = 8
             )
         }
@@ -276,7 +295,22 @@ class AudioLibraryViewModel @Inject constructor(
     /** Résout et charge la pochette d'un titre pour l'affichage d'une ligne visible (bind), en
      *  réutilisant les caches déjà chauds. Public : appelé depuis l'Adapter, pas seulement depuis
      *  l'enrichissement en arrière-plan. */
-    suspend fun loadArtworkForBinding(track: LibraryTrack): android.graphics.Bitmap? = loadArtworkBitmapForTrack(track)
+    suspend fun loadArtworkForBinding(track: LibraryTrack): android.graphics.Bitmap? {
+        // Pendant le premier parcours NAS, ne pas ouvrir en parallèle chaque audio/cover visible :
+        // le listing réseau doit rester prioritaire. Une pochette déjà persistée reste disponible,
+        // sinon le placeholder est remplacé automatiquement après l'enrichissement post-scan.
+        if ((_isRefreshing.value || BlazePlayerService.isAudioPlaybackActive) &&
+            track.source == LibraryTrackSource.NETWORK
+        ) {
+            val primary = primaryArtworkPath(track)
+            AudioArtworkResolver.memoryCachedBitmap(track.path, primary)?.let { return it }
+            val persisted = AudioArtworkPersistence.existingPath(appContext, track.path) ?: return null
+            return withTimeoutOrNull(750L) {
+                AudioArtworkResolver.resolveBitmap(appContext, track.path, persisted)
+            }
+        }
+        return loadArtworkBitmapForTrack(track)
+    }
 
     fun primaryArtworkPathFor(track: LibraryTrack): String = primaryArtworkPath(track)
 
@@ -480,6 +514,7 @@ class AudioLibraryViewModel @Inject constructor(
 
     private fun needsArtworkExtraction(track: LibraryTrack): Boolean {
         if (track.path.isBlank()) return false
+        if (AudioArtworkPersistence.existingPath(appContext, track.path) != null) return false
         val primary = primaryArtworkPath(track)
         if (ThumbnailUtils.getMemoryCachedAudioArtworkBitmapNoIo(primary) != null) return false
         if (ThumbnailUtils.getCachedAudioArtworkBitmapNoFolderProbe(appContext, primary) != null) return false

@@ -28,6 +28,8 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class NetworkVideoBrowserActivity : AppCompatActivity() {
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+
 
     @Inject lateinit var smbBrowser: SmbBrowser
     @Inject lateinit var upnpBrowser: UpnpBrowser
@@ -144,6 +146,16 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
+                this,
+                userRepository,
+                fr.retrospare.blazeplayer.paywall.AccessLevel.PRO
+            )) return
+        fr.retrospare.blazeplayer.paywall.AccessGateUi.monitor(
+            this,
+            userRepository,
+            fr.retrospare.blazeplayer.paywall.AccessLevel.PRO
+        )
         setContentView(R.layout.activity_network_video_browser)
 
         tvTitle = findViewById(R.id.tvTitle)

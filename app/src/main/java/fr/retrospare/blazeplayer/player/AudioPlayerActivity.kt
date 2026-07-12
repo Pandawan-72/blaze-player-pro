@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Point d'entree des intents audio externes.
@@ -19,11 +20,23 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class AudioPlayerActivity : AppCompatActivity() {
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+
 
     private var containerId: Int = View.NO_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
+                this,
+                userRepository,
+                fr.retrospare.blazeplayer.paywall.AccessLevel.PRO_PLUS
+            )) return
+        fr.retrospare.blazeplayer.paywall.AccessGateUi.monitor(
+            this,
+            userRepository,
+            fr.retrospare.blazeplayer.paywall.AccessLevel.PRO_PLUS
+        )
         if (forwardExternalAudioToMain(intent)) return
 
         containerId = View.generateViewId()

@@ -30,7 +30,7 @@ class BlazeDataSourceFactory(
     private class BlazeDispatchingDataSource(
         private val context: Context
     ) : DataSource {
-        private var delegate: DataSource? = null
+        @Volatile private var delegate: DataSource? = null
         private val pendingListeners = mutableListOf<TransferListener>()
 
         override fun addTransferListener(transferListener: TransferListener) {
@@ -38,7 +38,14 @@ class BlazeDataSourceFactory(
             delegate?.addTransferListener(transferListener)
         }
 
+        @Synchronized
         override fun open(dataSpec: DataSpec): Long {
+            // Une instance de dispatch ne doit posséder qu'un seul delegate actif. Détacher et
+            // fermer l'ancien avant d'en créer un autre rend également close() idempotent.
+            val previous = delegate
+            delegate = null
+            runCatching { previous?.close() }
+
             val scheme = dataSpec.uri.scheme?.lowercase()
             val ds: DataSource = if (scheme == "smb") {
                 SmbDataSource()
@@ -47,7 +54,13 @@ class BlazeDataSourceFactory(
             }
             pendingListeners.forEach { ds.addTransferListener(it) }
             delegate = ds
-            return ds.open(dataSpec)
+            return try {
+                ds.open(dataSpec)
+            } catch (error: Throwable) {
+                if (delegate === ds) delegate = null
+                runCatching { ds.close() }
+                throw error
+            }
         }
 
         override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
@@ -59,7 +72,12 @@ class BlazeDataSourceFactory(
         override fun getResponseHeaders(): Map<String, List<String>> = delegate?.responseHeaders ?: emptyMap()
 
         override fun close() {
-            try { delegate?.close() } finally { delegate = null }
+            // Détacher avant de fermer : deux close() concurrents ne peuvent plus atteindre le même
+            // SmbDataSource et déclencher deux transferEnded() successifs.
+            val current = synchronized(this) {
+                delegate.also { delegate = null }
+            }
+            current?.close()
         }
     }
 }

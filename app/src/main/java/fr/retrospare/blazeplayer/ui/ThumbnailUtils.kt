@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.ContentUris
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.media.MediaMetadataRetriever
+import android.os.Build
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.LruCache
@@ -26,6 +28,10 @@ import java.util.Locale
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
+import java.nio.ByteBuffer
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import kotlin.random.Random
 
@@ -37,7 +43,7 @@ object ThumbnailUtils {
     )
 
     private val folderCoverImageExtensions = setOf("jpg", "jpeg", "png")
-    private val preferredFolderCoverExtensions = listOf("jpg", "png")
+    private val preferredFolderCoverExtensions = listOf("jpg", "png", "jpeg")
     private val preferredFolderCoverBaseNames = listOf("cover")
     private val fastExactCoverFileNames = preferredFolderCoverBaseNames.flatMap { base ->
         preferredFolderCoverExtensions.flatMap { ext ->
@@ -65,12 +71,12 @@ object ThumbnailUtils {
 
     private fun isFolderCoverImagePath(path: String): Boolean = extensionOf(path) in folderCoverImageExtensions
 
-    private fun isAllowedAudioFolderCoverName(path: String): Boolean = when (
-        path.substringBefore('?').substringBefore('#').substringAfterLast('/').substringAfterLast('\\').lowercase()
-    ) {
-        "cover.jpg", "cover.png" -> true
-        else -> false
-    }
+    private fun isAllowedAudioFolderCoverName(path: String): Boolean =
+        path.substringBefore('?')
+            .substringBefore('#')
+            .substringAfterLast('/')
+            .substringAfterLast('\\')
+            .lowercase(Locale.ROOT) in setOf("cover.jpg", "cover.jpeg", "cover.png")
 
     private fun isNetworkVideoPath(path: String): Boolean =
         path.startsWith("smb://", true) || path.startsWith("http://", true) || path.startsWith("https://", true)
@@ -191,31 +197,70 @@ object ThumbnailUtils {
 
     private fun readFromDisk(context: Context, path: String): Bitmap? {
         val file = diskFileFor(context, path)
-        if (!file.exists()) return null
+        if (!file.isFile || file.length() <= 4L) return null
         return try {
-            BitmapFactory.decodeFile(file.absolutePath)?.also {
-                // Touche le fichier pour que la purge LRU (basée sur lastModified) le considère
-                // comme récemment utilisé et ne le supprime pas en priorité.
-                file.setLastModified(System.currentTimeMillis())
+            // Les fichiers du cache sont toujours nos propres JPEG complets. Une enveloppe
+            // incomplète indique une ancienne écriture interrompue : on la supprime au lieu de
+            // laisser BitmapFactory afficher uniquement les premières lignes de l'image.
+            if (!hasCompleteJpegEnvelope(file)) {
+                file.delete()
+                null
+            } else {
+                BitmapFactory.decodeFile(file.absolutePath)?.also {
+                    file.setLastModified(System.currentTimeMillis())
+                } ?: run {
+                    file.delete()
+                    null
+                }
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
+            runCatching { file.delete() }
             null
         }
     }
 
     private fun writeToDisk(context: Context, path: String, bitmap: Bitmap) {
+        val file = diskFileFor(context, path)
+        val tmp = File(file.parentFile, ".${file.name}.${Thread.currentThread().id}.${System.nanoTime()}.tmp")
         try {
-            val file = diskFileFor(context, path)
-            FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, DISK_CACHE_JPEG_QUALITY, out)
+            FileOutputStream(tmp).use { out ->
+                if (!bitmap.compress(Bitmap.CompressFormat.JPEG, DISK_CACHE_JPEG_QUALITY, out)) {
+                    throw IllegalStateException("JPEG thumbnail compression failed")
+                }
+                out.fd.sync()
             }
-            // Purge occasionnelle (pas à chaque écriture, pour ne pas lister le dossier en
-            // permanence) : ~1 écriture sur 20 déclenche une vérification de la taille totale.
+            replaceFileAtomically(tmp, file)
             if (Random.nextInt(20) == 0) pruneDiskCacheIfNeeded(context)
         } catch (e: Exception) {
+            runCatching { tmp.delete() }
             android.util.Log.w("ThumbnailUtils", "Failed to write disk thumbnail cache", e)
         }
     }
+
+    private fun replaceFileAtomically(tmp: File, target: File) {
+        try {
+            Files.move(
+                tmp.toPath(),
+                target.toPath(),
+                StandardCopyOption.ATOMIC_MOVE,
+                StandardCopyOption.REPLACE_EXISTING
+            )
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(tmp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
+
+    private fun hasCompleteJpegEnvelope(file: File): Boolean = runCatching {
+        if (file.length() < 4L) return@runCatching false
+        RandomAccessFile(file, "r").use { raf ->
+            val first = raf.readUnsignedByte()
+            val second = raf.readUnsignedByte()
+            raf.seek(file.length() - 2L)
+            val beforeLast = raf.readUnsignedByte()
+            val last = raf.readUnsignedByte()
+            first == 0xFF && second == 0xD8 && beforeLast == 0xFF && last == 0xD9
+        }
+    }.getOrDefault(false)
 
     private fun pruneDiskCacheIfNeeded(context: Context) {
         try {
@@ -289,18 +334,18 @@ object ThumbnailUtils {
     // Caches séparés audio/vidéo : évite qu'une miniature vidéo (même chemin logique,
     // ancien cache Vxx ou artworkUri Cast) soit réutilisée comme pochette audio.
     private fun audioKey(path: String): String {
-        // v10 : priorité stricte à cover.jpg puis cover.png. La pochette embarquée n'est utilisée
+        // v11 : priorité stricte à cover.jpg puis cover.png. La pochette embarquée n'est utilisée
         // qu'en repli, et le stamp du fichier de dossier reste dans la clé pour rafraîchir le cache
         // dès qu'une cover est ajoutée ou remplacée.
         val fallbackCover = if (isAudioPath(path)) preferredFolderCoverPathForAudioPath(path) else null
         val imageStamp = fallbackCover?.let { folderCoverStamp(it) }.orEmpty()
         val remoteEpoch = if (path.startsWith("smb://", true)) ":${audioFolderCoverEpoch.get()}" else ""
-        return "audio-hires-v10:$path:${fallbackCover.orEmpty()}$imageStamp$remoteEpoch"
+        return "audio-hires-v11:$path:${fallbackCover.orEmpty()}$imageStamp$remoteEpoch"
     }
 
     private fun audioNoProbeKey(path: String): String {
         val remoteEpoch = if (path.startsWith("smb://", true)) ":${audioFolderCoverEpoch.get()}" else ""
-        return "audio-hires-v10:$path:$remoteEpoch"
+        return "audio-hires-v11:$path:$remoteEpoch"
     }
 
     private fun putAudioArtworkAliases(context: Context, path: String, key: String, bitmap: Bitmap) {
@@ -465,7 +510,7 @@ object ThumbnailUtils {
     fun cacheAudioArtworkData(context: Context, path: String, artworkData: ByteArray?) {
         if (artworkData == null || artworkData.isEmpty()) return
         try {
-            val bitmap = decodeByteArraySampled(artworkData, artworkData.size, AUDIO_ARTWORK_MAX_PX) ?: return
+            val bitmap = decodeByteArraySampledStrict(artworkData, artworkData.size, AUDIO_ARTWORK_MAX_PX) ?: return
             val scaled = scaleBitmap(bitmap, AUDIO_ARTWORK_MAX_PX)
             val key = audioKey(path)
             putAudioArtworkAliases(context, path, key, scaled)
@@ -582,7 +627,7 @@ object ThumbnailUtils {
             path.startsWith("upnp://", true)) return emptyList()
         return localCoverSearchDirectoriesForAudioPath(path)
             .flatMap { preferredCoverImagesInDirectory(it) }
-            .distinctBy { it.absolutePath.lowercase(Locale.getDefault()) }
+            .distinctBy { it.absolutePath.lowercase(Locale.ROOT) }
             .map { it.absolutePath }
     }
 
@@ -615,15 +660,15 @@ object ThumbnailUtils {
             directory.listFiles()
                 ?.asSequence()
                 ?.filter { it.isFile }
-                ?.associateBy { it.name.lowercase(Locale.getDefault()) }
+                ?.associateBy { it.name.lowercase(Locale.ROOT) }
                 .orEmpty()
         }.getOrDefault(emptyMap())
-        val covers = listOf("cover.jpg", "cover.png")
+        val covers = preferredFolderCoverExtensions.map { "cover.$it" }
             .mapNotNull { expected ->
                 File(directory, expected).takeIf { it.exists() && it.isFile }
                     ?: filesByName[expected]
             }
-            .distinctBy { it.absolutePath.lowercase() }
+            .distinctBy { it.absolutePath.lowercase(Locale.ROOT) }
         // Ne pas mémoriser durablement une absence : certains NAS/volumes externes ne mettent pas
         // à jour lastModified() du dossier lors de l'ajout d'une image. Une prochaine demande doit
         // donc pouvoir retenter immédiatement.
@@ -731,11 +776,15 @@ object ThumbnailUtils {
         if (!isFolderCoverImagePath(path) && !path.startsWith("content://", true)) return null
         return try {
             when {
-                path.startsWith("content://", true) -> decodeSampledImageBitmap(context, path, AUDIO_ARTWORK_MAX_PX)
-                path.startsWith("file://", true) -> decodeSampledImageBitmap(context, path, AUDIO_ARTWORK_MAX_PX)
                 path.startsWith("smb://", true) -> decodeSmbFolderCoverBitmap(path)
                 path.startsWith("http://", true) || path.startsWith("https://", true) -> null
-                else -> decodeSampledImageBitmap(context, path, AUDIO_ARTWORK_MAX_PX)
+                else -> {
+                    // Pour une cover de dossier, on lit le fichier entier avant de décoder. Une
+                    // image tronquée ne doit jamais être acceptée puis persistée comme une cover
+                    // dont seule la bande supérieure est visible.
+                    val bytes = readImageBytesBounded(context, path, MAX_FOLDER_COVER_IMAGE_BYTES.toInt())
+                    bytes?.let { decodeByteArraySampledStrict(it, it.size, AUDIO_ARTWORK_MAX_PX) }
+                }
             }
         } catch (e: Exception) {
             android.util.Log.w("ThumbnailUtils", "Failed to decode folder cover image for ${safePathForLog(path)}", e)
@@ -744,71 +793,56 @@ object ThumbnailUtils {
     }
 
     private fun decodeSmbFolderCoverBitmap(path: String): Bitmap? {
-        var source: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
-        return try {
-            val smbSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
-            source = smbSource
-            val size = smbSource.getSize()
-            if (size <= 0L || size > MAX_FOLDER_COVER_IMAGE_BYTES) return null
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            SmbSourceInputStream(smbSource).use { BitmapFactory.decodeStream(it, null, bounds) }
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-            var sample = 1
-            while ((bounds.outWidth / sample) > AUDIO_ARTWORK_MAX_PX * 2 ||
-                (bounds.outHeight / sample) > AUDIO_ARTWORK_MAX_PX * 2
-            ) sample *= 2
-            val decoded = SmbSourceInputStream(smbSource).use {
-                BitmapFactory.decodeStream(
-                    it,
-                    null,
-                    BitmapFactory.Options().apply {
-                        inSampleSize = sample.coerceAtLeast(1)
-                        inPreferredConfig = Bitmap.Config.RGB_565
-                    }
-                )
-            }
-            decoded ?: run {
-                // Certains décodeurs JPEG/PNG Android réclament des lectures non séquentielles et
-                // renvoient null sur un InputStream SMB pourtant valide. Pour les images bornées à
-                // 32 Mo, un dernier essai en mémoire est plus fiable et reste raisonnable.
-                val bytes = ByteArray(size.toInt())
+        if (fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
+        // Le NAS doit avoir livré exactement la taille annoncée avant tout décodage. Auparavant,
+        // un readAt() transitoirement court était interprété comme une fin de fichier et le codec
+        // Android pouvait restituer uniquement le haut du JPEG, ensuite mis en cache durablement.
+        repeat(3) { attempt ->
+            if (fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
+            var source: fr.retrospare.blazeplayer.player.SmbMediaDataSource? = null
+            try {
+                val smbSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
+                source = smbSource
+                val size = smbSource.getSize()
+                if (size <= 0L || size > MAX_FOLDER_COVER_IMAGE_BYTES || size > Int.MAX_VALUE) return null
+                val expected = size.toInt()
+                val bytes = ByteArray(expected)
                 var offset = 0
-                while (offset < bytes.size) {
-                    val read = smbSource.readAt(offset.toLong(), bytes, offset, bytes.size - offset)
-                    if (read <= 0) break
-                    offset += read
+                var emptyReads = 0
+                while (offset < expected) {
+                    if (fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
+                    val read = smbSource.readAt(offset.toLong(), bytes, offset, expected - offset)
+                    when {
+                        read > 0 -> {
+                            offset += read
+                            emptyReads = 0
+                        }
+                        emptyReads < 2 -> {
+                            emptyReads++
+                            Thread.sleep(35L * emptyReads)
+                        }
+                        else -> break
+                    }
                 }
-                if (offset == bytes.size) decodeByteArraySampled(bytes, bytes.size, AUDIO_ARTWORK_MAX_PX) else null
+                if (offset == expected) {
+                    decodeByteArraySampledStrict(bytes, expected, AUDIO_ARTWORK_MAX_PX)?.let { return it }
+                }
+                android.util.Log.w(
+                    "ThumbnailUtils",
+                    "Incomplete SMB cover read ${safePathForLog(path)}: $offset/$expected (attempt ${attempt + 1})"
+                )
+            } catch (e: Exception) {
+                if (!fr.retrospare.blazeplayer.player.SmbDataSource.isMissingPathError(e)) {
+                    android.util.Log.w("ThumbnailUtils", "Failed SMB cover attempt ${attempt + 1} for ${safePathForLog(path)}", e)
+                }
+            } finally {
+                try { source?.close() } catch (_: Exception) {}
             }
-        } catch (e: Exception) {
-            if (!fr.retrospare.blazeplayer.player.SmbDataSource.isMissingPathError(e)) {
-                android.util.Log.w("ThumbnailUtils", "Failed to read SMB folder cover image for ${safePathForLog(path)}", e)
+            if (attempt < 2 && !fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) {
+                Thread.sleep(90L * (attempt + 1))
             }
-            null
-        } finally {
-            try { source?.close() } catch (_: Exception) {}
         }
-    }
-
-    /** Flux séquentiel léger au-dessus du readAt SMB : évite d'allouer en RAM l'intégralité
-     * d'un cover.jpg réseau (jusqu'à 32 Mo) avant le décodage échantillonné. */
-    private class SmbSourceInputStream(
-        private val source: fr.retrospare.blazeplayer.player.SmbMediaDataSource
-    ) : java.io.InputStream() {
-        private var position = 0L
-        private val oneByte = ByteArray(1)
-
-        override fun read(): Int {
-            val count = read(oneByte, 0, 1)
-            return if (count <= 0) -1 else oneByte[0].toInt() and 0xFF
-        }
-
-        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-            if (length <= 0) return 0
-            val count = source.readAt(position, buffer, offset, length)
-            if (count > 0) position += count
-            return if (count <= 0) -1 else count
-        }
+        return null
     }
 
     // Cache la cover-dossier trouvée par répertoire SMB, avec une durée de vie courte (contrairement
@@ -834,7 +868,7 @@ object ThumbnailUtils {
                 if (albumDir.isNotBlank()) dirs += albumDir
             }
             dirs.distinct().flatMap { dir ->
-                listOf("cover.jpg", "cover.png").map { name ->
+                fastExactCoverFileNames.map { name ->
                     buildSmbCoverUri(parsed, if (dir.isBlank()) name else "$dir/$name")
                 }
             }
@@ -849,34 +883,50 @@ object ThumbnailUtils {
      *  listing réseau, mis en cache) plutôt qu'une extraction lourde. */
     private fun preferredSmbFolderCoverPath(path: String): String? {
         if (!path.startsWith("smb://", true)) return null
+        if (fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
         return try {
             val parsed = fr.retrospare.blazeplayer.player.SmbDataSource.parseSmbUri(Uri.parse(path))
-            val lastSep = parsed.filePath.lastIndexOf('\\')
-            val dirPath = if (lastSep < 0) "" else parsed.filePath.substring(0, lastSep)
-            val cacheKey = "${parsed.host}:${parsed.port}:${parsed.shareName}:$dirPath"
+            val normalized = parsed.filePath.replace('\\', '/')
+            val fileDir = normalized.substringBeforeLast('/', "")
+            val searchDirs = buildList {
+                add(fileDir)
+                val lastDirName = fileDir.substringAfterLast('/', fileDir)
+                if (isDiscFolderName(lastDirName)) {
+                    fileDir.substringBeforeLast('/', "").takeIf { it.isNotBlank() }?.let { add(it) }
+                }
+            }.distinct()
             val now = System.currentTimeMillis()
-            smbFolderCoverCache[cacheKey]?.let { (ts, cover) ->
-                if (now - ts < SMB_FOLDER_COVER_CACHE_TTL_MS) return cover.ifBlank { null }
+
+            for (dir in searchDirs) {
+                if (fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
+                val dirPath = dir.replace('/', '\\')
+                val cacheKey = "${parsed.host}:${parsed.port}:${parsed.shareName}:$dirPath"
+                val cached = smbFolderCoverCache[cacheKey]
+                if (cached != null && now - cached.first < SMB_FOLDER_COVER_CACHE_TTL_MS) {
+                    if (cached.second.isNotBlank()) return cached.second
+                    continue
+                }
+
+                val share = fr.retrospare.blazeplayer.player.SmbSessionPool.getShare(
+                    parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName
+                )
+                val coverName = try {
+                    share.list(dirPath)
+                        .asSequence()
+                        .map { it.fileName }
+                        .filter { name -> !name.startsWith(".") && isAllowedAudioFolderCoverName(name) }
+                        .sortedWith(Comparator { a, b -> preferredCoverFileCompare(a, b) })
+                        .firstOrNull()
+                } finally {
+                    try { share.close() } catch (_: Exception) {}
+                }
+                val coverPath = coverName?.let { name ->
+                    buildSmbCoverUri(parsed, if (dir.isBlank()) name else "$dir/$name")
+                }
+                smbFolderCoverCache[cacheKey] = now to coverPath.orEmpty()
+                if (coverPath != null) return coverPath
             }
-            val share = fr.retrospare.blazeplayer.player.SmbSessionPool.getShare(
-                parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName
-            )
-            val coverName = try {
-                share.list(dirPath)
-                    .asSequence()
-                    .map { it.fileName }
-                    .filter { name -> !name.startsWith(".") && isAllowedAudioFolderCoverName(name) }
-                    .sortedWith(Comparator { a, b -> preferredCoverFileCompare(a, b) })
-                    .firstOrNull()
-            } finally {
-                try { share.close() } catch (_: Exception) {}
-            }
-            val coverPath = coverName?.let { name ->
-                val fullPath = if (dirPath.isBlank()) name else "$dirPath\\$name"
-                buildSmbCoverUri(parsed, fullPath.replace("\\", "/"))
-            }
-            smbFolderCoverCache[cacheKey] = now to coverPath.orEmpty()
-            coverPath
+            null
         } catch (e: Exception) {
             android.util.Log.w("ThumbnailUtils", "SMB folder cover search failed for ${safePathForLog(path)}", e)
             null
@@ -900,6 +950,7 @@ object ThumbnailUtils {
         if (isFolderCoverImagePath(path)) {
             cache.get(key)?.let { return it }
             readFromDisk(context, key)?.let { cache.put(key, it); return it }
+            if (path.startsWith("smb://", true) && fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
             return decodeFolderCoverBitmap(context, path)?.let {
                 val scaled = scaleBitmap(it, AUDIO_ARTWORK_MAX_PX)
                 putAudioArtworkAliases(context, path, key, scaled)
@@ -911,13 +962,21 @@ object ThumbnailUtils {
         // embarquée mise en cache. Un timeout réseau ponctuel ne doit pas figer l'embedded comme
         // choix définitif alors qu'un cover.jpg existe réellement à côté du titre.
         if (isAudioPath(path)) {
+            if (path.startsWith("smb://", true) && fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) {
+                cache.get(key)?.let { return it }
+                readFromDisk(context, key)?.let { cache.put(key, it); return it }
+                return null
+            }
             val explicitCandidates = buildList {
                 addAll(preferredLocalFolderCoverCandidatesForAudioPath(path))
-                addAll(smbFolderCoverCandidatePaths(path))
                 preferredMediaStoreFolderCoverPathForAudioPath(context, path)?.let { add(it) }
+                // Le listing SMB fournit le nom réel, avec sa casse exacte (Cover.JPG, COVER.PNG…).
+                // Les chemins directs restent ensuite en secours si le NAS refuse le listing.
                 preferredSmbFolderCoverPath(path)?.let { add(it) }
+                addAll(smbFolderCoverCandidatePaths(path))
             }.distinct()
             for (coverPath in explicitCandidates) {
+                if (path.startsWith("smb://", true) && fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
                 val coverKey = audioKey(coverPath)
                 val coverBitmap = cache.get(coverKey)
                     ?: readFromDisk(context, coverKey)?.also { cache.put(coverKey, it) }
@@ -940,6 +999,7 @@ object ThumbnailUtils {
 
         // Repli automatique : extraction de la pochette embarquée uniquement quand aucun
         // cover.jpg/cover.png exploitable n'a été trouvé.
+        if (path.startsWith("smb://", true) && fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
         val embedded = if (path.startsWith("smb://", true)) {
             extractEmbeddedArtworkFallback(context, path) ?: tryExtractEmbeddedArtworkWithRetriever(context, path)
         } else {
@@ -958,7 +1018,7 @@ object ThumbnailUtils {
         var closeable: AutoCloseable? = null
         return try {
             closeable = setRetrieverDataSource(context, retriever, path)
-            retriever.embeddedPicture?.let { decodeByteArraySampled(it, it.size, AUDIO_ARTWORK_MAX_PX) }
+            retriever.embeddedPicture?.let { decodeByteArraySampledStrict(it, it.size, AUDIO_ARTWORK_MAX_PX) }
         } catch (e: Exception) {
             android.util.Log.w("ThumbnailUtils", "MediaMetadataRetriever artwork failed for ${safePathForLog(path)}", e)
             null
@@ -980,7 +1040,7 @@ object ThumbnailUtils {
             null
         } ?: return null
         return try {
-            decodeByteArraySampled(imageBytes, imageBytes.size, AUDIO_ARTWORK_MAX_PX)
+            decodeByteArraySampledStrict(imageBytes, imageBytes.size, AUDIO_ARTWORK_MAX_PX)
         } catch (e: Exception) {
             null
         }
@@ -1748,38 +1808,261 @@ object ThumbnailUtils {
     private fun decodeSampledImageBitmap(context: Context, path: String, maxSize: Int): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         openImageInputStream(context, path)?.use { input -> BitmapFactory.decodeStream(input, null, bounds) }
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
 
+        if (bounds.outWidth > 0 && bounds.outHeight > 0) {
+            var sample = 1
+            while ((bounds.outWidth / sample) > maxSize * 2 || (bounds.outHeight / sample) > maxSize * 2) {
+                sample *= 2
+            }
+            val decoded = openImageInputStream(context, path)?.use { input ->
+                BitmapFactory.decodeStream(
+                    input,
+                    null,
+                    BitmapFactory.Options().apply {
+                        inSampleSize = sample.coerceAtLeast(1)
+                        inPreferredConfig = Bitmap.Config.ARGB_8888
+                        inDither = true
+                    }
+                )
+            }
+            if (decoded != null) return decoded
+        }
+
+        // Un fichier peut rester exploitable malgré des bounds invalides (JPEG tronqué, octets
+        // parasites avant SOI, EOI manquant). On charge au plus 32 Mo et on tente les décodeurs
+        // tolérants, dont ImageDecoder avec acceptation des images partielles sur Android 9+.
+        val bytes = readImageBytesBounded(context, path, MAX_FOLDER_COVER_IMAGE_BYTES.toInt()) ?: return null
+        return decodeByteArraySampled(bytes, bytes.size, maxSize)
+    }
+
+    private fun readImageBytesBounded(context: Context, path: String, maxBytes: Int): ByteArray? = try {
+        openImageInputStream(context, path)?.use { input ->
+            val out = java.io.ByteArrayOutputStream(minOf(maxBytes, 128 * 1024))
+            val buffer = ByteArray(32 * 1024)
+            var total = 0
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                if (read == 0) continue
+                total += read
+                if (total > maxBytes) return null
+                out.write(buffer, 0, read)
+            }
+            out.toByteArray()
+        }
+    } catch (_: Exception) {
+        null
+    }
+
+    /** Décode uniquement une image dont le conteneur a été reçu en entier. Cette variante est
+     * utilisée pour les pochettes audio persistées : elle interdit les bitmaps partielles que
+     * BitmapFactory/ImageDecoder peuvent produire avec un JPEG réseau interrompu. */
+    private fun decodeByteArraySampledStrict(data: ByteArray, length: Int, maxSize: Int): Bitmap? {
+        val payload = completeImagePayload(data, length) ?: return null
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(payload, 0, payload.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         var sample = 1
         while ((bounds.outWidth / sample) > maxSize * 2 || (bounds.outHeight / sample) > maxSize * 2) {
             sample *= 2
         }
-        val options = BitmapFactory.Options().apply {
-            inSampleSize = sample.coerceAtLeast(1)
-            inPreferredConfig = Bitmap.Config.ARGB_8888
+        BitmapFactory.decodeByteArray(
+            payload,
+            0,
+            payload.size,
+            BitmapFactory.Options().apply {
+                inSampleSize = sample.coerceAtLeast(1)
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+                inDither = true
+            }
+        )?.let { return it }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+        return runCatching {
+            val source = ImageDecoder.createSource(ByteBuffer.wrap(payload))
+            ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE)
+                val largest = maxOf(info.size.width, info.size.height)
+                if (info.size.width > 0 && info.size.height > 0 && largest > maxSize * 2) {
+                    val scale = (maxSize * 2f) / largest.toFloat()
+                    decoder.setTargetSize(
+                        maxOf(1, (info.size.width * scale).toInt()),
+                        maxOf(1, (info.size.height * scale).toInt())
+                    )
+                }
+                // Aucun OnPartialImageListener ici : une image incomplète doit échouer et laisser
+                // l'application essayer la cover suivante ou la pochette embarquée.
+            }
+        }.getOrNull()
+    }
+
+    private fun completeImagePayload(data: ByteArray, length: Int): ByteArray? {
+        val safeLength = length.coerceAtMost(data.size)
+        if (safeLength < 12) return null
+
+        val jpegStart = findSignature(data, safeLength, byteArrayOf(0xFF.toByte(), 0xD8.toByte()))
+        if (jpegStart >= 0) {
+            val jpegEnd = findLastSignature(
+                data,
+                jpegStart + 2,
+                safeLength,
+                byteArrayOf(0xFF.toByte(), 0xD9.toByte())
+            )
+            if (jpegEnd < 0) return null
+            return data.copyOfRange(jpegStart, jpegEnd + 2)
         }
-        return openImageInputStream(context, path)?.use { input -> BitmapFactory.decodeStream(input, null, options) }
+
+        val pngSignature = byteArrayOf(
+            0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+        )
+        val pngStart = findSignature(data, safeLength, pngSignature)
+        if (pngStart >= 0) {
+            val iendType = findLastSignature(
+                data,
+                pngStart + pngSignature.size,
+                safeLength,
+                byteArrayOf(0x49, 0x45, 0x4E, 0x44)
+            )
+            // Après le type IEND viennent les 4 octets CRC. La longueur du chunk se trouve juste
+            // avant le type et fait déjà partie de la tranche depuis pngStart.
+            if (iendType < 0 || iendType + 8 > safeLength) return null
+            return data.copyOfRange(pngStart, iendType + 8)
+        }
+        return null
     }
 
     private fun decodeByteArraySampled(data: ByteArray, length: Int, maxSize: Int): Bitmap? {
         if (length <= 0) return null
         val safeLength = length.coerceAtMost(data.size)
+        decodeByteArrayRegion(data, 0, safeLength, maxSize)?.let { return it }
+
+        // Recherche d'une vraie signature si le fichier contient un préambule parasite. Pour les
+        // JPEG incomplets, on ajoute également le marqueur EOI : BitmapFactory et ImageDecoder
+        // peuvent alors restituer la partie valide déjà présente au lieu de retourner null.
+        val repaired = repairImagePayload(data, safeLength) ?: return null
+        return decodeByteArrayRegion(repaired, 0, repaired.size, maxSize)
+    }
+
+    private fun decodeByteArrayRegion(
+        data: ByteArray,
+        offset: Int,
+        length: Int,
+        maxSize: Int
+    ): Bitmap? {
+        if (length <= 0 || offset < 0 || offset + length > data.size) return null
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeByteArray(data, 0, safeLength, bounds)
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-        var sample = 1
-        while ((bounds.outWidth / sample) > maxSize * 2 || (bounds.outHeight / sample) > maxSize * 2) {
-            sample *= 2
-        }
-        return BitmapFactory.decodeByteArray(
-            data,
-            0,
-            safeLength,
-            BitmapFactory.Options().apply {
-                inSampleSize = sample.coerceAtLeast(1)
-                inPreferredConfig = Bitmap.Config.RGB_565
+        BitmapFactory.decodeByteArray(data, offset, length, bounds)
+        if (bounds.outWidth > 0 && bounds.outHeight > 0) {
+            var sample = 1
+            while ((bounds.outWidth / sample) > maxSize * 2 || (bounds.outHeight / sample) > maxSize * 2) {
+                sample *= 2
             }
+            BitmapFactory.decodeByteArray(
+                data,
+                offset,
+                length,
+                BitmapFactory.Options().apply {
+                    inSampleSize = sample.coerceAtLeast(1)
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                    inDither = true
+                }
+            )?.let { return it }
+        }
+
+        // Deuxième essai sans phase de bounds : quelques JPEG mal formés sont refusés par le scan
+        // d'en-tête mais décodés directement par les codecs de certains appareils.
+        BitmapFactory.decodeByteArray(
+            data,
+            offset,
+            length,
+            BitmapFactory.Options().apply {
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+                inDither = true
+            }
+        )?.let { return it }
+
+        return decodePartialWithImageDecoder(data, offset, length, maxSize)
+    }
+
+    private fun decodePartialWithImageDecoder(
+        data: ByteArray,
+        offset: Int,
+        length: Int,
+        maxSize: Int
+    ): Bitmap? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+        return runCatching {
+            val source = ImageDecoder.createSource(ByteBuffer.wrap(data, offset, length).slice())
+            ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+                decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE)
+                decoder.setOnPartialImageListener { true }
+                val width = info.size.width
+                val height = info.size.height
+                val largest = maxOf(width, height)
+                if (width > 0 && height > 0 && largest > maxSize * 2) {
+                    val scale = (maxSize * 2f) / largest.toFloat()
+                    decoder.setTargetSize(
+                        maxOf(1, (width * scale).toInt()),
+                        maxOf(1, (height * scale).toInt())
+                    )
+                }
+            }
+        }.getOrNull()
+    }
+
+    private fun repairImagePayload(data: ByteArray, length: Int): ByteArray? {
+        val safeLength = length.coerceAtMost(data.size)
+        val jpegStart = findSignature(data, safeLength, byteArrayOf(0xFF.toByte(), 0xD8.toByte()))
+        if (jpegStart >= 0) {
+            val jpegEndMarker = findLastSignature(data, jpegStart + 2, safeLength, byteArrayOf(0xFF.toByte(), 0xD9.toByte()))
+            val sourceEnd = if (jpegEndMarker >= 0) jpegEndMarker + 2 else safeLength
+            val appendEoi = jpegEndMarker < 0
+            if (jpegStart == 0 && sourceEnd == safeLength && !appendEoi) return null
+            return ByteArray(sourceEnd - jpegStart + if (appendEoi) 2 else 0).also { repaired ->
+                data.copyInto(repaired, 0, jpegStart, sourceEnd)
+                if (appendEoi) {
+                    repaired[repaired.lastIndex - 1] = 0xFF.toByte()
+                    repaired[repaired.lastIndex] = 0xD9.toByte()
+                }
+            }
+        }
+
+        val pngSignature = byteArrayOf(
+            0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
         )
+        val pngStart = findSignature(data, safeLength, pngSignature)
+        if (pngStart > 0) return data.copyOfRange(pngStart, safeLength)
+        return null
+    }
+
+    private fun findSignature(data: ByteArray, length: Int, signature: ByteArray): Int {
+        if (signature.isEmpty() || length < signature.size) return -1
+        for (i in 0..(length - signature.size)) {
+            var matches = true
+            for (j in signature.indices) {
+                if (data[i + j] != signature[j]) {
+                    matches = false
+                    break
+                }
+            }
+            if (matches) return i
+        }
+        return -1
+    }
+
+    private fun findLastSignature(data: ByteArray, start: Int, length: Int, signature: ByteArray): Int {
+        if (signature.isEmpty() || length < signature.size) return -1
+        for (i in (length - signature.size) downTo start.coerceAtLeast(0)) {
+            var matches = true
+            for (j in signature.indices) {
+                if (data[i + j] != signature[j]) {
+                    matches = false
+                    break
+                }
+            }
+            if (matches) return i
+        }
+        return -1
     }
 
     suspend fun loadImageThumbnail(

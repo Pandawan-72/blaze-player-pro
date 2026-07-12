@@ -12,6 +12,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.retrospare.blazeplayer.R
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -55,7 +57,8 @@ private data class ArtistAlbumGroup(
 @HiltViewModel
 class MiniPlayerViewModel @Inject constructor(
     application: Application,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
 ) : AndroidViewModel(application) {
 
     private val context = application.applicationContext
@@ -77,6 +80,8 @@ class MiniPlayerViewModel @Inject constructor(
 
     var controller: MediaController? = null
         private set
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var connectionJob: Job? = null
 
     // State entièrement réactif — tous les flows sont dans combine
     val state: StateFlow<MiniPlayerState> = combine(
@@ -99,26 +104,54 @@ class MiniPlayerViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, MiniPlayerState())
 
+    /** Connexion défensive : le simple affichage de MainActivity ne doit jamais démarrer
+     * BlazePlayerService. On vérifie d'abord, hors thread principal, le réglage, le droit Pro+ et
+     * l'existence d'une session audio déjà active. */
     fun connect() {
         if (controller != null) {
             refreshFromController()
             return
         }
+        if (connectionJob?.isActive == true || controllerFuture != null) return
+
+        connectionJob = viewModelScope.launch {
+            val enabled = miniPlayerEnabledFlow.first()
+            val allowed = runCatching {
+                fr.retrospare.blazeplayer.paywall.FeatureAccess.isProPlus(userRepository)
+            }.getOrElse { error ->
+                CrashReporter.log(context, "MiniPlayer access check failed", error)
+                false
+            }
+            if (!enabled || !allowed || !BlazePlayerService.isAudioSessionActive) {
+                _hasMedia.value = false
+                return@launch
+            }
+            connectController()
+        }
+    }
+
+    private fun connectController() {
+        if (controller != null || controllerFuture != null || !BlazePlayerService.isAudioSessionActive) return
         val token = SessionToken(context, ComponentName(context, BlazePlayerService::class.java))
         val future = MediaController.Builder(context, token)
             .setListener(object : MediaController.Listener {
                 override fun onDisconnected(controllerRef: MediaController) {
-                    // Le service audio a été tué/déconnecté (ex: manque de mémoire) : on efface la
-                    // référence pour qu'un prochain connect()/refresh() la reconstruise proprement,
-                    // au lieu de garder indéfiniment un contrôleur mort (mini player figé/invisible).
                     controller = null
+                    controllerFuture = null
                     _hasMedia.value = false
                 }
             })
             .buildAsync()
+        controllerFuture = future
         future.addListener({
+            controllerFuture = null
             try {
                 val ctrl = future.get()
+                if (!BlazePlayerService.isAudioSessionActive) {
+                    ctrl.release()
+                    _hasMedia.value = false
+                    return@addListener
+                }
                 controller = ctrl
                 ctrl.addListener(object : Player.Listener {
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -139,6 +172,17 @@ class MiniPlayerViewModel @Inject constructor(
         }, MoreExecutors.directExecutor())
     }
 
+    fun disconnect() {
+        connectionJob?.cancel()
+        connectionJob = null
+        controllerFuture?.cancel(true)
+        controllerFuture = null
+        runCatching { controller?.release() }
+        controller = null
+        _hasMedia.value = false
+        _isPlaying.value = false
+    }
+
     fun setInAudioPlayer(inPlayer: Boolean) {
         _inAudioPlayer.value = inPlayer
         // Ré-ouvrir Blaze Audio "réarme" le mini player : une fermeture manuelle précédente ne
@@ -155,7 +199,7 @@ class MiniPlayerViewModel @Inject constructor(
 
     fun refresh() {
         if (controller == null) {
-            connect()
+            if (BlazePlayerService.isAudioSessionActive) connect() else _hasMedia.value = false
         } else {
             refreshFromController()
         }
@@ -251,8 +295,14 @@ class MiniPlayerViewModel @Inject constructor(
     fun setMiniPlayerEnabled(enabled: Boolean) {
         viewModelScope.launch {
             dataStore.edit { it[KEY_MINI_PLAYER] = enabled }
+            if (!enabled) disconnect() else refresh()
         }
     }
 
     fun getMiniPlayerEnabled(): Flow<Boolean> = miniPlayerEnabledFlow
+
+    override fun onCleared() {
+        disconnect()
+        super.onCleared()
+    }
 }

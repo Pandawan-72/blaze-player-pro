@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Riproduzione audio</string>
@@ -7,7 +7,7 @@
     <string name="tab_local">Locale</string>
     <string name="tab_network">Rete</string>
     <string name="tab_blaze_video">Blaze Video</string>
-<!-- Version badge -->
+
     <string name="version_badge_free">Gratis</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
@@ -30,7 +30,8 @@
     <string name="unknown_title">Titolo sconosciuto</string>
     <string name="audio_track">Traccia audio</string>
 <string name="timer">Timer</string>
-    <string name="equalizer">Equalizzatore</string>
+    <string name="equalizer">Impostazioni audio</string>
+    <string name="sound_short">Audio</string>
 <string name="loading">Caricamento…</string>
     <string name="no_track_found">0 tracce trovate</string>
     <string name="zero_time">0:00</string>
@@ -318,7 +319,7 @@
     <string name="history_empty_blaze_video_title">Nessun video visto di recente</string>
 
     <string name="history_blaze_video">Cronologia</string>
-<!-- Historique : gestion par sélection -->
+
     <string name="history_selection_active">Selezione attiva: %1$d miniatura/e selezionata/e.</string>
     <string name="history_action_prompt">Scegli un’azione per questa cronologia.</string>
     <string name="history_delete_selection">Elimina selezione (%1$d)</string>
@@ -378,16 +379,16 @@
     <string name="deselect_all">Deseleziona tutto</string>
     <string name="cast_subtitles_unavailable">Sottotitoli non disponibili durante il cast</string>
     <string name="cast_audio_language_unavailable">Cambio lingua non disponibile durante il cast</string>
-    <string name="paywall_title">Sblocca Blaze Player</string>
-    <string name="paywall_subtitle">Scegli la versione adatta al tuo uso. Gli acquisti saranno collegati più avanti.</string>
-    <string name="paywall_free_title">Blaze Player Gratis</string>
-    <string name="paywall_free_desc">Riproduzione video locale e cast video locale. Solo scheda Locale.</string>
+    <string name="paywall_title">Scegli la tua versione Blaze</string>
+    <string name="paywall_subtitle">Prova tutte le funzioni Pro+ per 15 giorni, poi scegli la versione più adatta.</string>
+    <string name="paywall_free_title">Blaze Player Free</string>
+    <string name="paywall_free_desc">Blaze Video locale e trasmissione dei video locali su Chromecast. La scheda Rete e i pulsanti di rete nei browser restano bloccati.</string>
     <string name="paywall_pro_title">Blaze Player Pro</string>
     <string name="paywall_pro_price">3,99 €</string>
-    <string name="paywall_pro_desc">Sblocca la rete SMB e la scheda Blaze Gallery.</string>
+    <string name="paywall_pro_desc">Include Free e sblocca la rete locale SMB/UPnP e Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Sblocca Blaze Audio e la sua modalità \"Party\". Include anche tutte le funzioni Pro.</string>
+    <string name="paywall_pro_plus_desc">Include tutte le funzioni Pro e sblocca il lettore audio premium Blaze Audio.</string>
     <string name="paywall_buy_pro">Sblocca Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Sblocca Pro+ — 5,99 €</string>
     <string name="paywall_debug_unlocked">Modalità debug: Pro e Pro+ sono temporaneamente sbloccati.</string>
@@ -404,8 +405,8 @@
     <string name="video_setting_volume_boost">Boost volume</string>
     <string name="action_reset">Ripristina</string>
 
-    <!-- TMDb -->
-<!-- Blaze Gallery -->
+    
+
 <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Nessuna cartella ancora — creane una per iniziare</string>
@@ -452,7 +453,7 @@
     <string name="settings_audio_spectrum">Attiva spettro visivo</string>
     <string name="settings_audio_spectrum_desc">Mostra il visualizzatore audio animato in Blaze Audio.</string>
 
-    <!-- Blaze Party -->
+    
     <string name="blaze_party">Blaze Party</string>
     <string name="blaze_party_intro">Crea una sessione locale o unisciti a una coda condivisa sulla stessa Wi‑Fi.</string>
     <string name="blaze_party_host">Host Blaze Party</string>
@@ -516,7 +517,7 @@ Token: %2$s</string>
     <string name="blaze_party_default_guest">Ospite</string>
     <string name="app_name_gallery">Blaze Gallery</string>
 
-    <!-- Photo editor (filters / crop / rotate / details) -->
+    
     <string name="photo_editor_title">Modifica</string>
     <string name="filter_normal">Normale</string>
     <string name="filter_vivid">Vivace</string>
@@ -571,7 +572,7 @@ Token: %2$s</string>
     <string name="photo_details_location">Posizione: %1$s</string>
     <string name="gallery_menu_edit">Modifica</string>
 
-    <!-- Video trim -->
+    
     <string name="video_trim_title">Taglia</string>
     <string name="action_export_fast">SQ</string>
     <string name="action_export_precise">HQ</string>
@@ -580,10 +581,10 @@ Token: %2$s</string>
     <string name="toast_video_saved">Video salvato in Blaze Gallery</string>
     <string name="toast_video_export_failed">Esportazione non riuscita</string>
     <string name="toast_gif_saved">GIF salvata in Blaze Gallery</string>
-    <string name="toast_mp3_saved">MP3 salvato in Blaze MP3 Cut</string>
+    <string name="toast_mp3_saved">MP3 salvato in Documents/Blaze Audio Extractor</string>
     <string name="toast_mp3_export_failed">Esportazione MP3 non riuscita</string>
     <string name="gallery_menu_cut">Taglia</string>
-<!-- Video queue additions -->
+
     <string name="add_to_playlist_fixed_short">Aggiungi a playlist</string>
     <string name="add_to_video_queue_short">coda</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -599,7 +600,7 @@ Token: %2$s</string>
     <string name="content_desc_video_queue">Coda video</string>
     <string name="content_desc_close_video_queue">Chiudi la coda video</string>
 
-    <!-- Blaze Audio Pro+ library and premium settings -->
+    
     <string name="audio_library_title">Libreria</string>
     <string name="audio_library_subtitle">La tua libreria musicale Pro+</string>
     <string name="audio_loading_in_progress">Caricamento in corso...</string>
@@ -628,14 +629,19 @@ Token: %2$s</string>
     <string name="audio_normalize_volume_subtitle">Bilancia il volume tra i brani</string>
     <string name="audio_section_quality">Qualità audio</string>
     <string name="audio_high_quality_output">Uscita alta qualità</string>
-    <string name="audio_high_quality_subtitle">Priorità alla fedeltà audio</string>
+    <string name="audio_high_quality_subtitle">Disattiva le impostazioni audio per privilegiare l’uscita diretta</string>
     <string name="audio_replaygain_title">ReplayGain</string>
     <string name="audio_replaygain_off">Disattivato</string>
     <string name="audio_replaygain_track">Brano</string>
     <string name="audio_replaygain_album">Album</string>
     <string name="audio_preamp_title">Preamplificatore</string>
     <string name="audio_preamp_subtitle">Regola il livello di uscita</string>
-    <string name="audio_bit_depth_title">Profondità audio</string>
+    <string name="audio_output_mode_title">Modalità precisione</string>
+    <string name="audio_output_mode_subtitle">Adatta il percorso PCM alla qualità e compatibilità del dispositivo</string>
+    <string name="audio_output_mode_auto">Automatico</string>
+    <string name="audio_output_mode_compatibility">Compatibilità</string>
+    <string name="audio_output_mode_high_precision">Alta precisione</string>
+    <string name="audio_replaygain_subtitle">Uniforma il volume tra i brani indipendentemente dagli effetti audio</string>
     <string name="audio_section_library">Libreria</string>
     <string name="audio_auto_scan">Scansione automatica</string>
     <string name="audio_auto_scan_subtitle">Aggiungi nuovi file</string>
@@ -702,7 +708,7 @@ Token: %2$s</string>
     <string name="action_scan">Scansiona</string>
     <string name="action_done">Fine</string>
 <string name="audio_play_album">Riproduci tutto l’album</string>
-    <string name="audio_add_album_queue">Aggiungi album alla coda</string>
+    <string name="audio_add_album_queue">Aggiungi alla coda</string>
     <string name="audio_select_tracks">Seleziona brani</string>
     <string name="audio_add_playlist_blaze_party">Aggiungi playlist a Blaze Party</string>
     <string name="audio_add_playlist_queue">Aggiungi playlist alla coda</string>
@@ -751,4 +757,76 @@ Token: %2$s</string>
 
     <string name="cast_remote_led_on">ON</string>
     <string name="cast_remote_led_off">OFF</string>
+
+    <string name="close">Chiudi</string>
+    <string name="eq_tab_tone">Tono</string>
+    <string name="eq_tab_dynamics">Dinamica</string>
+    <string name="eq_tab_ambience">Ambiente</string>
+    <string name="eq_bass">Bassi</string>
+    <string name="eq_treble">Alti</string>
+    <string name="eq_balance">Bilanciamento</string>
+    <string name="eq_stereo">Stereo</string>
+    <string name="eq_center">Centro</string>
+    <string name="eq_balance_left">S %1$d</string>
+    <string name="eq_balance_right">D %1$d</string>
+    <string name="eq_mono">Mono</string>
+    <string name="eq_mono_active">Mono attivato</string>
+    <string name="eq_auto_headroom">Margine automatico</string>
+    <string name="eq_auto_headroom_summary">Riduce automaticamente il preamplificatore quando la curva potrebbe saturare.</string>
+    <string name="eq_limiter">Limitatore</string>
+    <string name="eq_limiter_summary">Controlla i picchi digitali prima dell’uscita audio.</string>
+    <string name="eq_loudness">Loudness</string>
+    <string name="eq_reverb">Riverbero</string>
+    <string name="eq_room_type">Tipo di ambiente</string>
+    <string name="eq_reverb_mix">Mix</string>
+    <string name="eq_room_studio">Studio</string>
+    <string name="eq_room_small">Stanza piccola</string>
+    <string name="eq_room_hall">Sala grande</string>
+    <string name="eq_room_plate">Piastra</string>
+    <string name="eq_equalizer_unavailable">L’equalizzatore del dispositivo non è disponibile su questa uscita. I controlli dei canali restano attivi.</string>
+
+    <string name="content_desc_rewind">Riavvolgi</string>
+    <string name="content_desc_forward">Avanti veloce</string>
+    <string name="content_desc_video_screenshot">Cattura fotogramma video</string>
+    <string name="content_desc_stop">Stop</string>
+    <string name="content_desc_settings">Impostazioni</string>
+    <string name="content_desc_cast_screen">Trasmetti lo schermo del telefono</string>
+    <string name="content_desc_sort">Ordina</string>
+    <string name="content_desc_show_audio_files">Mostra file audio</string>
+    <string name="content_desc_rescan">Esegui nuova scansione</string>
+
+    <string name="eq_status_on">ON</string>
+    <string name="eq_status_off">OFF</string>
+
+    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
+    <string name="audio_watched_help_button_desc">Guida alle cartelle monitorate</string>
+    <string name="audio_watched_help_title">Come preparare la tua libreria audio</string>
+    <string name="audio_watched_help_desc">Quando aggiungi per la prima volta cartelle locali o di rete alla libreria, abbi pazienza: il caricamento di metadati e copertine può richiedere molto tempo, soprattutto se hai molti album o brani.</string>
+    <string name="audio_watched_help_desc_2">Per permettere a Blaze Audio di organizzare correttamente la musica, rispetta il più possibile la struttura seguente.</string>
+    <string name="audio_watched_help_structure_title">Struttura consigliata</string>
+    <string name="audio_watched_help_root">Cartella monitorata (locale o di rete)/</string>
+    <string name="audio_watched_help_artist_folder">└── Artista/</string>
+    <string name="audio_watched_help_album_folder">    └── Album/</string>
+    <string name="audio_watched_help_cover">        ├── cover.jpg</string>
+    <string name="audio_watched_help_track">        ├── 01 - Titolo del brano.flac</string>
+    <string name="audio_watched_help_lrc">        └── 01 - Titolo del brano.lrc</string>
+    <string name="audio_watched_help_cover_note">Posiziona la copertina nella cartella dell’album con il nome cover.jpg o cover.png.</string>
+    <string name="audio_watched_help_lrc_note">Posiziona i file .lrc accanto a ogni brano, usando esattamente lo stesso nome file.</string>
+
+    <!-- Aide de l’onglet Réseau -->
+    <string name="network_help_button_desc">Aiuto sui percorsi di rete</string>
+    <string name="network_help_title">Guida alla rete</string>
+    <string name="network_help_message">Devi salvare qui i percorsi dei file presenti sulla rete locale, per poterli poi esplorare nell’app.</string>
+    <string name="about_developed_in_france">Sviluppato in Francia, con amore</string>
+    <string name="paywall_status_unavailable">Stato abbonamento non disponibile</string>
+    <string name="paywall_active_pro_plus">Versione Pro+ attiva</string>
+    <string name="paywall_active_pro">Versione Pro attiva</string>
+    <string name="paywall_trial_expired">Prova Pro+ terminata — le funzioni premium sono bloccate</string>
+    <string name="trial_notification_channel_name">Prova Blaze Pro+</string>
+    <string name="trial_notification_title">La prova Blaze Pro+ sta per terminare</string>
+    <string name="trial_notification_message">La prova termina tra 48 ore. Attiva Pro o Pro+ per mantenere le funzioni premium.</string>
+    <plurals name="paywall_trial_days_left">
+        <item quantity="one">Prova Pro+: %1$d giorno rimasto</item>
+        <item quantity="other">Prova Pro+: %1$d giorni rimasti</item>
+    </plurals>
 </resources>

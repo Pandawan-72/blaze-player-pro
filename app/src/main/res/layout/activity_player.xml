@@ -73,7 +73,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:background="@drawable/bg_top_icon_btn"
-                android:contentDescription="Retour"
+                android:contentDescription="@string/content_desc_back"
                 android:padding="12dp"
                 android:src="@drawable/ic_arrow_back"
                 android:tint="#FFFFFF" />
@@ -124,7 +124,7 @@
                 android:layout_width="44dp"
                 android:layout_height="44dp"
                 android:background="@drawable/bg_top_icon_btn"
-                android:contentDescription="Chromecast"
+                android:contentDescription="@string/info_dialog_title_chromecast"
                 android:padding="9dp"
                 app:mediaRouteButtonTint="#FFFFFF" />
 
@@ -134,7 +134,7 @@
                 android:layout_height="44dp"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_top_icon_btn"
-                android:contentDescription="Paramètres vidéo"
+                android:contentDescription="@string/video_settings_title"
                 android:padding="10dp"
                 android:src="@drawable/ic_settings"
                 android:tint="#FFFFFF" />
@@ -163,7 +163,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:alpha="0.82"
-                    android:contentDescription="Reculer"
+                    android:contentDescription="@string/content_desc_rewind"
                     android:src="@drawable/ic_rewind_10"
                     android:tint="#FFFFFF" />
 
@@ -199,7 +199,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:layout_gravity="center"
-                        android:contentDescription="Capture d’écran vidéo"
+                        android:contentDescription="@string/content_desc_video_screenshot"
                         android:src="@drawable/ic_camera"
                         android:tint="#FFFFFF" />
                 </FrameLayout>
@@ -217,7 +217,7 @@
                         android:layout_width="34dp"
                         android:layout_height="34dp"
                         android:layout_gravity="center"
-                        android:contentDescription="Play/Pause"
+                        android:contentDescription="@string/content_desc_play_pause"
                         android:src="@drawable/ic_play"
                         android:tint="#FFFFFF" />
                 </FrameLayout>
@@ -255,7 +255,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:alpha="0.82"
-                    android:contentDescription="Avancer"
+                    android:contentDescription="@string/content_desc_forward"
                     android:src="@drawable/ic_forward_10"
                     android:tint="#FFFFFF" />
 
@@ -296,7 +296,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:layout_gravity="center"
-                    android:contentDescription="Chromecast"
+                    android:contentDescription="@string/info_dialog_title_chromecast"
                     android:src="@drawable/ic_cast"
                     android:tint="#FFFFFF" />
             </FrameLayout>
@@ -439,7 +439,7 @@
                     android:layout_height="36dp"
                     android:layout_marginStart="4dp"
                     android:background="@android:color/transparent"
-                    android:contentDescription="Informations"
+                    android:contentDescription="@string/action_information"
                     android:padding="7dp"
                     android:src="@drawable/ic_info"
                     android:tint="#FFFFFF" />
@@ -468,7 +468,7 @@
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:contentDescription="Sous-titres"
+                        android:contentDescription="@string/dialog_title_subtitles"
                         android:src="@drawable/ic_subtitles"
                         android:tint="#E6FFFFFF" />
 
@@ -494,7 +494,7 @@
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:contentDescription="Audio"
+                        android:contentDescription="@string/category_audio"
                         android:src="@drawable/ic_language"
                         android:tint="#E6FFFFFF" />
 
@@ -520,7 +520,7 @@
                     <ImageView
                         android:layout_width="28dp"
                         android:layout_height="28dp"
-                        android:contentDescription="Précédent"
+                        android:contentDescription="@string/content_desc_previous"
                         android:src="@drawable/ic_skip_previous"
                         android:tint="#FFFFFF" />
                 </LinearLayout>
@@ -539,7 +539,7 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:layout_gravity="center"
-                        android:contentDescription="Stop"
+                        android:contentDescription="@string/content_desc_stop"
                         android:src="@drawable/ic_stop"
                         android:tint="#FFFFFF" />
                 </FrameLayout>
@@ -557,7 +557,7 @@
                     <ImageView
                         android:layout_width="28dp"
                         android:layout_height="28dp"
-                        android:contentDescription="Suivant"
+                        android:contentDescription="@string/content_desc_next"
                         android:src="@drawable/ic_skip_next"
                         android:tint="#FFFFFF" />
                 </LinearLayout>
@@ -603,7 +603,7 @@
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:contentDescription="Ratio"
+                        android:contentDescription="@string/player_ratio_label"
                         android:src="@drawable/ic_aspect_ratio"
                         android:tint="#E6FFFFFF" />
 

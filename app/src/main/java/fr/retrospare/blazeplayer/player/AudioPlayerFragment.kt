@@ -618,6 +618,11 @@ class AudioPlayerFragment : Fragment() {
                     }
                     syncButtons()
                 }
+                if (events.contains(Player.EVENT_TRACKS_CHANGED)) {
+                    // La durée et les informations techniques sont maintenant disponibles : le
+                    // badge bitrate peut être recalculé depuis Room sans rouvrir le flux NAS.
+                    syncMetadata()
+                }
             }
         })
 
@@ -751,7 +756,8 @@ class AudioPlayerFragment : Fragment() {
             path = pathForMeta,
             originalName = originalName,
             fallbackExtension = safeExt,
-            codecTextColor = currentAccentColor
+            codecTextColor = currentAccentColor,
+            knownDurationMs = ctrl.duration.takeIf { it > 0L } ?: 0L
         )
 
         applyAudioProInterfaceSettings()
@@ -1016,10 +1022,9 @@ class AudioPlayerFragment : Fragment() {
         b.btnBlazeParty.typeface = android.graphics.Typeface.DEFAULT_BOLD
         b.btnBlazeParty.compoundDrawableTintList = ColorStateList.valueOf(Color.WHITE)
         b.btnBlazeParty.backgroundTintList = ColorStateList.valueOf(try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.surface_variant) } catch (_: Exception) { Color.rgb(31, 34, 48) })
+        // Conserve la couleur d’accentuation jaune de l’icône, tout en laissant
+        // le fond de bouton défini dans le layout identique à celui des paramètres.
         b.btnAudioPlaylistParty.imageTintList = ColorStateList.valueOf(yellow)
-        b.btnAudioPlaylistParty.background = android.graphics.drawable.ColorDrawable(Color.TRANSPARENT)
-        b.btnAudioPlaylistParty.elevation = 0f
-        b.btnAudioPlaylistParty.translationZ = 0f
     }
 
     /** Halo lumineux dynamique affiché derrière la pochette (ivArtworkGlow, sous artworkFrame).
@@ -1347,13 +1352,56 @@ class AudioPlayerFragment : Fragment() {
         helper.attachToRecyclerView(recyclerView)
     }
 
+    /**
+     * Relance explicitement un élément de la file standard depuis son début.
+     *
+     * Un simple seekToDefaultPosition() suivi de play() ne suffit pas toujours quand le titre a
+     * déjà atteint STATE_ENDED : suivant l'état de la MediaSession, le curseur revient bien à 0
+     * mais le player reste terminé. On envoie donc une séquence complète seek -> prepare -> play.
+     * Cette méthode fonctionne aussi pour le titre courant et permet ainsi de rejouer
+     * immédiatement un morceau déjà écouté.
+     */
+    private fun playStandardQueueItemFromStart(index: Int) {
+        val ctrl = controller ?: return
+        if (index !in 0 until ctrl.mediaItemCount) return
+
+        ctrl.pause()
+        ctrl.seekTo(index, 0L)
+        ctrl.prepare()
+        ctrl.playWhenReady = true
+        ctrl.play()
+
+        playlistAdapter.setCurrentIndex(index)
+        playlistAdapter.setPlayingIndex(index)
+        syncSelection()
+        syncMetadata()
+        syncButtons()
+
+        // Filet de sécurité pour certains contrôleurs Media3 distants : si la première rafale de
+        // commandes a été traitée pendant la transition STATE_ENDED, on la rejoue une seule fois
+        // après que la session a eu le temps de publier son nouvel état.
+        handler.postDelayed({
+            if (_binding == null || controller !== ctrl) return@postDelayed
+            if (ctrl.currentMediaItemIndex != index) return@postDelayed
+            val playbackStarted = ctrl.isPlaying ||
+                (ctrl.playWhenReady && (ctrl.playbackState == Player.STATE_BUFFERING ||
+                    ctrl.playbackState == Player.STATE_READY))
+            if (playbackStarted) return@postDelayed
+            if (ctrl.currentPosition > 500L) return@postDelayed
+
+            ctrl.seekTo(index, 0L)
+            ctrl.prepare()
+            ctrl.playWhenReady = true
+            ctrl.play()
+        }, 250L)
+    }
+
     private fun initPlaylistUi() {
         playlistAdapter = PlaylistAdapter({ controller }) { index ->
             if (isPlayingBlazePartyQueue && playlistAdapter.hasOverrideItems()) {
                 restoreLocalQueueFromSnapshot(index, true)
             } else {
-                controller?.seekToDefaultPosition(index)
-                controller?.play()
+                playStandardQueueItemFromStart(index)
             }
         }
         binding.recyclerPlaylist.apply {

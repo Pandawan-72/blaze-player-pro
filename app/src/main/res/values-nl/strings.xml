@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Audioweergave</string>
@@ -7,7 +7,7 @@
     <string name="tab_local">Lokaal</string>
     <string name="tab_network">Netwerk</string>
     <string name="tab_blaze_video">Blaze Video</string>
-<!-- Version badge -->
+
     <string name="version_badge_free">Gratis</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
@@ -30,7 +30,8 @@
     <string name="unknown_title">Onbekende titel</string>
     <string name="audio_track">Audiospoor</string>
 <string name="timer">Timer</string>
-    <string name="equalizer">Equalizer</string>
+    <string name="equalizer">Geluidsinstellingen</string>
+    <string name="sound_short">Geluid</string>
 <string name="loading">Laden…</string>
     <string name="no_track_found">0 nummers gevonden</string>
     <string name="zero_time">0:00</string>
@@ -318,7 +319,7 @@
     <string name="history_empty_blaze_video_title">Geen recent bekeken video\'s</string>
 
     <string name="history_blaze_video">Geschiedenis</string>
-<!-- Historique : gestion par sélection -->
+
     <string name="history_selection_active">Selectie actief: %1$d miniatuur/miniaturen geselecteerd.</string>
     <string name="history_action_prompt">Kies een actie voor deze geschiedenis.</string>
     <string name="history_delete_selection">Selectie verwijderen (%1$d)</string>
@@ -378,16 +379,16 @@
     <string name="deselect_all">Alles deselecteren</string>
     <string name="cast_subtitles_unavailable">Ondertitels niet beschikbaar tijdens casten</string>
     <string name="cast_audio_language_unavailable">Taal wijzigen niet beschikbaar tijdens casten</string>
-    <string name="paywall_title">Blaze Player ontgrendelen</string>
-    <string name="paywall_subtitle">Kies de versie die bij je gebruik past. Aankopen worden later gekoppeld.</string>
-    <string name="paywall_free_title">Blaze Player Gratis</string>
-    <string name="paywall_free_desc">Lokale video afspelen en lokale video casten. Alleen het lokale tabblad.</string>
+    <string name="paywall_title">Kies je Blaze-versie</string>
+    <string name="paywall_subtitle">Gebruik 15 dagen alle Pro+-functies en kies daarna de versie die bij je past.</string>
+    <string name="paywall_free_title">Blaze Player Free</string>
+    <string name="paywall_free_desc">Lokale Blaze Video-weergave en lokale video’s casten naar Chromecast. Het tabblad Netwerk en de netwerkknoppen in browsers blijven vergrendeld.</string>
     <string name="paywall_pro_title">Blaze Player Pro</string>
     <string name="paywall_pro_price">€ 3,99</string>
-    <string name="paywall_pro_desc">Ontgrendelt het SMB-netwerk en het tabblad Blaze Gallery.</string>
+    <string name="paywall_pro_desc">Bevat Free en ontgrendelt lokaal SMB/UPnP-netwerk en Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">€ 5,99</string>
-    <string name="paywall_pro_plus_desc">Ontgrendelt Blaze Audio en de \"Party\"-modus. Bevat ook alle Pro-functies.</string>
+    <string name="paywall_pro_plus_desc">Bevat alle Pro-functies en ontgrendelt de premium Blaze Audio-speler.</string>
     <string name="paywall_buy_pro">Pro ontgrendelen — € 3,99</string>
     <string name="paywall_buy_pro_plus">Pro+ ontgrendelen — € 5,99</string>
     <string name="paywall_debug_unlocked">Debugmodus: Pro en Pro+ zijn tijdelijk ontgrendeld.</string>
@@ -404,8 +405,8 @@
     <string name="video_setting_volume_boost">Volumeboost</string>
     <string name="action_reset">Resetten</string>
 
-    <!-- TMDb -->
-<!-- Blaze Gallery -->
+    
+
 <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Nog geen mappen — maak er een aan om te beginnen</string>
@@ -515,7 +516,7 @@ Token: %2$s</string>
     <string name="blaze_party_default_guest">Gast</string>
     <string name="app_name_gallery">Blaze Gallery</string>
 
-    <!-- Photo editor (filters / crop / rotate / details) -->
+    
     <string name="photo_editor_title">Bewerken</string>
     <string name="filter_normal">Normaal</string>
     <string name="filter_vivid">Levendig</string>
@@ -570,7 +571,7 @@ Token: %2$s</string>
     <string name="photo_details_location">Locatie: %1$s</string>
     <string name="gallery_menu_edit">Bewerken</string>
 
-    <!-- Video trim -->
+    
     <string name="video_trim_title">Bijsnijden</string>
     <string name="action_export_fast">SQ</string>
     <string name="action_export_precise">HQ</string>
@@ -579,10 +580,10 @@ Token: %2$s</string>
     <string name="toast_video_saved">Video opgeslagen in Blaze Gallery</string>
     <string name="toast_video_export_failed">Exporteren mislukt</string>
     <string name="toast_gif_saved">GIF opgeslagen in Blaze Gallery</string>
-    <string name="toast_mp3_saved">MP3 opgeslagen in Blaze MP3 Cut</string>
+    <string name="toast_mp3_saved">MP3 opgeslagen in Documents/Blaze Audio Extractor</string>
     <string name="toast_mp3_export_failed">MP3 exporteren mislukt</string>
     <string name="gallery_menu_cut">Bijsnijden</string>
-<!-- Video queue additions -->
+
     <string name="add_to_playlist_fixed_short">Naar afspeellijst</string>
     <string name="add_to_video_queue_short">wachtrij</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -598,7 +599,7 @@ Token: %2$s</string>
     <string name="content_desc_video_queue">Videowachtrij</string>
     <string name="content_desc_close_video_queue">Videowachtrij sluiten</string>
 
-    <!-- Blaze Audio Pro+ library and premium settings -->
+    
     <string name="audio_library_title">Bibliotheek</string>
     <string name="audio_library_subtitle">Je Pro+ muziekbibliotheek</string>
     <string name="audio_loading_in_progress">Laden...</string>
@@ -627,14 +628,19 @@ Token: %2$s</string>
     <string name="audio_normalize_volume_subtitle">Volume tussen nummers balanceren</string>
     <string name="audio_section_quality">Audiokwaliteit</string>
     <string name="audio_high_quality_output">Uitvoer hoge kwaliteit</string>
-    <string name="audio_high_quality_subtitle">Hoge geluidskwaliteit prioriteren</string>
+    <string name="audio_high_quality_subtitle">Schakelt geluidsinstellingen uit voor directe audio-uitvoer</string>
     <string name="audio_replaygain_title">ReplayGain</string>
     <string name="audio_replaygain_off">Uit</string>
     <string name="audio_replaygain_track">Nummer</string>
     <string name="audio_replaygain_album">Album</string>
     <string name="audio_preamp_title">Voorversterker</string>
     <string name="audio_preamp_subtitle">Uitvoerniveau aanpassen</string>
-    <string name="audio_bit_depth_title">Audiodiepte</string>
+    <string name="audio_output_mode_title">Precisiemodus</string>
+    <string name="audio_output_mode_subtitle">Past het PCM-pad aan de kwaliteit en compatibiliteit van het apparaat aan</string>
+    <string name="audio_output_mode_auto">Automatisch</string>
+    <string name="audio_output_mode_compatibility">Compatibiliteit</string>
+    <string name="audio_output_mode_high_precision">Hoge precisie</string>
+    <string name="audio_replaygain_subtitle">Maakt het volume tussen nummers gelijk, los van geluidseffecten</string>
     <string name="audio_section_library">Bibliotheek</string>
     <string name="audio_auto_scan">Automatisch scannen</string>
     <string name="audio_auto_scan_subtitle">Nieuwe bestanden toevoegen</string>
@@ -701,7 +707,7 @@ Token: %2$s</string>
     <string name="action_scan">Scannen</string>
     <string name="action_done">Klaar</string>
 <string name="audio_play_album">Volledig album afspelen</string>
-    <string name="audio_add_album_queue">Album aan wachtrij toevoegen</string>
+    <string name="audio_add_album_queue">Aan wachtrij toevoegen</string>
     <string name="audio_select_tracks">Nummers selecteren</string>
     <string name="audio_add_playlist_blaze_party">Playlist aan Blaze Party toevoegen</string>
     <string name="audio_add_playlist_queue">Playlist aan wachtrij toevoegen</string>
@@ -750,4 +756,76 @@ Token: %2$s</string>
 
     <string name="cast_remote_led_on">ON</string>
     <string name="cast_remote_led_off">OFF</string>
+
+    <string name="close">Sluiten</string>
+    <string name="eq_tab_tone">Klank</string>
+    <string name="eq_tab_dynamics">Dynamiek</string>
+    <string name="eq_tab_ambience">Sfeer</string>
+    <string name="eq_bass">Lage tonen</string>
+    <string name="eq_treble">Hoge tonen</string>
+    <string name="eq_balance">Balans</string>
+    <string name="eq_stereo">Stereo</string>
+    <string name="eq_center">Midden</string>
+    <string name="eq_balance_left">L %1$d</string>
+    <string name="eq_balance_right">R %1$d</string>
+    <string name="eq_mono">Mono</string>
+    <string name="eq_mono_active">Mono ingeschakeld</string>
+    <string name="eq_auto_headroom">Automatische marge</string>
+    <string name="eq_auto_headroom_summary">Verlaagt de voorversterking automatisch wanneer de curve kan oversturen.</string>
+    <string name="eq_limiter">Limiter</string>
+    <string name="eq_limiter_summary">Begrenst digitale pieken vóór de audio-uitgang.</string>
+    <string name="eq_loudness">Loudness</string>
+    <string name="eq_reverb">Galm</string>
+    <string name="eq_room_type">Ruimtetype</string>
+    <string name="eq_reverb_mix">Mix</string>
+    <string name="eq_room_studio">Studio</string>
+    <string name="eq_room_small">Kleine ruimte</string>
+    <string name="eq_room_hall">Grote zaal</string>
+    <string name="eq_room_plate">Plaat</string>
+    <string name="eq_equalizer_unavailable">De equalizer van het apparaat is niet beschikbaar op deze uitgang. De kanaalregelaars blijven actief.</string>
+
+    <string name="content_desc_rewind">Terugspoelen</string>
+    <string name="content_desc_forward">Vooruitspoelen</string>
+    <string name="content_desc_video_screenshot">Videoframe vastleggen</string>
+    <string name="content_desc_stop">Stoppen</string>
+    <string name="content_desc_settings">Instellingen</string>
+    <string name="content_desc_cast_screen">Telefoonscherm casten</string>
+    <string name="content_desc_sort">Sorteren</string>
+    <string name="content_desc_show_audio_files">Audiobestanden tonen</string>
+    <string name="content_desc_rescan">Opnieuw scannen</string>
+
+    <string name="eq_status_on">AAN</string>
+    <string name="eq_status_off">UIT</string>
+
+    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
+    <string name="audio_watched_help_button_desc">Hulp over bewaakte mappen</string>
+    <string name="audio_watched_help_title">Zo bereid je je audiobibliotheek voor</string>
+    <string name="audio_watched_help_desc">Wanneer je voor het eerst lokale of netwerkmappen aan je bibliotheek toevoegt, wees dan geduldig: het laden van metadata en hoezen kan lang duren, vooral als je veel albums of nummers hebt.</string>
+    <string name="audio_watched_help_desc_2">Zodat Blaze Audio je muziek correct kan indelen, volg je best zo nauw mogelijk de onderstaande structuur.</string>
+    <string name="audio_watched_help_structure_title">Aanbevolen structuur</string>
+    <string name="audio_watched_help_root">Bewaakte map (lokaal of netwerk)/</string>
+    <string name="audio_watched_help_artist_folder">└── Artiest/</string>
+    <string name="audio_watched_help_album_folder">    └── Album/</string>
+    <string name="audio_watched_help_cover">        ├── cover.jpg</string>
+    <string name="audio_watched_help_track">        ├── 01 - Titel van nummer.flac</string>
+    <string name="audio_watched_help_lrc">        └── 01 - Titel van nummer.lrc</string>
+    <string name="audio_watched_help_cover_note">Plaats de hoes in de albummap met de naam cover.jpg of cover.png.</string>
+    <string name="audio_watched_help_lrc_note">Plaats .lrc-bestanden naast elk nummer met exact dezelfde bestandsnaam.</string>
+
+    <!-- Aide de l’onglet Réseau -->
+    <string name="network_help_button_desc">Hulp bij netwerkpaden</string>
+    <string name="network_help_title">Netwerkhulp</string>
+    <string name="network_help_message">Je moet hier de paden naar je bestanden op je lokale netwerk opslaan, zodat je ze daarna in de app kunt doorbladeren.</string>
+    <string name="about_developed_in_france">Ontwikkeld in Frankrijk, met liefde</string>
+    <string name="paywall_status_unavailable">Abonnementsstatus niet beschikbaar</string>
+    <string name="paywall_active_pro_plus">Pro+-versie actief</string>
+    <string name="paywall_active_pro">Pro-versie actief</string>
+    <string name="paywall_trial_expired">Pro+-proefperiode afgelopen — premiumfuncties zijn vergrendeld</string>
+    <string name="trial_notification_channel_name">Blaze Pro+-proefperiode</string>
+    <string name="trial_notification_title">Je Blaze Pro+-proefperiode eindigt binnenkort</string>
+    <string name="trial_notification_message">Je proefperiode eindigt over 48 uur. Activeer Pro of Pro+ om premiumfuncties te behouden.</string>
+    <plurals name="paywall_trial_days_left">
+        <item quantity="one">Pro+-proefperiode: nog %1$d dag</item>
+        <item quantity="other">Pro+-proefperiode: nog %1$d dagen</item>
+    </plurals>
 </resources>

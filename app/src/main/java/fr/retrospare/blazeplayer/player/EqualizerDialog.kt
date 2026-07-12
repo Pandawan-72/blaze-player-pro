@@ -92,6 +92,7 @@ class EqualizerDialog(
         setupToneControls()
         setupDynamicsControls()
         setupAmbienceControls()
+        setupReplayGainControls()
         applyCapabilityVisibility()
     }
 
@@ -123,7 +124,8 @@ class EqualizerDialog(
             binding.eqBandsCard,
             binding.panelTone,
             binding.panelDynamics,
-            binding.panelAmbience
+            binding.panelAmbience,
+            binding.replayGainCard
         ).forEach { it.background = buildEqualizerCardBackground(accent) }
         currentDynamicAccent = accent
     }
@@ -174,18 +176,24 @@ class EqualizerDialog(
     }
 
     private fun setupHeader() {
+        AudioProSettings.migrateOutputPreferences(requireContext())
         binding.btnCloseEq.setOnClickListener { dismiss() }
         applyAudioStyleToggle(binding.switchEq)
         binding.switchEq.isChecked = eqManager.isEnabled()
         refreshEqStatus(eqManager.isEnabled())
         binding.switchEq.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                // Les effets PCM et la sortie directe/float sont exclusifs. Réactiver Réglages son
+                // remet donc la qualité en mode automatique et coupe la sortie directe.
+                AudioProSettings.prepareForSoundSettings(requireContext())
+            }
             eqManager.setEnabled(checked)
             refreshEqStatus(checked)
         }
     }
 
     private fun refreshEqStatus(enabled: Boolean) {
-        binding.tvEqStatus.text = if (enabled) "ON" else "OFF"
+        binding.tvEqStatus.setText(if (enabled) R.string.eq_status_on else R.string.eq_status_off)
         binding.tvEqStatus.setTextColor(
             ContextCompat.getColor(
                 requireContext(),
@@ -497,6 +505,28 @@ class EqualizerDialog(
         binding.tvReverbMixValue.text = "${eqManager.getSavedReverbMix()}%"
         binding.knobReverbMix.setAccentColor(ContextCompat.getColor(requireContext(), R.color.purple_accent))
         refreshReverbEnabledState(eqManager.isReverbEnabled())
+    }
+
+    private fun setupReplayGainControls() {
+        val prefs = AudioProSettings.prefs(requireContext())
+        val selectedId = when (
+            prefs.getInt(AudioProSettings.KEY_REPLAYGAIN, AudioProSettings.REPLAYGAIN_TRACK)
+                .coerceIn(AudioProSettings.REPLAYGAIN_OFF, AudioProSettings.REPLAYGAIN_ALBUM)
+        ) {
+            AudioProSettings.REPLAYGAIN_OFF -> binding.btnReplayGainOff.id
+            AudioProSettings.REPLAYGAIN_ALBUM -> binding.btnReplayGainAlbum.id
+            else -> binding.btnReplayGainTrack.id
+        }
+        binding.replayGainGroup.check(selectedId)
+        binding.replayGainGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val mode = when (checkedId) {
+                binding.btnReplayGainOff.id -> AudioProSettings.REPLAYGAIN_OFF
+                binding.btnReplayGainAlbum.id -> AudioProSettings.REPLAYGAIN_ALBUM
+                else -> AudioProSettings.REPLAYGAIN_TRACK
+            }
+            prefs.edit().putInt(AudioProSettings.KEY_REPLAYGAIN, mode).apply()
+        }
     }
 
     private fun applyCapabilityVisibility() {

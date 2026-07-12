@@ -25,7 +25,7 @@
             android:background="@drawable/bg_surface_card"
             android:src="@drawable/ic_arrow_back"
             android:tint="@color/on_surface_variant"
-            android:contentDescription="Retour"
+            android:contentDescription="@string/content_desc_back"
             android:layout_marginEnd="8dp" />
 
         <TextView

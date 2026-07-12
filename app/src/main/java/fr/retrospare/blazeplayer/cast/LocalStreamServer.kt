@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import fi.iki.elonen.NanoHTTPD
 import java.io.InputStream
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Petit serveur HTTP local embarque qui relaie un fichier local (content://, /storage/...)
@@ -33,14 +35,30 @@ class LocalStreamServer(
     private data class ActiveSource(val path: String, val version: Long)
 
     @Volatile private var activeSource: ActiveSource? = null
+    private val sourceVersionCounter = AtomicLong(System.currentTimeMillis())
+    private val sourcesByVersion = ConcurrentHashMap<Long, String>()
 
     // Taille de fichier mise en cache par CHEMIN (pas par référence mutable partagée) : une
     // requête sur l'ancienne vidéo qui recalcule sa taille ne peut plus jamais écraser/lire un
     // état pensé pour la nouvelle vidéo, quel que soit l'ordre d'exécution des threads.
     private val fileSizeCache = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
-    fun setSource(path: String) {
-        activeSource = ActiveSource(path, System.currentTimeMillis())
+    fun setSource(path: String): Long {
+        val version = registerSource(path)
+        activeSource = ActiveSource(path, version)
+        return version
+    }
+
+    /** Enregistre une source sans remplacer la source active. Utile lorsqu'une ancienne
+     * conversion Cast se termine après qu'une nouvelle vidéo a déjà été sélectionnée : chaque
+     * URL versionnée continue alors de pointer vers le bon fichier, sans course entre les deux. */
+    fun registerSource(path: String): Long {
+        val version = sourceVersionCounter.incrementAndGet()
+        sourcesByVersion[version] = path
+        if (sourcesByVersion.size > 16) {
+            sourcesByVersion.keys.sorted().take(sourcesByVersion.size - 12).forEach { sourcesByVersion.remove(it) }
+        }
+        return version
     }
 
     /** URL a donner au player local pour lire ce fichier — TOUJOURS en loopback (127.0.0.1), même
@@ -56,13 +74,18 @@ class LocalStreamServer(
         return "http://127.0.0.1:${this.listeningPort}/stream/${activeSource?.version ?: 0L}"
     }
 
-    fun getLanStreamUrl(): String {
-        val ip = getLocalIpAddress() ?: "127.0.0.1"
-        return "http://$ip:${this.listeningPort}/stream/${activeSource?.version ?: 0L}"
+    fun getLanStreamUrl(): String? = activeSource?.let { getLanStreamUrl(it.version) }
+
+    fun getLanStreamUrl(version: Long): String? {
+        // Ne jamais fournir 127.0.0.1 au Chromecast : cette adresse désignerait le Chromecast
+        // lui-même et donnerait exactement le symptôme « chargement puis arrêt ».
+        val ip = getLocalIpAddress() ?: return null
+        return "http://$ip:${this.listeningPort}/stream/$version"
     }
 
     fun clearSource() {
         activeSource = null
+        sourcesByVersion.clear()
     }
 
     /** Adresse IP réseau (Wi-Fi/Ethernet) du téléphone, publique pour que
@@ -99,7 +122,11 @@ class LocalStreamServer(
             return response
         }
 
-        val source = activeSource ?: return cors(newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "No source set"))
+        val requestedVersion = session.uri.substringAfterLast('/').toLongOrNull()
+        val source = requestedVersion?.let { version ->
+            sourcesByVersion[version]?.let { path -> ActiveSource(path, version) }
+        } ?: activeSource
+            ?: return cors(newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "No source set"))
         val path = source.path
         val mimeType = guessMimeType(path)
 
@@ -294,6 +321,25 @@ class LocalStreamServer(
             }
         } catch (e: Exception) {
             android.util.Log.w("LocalStreamServer", "ConnectivityManager IP lookup failed", e)
+        }
+
+        // Repli pour certains firmwares qui ne publient pas correctement LinkProperties mais
+        // exposent encore l'adresse IPv4 via WifiManager.
+        try {
+            val wifi = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+            @Suppress("DEPRECATION")
+            val raw = wifi?.connectionInfo?.ipAddress ?: 0
+            if (raw != 0) {
+                val ip = listOf(
+                    raw and 0xff,
+                    raw shr 8 and 0xff,
+                    raw shr 16 and 0xff,
+                    raw shr 24 and 0xff
+                ).joinToString(".")
+                if (ip != "0.0.0.0" && ip != "127.0.0.1") return ip
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("LocalStreamServer", "WifiManager IP lookup failed", e)
         }
 
         // Repli : parcourt les interfaces réseau en donnant explicitement la priorité à celles

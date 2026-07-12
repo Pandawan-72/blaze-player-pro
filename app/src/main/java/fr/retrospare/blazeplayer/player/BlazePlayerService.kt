@@ -9,12 +9,15 @@ import android.content.SharedPreferences
 import android.media.audiofx.LoudnessEnhancer
 import android.os.Handler
 import android.os.Looper
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import android.net.wifi.WifiManager
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -27,14 +30,24 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
+import dagger.hilt.android.AndroidEntryPoint
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.SettableFuture
 import fi.iki.elonen.NanoHTTPD
+import fr.retrospare.blazeplayer.settings.SettingsViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
 /**
  * Service de lecture AUDIO basé sur [MediaSessionService] : c'est l'unique source de vérité pour
@@ -52,6 +65,7 @@ import kotlinx.coroutines.launch
  * gérée automatiquement par [MediaSessionService] via son [androidx.media3.session.MediaNotification.Provider]
  * par défaut — il ne faut surtout pas la dupliquer manuellement avec une notification "maison".
  */
+@AndroidEntryPoint
 @UnstableApi
 class BlazePlayerService : MediaSessionService() {
 
@@ -88,13 +102,23 @@ class BlazePlayerService : MediaSessionService() {
         // vidéo écrasait purement et simplement la notification audio (même slot de notification).
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "blaze_audio_channel"
+        private const val MAX_SMB_PLAYBACK_RECOVERY_ATTEMPTS = 2
+        private const val SMB_PLAYBACK_RECOVERY_DELAY_MS = 650L
 
         /** Signal léger lu par la bibliothèque audio : quand une piste joue, les scans
          *  métadonnées/covers doivent rester strictement non prioritaires pour éviter
          *  toute coupure, surtout avec des fichiers sur NAS. */
         @Volatile var isAudioPlaybackActive: Boolean = false
             private set
+
+        /** Vrai uniquement quand le service possède réellement une file audio. MainActivity s'en
+         * sert pour ne jamais démarrer ce service à froid uniquement afin d'afficher le mini player. */
+        @Volatile var isAudioSessionActive: Boolean = false
+            private set
     }
+
+    @Inject lateinit var settingsDataStore: DataStore<Preferences>
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
 
     private var mediaSession: MediaSession? = null
     private var player: ExoPlayer? = null
@@ -112,10 +136,30 @@ class BlazePlayerService : MediaSessionService() {
     private var crossfadeInProgress = false
     private var crossfadeIndex = -1
     private val eqApplyHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val audioPipelineHandler = Handler(Looper.getMainLooper())
     private val partyStateHandler = Handler(Looper.getMainLooper())
     private val crossfadeHandler = Handler(Looper.getMainLooper())
-    private val audioProListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+    private val smbRecoveryHandler = Handler(Looper.getMainLooper())
+    private val autoAdvanceHandler = Handler(Looper.getMainLooper())
+    @Volatile private var autoPlayNextEnabled = true
+    @Volatile private var autoAdvanceGeneration = 0L
+    private var smbRecoveryPath = ""
+    private var smbRecoveryAttempts = 0
+    private var activeAudioPipelineSignature = ""
+    private var rebuildingAudioPipeline = false
+    @Volatile private var accessResolved = false
+    @Volatile private var hasAudioAccess = false
+    private var accessExpiryJob: Job? = null
+
+    private data class AudioPlayerBundle(
+        val player: ExoPlayer,
+        val processor: BlazePcmAudioProcessor?
+    )
+    private val audioProListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         audioProValues = AudioProSettings.read(applicationContext)
+        if (key == AudioProSettings.KEY_HI_RES || key == AudioProSettings.KEY_OUTPUT_MODE) {
+            scheduleAudioPipelineRebuild()
+        }
         refreshReplayGainForCurrentItem()
         applyAudioProSettings()
     }
@@ -124,6 +168,7 @@ class BlazePlayerService : MediaSessionService() {
             applyLoudnessEnhancer(player?.audioSessionId ?: 0)
         }
         if (key == EqualizerManager.KEY_EQ_ENABLED) {
+            scheduleAudioPipelineRebuild()
             player?.let { tryApplyHighQualityOutput(it) }
         }
     }
@@ -153,6 +198,24 @@ class BlazePlayerService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
 
+        // Aucun accès DataStore bloquant ici : onCreate() est exécuté sur le thread principal.
+        // Le contrôle Pro+ est lancé après la création de la session et reste entièrement asynchrone.
+
+        // Le réglage global doit être connu même lorsque l'écran Audio n'est pas ouvert : le
+        // service est la seule source de vérité pour les files audio et Blaze Party.
+        serviceScope.launch {
+            settingsDataStore.data
+                .map { prefs -> prefs[SettingsViewModel.KEY_AUTO_PLAY] ?: true }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    autoPlayNextEnabled = enabled
+                    if (!enabled) {
+                        autoAdvanceGeneration++
+                        autoAdvanceHandler.removeCallbacksAndMessages(null)
+                    }
+                }
+        }
+
         audioProPrefs = AudioProSettings.prefs(this)
         audioProValues = AudioProSettings.read(this)
         audioProPrefs.registerOnSharedPreferenceChangeListener(audioProListener)
@@ -174,34 +237,211 @@ class BlazePlayerService : MediaSessionService() {
                 .build()
         )
 
-        // Niveau 1 anti-ANR : ne pas initialiser SimpleCache dans onCreate(). SimpleCache peut
-        // scanner/verrouiller le cache disque sur le thread principal au démarrage du service.
-        // Pour la fiabilité debug, on privilégie un DataSource direct ; le cache pourra revenir plus
-        // tard avec une initialisation lazy hors thread principal.
+        val initialBundle = createAudioPlayer()
+        val exoPlayer = initialBundle.player
+        pcmAudioProcessor = initialBundle.processor
+        player = exoPlayer
+        sessionPlayer = exoPlayer
+        attachCorePlayerListener(exoPlayer)
+        attachSessionStateListener(exoPlayer)
+        restoreEqualizerForPlayer(exoPlayer)
+        applyAudioProSettings(exoPlayer)
+        activeAudioPipelineSignature = currentAudioPipelineSignature()
+
+        val openIntent = PendingIntent.getActivity(
+            this, 2001,
+            Intent(this, fr.retrospare.blazeplayer.BlazeAudioLauncherActivity::class.java).apply {
+                action = "fr.retrospare.blazeplayer.action.OPEN_BLAZE_AUDIO_FROM_NOTIFICATION"
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("openBlazeAudio", true)
+                putExtra("requestedTab", 4)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        mediaSession = MediaSession.Builder(this, exoPlayer)
+            .setId("BlazeAudio")
+            .setSessionActivity(openIntent)
+            .setCallback(SessionCallback())
+            .build()
+
+        resolveInitialAccessAsync()
+    }
+
+    private fun resolveInitialAccessAsync() {
+        serviceScope.launch {
+            val state = runCatching { userRepository.ensureTrialStarted() }
+                .onFailure { error ->
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Initial Pro+ access check failed",
+                        error
+                    )
+                }
+                .getOrNull()
+            withContext(Dispatchers.Main.immediate) {
+                if (state == null || !state.hasProPlusAccess) {
+                    accessResolved = true
+                    hasAudioAccess = false
+                    stopForMissingAudioAccess("initial access denied")
+                    return@withContext
+                }
+                applyResolvedAccessState(state)
+
+                // Si une party était hébergée avant que le service ne soit recréé, on ne la
+                // redémarre qu'après confirmation asynchrone du droit Pro+.
+                if (BlazePartyVoteManager.isActive(applicationContext) &&
+                    BlazePartyVoteManager.isHost(applicationContext)) {
+                    BlazePartyVoteManager.getHostToken(applicationContext)?.let { startPartyHostServer(it) }
+                }
+            }
+        }
+    }
+
+    private fun applyResolvedAccessState(
+        state: fr.retrospare.blazeplayer.data.repository.SubscriptionAccessState,
+        scheduleExpiry: Boolean = true
+    ) {
+        accessResolved = true
+        hasAudioAccess = state.hasProPlusAccess
+        if (!scheduleExpiry) return
+
+        accessExpiryJob?.cancel()
+        accessExpiryJob = null
+        if (state.hasProPlusAccess && state.isTrialActive && !state.isProPlusPurchased) {
+            val remaining = (state.trialEndMillis - state.evaluatedAtMillis).coerceAtLeast(1L)
+            accessExpiryJob = serviceScope.launch {
+                delay(remaining)
+                val refreshed = runCatching { userRepository.currentAccessState() }.getOrNull()
+                withContext(Dispatchers.Main.immediate) {
+                    if (refreshed == null) {
+                        accessResolved = true
+                        hasAudioAccess = false
+                        stopForMissingAudioAccess("trial expiry check failed")
+                    } else {
+                        applyResolvedAccessState(refreshed, scheduleExpiry = false)
+                        if (!refreshed.hasProPlusAccess) {
+                            stopForMissingAudioAccess("Pro+ trial expired")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopForMissingAudioAccess(reason: String) {
+        android.util.Log.w("BlazePlayerService", "Stopping audio service: $reason")
+        hasAudioAccess = false
+        isAudioPlaybackActive = false
+        isAudioSessionActive = false
+        runCatching { sessionPlayer?.pause() }
+        runCatching { sessionPlayer?.clearMediaItems() }
+        stopPartyHostServer()
+        stopSelf()
+    }
+
+    private fun runAudioActionWhenAllowed(actionName: String, action: () -> Unit) {
+        serviceScope.launch {
+            val state = runCatching { userRepository.ensureTrialStarted() }
+                .onFailure { error ->
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Pro+ access check failed for $actionName",
+                        error
+                    )
+                }
+                .getOrNull()
+            withContext(Dispatchers.Main.immediate) {
+                if (state == null || !state.hasProPlusAccess) {
+                    accessResolved = true
+                    hasAudioAccess = false
+                    stopForMissingAudioAccess("access denied for $actionName")
+                    return@withContext
+                }
+                applyResolvedAccessState(state)
+                action()
+            }
+        }
+    }
+
+    private fun runSessionActionWhenAllowed(
+        actionName: String,
+        action: () -> SessionResult
+    ): ListenableFuture<SessionResult> {
+        val future = SettableFuture.create<SessionResult>()
+        serviceScope.launch {
+            val state = runCatching { userRepository.ensureTrialStarted() }
+                .onFailure { error ->
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Session Pro+ access check failed for $actionName",
+                        error
+                    )
+                }
+                .getOrNull()
+            withContext(Dispatchers.Main.immediate) {
+                if (state == null || !state.hasProPlusAccess) {
+                    accessResolved = true
+                    hasAudioAccess = false
+                    future.set(SessionResult(SessionResult.RESULT_ERROR_PERMISSION_DENIED))
+                    stopForMissingAudioAccess("session access denied for $actionName")
+                } else {
+                    applyResolvedAccessState(state)
+                    future.set(runCatching(action).getOrElse { error ->
+                        fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                            applicationContext,
+                            "Audio session command failed: $actionName",
+                            error
+                        )
+                        SessionResult(SessionResult.RESULT_ERROR_UNKNOWN)
+                    })
+                }
+            }
+        }
+        return future
+    }
+
+    private fun refreshAccessWithoutBlocking() {
+        serviceScope.launch {
+            val state = runCatching { userRepository.currentAccessState() }.getOrNull() ?: return@launch
+            withContext(Dispatchers.Main.immediate) {
+                applyResolvedAccessState(state)
+                if (!state.hasProPlusAccess) stopForMissingAudioAccess("background access refresh denied")
+            }
+        }
+    }
+
+    private fun createAudioPlayer(): AudioPlayerBundle {
+        val soundSettingsEnabled = eqPrefs.getBoolean(EqualizerManager.KEY_EQ_ENABLED, true)
+        val useFloatOutput = AudioProSettings.shouldUseFloatOutput(audioProValues, soundSettingsEnabled)
+        val processor = if (soundSettingsEnabled && !useFloatOutput) {
+            BlazePcmAudioProcessor(this)
+        } else {
+            null
+        }
+
         val dataSourceFactory = BlazeDataSourceFactory(this)
         val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
-        val centralPcmProcessor = BlazePcmAudioProcessor(this).also { pcmAudioProcessor = it }
         val renderersFactory = object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
                 context: Context,
                 enableFloatOutput: Boolean,
                 enableAudioOutputPlaybackParams: Boolean
             ): AudioSink? {
-                return DefaultAudioSink.Builder(context)
-                    // Un AudioProcessor PCM doit rester actif pour la balance, le mono, la largeur
-                    // stéréo, le limiteur et la réverbération. La sortie float directe contournerait
-                    // cette chaîne sur certains appareils, donc on garde ici la sortie entière.
-                    .setEnableFloatOutput(false)
+                val builder = DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(useFloatOutput)
                     .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
-                    .setAudioProcessors(arrayOf<AudioProcessor>(centralPcmProcessor))
-                    .build()
+                if (processor != null) {
+                    builder.setAudioProcessors(arrayOf<AudioProcessor>(processor))
+                } else {
+                    builder.setAudioProcessors(emptyArray<AudioProcessor>())
+                }
+                return builder.build()
             }
-        }.setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+        }
+            .setEnableAudioFloatOutput(useFloatOutput)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
 
-        // Lecture audio réseau : on privilégie la stabilité sur SMB/Wi-Fi plutôt qu'un démarrage
-        // ultra agressif. Les valeurs ci-dessous gardent un démarrage raisonnable, mais exigent
-        // un tampon plus confortable après rebuffer afin d'éviter les micro-coupures et les arrêts
-        // silencieux sur NAS/Wi-Fi instables.
         val loadControl = DefaultLoadControl.Builder()
             .setAllocator(DefaultAllocator(true, 64 * 1024))
             .setBufferDurationsMs(
@@ -225,10 +465,12 @@ class BlazePlayerService : MediaSessionService() {
                 /* handleAudioFocus = */ true
             )
             .setHandleAudioBecomingNoisy(true)
-            // Garde le Wi-Fi actif pendant la lecture réseau (SMB) en arrière-plan/écran éteint.
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
-        restoreEqualizerForPlayer(exoPlayer)
+        return AudioPlayerBundle(exoPlayer, processor)
+    }
+
+    private fun attachCorePlayerListener(exoPlayer: ExoPlayer) {
         exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 fr.retrospare.blazeplayer.debug.CrashReporter.log(
@@ -236,6 +478,7 @@ class BlazePlayerService : MediaSessionService() {
                     "Audio player error: code=${error.errorCodeName}",
                     error
                 )
+                scheduleSmbPlaybackRecovery(exoPlayer, error)
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -251,60 +494,162 @@ class BlazePlayerService : MediaSessionService() {
                 player: androidx.media3.common.Player,
                 events: androidx.media3.common.Player.Events
             ) {
-                // Un changement de route ou une recréation de l'AudioTrack peut attribuer une
-                // nouvelle session. Les AudioEffect natifs doivent alors être libérés puis
-                // rattachés immédiatement à la session réellement active.
                 if (events.contains(androidx.media3.common.Player.EVENT_AUDIO_SESSION_ID)) {
                     restoreEqualizerForPlayer(exoPlayer)
                 }
             }
         })
-        player = exoPlayer
-        applyAudioProSettings(exoPlayer)
+    }
 
-        // Isolation stricte audio/vidéo : la MediaSession audio expose UNIQUEMENT ExoPlayer local.
-        // Aucun composant Chromecast côté audio : le lecteur audio et le
-        // mini-player ne peuvent plus récupérer ni piloter un média vidéo casté.
-        val audioSessionPlayer: Player = exoPlayer
-        sessionPlayer = audioSessionPlayer
+    private fun scheduleSmbPlaybackRecovery(
+        exoPlayer: ExoPlayer,
+        error: androidx.media3.common.PlaybackException
+    ) {
+        if (!error.errorCodeName.startsWith("ERROR_CODE_IO_")) return
+        val mediaItem = exoPlayer.currentMediaItem ?: return
+        val path = originalPathFromItem(mediaItem)
+        if (!path.startsWith("smb://", ignoreCase = true)) return
 
-        val openIntent = PendingIntent.getActivity(
-            this, 2001,
-            Intent(this, fr.retrospare.blazeplayer.BlazeAudioLauncherActivity::class.java).apply {
-                action = "fr.retrospare.blazeplayer.action.OPEN_BLAZE_AUDIO_FROM_NOTIFICATION"
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra("openBlazeAudio", true)
-                putExtra("requestedTab", 4)
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        if (path != smbRecoveryPath) {
+            smbRecoveryPath = path
+            smbRecoveryAttempts = 0
+        }
+        if (smbRecoveryAttempts >= MAX_SMB_PLAYBACK_RECOVERY_ATTEMPTS) return
+
+        val attempt = ++smbRecoveryAttempts
+        val mediaIndex = exoPlayer.currentMediaItemIndex.coerceAtLeast(0)
+        val resumePosition = exoPlayer.currentPosition.coerceAtLeast(0L)
+        val resumePlayback = exoPlayer.playWhenReady || isAudioPlaybackActive
+        android.util.Log.w(
+            "BlazePlayerService",
+            "SMB playback recovery $attempt/$MAX_SMB_PLAYBACK_RECOVERY_ATTEMPTS at ${resumePosition}ms"
         )
 
-        audioSessionPlayer.addListener(object : androidx.media3.common.Player.Listener {
+        smbRecoveryHandler.postDelayed({
+            val current = exoPlayer.currentMediaItem ?: return@postDelayed
+            if (originalPathFromItem(current) != path) return@postDelayed
+            runCatching {
+                exoPlayer.seekTo(mediaIndex.coerceAtMost((exoPlayer.mediaItemCount - 1).coerceAtLeast(0)), resumePosition)
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = resumePlayback
+                if (resumePlayback) exoPlayer.play()
+            }.onFailure { recoveryError ->
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                    applicationContext,
+                    "SMB audio recovery failed",
+                    recoveryError
+                )
+            }
+        }, SMB_PLAYBACK_RECOVERY_DELAY_MS)
+    }
+
+    private fun attachSessionStateListener(exoPlayer: ExoPlayer) {
+        exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                isAudioSessionActive = exoPlayer.mediaItemCount > 0
+                autoAdvanceGeneration++
+                autoAdvanceHandler.removeCallbacksAndMessages(null)
+                val transitionedPath = mediaItem?.let { originalPathFromItem(it) }.orEmpty()
+                if (transitionedPath != smbRecoveryPath) {
+                    smbRecoveryPath = transitionedPath
+                    smbRecoveryAttempts = 0
+                }
                 persistAudioQueue()
                 prepareReplayGainForItem(mediaItem)
-
-                // Précharge le .LRC correspondant en parallèle de la préparation/lecture audio.
-                // Le cache/verrou dans AudioLocalEnhancements évite une seconde ouverture lorsque
-                // l'overlay du Fragment réclame les mêmes paroles quelques millisecondes après.
                 val lyricsPath = mediaItem?.let { BlazePartyQueue.originalPathOf(it) }.orEmpty()
                 if (lyricsPath.isNotBlank() && audioProValues.syncedLyrics) {
                     serviceScope.launch {
                         AudioLocalEnhancements.findLocalLyricsData(applicationContext, lyricsPath)
                     }
                 }
-
                 if (!crossfadeInProgress && audioProValues.crossfade) {
-                    fadePlayerTo(AudioProSettings.playerVolume(audioProValues, currentReplayGainDb), (audioProValues.crossfadeDurationSec * 450L).coerceIn(180L, 1500L))
+                    fadePlayerTo(
+                        AudioProSettings.playerVolume(audioProValues, currentReplayGainDb),
+                        (audioProValues.crossfadeDurationSec * 450L).coerceIn(180L, 1500L)
+                    )
                 }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                isAudioPlaybackActive = isPlaying
+                isAudioPlaybackActive = exoPlayer.playWhenReady &&
+                    exoPlayer.playbackState != androidx.media3.common.Player.STATE_IDLE &&
+                    exoPlayer.playbackState != androidx.media3.common.Player.STATE_ENDED
                 scheduleCrossfadeCheck()
             }
 
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                isAudioPlaybackActive = playWhenReady &&
+                    exoPlayer.playbackState != androidx.media3.common.Player.STATE_IDLE &&
+                    exoPlayer.playbackState != androidx.media3.common.Player.STATE_ENDED
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
+                    scheduleAudioAutoAdvance(exoPlayer)
+                }
+            }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: androidx.media3.common.Player.PositionInfo,
+                newPosition: androidx.media3.common.Player.PositionInfo,
+                reason: Int
+            ) {
+                if (reason == androidx.media3.common.Player.DISCONTINUITY_REASON_SEEK) {
+                    // Un clic manuel dans la file doit toujours prendre la priorité sur le
+                    // garde-fou d'auto-avance éventuellement programmé à la fin du titre.
+                    autoAdvanceGeneration++
+                    autoAdvanceHandler.removeCallbacksAndMessages(null)
+                }
+            }
+
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                val mediaItem = exoPlayer.currentMediaItem ?: return
+                val path = BlazePartyQueue.originalPathOf(mediaItem)
+                if (path.isBlank()) return
+
+                var bitrate = 0L
+                loop@ for (group in tracks.groups) {
+                    if (group.type != C.TRACK_TYPE_AUDIO) continue
+                    for (index in 0 until group.length) {
+                        if (!group.isTrackSelected(index)) continue
+                        val format = group.getTrackFormat(index)
+                        bitrate = when {
+                            format.averageBitrate > 0 -> format.averageBitrate.toLong()
+                            format.peakBitrate > 0 -> format.peakBitrate.toLong()
+                            else -> 0L
+                        }
+                        break@loop
+                    }
+                }
+
+                val extension = mediaItem.mediaMetadata.extras
+                    ?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)
+                    .orEmpty()
+                    .ifBlank {
+                        path.substringBefore('?').substringBefore('#')
+                            .substringAfterLast('.', "").uppercase()
+                    }
+                val durationSeconds = exoPlayer.duration
+                    .takeIf { it > 0L }
+                    ?.let { (it + 500L) / 1000L }
+                    ?: 0L
+                val lossless = extension.uppercase() in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF", "WV")
+                if (bitrate <= 0L && durationSeconds <= 0L && !lossless) return
+
+                val technicalInfo = AudioTechnicalInfo(
+                    duration = durationSeconds,
+                    bitrate = bitrate,
+                    extension = extension,
+                    isLossless = lossless
+                )
+                AudioMetadataExtractor.putMemoryCached(path, technicalInfo)
+                serviceScope.launch(Dispatchers.IO) {
+                    AudioMetadataExtractor.putCached(applicationContext, path, technicalInfo)
+                }
+            }
+
             override fun onEvents(player: androidx.media3.common.Player, events: androidx.media3.common.Player.Events) {
+                isAudioSessionActive = player.mediaItemCount > 0
                 if (events.contains(androidx.media3.common.Player.EVENT_MEDIA_ITEM_TRANSITION) ||
                     events.contains(androidx.media3.common.Player.EVENT_PLAYBACK_STATE_CHANGED) ||
                     events.contains(androidx.media3.common.Player.EVENT_REPEAT_MODE_CHANGED) ||
@@ -314,18 +659,151 @@ class BlazePlayerService : MediaSessionService() {
                 }
             }
         })
+    }
 
-        mediaSession = MediaSession.Builder(this, audioSessionPlayer)
-            .setId("BlazeAudio")
-            .setSessionActivity(openIntent)
-            .setCallback(SessionCallback())
-            .build()
+    /**
+     * Media3 enchaîne normalement une timeline tout seul. Ce garde-fou couvre les files qui sont
+     * modifiées au moment précis où le morceau se termine, notamment Blaze Party qui recalcule
+     * l'ordre suivant selon les votes. On laisse quelques centaines de millisecondes à la timeline
+     * pour recevoir le prochain élément, puis on le lance explicitement si le réglage est actif.
+     */
+    private fun scheduleAudioAutoAdvance(exoPlayer: ExoPlayer) {
+        if (!autoPlayNextEnabled) return
+        val generation = ++autoAdvanceGeneration
+        val task = object : Runnable {
+            private var attempt = 0
 
-        // Si une party était hébergée avant que le service ne soit recréé (process tué puis
-        // relancé par Android, par exemple), on redémarre le serveur avec le même jeton que celui
-        // déjà distribué via le QR, pour que les invités connectés n'aient rien à rescanner.
-        if (BlazePartyVoteManager.isActive(applicationContext) && BlazePartyVoteManager.isHost(applicationContext)) {
-            BlazePartyVoteManager.getHostToken(applicationContext)?.let { startPartyHostServer(it) }
+            override fun run() {
+                if (generation != autoAdvanceGeneration || player !== exoPlayer || !autoPlayNextEnabled) return
+                if (exoPlayer.playbackState != androidx.media3.common.Player.STATE_ENDED) return
+
+                val hasNext = runCatching { exoPlayer.hasNextMediaItem() }.getOrDefault(false)
+                if (hasNext) {
+                    runCatching {
+                        exoPlayer.seekToNextMediaItem()
+                        if (exoPlayer.playbackState == androidx.media3.common.Player.STATE_IDLE) {
+                            exoPlayer.prepare()
+                        }
+                        exoPlayer.playWhenReady = true
+                        exoPlayer.play()
+                    }.onFailure { error ->
+                        fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                            applicationContext,
+                            "Automatic audio queue advance failed",
+                            error
+                        )
+                    }
+                    return
+                }
+
+                attempt++
+                if (attempt < 8) autoAdvanceHandler.postDelayed(this, 125L)
+            }
+        }
+        autoAdvanceHandler.post(task)
+    }
+
+    private fun currentAudioPipelineSignature(): String {
+        val soundSettingsEnabled = eqPrefs.getBoolean(EqualizerManager.KEY_EQ_ENABLED, true)
+        return "${audioProValues.outputMode}|${audioProValues.hiRes}|$soundSettingsEnabled"
+    }
+
+    private fun scheduleAudioPipelineRebuild() {
+        if (!::eqPrefs.isInitialized || !::audioProPrefs.isInitialized) return
+        audioPipelineHandler.removeCallbacksAndMessages(null)
+        audioPipelineHandler.postDelayed({ rebuildAudioPlayerForPipelineIfNeeded() }, 180L)
+    }
+
+    private fun rebuildAudioPlayerForPipelineIfNeeded() {
+        if (rebuildingAudioPipeline) return
+        val desiredSignature = currentAudioPipelineSignature()
+        if (desiredSignature == activeAudioPipelineSignature) return
+        val oldPlayer = player ?: run {
+            activeAudioPipelineSignature = desiredSignature
+            return
+        }
+
+        rebuildingAudioPipeline = true
+        var newBundle: AudioPlayerBundle? = null
+        try {
+            val mediaItems = (0 until oldPlayer.mediaItemCount).map { oldPlayer.getMediaItemAt(it) }
+            val oldIndex = oldPlayer.currentMediaItemIndex.coerceAtLeast(0)
+            val oldPosition = oldPlayer.currentPosition.coerceAtLeast(0L)
+            val oldPlayWhenReady = oldPlayer.playWhenReady
+            val oldRepeatMode = oldPlayer.repeatMode
+            val oldShuffle = oldPlayer.shuffleModeEnabled
+            val oldPlaybackParameters = oldPlayer.playbackParameters
+            val oldProcessor = pcmAudioProcessor
+
+            // Construire et préparer la nouvelle chaîne avant de toucher à celle qui joue encore.
+            // En cas d'échec matériel/codec, l'ancien Player reste donc entièrement opérationnel.
+            newBundle = createAudioPlayer()
+            val newPlayer = newBundle.player
+            // L'offload/direct doit être demandé avant la préparation pour que la première
+            // sélection de piste puisse choisir immédiatement le bon chemin de sortie.
+            tryApplyHighQualityOutput(newPlayer)
+            newPlayer.repeatMode = oldRepeatMode
+            newPlayer.shuffleModeEnabled = oldShuffle
+            newPlayer.playbackParameters = oldPlaybackParameters
+            if (mediaItems.isNotEmpty()) {
+                newPlayer.setMediaItems(
+                    mediaItems,
+                    oldIndex.coerceIn(0, mediaItems.lastIndex),
+                    oldPosition
+                )
+            }
+            newPlayer.playWhenReady = false
+            if (mediaItems.isNotEmpty()) {
+                // Préparer sans démarrer : les erreurs de format/sink surviennent avant le swap et
+                // la lecture en cours reste intacte si ce mode n'est pas accepté par l'appareil.
+                newPlayer.prepare()
+            }
+
+            // MediaSession valide notamment que les deux Players utilisent le même looper. Tant que
+            // ce swap n'a pas réussi, aucune référence globale ni aucun effet de l'ancien moteur
+            // n'est libéré.
+            val session = mediaSession ?: error("Audio MediaSession unavailable during pipeline rebuild")
+            session.setPlayer(newPlayer)
+            player = newPlayer
+            sessionPlayer = newPlayer
+            isAudioSessionActive = newPlayer.mediaItemCount > 0
+            pcmAudioProcessor = newBundle.processor
+            attachCorePlayerListener(newPlayer)
+            attachSessionStateListener(newPlayer)
+
+            try { oldPlayer.pause() } catch (_: Exception) {}
+            try { oldProcessor?.releaseSettings() } catch (_: Exception) {}
+            try { loudnessEnhancer?.release() } catch (_: Exception) {}
+            loudnessEnhancer = null
+            loudnessEnhancerSessionId = 0
+            try { eqManager?.release() } catch (_: Exception) {}
+            eqManager = null
+            equalizerSessionId = 0
+            eqApplyHandler.removeCallbacksAndMessages(null)
+
+            if (mediaItems.isNotEmpty()) {
+                newPlayer.playWhenReady = oldPlayWhenReady
+            }
+            restoreEqualizerForPlayer(newPlayer)
+            applyAudioProSettings(newPlayer)
+            activeAudioPipelineSignature = desiredSignature
+            try { oldPlayer.release() } catch (_: Exception) {}
+            newBundle = null // Le nouveau bundle appartient désormais au service.
+            refreshReplayGainForCurrentItem()
+        } catch (e: Exception) {
+            // Si le swap n'a pas eu lieu, libérer uniquement la tentative et garder l'ancien Player.
+            val attemptedPlayer = newBundle?.player
+            if (attemptedPlayer != null && attemptedPlayer !== player) {
+                try { newBundle?.processor?.releaseSettings() } catch (_: Exception) {}
+                try { attemptedPlayer.release() } catch (_: Exception) {}
+            }
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                applicationContext,
+                "Audio output pipeline rebuild failed",
+                e
+            )
+        } finally {
+            rebuildingAudioPipeline = false
         }
     }
 
@@ -478,38 +956,47 @@ class BlazePlayerService : MediaSessionService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Évite qu'Android ne recrée un ancien service START_STICKY sans commande ni session audio.
+        if (intent == null && !isAudioSessionActive) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         when (intent?.action) {
             ACTION_PLAY_EXTERNAL_AUDIO -> {
                 val path = intent.getStringExtra(EXTRA_EXTERNAL_AUDIO_PATH).orEmpty()
                 val name = intent.getStringExtra(EXTRA_EXTERNAL_AUDIO_NAME).orEmpty().ifBlank {
                     android.net.Uri.parse(path).lastPathSegment?.substringAfterLast('/') ?: "Audio"
                 }
-                replaceWithExternalAudio(path, name)
+                runAudioActionWhenAllowed(ACTION_PLAY_EXTERNAL_AUDIO) { replaceWithExternalAudio(path, name) }
                 return START_STICKY
             }
             ACTION_PLAY_AUDIO_QUEUE -> {
                 val paths = intent.getStringArrayListExtra(EXTRA_AUDIO_QUEUE_PATHS).orEmpty()
                 val names = intent.getStringArrayListExtra(EXTRA_AUDIO_QUEUE_NAMES).orEmpty()
                 val index = intent.getIntExtra(EXTRA_AUDIO_QUEUE_INDEX, 0)
-                playAudioQueue(paths, names, index)
+                runAudioActionWhenAllowed(ACTION_PLAY_AUDIO_QUEUE) { playAudioQueue(paths, names, index) }
                 return START_STICKY
             }
             ACTION_APPEND_AUDIO_QUEUE -> {
                 val paths = intent.getStringArrayListExtra(EXTRA_AUDIO_QUEUE_PATHS).orEmpty()
                 val names = intent.getStringArrayListExtra(EXTRA_AUDIO_QUEUE_NAMES).orEmpty()
-                appendAudioQueue(paths, names)
+                runAudioActionWhenAllowed(ACTION_APPEND_AUDIO_QUEUE) { appendAudioQueue(paths, names) }
                 return START_STICKY
             }
             ACTION_APPEND_AUDIO_QUEUE_AND_PLAY -> {
                 val paths = intent.getStringArrayListExtra(EXTRA_AUDIO_QUEUE_PATHS).orEmpty()
                 val names = intent.getStringArrayListExtra(EXTRA_AUDIO_QUEUE_NAMES).orEmpty()
                 val index = intent.getIntExtra(EXTRA_AUDIO_QUEUE_INDEX, 0)
-                appendAudioQueueAndPlay(paths, names, index)
+                runAudioActionWhenAllowed(ACTION_APPEND_AUDIO_QUEUE_AND_PLAY) {
+                    appendAudioQueueAndPlay(paths, names, index)
+                }
                 return START_STICKY
             }
             ACTION_PARTY_START_HOST -> {
                 val token = intent.getStringExtra(EXTRA_PARTY_TOKEN).orEmpty()
-                if (token.isNotBlank()) startPartyHostServer(token)
+                if (token.isNotBlank()) {
+                    runAudioActionWhenAllowed(ACTION_PARTY_START_HOST) { startPartyHostServer(token) }
+                }
                 return START_STICKY
             }
             ACTION_PARTY_STOP_HOST -> {
@@ -530,6 +1017,7 @@ class BlazePlayerService : MediaSessionService() {
             // Conforme Media3 : on conserve la même MediaSessionService et on remplace la queue
             // du Player, au lieu de tuer/rebinder le service ou de passer par le Fragment.
             p.setMediaItem(item, /* startPositionMs = */ 0L)
+            isAudioSessionActive = true
             p.playWhenReady = true
             p.prepare()
             p.play()
@@ -559,6 +1047,7 @@ class BlazePlayerService : MediaSessionService() {
             val p = sessionPlayer ?: player ?: return
             val mediaItems = clean.map { AudioRepository.buildSimpleMediaItem(applicationContext, it.path, it.name) }
             p.setMediaItems(mediaItems, safeIndex, 0L)
+            isAudioSessionActive = mediaItems.isNotEmpty()
             p.repeatMode = Player.REPEAT_MODE_OFF
             p.shuffleModeEnabled = false
             p.playWhenReady = true
@@ -595,6 +1084,7 @@ class BlazePlayerService : MediaSessionService() {
                 val insertionStart = p.mediaItemCount
                 if (additions.isNotEmpty()) {
                     p.addMediaItems(additions.map { AudioRepository.buildSimpleMediaItem(applicationContext, it.path, it.name) })
+                    isAudioSessionActive = p.mediaItemCount > 0
                 }
                 val targetIndex = existingPaths.indexOf(targetItem.path).takeIf { it >= 0 }
                     ?: additions.indexOfFirst { it.path == targetItem.path }.takeIf { it >= 0 }?.let { insertionStart + it }
@@ -619,6 +1109,7 @@ class BlazePlayerService : MediaSessionService() {
                 if (target != null) {
                     val mediaItems = merged.map { AudioRepository.buildSimpleMediaItem(applicationContext, it.path, it.name) }
                     target.setMediaItems(mediaItems, targetIndex, 0L)
+                    isAudioSessionActive = mediaItems.isNotEmpty()
                     target.repeatMode = savedState.repeatMode
                     target.shuffleModeEnabled = savedState.shuffle
                     target.playWhenReady = true
@@ -656,6 +1147,7 @@ class BlazePlayerService : MediaSessionService() {
                     .map { AudioRepository.buildSimpleMediaItem(applicationContext, it.path, it.name) }
                 if (mediaItems.isNotEmpty()) {
                     p.addMediaItems(mediaItems)
+                    isAudioSessionActive = p.mediaItemCount > 0
                     persistAudioQueue()
                     mediaItems.forEach { item ->
                         val itemPath = originalPathFromItem(item)
@@ -679,6 +1171,7 @@ class BlazePlayerService : MediaSessionService() {
                     if (target != null && target.mediaItemCount == 0) {
                         val mediaItems = merged.map { AudioRepository.buildSimpleMediaItem(applicationContext, it.path, it.name) }
                         target.setMediaItems(mediaItems, savedState.index.coerceIn(0, (mediaItems.size - 1).coerceAtLeast(0)), savedState.positionMs)
+                        isAudioSessionActive = mediaItems.isNotEmpty()
                         target.repeatMode = savedState.repeatMode
                         target.shuffleModeEnabled = savedState.shuffle
                         target.prepare()
@@ -729,6 +1222,19 @@ class BlazePlayerService : MediaSessionService() {
             return
         }
         if (sessionId <= 0) return
+
+        // Quand Réglages son est coupé, ne pas attacher d'Equalizer/BassBoost/Virtualizer à
+        // l'AudioTrack. Même désactivés, ces AudioEffect peuvent empêcher certains appareils de
+        // conserver une sortie directe/offload. ReplayGain et la normalisation restent appliqués
+        // séparément via le volume du Player et, si nécessaire, LoudnessEnhancer.
+        if (!eqPrefs.getBoolean(EqualizerManager.KEY_EQ_ENABLED, true)) {
+            try { eqManager?.release() } catch (_: Exception) {}
+            eqManager = null
+            equalizerSessionId = 0
+            applyLoudnessEnhancer(sessionId)
+            return
+        }
+
         if (eqManager != null && equalizerSessionId == sessionId) {
             applyLoudnessEnhancer(sessionId)
             return
@@ -775,35 +1281,32 @@ class BlazePlayerService : MediaSessionService() {
     }
 
     private fun tryApplyHighQualityOutput(exoPlayer: ExoPlayer) {
-        // Les capacités Hi-Res/offload varient selon Android, le DAC et la version Media3. On active
-        // les préférences d'offload quand l'API est présente, sans casser les builds qui n'exposent
-        // pas encore les mêmes signatures. Les effets logiciels restent prioritaires si l'utilisateur
-        // active préampli, ReplayGain ou normalisation.
+        val soundSettingsEnabled = if (::eqPrefs.isInitialized) {
+            eqPrefs.getBoolean(EqualizerManager.KEY_EQ_ENABLED, true)
+        } else {
+            true
+        }
+        val offloadMode = if (audioProValues.hiRes && !soundSettingsEnabled) {
+            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED
+        } else {
+            TrackSelectionParameters.AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED
+        }
         runCatching {
-            val prefsClass = Class.forName("androidx.media3.exoplayer.audio.AudioOffloadPreferences")
-            val builderClass = Class.forName("androidx.media3.exoplayer.audio.AudioOffloadPreferences\$Builder")
-            val builder = builderClass.getDeclaredConstructor().newInstance()
-            fun call(name: String, value: Any) {
-                builderClass.methods.firstOrNull { it.name == name && it.parameterTypes.size == 1 }
-                    ?.invoke(builder, value)
-            }
-            call("setIsGaplessSupportRequired", audioProValues.gapless)
-            call("setIsSpeedChangeSupportRequired", false)
-            // Le passthrough/offload court-circuite la chaîne PCM. Tant que le DSP Blaze est actif,
-            // on privilégie donc les réglages audibles (balance, mono, limiteur, réverbération) à
-            // l'offload matériel. Désactiver l'égaliseur réautorise le mode Hi-Res/offload demandé.
-            val blazeDspEnabled = if (::eqPrefs.isInitialized) {
-                eqPrefs.getBoolean(EqualizerManager.KEY_EQ_ENABLED, true)
-            } else {
-                true
-            }
-            call("setAudioOffloadMode", if (audioProValues.hiRes && !blazeDspEnabled) 1 else 0)
-            val prefs = builderClass.methods.firstOrNull { it.name == "build" && it.parameterTypes.isEmpty() }
-                ?.invoke(builder)
-                ?: return@runCatching
-            exoPlayer.javaClass.methods.firstOrNull { method ->
-                method.name == "setAudioOffloadPreferences" && method.parameterTypes.size == 1 && method.parameterTypes[0].isAssignableFrom(prefsClass)
-            }?.invoke(exoPlayer, prefs)
+            val offloadPreferences = TrackSelectionParameters.AudioOffloadPreferences.Builder()
+                .setAudioOffloadMode(offloadMode)
+                .setIsGaplessSupportRequired(audioProValues.gapless)
+                .setIsSpeedChangeSupportRequired(false)
+                .build()
+            exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters
+                .buildUpon()
+                .setAudioOffloadPreferences(offloadPreferences)
+                .build()
+        }.onFailure { error ->
+            fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                applicationContext,
+                "Audio offload preference unavailable",
+                error
+            )
         }
     }
 
@@ -887,14 +1390,14 @@ class BlazePlayerService : MediaSessionService() {
     private fun scheduleCrossfadeCheck() {
         crossfadeHandler.removeCallbacks(crossfadeRunnable)
         val p = player ?: return
-        if (audioProValues.crossfade && audioProValues.crossfadeDurationSec > 0 && p.isPlaying) {
+        if (autoPlayNextEnabled && audioProValues.crossfade && audioProValues.crossfadeDurationSec > 0 && p.isPlaying) {
             crossfadeHandler.postDelayed(crossfadeRunnable, 350L)
         }
     }
 
     private fun checkCrossfadeWindow() {
         val p = player ?: return
-        if (crossfadeInProgress || !audioProValues.crossfade || !p.isPlaying) return
+        if (!autoPlayNextEnabled || crossfadeInProgress || !audioProValues.crossfade || !p.isPlaying) return
         val duration = p.duration
         if (duration <= 0L || duration == androidx.media3.common.C.TIME_UNSET) return
         if (!runCatching { p.hasNextMediaItem() }.getOrDefault(false)) return
@@ -1000,7 +1503,15 @@ class BlazePlayerService : MediaSessionService() {
         ): Int {
             if (playerCommand == androidx.media3.common.Player.COMMAND_STOP) {
                 android.os.Handler(android.os.Looper.getMainLooper()).post { stopSelf() }
+                return SessionResult.RESULT_SUCCESS
             }
+            if (accessResolved && !hasAudioAccess) {
+                return SessionResult.RESULT_ERROR_PERMISSION_DENIED
+            }
+            // L'API Media3 impose une réponse synchrone ici. On autorise la commande avec le dernier
+            // état connu, puis on relance immédiatement un contrôle asynchrone qui coupera le service
+            // si l'essai vient d'expirer.
+            refreshAccessWithoutBlocking()
             return SessionResult.RESULT_SUCCESS
         }
 
@@ -1028,10 +1539,12 @@ class BlazePlayerService : MediaSessionService() {
             args: Bundle
         ): ListenableFuture<SessionResult> {
             if (customCommand.customAction == COMMAND_GET_AUDIO_SESSION_ID) {
-                val resultExtras = Bundle().apply {
-                    putInt(EXTRA_AUDIO_SESSION_ID, player?.audioSessionId ?: 0)
+                return runSessionActionWhenAllowed(COMMAND_GET_AUDIO_SESSION_ID) {
+                    val resultExtras = Bundle().apply {
+                        putInt(EXTRA_AUDIO_SESSION_ID, player?.audioSessionId ?: 0)
+                    }
+                    SessionResult(SessionResult.RESULT_SUCCESS, resultExtras)
                 }
-                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS, resultExtras))
             }
             if (customCommand.customAction == COMMAND_PLAY_EXTERNAL_AUDIO) {
                 val path = args.getString(EXTRA_EXTERNAL_AUDIO_PATH).orEmpty()
@@ -1040,15 +1553,18 @@ class BlazePlayerService : MediaSessionService() {
                 }
                 if (path.isBlank()) return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
 
-                // Même chemin que l'intent direct du service : remplacement strict et lecture immédiate.
-                replaceWithExternalAudio(path, name)
-                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                return runSessionActionWhenAllowed(COMMAND_PLAY_EXTERNAL_AUDIO) {
+                    replaceWithExternalAudio(path, name)
+                    SessionResult(SessionResult.RESULT_SUCCESS)
+                }
             }
             if (customCommand.customAction == COMMAND_PARTY_START_HOST) {
                 val token = args.getString(EXTRA_PARTY_TOKEN).orEmpty()
                 if (token.isBlank()) return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
-                startPartyHostServer(token)
-                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                return runSessionActionWhenAllowed(COMMAND_PARTY_START_HOST) {
+                    startPartyHostServer(token)
+                    SessionResult(SessionResult.RESULT_SUCCESS)
+                }
             }
             if (customCommand.customAction == COMMAND_PARTY_STOP_HOST) {
                 stopPartyHostServer()
@@ -1069,6 +1585,7 @@ class BlazePlayerService : MediaSessionService() {
         persistAudioQueue()
         try {
             isAudioPlaybackActive = false
+            isAudioSessionActive = false
             sessionPlayer?.stop()
             sessionPlayer?.clearMediaItems()
         } catch (e: Exception) {
@@ -1080,8 +1597,14 @@ class BlazePlayerService : MediaSessionService() {
 
     override fun onDestroy() {
         isAudioPlaybackActive = false
+        isAudioSessionActive = false
+        accessExpiryJob?.cancel()
+        accessExpiryJob = null
         try { eqApplyHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
+        try { audioPipelineHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { crossfadeHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
+        try { smbRecoveryHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
+        try { autoAdvanceHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { playerVolumeAnimator?.cancel() } catch (_: Exception) {}
         try { if (::audioProPrefs.isInitialized) audioProPrefs.unregisterOnSharedPreferenceChangeListener(audioProListener) } catch (_: Exception) {}
         try { if (::eqPrefs.isInitialized) eqPrefs.unregisterOnSharedPreferenceChangeListener(eqPreferenceListener) } catch (_: Exception) {}

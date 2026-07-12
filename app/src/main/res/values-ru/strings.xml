@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Воспроизведение аудио</string>
@@ -7,7 +7,7 @@
     <string name="tab_local">Локально</string>
     <string name="tab_network">Сеть</string>
     <string name="tab_blaze_video">Blaze Video</string>
-<!-- Version badge -->
+
     <string name="version_badge_free">Free</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
@@ -30,7 +30,8 @@
     <string name="unknown_title">Неизвестное название</string>
     <string name="audio_track">Аудиодорожка</string>
 <string name="timer">Таймер</string>
-    <string name="equalizer">Эквалайзер</string>
+    <string name="equalizer">Настройки звука</string>
+    <string name="sound_short">Звук</string>
 <string name="loading">Загрузка…</string>
     <string name="no_track_found">Найдено треков: 0</string>
     <string name="zero_time">0:00</string>
@@ -332,7 +333,7 @@
     <string name="history_empty_blaze_video_title">Нет недавно просмотренных видео</string>
 
     <string name="history_blaze_video">История</string>
-<!-- Historique : gestion par sélection -->
+
     <string name="history_selection_active">Выбор активен: выбрано миниатюр: %1$d.</string>
     <string name="history_action_prompt">Выберите действие для этой истории.</string>
     <string name="history_delete_selection">Удалить выбранное (%1$d)</string>
@@ -398,16 +399,16 @@
     <string name="deselect_all">Снять выделение</string>
     <string name="cast_subtitles_unavailable">Субтитры недоступны при трансляции</string>
     <string name="cast_audio_language_unavailable">Смена языка недоступна при трансляции</string>
-    <string name="paywall_title">Разблокировать Blaze Player</string>
-    <string name="paywall_subtitle">Выберите версию под ваши задачи. Покупки будут подключены позже.</string>
+    <string name="paywall_title">Выберите версию Blaze</string>
+    <string name="paywall_subtitle">Пользуйтесь всеми функциями Pro+ 15 дней, затем выберите подходящую версию.</string>
     <string name="paywall_free_title">Blaze Player Free</string>
-    <string name="paywall_free_desc">Локальное видео и трансляция локального видео. Только вкладка Local.</string>
+    <string name="paywall_free_desc">Локальное видео Blaze Video и трансляция локальных видео на Chromecast. Вкладка «Сеть» и сетевые кнопки в браузерах заблокированы.</string>
     <string name="paywall_pro_title">Blaze Player Pro</string>
     <string name="paywall_pro_price">3,99 €</string>
-    <string name="paywall_pro_desc">Открывает сеть SMB и вкладку Blaze Gallery.</string>
+    <string name="paywall_pro_desc">Включает Free и открывает локальную сеть SMB/UPnP и Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Открывает Blaze Audio и режим \"Party\". А также включает все функции Pro.</string>
+    <string name="paywall_pro_plus_desc">Включает все функции Pro и открывает премиальный аудиоплеер Blaze Audio.</string>
     <string name="paywall_buy_pro">Открыть Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Открыть Pro+ — 5,99 €</string>
     <string name="paywall_debug_unlocked">Debug-режим: Pro и Pro+ временно разблокированы.</string>
@@ -424,8 +425,8 @@
     <string name="video_setting_volume_boost">Усиление громкости</string>
     <string name="action_reset">Сбросить</string>
 
-    <!-- TMDb -->
-<!-- Blaze Gallery -->
+    
+
 <string name="gallery_folders">Gallery</string>
 
     <string name="gallery_empty_folders">Пока нет папок — создайте одну, чтобы начать</string>
@@ -472,7 +473,7 @@
     <string name="settings_audio_spectrum">Включить визуальный спектр</string>
     <string name="settings_audio_spectrum_desc">Показывать анимированный аудиовизуализатор в Blaze Audio.</string>
 
-    <!-- Blaze Party -->
+    
     <string name="blaze_party">Blaze Party</string>
     <string name="blaze_party_intro">Создайте локальную сессию или присоединитесь к общей очереди в той же сети Wi‑Fi.</string>
     <string name="blaze_party_host">Хост Blaze Party</string>
@@ -536,7 +537,7 @@
     <string name="blaze_party_default_guest">Гость</string>
     <string name="app_name_gallery">Blaze Gallery</string>
 
-    <!-- Photo editor (filters / crop / rotate / details) -->
+    
     <string name="photo_editor_title">Редактировать</string>
     <string name="filter_normal">Обычный</string>
     <string name="filter_vivid">Насыщенный</string>
@@ -591,7 +592,7 @@
     <string name="photo_details_location">Местоположение: %1$s</string>
     <string name="gallery_menu_edit">Редактировать</string>
 
-    <!-- Video trim -->
+    
     <string name="video_trim_title">Обрезать</string>
     <string name="action_export_fast">SQ</string>
     <string name="action_export_precise">HQ</string>
@@ -600,10 +601,10 @@
     <string name="toast_video_saved">Видео сохранено в Blaze Gallery</string>
     <string name="toast_video_export_failed">Не удалось экспортировать</string>
     <string name="toast_gif_saved">GIF сохранён в Blaze Gallery</string>
-    <string name="toast_mp3_saved">MP3 сохранён в Blaze MP3 Cut</string>
+    <string name="toast_mp3_saved">MP3 сохранён в Documents/Blaze Audio Extractor</string>
     <string name="toast_mp3_export_failed">Не удалось экспортировать MP3</string>
     <string name="gallery_menu_cut">Обрезать</string>
-<!-- Video queue additions -->
+
     <string name="add_to_playlist_fixed_short">В плейлист</string>
     <string name="add_to_video_queue_short">очередь</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -619,7 +620,7 @@
     <string name="content_desc_video_queue">Очередь видео</string>
     <string name="content_desc_close_video_queue">Закрыть очередь видео</string>
 
-    <!-- Blaze Audio Pro+ library and premium settings -->
+    
     <string name="audio_library_title">Библиотека</string>
     <string name="audio_library_subtitle">Ваша музыкальная библиотека Pro+</string>
     <string name="audio_loading_in_progress">Загрузка...</string>
@@ -648,14 +649,19 @@
     <string name="audio_normalize_volume_subtitle">Выравнивать громкость треков</string>
     <string name="audio_section_quality">Качество аудио</string>
     <string name="audio_high_quality_output">Высокое качество вывода</string>
-    <string name="audio_high_quality_subtitle">Приоритет высокой точности</string>
+    <string name="audio_high_quality_subtitle">Отключает настройки звука для приоритета прямого аудиовыхода</string>
     <string name="audio_replaygain_title">ReplayGain</string>
     <string name="audio_replaygain_off">Выкл.</string>
     <string name="audio_replaygain_track">Трек</string>
     <string name="audio_replaygain_album">Альбом</string>
     <string name="audio_preamp_title">Предусиление</string>
     <string name="audio_preamp_subtitle">Настроить уровень вывода</string>
-    <string name="audio_bit_depth_title">Глубина аудио</string>
+    <string name="audio_output_mode_title">Режим точности</string>
+    <string name="audio_output_mode_subtitle">Адаптирует тракт PCM к качеству и совместимости устройства</string>
+    <string name="audio_output_mode_auto">Автоматически</string>
+    <string name="audio_output_mode_compatibility">Совместимость</string>
+    <string name="audio_output_mode_high_precision">Высокая точность</string>
+    <string name="audio_replaygain_subtitle">Выравнивает громкость треков независимо от звуковых эффектов</string>
     <string name="audio_section_library">Библиотека</string>
     <string name="audio_auto_scan">Сканировать автоматически</string>
     <string name="audio_auto_scan_subtitle">Добавлять новые файлы</string>
@@ -722,7 +728,7 @@
     <string name="action_scan">Сканировать</string>
     <string name="action_done">Готово</string>
 <string name="audio_play_album">Воспроизвести весь альбом</string>
-    <string name="audio_add_album_queue">Добавить альбом в очередь</string>
+    <string name="audio_add_album_queue">Добавить в очередь</string>
     <string name="audio_select_tracks">Выбрать треки</string>
     <string name="audio_add_playlist_blaze_party">Добавить плейлист в Blaze Party</string>
     <string name="audio_add_playlist_queue">Добавить плейлист в очередь</string>
@@ -771,4 +777,76 @@
 
     <string name="cast_remote_led_on">ON</string>
     <string name="cast_remote_led_off">OFF</string>
+
+    <string name="close">Закрыть</string>
+    <string name="eq_tab_tone">Тембр</string>
+    <string name="eq_tab_dynamics">Динамика</string>
+    <string name="eq_tab_ambience">Пространство</string>
+    <string name="eq_bass">Низкие частоты</string>
+    <string name="eq_treble">Высокие частоты</string>
+    <string name="eq_balance">Баланс</string>
+    <string name="eq_stereo">Стерео</string>
+    <string name="eq_center">Центр</string>
+    <string name="eq_balance_left">Л %1$d</string>
+    <string name="eq_balance_right">П %1$d</string>
+    <string name="eq_mono">Моно</string>
+    <string name="eq_mono_active">Моно включено</string>
+    <string name="eq_auto_headroom">Автоматический запас</string>
+    <string name="eq_auto_headroom_summary">Автоматически снижает предусиление, если кривая может вызвать перегрузку.</string>
+    <string name="eq_limiter">Лимитер</string>
+    <string name="eq_limiter_summary">Ограничивает цифровые пики перед выводом звука.</string>
+    <string name="eq_loudness">Тонкомпенсация</string>
+    <string name="eq_reverb">Реверберация</string>
+    <string name="eq_room_type">Тип помещения</string>
+    <string name="eq_reverb_mix">Микс</string>
+    <string name="eq_room_studio">Студия</string>
+    <string name="eq_room_small">Маленькая комната</string>
+    <string name="eq_room_hall">Большой зал</string>
+    <string name="eq_room_plate">Пластина</string>
+    <string name="eq_equalizer_unavailable">Эквалайзер устройства недоступен для этого выхода. Регуляторы каналов остаются активными.</string>
+
+    <string name="content_desc_rewind">Перемотать назад</string>
+    <string name="content_desc_forward">Перемотать вперёд</string>
+    <string name="content_desc_video_screenshot">Сделать снимок кадра</string>
+    <string name="content_desc_stop">Остановить</string>
+    <string name="content_desc_settings">Настройки</string>
+    <string name="content_desc_cast_screen">Транслировать экран телефона</string>
+    <string name="content_desc_sort">Сортировать</string>
+    <string name="content_desc_show_audio_files">Показать аудиофайлы</string>
+    <string name="content_desc_rescan">Сканировать повторно</string>
+
+    <string name="eq_status_on">ВКЛ</string>
+    <string name="eq_status_off">ВЫКЛ</string>
+
+    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
+    <string name="audio_watched_help_button_desc">Справка об отслеживаемых папках</string>
+    <string name="audio_watched_help_title">Как подготовить аудиотеку</string>
+    <string name="audio_watched_help_desc">Когда вы впервые добавляете локальные или сетевые папки в библиотеку, наберитесь терпения: загрузка метаданных и обложек может занять много времени, особенно если у вас много альбомов или треков.</string>
+    <string name="audio_watched_help_desc_2">Чтобы Blaze Audio правильно организовал музыку, по возможности соблюдайте структуру ниже.</string>
+    <string name="audio_watched_help_structure_title">Рекомендуемая структура</string>
+    <string name="audio_watched_help_root">Отслеживаемая папка (локальная или сетевая)/</string>
+    <string name="audio_watched_help_artist_folder">└── Исполнитель/</string>
+    <string name="audio_watched_help_album_folder">    └── Альбом/</string>
+    <string name="audio_watched_help_cover">        ├── cover.jpg</string>
+    <string name="audio_watched_help_track">        ├── 01 - Название трека.flac</string>
+    <string name="audio_watched_help_lrc">        └── 01 - Название трека.lrc</string>
+    <string name="audio_watched_help_cover_note">Поместите обложку в папку альбома под именем cover.jpg или cover.png.</string>
+    <string name="audio_watched_help_lrc_note">Размещайте файлы .lrc рядом с треком, используя точно такое же имя файла.</string>
+
+    <!-- Aide de l’onglet Réseau -->
+    <string name="network_help_button_desc">Справка о сетевых путях</string>
+    <string name="network_help_title">Справка по сети</string>
+    <string name="network_help_message">Здесь необходимо сохранить пути к файлам в локальной сети, чтобы затем просматривать их в приложении.</string>
+    <string name="about_developed_in_france">Разработано во Франции с любовью</string>
+    <string name="paywall_status_unavailable">Статус подписки недоступен</string>
+    <string name="paywall_active_pro_plus">Версия Pro+ активна</string>
+    <string name="paywall_active_pro">Версия Pro активна</string>
+    <string name="paywall_trial_expired">Пробный период Pro+ завершён — премиум-функции заблокированы</string>
+    <string name="trial_notification_channel_name">Пробный период Blaze Pro+</string>
+    <string name="trial_notification_title">Пробный период Blaze Pro+ скоро закончится</string>
+    <string name="trial_notification_message">До окончания пробного периода осталось 48 часов. Активируйте Pro или Pro+, чтобы сохранить премиум-функции.</string>
+    <plurals name="paywall_trial_days_left">
+        <item quantity="one">Пробный период Pro+: остался %1$d день</item>
+        <item quantity="other">Пробный период Pro+: осталось %1$d дней</item>
+    </plurals>
 </resources>

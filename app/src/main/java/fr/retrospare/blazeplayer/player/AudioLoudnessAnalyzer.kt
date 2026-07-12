@@ -12,6 +12,8 @@ import com.hierynomus.mssmb2.SMB2CreateOptions
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
@@ -29,7 +31,7 @@ object AudioLoudnessAnalyzer {
     private const val PREFS = "blaze_audio_loudness_cache"
     private const val ALBUM_PREFS = "blaze_audio_album_loudness_cache"
     private const val ANALYSIS_SECONDS = 120
-    private val inFlight = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.Deferred<LoudnessInfo>>()
+    private val analysisLocks = java.util.concurrent.ConcurrentHashMap<String, Mutex>()
 
     data class LoudnessInfo(
         val meanDb: Float,
@@ -40,20 +42,41 @@ object AudioLoudnessAnalyzer {
     suspend fun getOrAnalyze(context: Context, path: String, albumKey: String = ""): LoudnessInfo? = withContext(Dispatchers.IO) {
         if (path.isBlank()) return@withContext null
         load(context, path)?.let { return@withContext it }
-        runCatching {
-            val localInput = prepareLocalInput(context, path)
-            try {
-                analyzeLocalFile(localInput).also { info ->
-                    save(context, path, info)
-                    if (albumKey.isNotBlank()) updateAlbumAggregate(context, albumKey, info)
+
+        val lock = analysisLocks.computeIfAbsent(path) { Mutex() }
+        try {
+            lock.withLock {
+                // Un deuxième callback Media3 peut demander le même ReplayGain à quelques
+                // millisecondes d'intervalle. Après attente du verrou, relire le cache évite une
+                // deuxième copie intégrale du même fichier NAS.
+                load(context, path)?.let { return@withLock it }
+
+                if (path.startsWith("smb://", ignoreCase = true) && BlazePlayerService.isAudioPlaybackActive) {
+                    Log.i("AudioLoudnessAnalyzer", "ReplayGain SMB différé pendant la lecture")
+                    return@withLock null
                 }
-            } finally {
-                if (localInput.parentFile == context.cacheDir && localInput.name.startsWith("loudness_")) {
-                    runCatching { localInput.delete() }
-                }
+
+                runCatching {
+                    val localInput = prepareLocalInput(context, path)
+                    try {
+                        analyzeLocalFile(localInput).also { info ->
+                            save(context, path, info)
+                            if (albumKey.isNotBlank()) updateAlbumAggregate(context, albumKey, info)
+                        }
+                    } finally {
+                        if (localInput.parentFile == context.cacheDir && localInput.name.startsWith("loudness_")) {
+                            runCatching { localInput.delete() }
+                        }
+                    }
+                }.onFailure { error ->
+                    if (error !is PlaybackProtectionException) {
+                        Log.w("AudioLoudnessAnalyzer", "ReplayGain analysis failed for $path", error)
+                    }
+                }.getOrNull()
             }
-        }.onFailure { Log.w("AudioLoudnessAnalyzer", "ReplayGain analysis failed for $path", it) }
-            .getOrNull()
+        } finally {
+            if (!lock.isLocked) analysisLocks.remove(path, lock)
+        }
     }
 
     fun cachedReplayGainDb(context: Context, path: String, albumKey: String, mode: Int): Float {
@@ -127,12 +150,18 @@ object AudioLoudnessAnalyzer {
             var offset = 0L
             temp.outputStream().use { output ->
                 while (offset < size) {
+                    if (BlazePlayerService.isAudioPlaybackActive) {
+                        throw PlaybackProtectionException()
+                    }
                     val wanted = minOf(buffer.size.toLong(), size - offset).toInt()
                     val read = file.read(buffer, offset, 0, wanted)
                     if (read <= 0) break
                     output.write(buffer, 0, read)
                     offset += read.toLong()
                 }
+            }
+            if (offset != size) {
+                throw java.io.EOFException("Incomplete SMB ReplayGain copy: $offset/$size bytes")
             }
             return temp
         } catch (e: Exception) {
@@ -189,6 +218,10 @@ object AudioLoudnessAnalyzer {
     private fun enc(value: String): String = Base64.encodeToString(value.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
     private fun dec(value: String): String = String(Base64.decode(value, Base64.NO_WRAP), Charsets.UTF_8)
     private fun guessExtension(path: String, fallback: String): String = path.substringBefore('?').substringAfterLast('.', fallback).takeIf { it.length in 2..5 } ?: fallback
+
+    private class PlaybackProtectionException : java.io.InterruptedIOException(
+        "ReplayGain SMB deferred while audio playback is active"
+    )
 
     private const val TARGET_MEAN_DB = -18f
 }

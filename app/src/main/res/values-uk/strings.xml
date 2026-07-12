@@ -1,0 +1,854 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+    <string name="app_name">Blaze Player</string>
+    <string name="notif_channel_audio">Відтворення аудіо</string>
+    <string name="notif_channel_video">Відтворення відео</string>
+
+    <string name="tab_local">Локально</string>
+    <string name="tab_network">Мережа</string>
+    <string name="tab_blaze_video">Blaze Video</string>
+
+    <string name="version_badge_free">Безкоштовно</string>
+    <string name="version_badge_pro">Pro</string>
+    <string name="version_badge_pro_plus">Pro+</string>
+<string name="favorites">Обране</string>
+<string name="add_network_path">Додати мережевий шлях</string>
+    <string name="add_manually">Додати вручну</string>
+    <string name="saved_paths">ЗБЕРЕЖЕНІ ШЛЯХИ</string>
+    <string name="detected_devices">ВИЯВЛЕНІ ПРИСТРОЇ</string>
+    <string name="available_devices">Доступні пристрої</string>
+    <string name="no_path_configured">Шлях не налаштовано.
+Натисніть «Сканувати», щоб знайти пристрої.</string>
+    <string name="default_path">Шлях за замовчуванням</string>
+    <string name="test_network_path">Перевірити шлях</string>
+    <string name="network_path_test_title">Перевірка мережевого шляху</string>
+    <string name="network_path_test_success_message">Шлях «%1$s» доступний.</string>
+    <string name="network_path_test_failure_message">Не вдалося отримати доступ до «%1$s». Перевірте мережу, облікові дані або дозволи спільного ресурсу.</string>
+<string name="example_smb_path">smb://192.168.1.10/Фільми</string>
+    <string name="name_label">Назва</string>
+
+    <string name="unknown_artist">Невідомий виконавець</string>
+    <string name="unknown_title">Невідома назва</string>
+    <string name="audio_track">Аудіодоріжка</string>
+<string name="timer">Таймер</string>
+    <string name="equalizer">Налаштування звуку</string>
+    <string name="sound_short">Звук</string>
+<string name="loading">Завантаження…</string>
+    <string name="no_track_found">Знайдено 0 доріжок</string>
+    <string name="zero_time">0:00</string>
+<string name="add_tracks">Додати доріжки</string>
+<string name="add_to_playlist_short">Додати до списку відтворення</string>
+    <string name="add_to_party_short">Додати до Party</string>
+<string name="sort_name_az">Назва А–Я</string>
+<string name="queue">ЧЕРГА</string>
+    <string name="queue_short">Черга</string>
+    <string name="add">Додати</string>
+    <string name="info">Інформація</string>
+    <string name="lyrics">Текст пісні</string>
+    <string name="audio_lyrics_title">Текст пісні</string>
+    <string name="audio_lyrics_disabled">Увімкніть «Синхронізований текст» у налаштуваннях аудіо, щоб дозволити локальні тексти.</string>
+    <string name="audio_lyrics_none">Для цієї доріжки локальний текст не знайдено.</string>
+    <string name="audio_lyrics_hint">Помістіть файл .lrc або .txt у ту саму папку, що й доріжка, з такою самою назвою, або використайте lyrics.lrc, paroles.lrc, lyrics.txt чи paroles.txt.</string>
+    <string name="audio_lyrics_source">Джерело: %1$s</string>
+    <string name="audio_lyrics_synced">Синхронізований текст</string>
+    <string name="audio_lyrics_static">Статичний текст</string>
+    <string name="folder">Папка</string>
+    <string name="movies">Фільми</string>
+
+    <string name="settings">Налаштування</string>
+    <string name="login_optional">Вхід (необов’язково)</string>
+<string name="upgrade_to_pro">⭐ Перейти на Blaze Player Pro або Pro+</string>
+<string name="settings_rate_app">Оцінити застосунок</string>
+    <string name="settings_rate_app_desc">Залиште відгук у Play Store</string>
+    <string name="restore_purchases">Відновити покупки</string>
+<string name="about_section">ПРО ЗАСТОСУНОК</string>
+    <string name="interface_section">ІНТЕРФЕЙС</string>
+    <string name="data_section">ДАНІ</string>
+    <string name="contact_section">КОНТАКТИ</string>
+    <string name="settings_suggestions">Пропозиції</string>
+    <string name="settings_suggestions_desc">contact@retro-spare.fr</string>
+    <string name="settings_report_bug">Повідомити про помилку</string>
+    <string name="settings_report_bug_desc">dev@retro-spare.fr</string>
+    <string name="toast_no_email_app">Не знайдено поштового застосунку</string>
+    <string name="presets_section">ПРЕСЕТИ</string>
+    <string name="local_network_label">Локальна мережа</string>
+
+    <string name="settings_resume_playback">Продовжити відтворення</string>
+    <string name="resume_always">Завжди</string>
+    <string name="resume_ask">Запитувати</string>
+    <string name="resume_never">Ніколи</string>
+    <string name="settings_autoplay_next">Автовідтворення наступного</string>
+    <string name="settings_autoplay_next_desc">Автоматично відтворювати наступний файл, зокрема в чергах</string>
+    <string name="settings_playback_speed">Швидкість відтворення</string>
+    <string name="speed_normal">1x (звичайна)</string>
+    <string name="settings_seek_duration">Тривалість перемотування</string>
+    <string name="seconds_5">5 секунд</string>
+    <string name="seconds_10">10 секунд</string>
+    <string name="seconds_15">15 секунд</string>
+    <string name="seconds_30">30 секунд</string>
+    <string name="seconds_60">60 секунд</string>
+    <string name="settings_default_orientation">Орієнтація за замовчуванням</string>
+    <string name="orientation_auto">Автоматично</string>
+    <string name="orientation_portrait">Портретна</string>
+    <string name="orientation_landscape">Альбомна</string>
+    <string name="settings_auto_pip">Автоматичний PiP</string>
+    <string name="settings_auto_pip_desc">Переходити в режим «Картинка в картинці» після виходу із застосунку</string>
+
+    <string name="lang_no_preference">Без переваг</string>
+    <string name="lang_french">Французька</string>
+    <string name="lang_english">Англійська</string>
+    <string name="lang_spanish">Іспанська</string>
+    <string name="lang_german">Німецька</string>
+    <string name="lang_italian">Італійська</string>
+    <string name="lang_japanese">Японська</string>
+    <string name="lang_portuguese">Португальська</string>
+    <string name="lang_dutch">Нідерландська</string>
+    <string name="lang_russian">Російська</string>
+    <string name="lang_chinese">Китайська</string>
+    <string name="settings_preferred_audio_lang">Бажана мова аудіо</string>
+    <string name="settings_remember_volume">Запам’ятовувати гучність</string>
+    <string name="settings_remember_volume_desc">Зберігати рівень гучності між відтвореннями</string>
+
+    <string name="settings_mini_player">Мініпрогравач</string>
+    <string name="settings_mini_player_desc">Показувати мініпрогравач у застосунку</string>
+    <string name="settings_show_hidden_files">Показувати приховані файли</string>
+    <string name="settings_show_hidden_files_desc">Файли, назва яких починається з крапки (.)</string>
+
+    <string name="settings_clear_history">Очистити історію</string>
+    <string name="settings_clear_history_desc">Видалити всі нещодавно відтворені файли</string>
+    <string name="dialog_clear_history_message">Видалити всі нещодавно відтворені файли?</string>
+    <string name="action_clear">Очистити</string>
+    <string name="action_cancel">Скасувати</string>
+    <string name="toast_history_cleared">Історію очищено</string>
+
+    <string name="settings_about">Про застосунок</string>
+    <string name="settings_about_desc">Що потрібно знати про Blaze Player</string>
+    <string name="about_dialog_message">Версія %1$s
+
+Retro-Spare Dev / Anthony Gentil
+
+Ваш медіапрогравач для Android</string>
+    <string name="action_ok">OK</string>
+    <string name="settings_language">Мова</string>
+    <string name="language_system_auto">Системна (автоматично)</string>
+    <string name="dialog_choose_language">Виберіть мову</string>
+    <string name="toast_play_store_unavailable">Не вдалося відкрити Play Store</string>
+    <string name="toast_restore_purchases_soon">Відновлення покупок… (незабаром)</string>
+
+    <string name="ratio_auto">Авто</string>
+    <string name="ratio_zoom">Масштаб</string>
+    <string name="ratio_stretched">Розтягнуто</string>
+    <string name="ratio_full">На весь екран</string>
+    <string name="toast_no_audio_track">Немає аудіодоріжки</string>
+    <string name="track_generic">Доріжка</string>
+    <string name="subtitles_disabled">Вимкнено</string>
+    <string name="dialog_title_subtitles">Субтитри</string>
+    <string name="toast_chromecast_incompatible">Ваш Chromecast (%1$s), імовірно, несумісний із цим відео: %2$s.</string>
+    <string name="unknown_model">невідома модель</string>
+    <string name="casting_on_device">Трансляція на %1$s</string>
+    <string name="casting_chromecast">Трансляція на Chromecast</string>
+    <string name="dialog_resume_message">Продовжити з %1$d:%2$02d?</string>
+    <string name="action_resume">Продовжити</string>
+    <string name="action_from_beginning">З початку</string>
+    <string name="dialog_title_network_error">Помилка мережевого відтворення</string>
+    <string name="dialog_network_error_message">Не вдалося відтворити це відео (втрачено з’єднання з NAS, нестабільний Wi‑Fi або файл недоступний).</string>
+    <string name="action_retry">Повторити</string>
+    <string name="action_quit">Вийти</string>
+
+    <string name="toast_no_track_selected">Доріжку не вибрано</string>
+    <string name="toast_select_tracks_first">Спочатку виберіть доріжки (прапорець ліворуч від кожного файлу)</string>
+<string name="toast_no_network_path_configured">Мережевий шлях не налаштовано</string>
+    <string name="dialog_choose_network_path">Виберіть мережевий шлях</string>
+    <string name="local_storage">Локальне сховище</string>
+    <string name="lossless_label">Без втрат</string>
+
+    <plurals name="folder_count">
+        <item quantity="one">%1$d папка</item>
+        <item quantity="other">%1$d папок</item>
+    </plurals>
+    <plurals name="track_count_found">
+        <item quantity="one">Знайдено %1$d доріжку</item>
+        <item quantity="other">Знайдено %1$d доріжок</item>
+    </plurals>
+
+    <string name="preset_flat">Рівний</string>
+    <string name="preset_custom">Власний</string>
+    <string name="preset_rock">Рок</string>
+    <string name="preset_pop">Поп</string>
+    <string name="preset_jazz">Джаз</string>
+    <string name="preset_classical">Класика</string>
+    <string name="preset_hiphop">Хіп-хоп</string>
+    <string name="preset_electronic">Електронна</string>
+    <string name="preset_funk">Фанк</string>
+    <string name="preset_bassboost">Підсилення басів</string>
+    <string name="preset_treble">Високі частоти</string>
+    <string name="preset_vocal">Вокал</string>
+    <string name="preset_acoustic">Акустика</string>
+
+    <string name="toast_no_device_detected">Мережеві пристрої не знайдено.</string>
+    <string name="toast_click_device_to_explore">Натисніть пристрій, щоб переглянути його.</string>
+    <string name="scan_in_progress">Сканування…</string>
+    <string name="scan_complete">Сканування завершено</string>
+    <string name="audio_scan_deferred_playback">Триває відтворення: сканування аудіо відкладено, щоб уникнути переривань.</string>
+    <string name="dialog_choose_share">Виберіть спільний ресурс</string>
+    <string name="action_add_to_favorites">Додати до обраного</string>
+    <string name="toast_added_to_favorites">%1$s додано до обраного</string>
+    <string name="dialog_edit_path">Редагувати шлях</string>
+    <string name="action_save">Зберегти</string>
+    <string name="toast_name_host_required">Потрібні назва й хост</string>
+    <string name="action_delete">Видалити</string>
+    <string name="dialog_delete_message">Видалити "%1$s"?</string>
+
+    <plurals name="devices_found">
+        <item quantity="one">Знайдено %1$d пристрій</item>
+        <item quantity="other">Знайдено %1$d пристроїв</item>
+    </plurals>
+
+    <string name="dialog_title_already_favorite">Уже в обраному</string>
+    <string name="dialog_already_favorite_message">«%1$s» уже є серед ваших обраних папок.</string>
+    <string name="dialog_add_favorite_folder">Додати обрану папку</string>
+    <string name="dialog_add_favorite_message">Додати «%1$s» до обраних папок? Ви зможете відкривати її безпосередньо з головного екрана.</string>
+    <string name="toast_added_to_favorites_short">Додано до обраного</string>
+    <string name="dialog_no_favorite_folders">Обраних папок ще немає.
+
+У браузері відкрийте меню (⋮) біля папки, щоб додати її до обраного.</string>
+    <string name="dialog_favorite_folders">Обрані папки</string>
+    <string name="action_manage">Керувати</string>
+    <string name="action_close">Закрити</string>
+    <string name="info_dialog_title_chromecast">Chromecast</string>
+    <string name="info_dialog_title_error">Помилка</string>
+    <string name="info_dialog_title_unavailable">Недоступно</string>
+    <string name="info_dialog_title_info">Інформація</string>
+    <string name="toast_capture_unavailable_cast">Знімок недоступний під час трансляції</string>
+    <string name="toast_capture_unavailable">Захоплення відео недоступне</string>
+    <string name="toast_capture_failed">Не вдалося захопити відео</string>
+    <string name="toast_screenshot_saved">Знімок екрана збережено в Pictures/Blaze Screenshots</string>
+    <string name="toast_screenshot_save_error">Помилка збереження знімка екрана</string>
+    <string name="dialog_remove_favorites">Видалити з обраного</string>
+    <string name="action_remove">Видалити</string>
+
+    <string name="unknown_generic">Невідомо</string>
+<string name="sleep_timer_title">Таймер сну</string>
+    <string name="minutes_5">5 хвилин</string>
+    <string name="minutes_15">15 хвилин</string>
+    <string name="minutes_30">30 хвилин</string>
+    <string name="hour_1">1 година</string>
+    <string name="toast_list_already_empty">Список уже порожній</string>
+    <string name="dialog_clean_list">Очистити список</string>
+    <string name="action_remove_selection">Видалити вибране</string>
+    <string name="action_clear_all">Очистити все</string>
+
+    <string name="toast_no_file_selected">Файл не вибрано</string>
+    <string name="dialog_which_playlist">До якого списку відтворення додати?</string>
+    <string name="playlist_slot_name">Список відтворення %1$d</string>
+    <string name="playlist_empty">(порожньо)</string>
+    <string name="action_to_playlist">До списку відтворення</string>
+    <string name="content_desc_queue_to_playlist">Зберегти чергу до списку відтворення</string>
+    <string name="playlist_existing_with_count">(існує — %1$s)</string>
+    <string name="dialog_playlist_not_empty_title">Список відтворення існує</string>
+    <string name="dialog_playlist_not_empty_message">Список відтворення %1$d уже містить %2$s. Усе одно додати вибрані елементи?</string>
+    <string name="action_confirm_add_to_existing_playlist">Усе одно додати</string>
+    <string name="playlist_added_to_slot">%1$s до списку відтворення %2$d</string>
+    <string name="playlist_added_partial">%1$s (%2$s)</string>
+    <string name="dialog_playlist_empty_message">Цей список відтворення порожній.
+
+У браузері виберіть файли й натисніть «Додати до списку відтворення», щоб наповнити його.</string>
+    <string name="action_play_playlist">Відтворити список</string>
+    <string name="action_empty_playlist">Очистити</string>
+    <string name="toast_playlist_emptied">Список відтворення %1$d очищено</string>
+
+    <plurals name="playlist_item_count">
+        <item quantity="one">%1$d елемент</item>
+        <item quantity="other">%1$d елементів</item>
+    </plurals>
+    <plurals name="playlist_items_added">
+        <item quantity="one">Додано %1$d елемент</item>
+        <item quantity="other">Додано %1$d елементів</item>
+    </plurals>
+    <plurals name="playlist_items_already_present">
+        <item quantity="one">%1$d уже є</item>
+        <item quantity="other">%1$d уже є</item>
+    </plurals>
+<string name="category_network">Мережа</string>
+    <string name="category_audio">Аудіо</string>
+
+    <string name="toast_error_generic">Помилка: %1$s</string>
+    <string name="action_play">Відтворити</string>
+    <string name="action_information">Інформація</string>
+    <string name="unknown_size">Невідомо</string>
+    <string name="dialog_video_info_message">Шлях: %1$s
+
+Контейнер: %2$s
+Роздільність: %3$s
+Тривалість: %4$s
+Розмір: %5$s</string>
+
+    <string name="dialog_video_info_video_codec">Відеокодек: %1$s</string>
+
+    <string name="dialog_video_info_audio_codec">Аудіокодек: %1$s</string>
+
+    <plurals name="video_count">
+        <item quantity="one">%1$d відео</item>
+        <item quantity="other">%1$d відео</item>
+    </plurals>
+
+    <string name="toast_cannot_open_screen_cast_settings">Не вдалося відкрити налаштування трансляції екрана</string>
+    <string name="toast_share_not_found">Спільний ресурс для цього обраного не знайдено</string>
+    <string name="action_remove_from_history">Видалити з історії</string>
+
+    <string name="sort_name_za">Назва Я–А</string>
+    <string name="sort_date_recent">Найновіші</string>
+    <string name="sort_size">Розмір</string>
+    <string name="sort_album_order">Порядок альбому</string>
+
+    <string name="dialog_permission_needed">Потрібен дозвіл</string>
+
+    <string name="dialog_permission_intro_title">Потрібні дозволи</string>
+
+    <string name="dialog_permission_intro_message">Для правильної роботи Blaze Player попросить кілька дозволів одночасно:
+
+• Фото, музика та відео: для показу вашої бібліотеки й Blaze Gallery
+• Сповіщення: для керування відтворенням
+• Локальна мережа: для пошуку гостей Blaze Party
+• Мікрофон: лише для динамічного візуального еквалайзера — звук ніколи не записується</string>
+
+    <string name="action_continue">Продовжити</string>
+    <string name="dialog_permission_message">Для роботи Blaze Player потрібен доступ до ваших відеофайлів.</string>
+    <string name="action_allow">Дозволити</string>
+    <string name="action_ignore">Ігнорувати</string>
+
+    <string name="action_edit">Редагувати</string>
+    <string name="browser_files_audio">Мої аудіофайли</string>
+<string name="breadcrumb_home">Головна</string>
+    <string name="toast_path_saved">Шлях збережено</string>
+    <string name="toast_path_deleted">Шлях видалено</string>
+<string name="search_hint_video">Пошук відео</string>
+    <string name="browser_search_in_progress">Триває пошук…</string>
+    <string name="hint_path_name">Назва шляху</string>
+    <string name="hint_shared_folder">Спільна папка</string>
+<string name="hint_ip_host">IP-адреса / Хост</string>
+    <string name="hint_port">Порт</string>
+    <string name="hint_shared_folder_example">Спільна папка (наприклад, videos)</string>
+    <string name="hint_username_optional">Ім’я користувача (необов’язково)</string>
+    <string name="hint_password_optional">Пароль (необов’язково)</string>
+    <string name="hint_username">Ім’я користувача</string>
+    <string name="hint_password">Пароль</string>
+<string name="history_empty_blaze_video_subtitle">Перегляньте локальні або мережеві відео, щоб почати</string>
+
+    <string name="history_empty_blaze_video_title">Немає нещодавно переглянутих відео</string>
+
+    <string name="history_blaze_video">Історія</string>
+
+    <string name="history_selection_active">Вибір активний: вибрано %1$d мініатюр.</string>
+    <string name="history_action_prompt">Виберіть дію для цієї історії.</string>
+    <string name="history_delete_selection">Видалити вибране (%1$d)</string>
+    <string name="history_finish_selection">Завершити вибір</string>
+    <string name="history_select_thumbnails">Вибрати мініатюри</string>
+    <string name="history_delete_all">Видалити всю історію</string>
+    <string name="history_confirm_delete_items">Видалити %1$d елементів з історії?</string>
+    <string name="history_confirm_delete_all_local">Видалити всю локальну історію?</string>
+    <string name="history_confirm_delete_all_network">Видалити всю мережеву історію?</string>
+    <string name="history_toast_select_thumbnails">Виберіть мініатюри, які потрібно видалити з історії</string>
+    <string name="permission_gallery_required">Дозвольте доступ до фото й відео, щоб відображати Blaze Gallery.</string>
+<string name="browse_files_local">Переглянути</string>
+<plurals name="file_count">
+        <item quantity="one">%1$d файл</item>
+        <item quantity="other">%1$d файлів</item>
+    </plurals>
+    <string name="browser_folder_file_count">%1$s · %2$s</string>
+    <string name="content_desc_back">Назад</string>
+
+    <plurals name="results_found">
+        <item quantity="one">%1$d результат</item>
+        <item quantity="other">%1$d результатів</item>
+    </plurals>
+    <string name="path_internal_storage">/внутрішня пам’ять</string>
+
+    <plurals name="selected_tracks_count">
+        <item quantity="one">Вибрано %1$d доріжку</item>
+        <item quantity="other">Вибрано %1$d доріжок</item>
+    </plurals>
+<string name="settings_section_playback">ВІДТВОРЕННЯ</string>
+    <string name="settings_section_audio">АУДІО</string>
+    <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
+    <string name="label_default">За замовчуванням</string>
+    <string name="eq_preamp_compressor_section">ПЕРЕДПІДСИЛЮВАЧ І КОМПРЕСОР</string>
+    <string name="eq_preamp_label">Передпідсилювач</string>
+    <string name="eq_compressor_label">Компресор</string>
+    <string name="player_casting_in_progress">Триває трансляція</string>
+    <string name="player_stop_casting">Зупинити трансляцію</string>
+    <string name="player_speed_label_short">Швидкість</string>
+    <string name="player_ratio_label">Співвідношення</string>
+
+    <string name="content_desc_close_playlist">Закрити список відтворення</string>
+    <string name="content_desc_clean">Очистити</string>
+    <string name="content_desc_playlist">Список відтворення</string>
+    <string name="content_desc_shuffle">Перемішати</string>
+    <string name="content_desc_previous">Попередній</string>
+    <string name="content_desc_play_pause">Відтворити/Пауза</string>
+    <string name="content_desc_next">Наступний</string>
+    <string name="content_desc_repeat">Повтор</string>
+    <string name="content_desc_timer">Таймер</string>
+    <string name="content_desc_options">Параметри</string>
+<string name="error_loading_media">Не вдалося почати відтворення відео.</string>
+
+    <string name="cast_dialog_status">Трансляція зараз</string>
+    <string name="cast_dialog_stop">Зупинити трансляцію</string>
+    <string name="select_all">Вибрати все</string>
+    <string name="deselect_all">Скасувати вибір</string>
+    <string name="cast_subtitles_unavailable">Субтитри недоступні під час трансляції</string>
+    <string name="cast_audio_language_unavailable">Зміна мови аудіо недоступна під час трансляції</string>
+    <string name="paywall_title">Виберіть версію Blaze</string>
+    <string name="paywall_subtitle">Користуйтеся всіма функціями Pro+ протягом 15 днів, а потім виберіть потрібну версію.</string>
+    <string name="paywall_free_title">Blaze Player Free</string>
+    <string name="paywall_free_desc">Локальне відео Blaze Video і трансляція локальних відео на Chromecast. Вкладка «Мережа» та мережеві кнопки в браузерах заблоковані.</string>
+    <string name="paywall_pro_title">Blaze Player Pro</string>
+    <string name="paywall_pro_price">3,99 €</string>
+    <string name="paywall_pro_desc">Містить Free і відкриває локальну мережу SMB/UPnP та Blaze Gallery.</string>
+    <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
+    <string name="paywall_pro_plus_price">5,99 €</string>
+    <string name="paywall_pro_plus_desc">Містить усі функції Pro і відкриває преміальний аудіопрогравач Blaze Audio.</string>
+    <string name="paywall_buy_pro">Розблокувати Pro — 3,99 €</string>
+    <string name="paywall_buy_pro_plus">Розблокувати Pro+ — 5,99 €</string>
+    <string name="paywall_debug_unlocked">Режим налагодження: Pro і Pro+ тимчасово розблоковано.</string>
+    <string name="paywall_restore">Відновити покупки</string>
+    <string name="action_back">Назад</string>
+    <string name="toast_billing_soon">Покупки незабаром</string>
+    <string name="video_settings_title">Налаштування відео</string>
+    <string name="video_setting_brightness">Яскравість</string>
+    <string name="video_setting_contrast">Контраст</string>
+    <string name="video_setting_color">Відтінок</string>
+    <string name="video_setting_saturation">Насиченість</string>
+    <string name="video_setting_dialogue_mode">Режим діалогів</string>
+    <string name="action_off">Вимкнено</string>
+    <string name="video_setting_volume_boost">Підсилення гучності</string>
+    <string name="action_reset">Скинути</string>
+
+    
+
+<string name="gallery_folders">Галерея</string>
+
+    <string name="gallery_empty_folders">Папок ще немає — створіть першу</string>
+
+    <string name="gallery_empty_photos">Ця папка порожня</string>
+
+    <string name="gallery_trash_empty_message">Кошик порожній</string>
+    <string name="gallery_type_photo">Фото</string>
+    <string name="gallery_type_video">Відео</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">Сортувати</string>
+<string name="gallery_sort_date_desc">Спочатку нові</string>
+    <string name="gallery_sort_date_asc">Спочатку старі</string>
+    <string name="gallery_sort_name">За алфавітом</string>
+    <string name="gallery_sort_size">Розмір файлу</string>
+    <string name="gallery_unknown_folder">Невідома папка</string>
+
+    <string name="action_open">Відкрити</string>
+    <string name="action_share">Поділитися</string>
+    <string name="gallery_trash">Кошик</string>
+    <string name="gallery_empty_trash">Очистити назавжди</string>
+    <string name="gallery_restore">Відновити</string>
+    <string name="gallery_delete">Видалити</string>
+    <string name="gallery_delete_folder">Видалити папку</string>
+    <string name="gallery_delete_permanently_from_trash">Видалити назавжди з кошика</string>
+<string name="gallery_delete_all">Видалити все</string>
+    <string name="gallery_share_all">Поділитися всім</string>
+    <string name="gallery_selected_count">Вибрано: %1$d</string>
+    <string name="confirm_delete_title">Підтвердити видалення</string>
+    <string name="confirm_delete_photo_message">Перемістити це фото до кошика?</string>
+    <string name="confirm_delete_folder_message">Перемістити всі фото в цій папці до кошика?</string>
+    <string name="confirm_delete_selected_message">Перемістити вибрані фото до кошика?</string>
+    <string name="confirm_empty_trash_message">Очистити кошик назавжди? Цю дію не можна скасувати.</string>
+    <string name="confirm_permanent_delete_message">Назавжди видалити це фото з кошика?</string>
+    <string name="action_confirm_delete">Видалити</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d фото</item>
+        <item quantity="other">%d фото</item>
+    </plurals>
+    <plurals name="gallery_video_count">
+        <item quantity="one">%d відео</item>
+        <item quantity="other">%d відео</item>
+    </plurals>
+    <string name="settings_audio_spectrum">Увімкнути візуальний спектр</string>
+    <string name="settings_audio_spectrum_desc">Показувати анімований аудіовізуалізатор у Blaze Audio.</string>
+
+    
+    <string name="blaze_party">Blaze Party</string>
+    <string name="blaze_party_intro">Створіть локальну сесію або приєднайтеся до спільної черги в тій самій мережі Wi‑Fi.</string>
+    <string name="blaze_party_host">Хост Blaze Party</string>
+    <string name="blaze_party_join">Приєднатися до Blaze Party</string>
+    <string name="blaze_party_disconnect">Від’єднатися</string>
+    <string name="blaze_party_disconnected">Від’єднано від Blaze Party</string>
+    <string name="blaze_party_connection_lost">З’єднання з хостом втрачено — повернення до локальної черги</string>
+    <string name="blaze_party_host_title">Хост Blaze Party</string>
+    <string name="blaze_party_qr_desc">QR-код Blaze Party</string>
+    <string name="blaze_party_share_code">Адреса: %1$s
+Токен: %2$s</string>
+    <string name="blaze_party_host_waiting">Сесію підготовлено: гості можуть відсканувати цей код.</string>
+<string name="blaze_party_scan_unavailable">QR-сканер недоступний. Установіть сканер або введіть код вручну.</string>
+    <string name="blaze_party_joined">Підключено до сесії Blaze Party</string>
+<string name="blaze_party_short">Party</string>
+    <string name="add_to_blaze_party">Додати до Blaze Party</string>
+    <string name="blaze_party_playlist_title">Список відтворення Blaze Party</string>
+    <string name="blaze_party_playlist_empty_message">У списку Blaze Party немає доріжок. Додайте їх з аудіобраузера через «Додати до Blaze Party».</string>
+    <string name="blaze_party_items_already_present">Ці доріжки вже є в Blaze Party</string>
+    <string name="toast_blaze_party_playlist_emptied">Список Blaze Party очищено</string>
+    <plurals name="blaze_party_items_added">
+        <item quantity="one">До Blaze Party додано %d доріжку</item>
+        <item quantity="other">До Blaze Party додано %d доріжок</item>
+    </plurals>
+
+    <string name="blaze_party_launch">Запустити</string>
+    <string name="blaze_party_vote">Голосувати</string>
+    <string name="blaze_party_vote_hint">Натисніть доріжку, щоб переглянути голоси й проголосувати.</string>
+    <string name="blaze_party_vote_saved">Голос збережено</string>
+    <string name="blaze_party_no_voters">Голосів ще немає</string>
+    <string name="blaze_party_nickname">Псевдонім</string>
+    <string name="blaze_party_nickname_hint">Ваш псевдонім</string>
+    <string name="blaze_party_nickname_title">Виберіть псевдонім Blaze Party</string>
+    <plurals name="blaze_party_vote_count">
+        <item quantity="one">%d голос</item>
+        <item quantity="other">%d голосів</item>
+    </plurals>
+
+    <string name="gallery_folder_button">Папка</string>
+    <string name="gallery_create_folder">Додати</string>
+    <string name="gallery_create_folder_title">Нова папка фотографій</string>
+    <string name="gallery_create_folder_hint">Назва папки</string>
+    <string name="gallery_folder_created">Папку створено</string>
+    <string name="gallery_folder_create_error">Не вдалося створити папку</string>
+    <string name="gallery_move_to_folder">Перемістити до іншої папки</string>
+    <string name="gallery_move_photo_title">Перемістити фото</string>
+    <string name="gallery_photo_moved">Фото переміщено</string>
+    <string name="gallery_photo_move_error">Не вдалося перемістити фото</string>
+    <string name="action_custom_thumbnail">Власна мініатюра</string>
+    <string name="action_delete_thumbnail">Видалити мініатюру</string>
+    <string name="custom_thumbnail_pick_folder">Виберіть папку</string>
+    <string name="custom_thumbnail_pick_image">Виберіть зображення</string>
+    <string name="custom_thumbnail_pick_toast">Виберіть зображення для мініатюри</string>
+    <string name="custom_thumbnail_saved">Мініатюру збережено</string>
+    <string name="custom_thumbnail_deleted">Мініатюру видалено</string>
+    <string name="custom_thumbnail_error">Не вдалося оновити мініатюру</string>
+    <string name="blaze_party_not_host_queue">Лише хост може змінювати цю чергу</string>
+    <string name="blaze_party_remove_vote">Видалити мій голос</string>
+    <string name="blaze_party_vote_removed">Голос видалено</string>
+    <string name="blaze_party_default_host">Хост</string>
+    <string name="blaze_party_default_guest">Гість</string>
+    <string name="app_name_gallery">Blaze Gallery</string>
+
+    
+    <string name="photo_editor_title">Редагувати</string>
+    <string name="filter_normal">Звичайний</string>
+    <string name="filter_vivid">Яскравий</string>
+    <string name="filter_bw">Чорно-білий</string>
+    <string name="filter_noir">Нуар</string>
+    <string name="filter_sepia">Сепія</string>
+    <string name="filter_warm">Теплий</string>
+    <string name="filter_cool">Холодний</string>
+    <string name="filter_fade">Вицвілий</string>
+    <string name="filter_dramatic">Драматичний</string>
+    <string name="filter_matte">Матовий</string>
+    <string name="filter_vintage">Вінтаж</string>
+    <string name="filter_rose">Трояндовий</string>
+    <string name="filter_deep_blue">Глибокий синій</string>
+    <string name="filter_silver">Срібний</string>
+    <string name="filter_sunset">Захід сонця</string>
+    <string name="filter_emerald">Смарагдовий</string>
+    <string name="filter_soft">М’який</string>
+    <string name="filter_punch">Контрастний</string>
+    <string name="filter_lavender">Лавандовий</string>
+    <string name="filter_coral">Кораловий</string>
+    <string name="filter_steel">Сталевий</string>
+    <string name="filter_amber">Бурштиновий</string>
+    <string name="filter_midnight">Опівнічний</string>
+    <string name="filter_polaroid">Polaroid</string>
+    <string name="editor_tab_filters">Фільтри</string>
+    <string name="editor_tab_crop">Обрізати</string>
+    <string name="editor_tab_rotate">Повернути</string>
+    <string name="editor_tab_blur">Розмиття</string>
+<string name="blur_effect_blur">Розмиття</string>
+    <string name="blur_effect_mosaic">Мозаїка</string>
+    <string name="blur_shape_circle">Коло</string>
+    <string name="blur_shape_square">Квадрат</string>
+    <string name="blur_intensity_label">Інтенсивність</string>
+    <string name="dialog_after_save_title">Зміни збережено</string>
+    <string name="dialog_after_save_message">Що ви хочете зробити далі?</string>
+    <string name="action_stay_editing">Залишитися тут</string>
+    <string name="action_back_to_gallery">Повернутися до галереї</string>
+    <string name="crop_ratio_free">Довільно</string>
+    <string name="crop_ratio_square">1:1</string>
+    <string name="crop_ratio_4_3">4:3</string>
+    <string name="crop_ratio_16_9">16:9</string>
+    <string name="action_compare_hold">Утримуйте для порівняння</string>
+    <string name="content_desc_rotate_left">Повернути ліворуч</string>
+    <string name="content_desc_rotate_right">Повернути праворуч</string>
+<string name="toast_photo_save_failed">Не вдалося зберегти</string>
+    <string name="photo_details_no_exif">Метадані для цього фото недоступні</string>
+    <string name="photo_details_dimensions">Розміри: %1$s</string>
+    <string name="photo_details_size">Розмір: %1$s</string>
+    <string name="photo_details_date">Дата: %1$s</string>
+    <string name="photo_details_camera">Камера: %1$s</string>
+    <string name="photo_details_location">Місце: %1$s</string>
+    <string name="gallery_menu_edit">Редагувати</string>
+
+    
+    <string name="video_trim_title">Обрізати</string>
+    <string name="action_export_fast">SQ</string>
+    <string name="action_export_precise">HQ</string>
+    <string name="action_export_gif">GIF</string>
+    <string name="action_export_mp3">MP3</string>
+    <string name="toast_video_saved">Відео збережено до Blaze Gallery</string>
+    <string name="toast_video_export_failed">Не вдалося експортувати</string>
+    <string name="toast_gif_saved">GIF збережено до Blaze Gallery</string>
+    <string name="toast_mp3_saved">MP3 збережено в Documents/Blaze Audio Extractor</string>
+    <string name="toast_mp3_export_failed">Не вдалося експортувати MP3</string>
+    <string name="gallery_menu_cut">Обрізати</string>
+
+    <string name="add_to_video_queue_short">черга</string>
+    <string name="video_queue_title">ЧЕРГА ВІДЕО</string>
+    <string name="video_queue_title_with_category">ЧЕРГА ВІДЕО — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">У цій черзі немає відео. Виберіть відео в браузері, а потім натисніть «+ черга».</string>
+    <string name="toast_video_queue_added">До черги додано %1$d відео</string>
+    <string name="toast_video_queue_added_partial">Додано %1$d відео, %2$d уже були в черзі</string>
+    <string name="toast_video_queue_no_video_selected">Виберіть принаймні одне відео</string>
+    <string name="toast_video_queue_cleared">Чергу відео очищено</string>
+    <string name="toast_video_queue_item_removed">Відео видалено з черги</string>
+    <string name="content_desc_video_queue">Черга відео</string>
+    <string name="content_desc_close_video_queue">Закрити чергу відео</string>
+
+    
+    <string name="add_to_playlist_fixed_short">Додати до списку відтворення</string>
+    <string name="app_name_audio">Blaze Audio</string>
+    <string name="blaze_party_network_error">Не вдалося підключитися до хоста. Переконайтеся, що ви в тій самій мережі Wi‑Fi.</string>
+
+    
+    <string name="audio_library_title">Бібліотека</string>
+    <string name="audio_library_subtitle">Ваша музична бібліотека Pro+</string>
+    <string name="audio_loading_in_progress">Завантаження...</string>
+    <string name="audio_search">Пошук</string>
+<string name="audio_tab_albums">Альбоми</string>
+    <string name="audio_tab_artists">Виконавці</string>
+    <string name="audio_tab_titles">Доріжки</string>
+    <string name="audio_tab_playlists">Списки відтворення</string>
+    <string name="audio_resume_listening">Нещодавно прослухане</string>
+    <string name="audio_recent_albums">Мої альбоми</string>
+    <string name="audio_played_tracks">Доріжки</string>
+    <string name="audio_all">Показати все</string>
+    <string name="audio_album_view_grid_3">Сітка 3</string>
+    <string name="audio_album_view_grid_4">Сітка 4</string>
+    <string name="audio_album_view_list">Список</string>
+    <string name="audio_no_music">Музику не знайдено</string>
+    <string name="audio_settings_title">Налаштування аудіо</string>
+    <string name="audio_settings_subtitle">Налаштуйте свій досвід прослуховування Pro+</string>
+    <string name="audio_section_playback">Відтворення</string>
+    <string name="audio_gapless_title">Безперервне відтворення</string>
+    <string name="audio_gapless_subtitle">Відтворювати доріжки без пауз</string>
+    <string name="audio_crossfade_title">Плавний перехід</string>
+    <string name="audio_crossfade_subtitle">Плавні переходи між доріжками</string>
+    <string name="audio_crossfade_duration">Тривалість переходу</string>
+    <string name="audio_normalize_volume">Нормалізація гучності</string>
+    <string name="audio_normalize_volume_subtitle">Вирівнювати гучність між доріжками</string>
+    <string name="audio_section_quality">Якість аудіо</string>
+    <string name="audio_high_quality_output">Високоякісний вихід</string>
+    <string name="audio_high_quality_subtitle">Вимикає налаштування звуку, щоб надати пріоритет прямому аудіовиходу</string>
+    <string name="audio_replaygain_title">ReplayGain</string>
+    <string name="audio_replaygain_off">Вимкнено</string>
+    <string name="audio_replaygain_track">Доріжка</string>
+    <string name="audio_replaygain_album">Альбом</string>
+    <string name="audio_preamp_title">Передпідсилювач</string>
+    <string name="audio_preamp_subtitle">Налаштувати рівень виходу</string>
+    <string name="audio_output_mode_title">Режим точності</string>
+    <string name="audio_output_mode_subtitle">Адаптує шлях PCM для якості й сумісності пристрою</string>
+    <string name="audio_output_mode_auto">Автоматично</string>
+    <string name="audio_output_mode_compatibility">Сумісність</string>
+    <string name="audio_output_mode_high_precision">Висока точність</string>
+    <string name="audio_replaygain_subtitle">Вирівнює гучність між доріжками незалежно від звукових ефектів</string>
+    <string name="audio_section_library">Бібліотека</string>
+    <string name="audio_auto_scan">Сканувати автоматично</string>
+    <string name="audio_auto_scan_subtitle">Додавати нові файли</string>
+    <string name="audio_watched_folders">Відстежувані папки</string>
+    <string name="audio_watched_folders_subtitle">Виберіть аудіопапки</string>
+<string name="audio_sort_album_track">Сортувати за номером доріжки</string>
+    <string name="audio_sort_album_track_subtitle">Дотримуватися порядку альбому й диска</string>
+    <string name="audio_ignore_short_files">Ігнорувати короткі файли</string>
+    <string name="audio_ignore_short_files_subtitle">Коротші за 30 секунд</string>
+    <string name="audio_section_interface">Інтерфейс</string>
+    <string name="audio_dynamic_theme">Динамічна тема</string>
+    <string name="audio_dynamic_theme_subtitle">Зелений Blaze за замовчуванням, кольори обкладинки після ввімкнення</string>
+    <string name="audio_cover_border">Кольорова рамка обкладинки</string>
+    <string name="audio_cover_border_subtitle">Динамічний акцент навколо обкладинки</string>
+<string name="audio_artwork_size">Розмір обкладинки</string>
+    <string name="audio_size_small">Малий</string>
+    <string name="audio_size_medium">Середній</string>
+    <string name="audio_size_large">Великий</string>
+    <string name="audio_section_lyrics_metadata">Тексти й метадані</string>
+    <string name="audio_synced_lyrics">Синхронізований текст</string>
+    <string name="audio_synced_lyrics_subtitle">Головний перемикач для локальних текстів LRC/TXT</string>
+    <string name="audio_tag_editor">Редактор тегів</string>
+    <string name="audio_tag_editor_subtitle">Редагувати назву, виконавця, альбом, жанр, доріжку й диск</string>
+<string name="audio_no_current_track">Немає поточної доріжки</string>
+    <string name="audio_tag_title">Назва</string>
+    <string name="audio_tag_artist">Виконавець</string>
+    <string name="audio_tag_album">Альбом</string>
+    <string name="audio_tag_reset">Скинути</string>
+    <string name="audio_tag_saved">Метадані аудіо збережено</string>
+    <string name="audio_tag_reset_done">Локальні метадані очищено</string>
+    <plurals name="audio_folder_count_compact">
+        <item quantity="one">%d папка</item>
+        <item quantity="other">%d папок</item>
+    </plurals>
+    <plurals name="audio_track_count_compact">
+        <item quantity="one">%d доріжка</item>
+        <item quantity="other">%d доріжок</item>
+    </plurals>
+    <plurals name="audio_album_count_compact">
+        <item quantity="one">%d альбом</item>
+        <item quantity="other">%d альбомів</item>
+    </plurals>
+    <plurals name="audio_artist_count_compact">
+        <item quantity="one">%d виконавець</item>
+        <item quantity="other">%d виконавців</item>
+    </plurals>
+    <string name="audio_watched_folders_empty_info">Відстежуваних папок ще немає. В аудіобраузері відкрийте меню папки й виберіть «Додати до відстежуваних папок».</string>
+    <string name="audio_watched_folders_manage_info">Натисніть папку, щоб припинити відстеження. Додавайте нові папки через їхні меню в аудіобраузері.</string>
+    <string name="audio_remove_watched_folder">Видалити</string>
+    <string name="audio_add_to_watched">Додати до відстежуваних папок</string>
+    <string name="audio_add_to_favorites">Додати до обраного</string>
+    <string name="audio_watched_folder_added">Папку додано до відстежуваних</string>
+    <string name="audio_watched_folder_refresh_hint">Папку додано до відстежуваних. Повне оновлення бібліотеки почнеться автоматично після повернення до неї.</string>
+    <string name="audio_watched_folder_removed">Папку видалено з відстежуваних</string>
+    <string name="audio_watched_folder_already">Ця папка вже відстежується</string>
+    <string name="audio_tag_genre">Жанр</string>
+    <string name="audio_tag_year">Рік</string>
+    <string name="audio_tag_track">Доріжка</string>
+    <string name="audio_tag_disc">Диск</string>
+    <string name="audio_tag_writing">Запис тегів…</string>
+    <string name="audio_tag_saved_hard">Теги записано до аудіофайлу</string>
+    <string name="audio_tag_write_failed">Не вдалося записати теги до цього файлу</string>
+    <string name="audio_tag_network_not_supported">Прямий запис доступний для локальних файлів і мережевих файлів SMB/NAS. Це джерело не дозволяє віддалене редагування.</string>
+    <string name="action_scan">Сканувати</string>
+    <string name="action_done">Готово</string>
+<string name="audio_play_album">Відтворити весь альбом</string>
+    <string name="audio_add_album_queue">Додати до черги</string>
+    <string name="audio_select_tracks">Вибрати доріжки</string>
+    <string name="audio_add_playlist_blaze_party">Додати список до Blaze Party</string>
+    <string name="audio_add_playlist_queue">Додати список до черги</string>
+    <string name="audio_various_artists">Різні виконавці</string>
+    <string name="queue_clear_all">Очистити все</string>
+    <string name="queue_clear_selection">Очистити вибране</string>
+    <string name="queue_clear_hint">«Очистити все» видаляє всю чергу. Інакше позначте лише доріжки, які треба видалити, і очистьте вибране.</string>
+    <string name="audio_track_more_options">Параметри доріжки</string>
+    <string name="audio_album_more_options">Параметри альбому</string>
+    <string name="audio_add_track_queue">Додати до черги</string>
+    <string name="audio_add_track_playlist">Додати до списку відтворення</string>
+    <string name="audio_add_track_blaze_party">Додати до Blaze Party</string>
+    <string name="audio_back_to_albums">Назад до альбомів</string>
+    <string name="audio_back_to_albums_hint">Повернутися до повного перегляду бібліотеки</string>
+
+    <string name="action_refresh">Оновити</string>
+    <string name="audio_watched_folders_empty_short">Немає відстежуваних папок</string>
+    <string name="audio_watched_folders_summary_mixed">%1$d локальних · %2$d %3$s</string>
+    <string name="audio_watched_folders_summary_network">%1$d %2$s</string>
+    <string name="audio_watched_folders_summary_local">%1$d локальних папок</string>
+    <string name="audio_library_refresh_started">Оновлення запущено у фоновому режимі</string>
+    <string name="audio_library_refresh_done">Бібліотеку оновлено</string>
+    <string name="audio_library_refresh_in_progress_message">Триває оновлення бібліотеки. Зачекайте перед початком відтворення.</string>
+    <string name="audio_library_refresh_failed">Не вдалося оновити</string>
+    <string name="audio_library_network_synced">Мережу синхронізовано</string>
+    <string name="audio_album_sort_album">Назва альбому</string>
+    <string name="audio_album_sort_artist">Ім’я виконавця</string>
+
+    <string name="close">Закрити</string>
+    <string name="eq_tab_tone">Тембр</string>
+    <string name="eq_tab_dynamics">Динаміка</string>
+    <string name="eq_tab_ambience">Атмосфера</string>
+    <string name="eq_bass">Баси</string>
+    <string name="eq_treble">Високі частоти</string>
+    <string name="eq_balance">Баланс</string>
+    <string name="eq_stereo">Стерео</string>
+    <string name="eq_center">Центр</string>
+    <string name="eq_balance_left">Л %1$d</string>
+    <string name="eq_balance_right">П %1$d</string>
+    <string name="eq_mono">Моно</string>
+    <string name="eq_mono_active">Моно ввімкнено</string>
+    <string name="eq_auto_headroom">Автоматичний запас</string>
+    <string name="eq_auto_headroom_summary">Автоматично зменшує передпідсилення, якщо крива може спричинити перевантаження.</string>
+    <string name="eq_limiter">Лімітер</string>
+    <string name="eq_limiter_summary">Контролює цифрові піки перед аудіовиходом.</string>
+    <string name="eq_loudness">Гучність</string>
+    <string name="eq_reverb">Реверберація</string>
+    <string name="eq_room_type">Тип приміщення</string>
+    <string name="eq_reverb_mix">Мікс</string>
+    <string name="eq_room_studio">Студія</string>
+    <string name="eq_room_small">Мала кімната</string>
+    <string name="eq_room_hall">Велика зала</string>
+    <string name="eq_room_plate">Пластина</string>
+    <string name="eq_equalizer_unavailable">Еквалайзер пристрою недоступний для цього виходу. Керування каналами залишається активним.</string>
+
+    <string name="action_play_pause">Відтворити / пауза</string>
+    <string name="action_stop">Зупинити</string>
+    <string name="cast_remote_title">Пульт Cast</string>
+    <string name="cast_remote_subtitle">Керуйте відео на телевізорі</string>
+    <string name="cast_remote_power">Підключити або відключити Chromecast</string>
+    <string name="cast_remote_not_connected">НЕМАЄ АКТИВНОЇ ТРАНСЛЯЦІЇ</string>
+    <string name="cast_remote_connected">ТРАНСЛЯЦІЮ ПІДКЛЮЧЕНО</string>
+    <string name="cast_remote_no_media">Наразі жодне відео не транслюється</string>
+    <string name="cast_remote_control_label">ПУЛЬТ BLAZE</string>
+    <string name="cast_remote_volume_up">Збільшити гучність</string>
+    <string name="cast_remote_volume_down">Зменшити гучність</string>
+    <string name="cast_remote_mute">Вимкнути або ввімкнути звук</string>
+    <string name="cast_remote_rewind">Назад на 10 секунд</string>
+    <string name="cast_remote_forward">Уперед на 10 секунд</string>
+    <string name="cast_remote_previous">Попереднє відео</string>
+    <string name="cast_remote_next">Наступне відео</string>
+    <string name="cast_remote_hint">Червона кнопка відкриває панель Chromecast для підключення або відключення телевізора.</string>
+    <string name="content_desc_cast_remote">Пульт керування Chromecast</string>
+
+    <string name="cast_remote_led_on">УВІМК.</string>
+    <string name="cast_remote_led_off">ВИМК.</string>
+
+    <string name="content_desc_rewind">Перемотати назад</string>
+    <string name="content_desc_forward">Перемотати вперед</string>
+    <string name="content_desc_video_screenshot">Захопити кадр відео</string>
+    <string name="content_desc_stop">Зупинити</string>
+    <string name="content_desc_settings">Налаштування</string>
+    <string name="content_desc_cast_screen">Транслювати екран телефона</string>
+    <string name="content_desc_sort">Сортувати</string>
+    <string name="content_desc_show_audio_files">Показати аудіофайли</string>
+    <string name="content_desc_rescan">Сканувати знову</string>
+
+    <string name="eq_status_on">УВІМК.</string>
+    <string name="eq_status_off">ВИМК.</string>
+
+    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
+    <string name="audio_watched_help_button_desc">Довідка про відстежувані папки</string>
+    <string name="audio_watched_help_title">Як підготувати аудіобібліотеку</string>
+    <string name="audio_watched_help_desc">Коли ви вперше додаєте локальні або мережеві папки до бібліотеки, запасіться терпінням: завантаження метаданих і обкладинок може тривати довго, особливо якщо у вас багато альбомів або треків.</string>
+    <string name="audio_watched_help_desc_2">Щоб Blaze Audio правильно впорядкував музику, по можливості дотримуйтеся наведеної нижче структури.</string>
+    <string name="audio_watched_help_structure_title">Рекомендована структура</string>
+    <string name="audio_watched_help_root">Відстежувана папка (локальна або мережева)/</string>
+    <string name="audio_watched_help_artist_folder">└── Виконавець/</string>
+    <string name="audio_watched_help_album_folder">    └── Альбом/</string>
+    <string name="audio_watched_help_cover">        ├── cover.jpg</string>
+    <string name="audio_watched_help_track">        ├── 01 - Назва треку.flac</string>
+    <string name="audio_watched_help_lrc">        └── 01 - Назва треку.lrc</string>
+    <string name="audio_watched_help_cover_note">Розмістіть обкладинку в папці альбому під назвою cover.jpg або cover.png.</string>
+    <string name="audio_watched_help_lrc_note">Розміщуйте файли .lrc поруч із кожним треком, використовуючи точно таку саму назву файлу.</string>
+
+    <!-- Aide de l’onglet Réseau -->
+    <string name="network_help_button_desc">Довідка про мережеві шляхи</string>
+    <string name="network_help_title">Довідка про мережу</string>
+    <string name="network_help_message">Тут потрібно зберегти шляхи до файлів у локальній мережі, щоб потім переглядати їх у застосунку.</string>
+    <string name="about_developed_in_france">Розроблено у Франції з любов’ю</string>
+    <string name="paywall_status_unavailable">Стан підписки недоступний</string>
+    <string name="paywall_active_pro_plus">Версія Pro+ активна</string>
+    <string name="paywall_active_pro">Версія Pro активна</string>
+    <string name="paywall_trial_expired">Пробний період Pro+ завершено — преміум-функції заблоковано</string>
+    <string name="trial_notification_channel_name">Пробний період Blaze Pro+</string>
+    <string name="trial_notification_title">Пробний період Blaze Pro+ скоро завершиться</string>
+    <string name="trial_notification_message">До завершення пробного періоду залишилося 48 годин. Активуйте Pro або Pro+, щоб зберегти преміум-функції.</string>
+    <plurals name="paywall_trial_days_left">
+        <item quantity="one">Пробний період Pro+: залишився %1$d день</item>
+        <item quantity="other">Пробний період Pro+: залишилося %1$d днів</item>
+    </plurals>
+</resources>

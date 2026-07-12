@@ -9,6 +9,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 
 /**
  * Enregistre les résultats des outils d'édition (filtre/recadrage photo, découpe vidéo/GIF) via
@@ -101,74 +102,72 @@ object MediaSaveUtils {
     }
 
 
-    /** Publie un extrait audio MP3 dans un dossier public à la racine du stockage partagé :
-     *  /storage/emulated/0/Blaze MP3 Cut sur les appareils où le stockage partagé correspond à
-     *  ce chemin. Sur Android 10+, MediaStore crée le dossier via RELATIVE_PATH sans demander
-     *  d'accès fichier brut ; sur Android 9, on crée le dossier directement. */
-    fun publishMp3CutFile(context: Context, sourceFile: File, displayName: String): Uri? {
-        val folderName = "Blaze MP3 Cut"
+    /** Publie un extrait audio MP3 dans le dossier public :
+     *  Documents/Blaze Audio Extractor. Sur Android 10+, le fichier est créé via MediaStore.Files
+     *  avec RELATIVE_PATH afin de respecter le stockage cloisonné. Sur Android 9, le dossier est
+     *  créé directement dans le répertoire public Documents.
+     *
+     *  [prepareSourceForDisplayName] est appelé après résolution du nom unique final et avant la
+     *  copie. L'exporteur MP3 l'utilise pour écrire ce nom exact dans le titre ID3 TIT2. */
+    fun publishMp3CutFile(
+        context: Context,
+        sourceFile: File,
+        displayName: String,
+        prepareSourceForDisplayName: ((String) -> Boolean)? = null
+    ): Uri? {
+        val folderName = "Blaze Audio Extractor"
         val mimeType = "audio/mpeg"
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val resolver = context.contentResolver
-
-                // Objectif demandé : créer le dossier directement à la racine du stockage partagé
-                // sous le nom "Blaze MP3 Cut". Sur Android 10+, l'accès fichier direct à la
-                // racine est cloisonné ; on passe donc par MediaStore.Files, qui accepte mieux les
-                // chemins relatifs génériques que MediaStore.Audio sur certains appareils.
-                val rootValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, "$folderName/")
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
-                }
+                val relativePath = Environment.DIRECTORY_DOCUMENTS + "/$folderName/"
                 val filesUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                insertAndCopy(resolver = resolver, collection = filesUri, values = rootValues, sourceFile = sourceFile)?.let { return it }
-
-                // Fallback Android strict : depuis le stockage cloisonné, Android peut refuser
-                // tout dossier de premier niveau personnalisé. Pour un MP3 avec cover, on tente
-                // d'abord Music via MediaStore.Audio : Android indexe alors le fichier comme audio
-                // et relit mieux les tags ID3/APIC que lorsqu'il est publié comme fichier générique
-                // dans Documents.
-                val musicValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+                val uniqueDisplayName = findAvailableMp3Name(
+                    context = context,
+                    requestedName = displayName,
+                    folderName = folderName,
+                    collection = filesUri,
+                    relativePath = relativePath
+                )
+                if (prepareSourceForDisplayName?.invoke(uniqueDisplayName) == false) {
+                    android.util.Log.e("MediaSaveUtils", "Échec préparation ID3 du MP3 $uniqueDisplayName")
+                    return null
+                }
+                val values = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, uniqueDisplayName)
                     put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MUSIC + "/$folderName/")
-                    put(MediaStore.Audio.Media.TITLE, displayName.substringBeforeLast('.'))
-                    put(MediaStore.Audio.Media.ARTIST, "Blaze Video to MP3")
-                    put(MediaStore.Audio.Media.ALBUM, folderName)
-                    put(MediaStore.Audio.Media.IS_MUSIC, 1)
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
                     put(MediaStore.MediaColumns.IS_PENDING, 1)
                 }
-                insertAndCopy(resolver = resolver, collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values = musicValues, sourceFile = sourceFile)?.let { return it }
-
-                val documentsValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS + "/$folderName/")
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
-                }
-                insertAndCopy(resolver = resolver, collection = filesUri, values = documentsValues, sourceFile = sourceFile)?.let { return it }
-
-                // Dernier filet de sécurité : Downloads est presque toujours accepté par MediaStore.
-                val downloadsValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/$folderName/")
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
-                }
-                insertAndCopy(resolver = resolver, collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI, values = downloadsValues, sourceFile = sourceFile)
+                insertAndCopy(
+                    resolver = resolver,
+                    collection = filesUri,
+                    values = values,
+                    sourceFile = sourceFile
+                )
             } else {
                 @Suppress("DEPRECATION")
-                val dir = File(Environment.getExternalStorageDirectory(), folderName)
-                if (!dir.exists()) dir.mkdirs()
-                val target = File(dir, displayName)
-                sourceFile.copyTo(target, overwrite = true)
+                val documentsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+                val dir = File(documentsDir, folderName)
+                if (!dir.exists() && !dir.mkdirs()) return null
+
+                val uniqueDisplayName = findAvailableMp3Name(
+                    context = context,
+                    requestedName = displayName,
+                    folderName = folderName,
+                    legacyDirectory = dir
+                )
+                if (prepareSourceForDisplayName?.invoke(uniqueDisplayName) == false) {
+                    android.util.Log.e("MediaSaveUtils", "Échec préparation ID3 du MP3 $uniqueDisplayName")
+                    return null
+                }
+                val target = File(dir, uniqueDisplayName)
+                sourceFile.copyTo(target, overwrite = false)
                 val values = ContentValues().apply {
                     put(MediaStore.MediaColumns.DATA, target.absolutePath)
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, uniqueDisplayName)
                     put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                    put(MediaStore.Audio.Media.TITLE, displayName.substringBeforeLast('.'))
+                    put(MediaStore.Audio.Media.TITLE, uniqueDisplayName.substringBeforeLast('.'))
                     put(MediaStore.Audio.Media.ARTIST, "Blaze Video to MP3")
                     put(MediaStore.Audio.Media.ALBUM, folderName)
                     put(MediaStore.Audio.Media.IS_MUSIC, 1)
@@ -176,8 +175,62 @@ object MediaSaveUtils {
                 context.contentResolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, values)
             }
         } catch (e: Exception) {
-            android.util.Log.e("MediaSaveUtils", "Échec publication MP3", e)
+            android.util.Log.e("MediaSaveUtils", "Échec publication MP3 dans Documents/$folderName", e)
             null
+        }
+    }
+
+    /** Retourne le premier nom libre dans Documents/Blaze Audio Extractor.
+     *  Le premier export garde le nom demandé ; les suivants reçoivent _001, _002, etc. */
+    private fun findAvailableMp3Name(
+        context: Context,
+        requestedName: String,
+        folderName: String,
+        collection: Uri? = null,
+        relativePath: String? = null,
+        legacyDirectory: File? = null
+    ): String {
+        val extension = requestedName.substringAfterLast('.', "mp3")
+        val baseName = requestedName.removeSuffix(".$extension")
+        val existingNames = mutableSetOf<String>()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && collection != null && relativePath != null) {
+            context.contentResolver.query(
+                collection,
+                arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),
+                "${MediaStore.MediaColumns.RELATIVE_PATH} = ?",
+                arrayOf(relativePath),
+                null
+            )?.use { cursor ->
+                val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+                while (nameColumn >= 0 && cursor.moveToNext()) {
+                    cursor.getString(nameColumn)?.let(existingNames::add)
+                }
+            }
+        } else {
+            val directory = legacyDirectory ?: run {
+                @Suppress("DEPRECATION")
+                File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
+                    folderName
+                )
+            }
+            directory.listFiles()?.mapTo(existingNames) { it.name }
+        }
+
+        if (requestedName !in existingNames) return requestedName
+
+        var index = 1
+        while (true) {
+            val candidate = String.format(
+                Locale.US,
+                "%s_%03d.%s",
+                baseName,
+                index,
+                extension
+            )
+            if (candidate !in existingNames) return candidate
+            index++
         }
     }
 
@@ -190,10 +243,9 @@ object MediaSaveUtils {
         val uri = try {
             resolver.insert(collection, values)
         } catch (e: Exception) {
-            // Certains Android refusent une RELATIVE_PATH hors dossiers publics autorisés
-            // (ex. "Blaze MP3 Cut/" à la racine). On retourne null pour laisser
-            // publishMp3CutFile essayer les dossiers de secours au lieu de faire échouer l'export.
-            android.util.Log.w("MediaSaveUtils", "Insertion MediaStore refusée pour $collection, tentative suivante", e)
+            // Une insertion refusée doit faire échouer proprement l'export : le fichier ne doit
+            // jamais être redirigé vers Music, Downloads ou un autre emplacement implicite.
+            android.util.Log.w("MediaSaveUtils", "Insertion MediaStore refusée pour $collection", e)
             null
         } ?: return null
 

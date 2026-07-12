@@ -1,0 +1,854 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<resources>
+    <string name="app_name">Blaze Player</string>
+    <string name="notif_channel_audio">تشغيل الصوت</string>
+    <string name="notif_channel_video">تشغيل الفيديو</string>
+
+    <string name="tab_local">محلي</string>
+    <string name="tab_network">الشبكة</string>
+    <string name="tab_blaze_video">Blaze Video</string>
+
+    <string name="version_badge_free">مجاني</string>
+    <string name="version_badge_pro">Pro</string>
+    <string name="version_badge_pro_plus">Pro+</string>
+<string name="favorites">المفضلة</string>
+<string name="add_network_path">إضافة مسار شبكة</string>
+    <string name="add_manually">إضافة يدويًا</string>
+    <string name="saved_paths">المسارات المحفوظة</string>
+    <string name="detected_devices">الأجهزة المكتشفة</string>
+    <string name="available_devices">الأجهزة المتاحة</string>
+    <string name="no_path_configured">لم يتم إعداد أي مسار.
+اضغط على «مسح» لاكتشاف الأجهزة.</string>
+    <string name="default_path">المسار الافتراضي</string>
+    <string name="test_network_path">اختبار المسار</string>
+    <string name="network_path_test_title">اختبار مسار الشبكة</string>
+    <string name="network_path_test_success_message">يمكن الوصول إلى المسار «%1$s».</string>
+    <string name="network_path_test_failure_message">تعذّر الوصول إلى «%1$s». تحقّق من الشبكة أو بيانات الاعتماد أو أذونات المشاركة.</string>
+<string name="example_smb_path">smb://192.168.1.10/الأفلام</string>
+    <string name="name_label">الاسم</string>
+
+    <string name="unknown_artist">فنان غير معروف</string>
+    <string name="unknown_title">عنوان غير معروف</string>
+    <string name="audio_track">مسار صوتي</string>
+<string name="timer">المؤقت</string>
+    <string name="equalizer">إعدادات الصوت</string>
+    <string name="sound_short">الصوت</string>
+<string name="loading">جارٍ التحميل…</string>
+    <string name="no_track_found">لم يتم العثور على مسارات</string>
+    <string name="zero_time">0:00</string>
+<string name="add_tracks">إضافة مسارات</string>
+<string name="add_to_playlist_short">إضافة إلى قائمة تشغيل</string>
+    <string name="add_to_party_short">إضافة إلى Party</string>
+<string name="sort_name_az">الاسم أ–ي</string>
+<string name="queue">قائمة الانتظار</string>
+    <string name="queue_short">قائمة الانتظار</string>
+    <string name="add">إضافة</string>
+    <string name="info">معلومات</string>
+    <string name="lyrics">كلمات الأغنية</string>
+    <string name="audio_lyrics_title">كلمات الأغنية</string>
+    <string name="audio_lyrics_disabled">فعّل «الكلمات المتزامنة» في إعدادات الصوت للسماح بالكلمات المحلية.</string>
+    <string name="audio_lyrics_none">لم يتم العثور على كلمات محلية لهذا المسار.</string>
+    <string name="audio_lyrics_hint">ضع ملف .lrc أو .txt في مجلد المسار نفسه وبالاسم نفسه، أو استخدم lyrics.lrc أو paroles.lrc أو lyrics.txt أو paroles.txt.</string>
+    <string name="audio_lyrics_source">المصدر: %1$s</string>
+    <string name="audio_lyrics_synced">كلمات متزامنة</string>
+    <string name="audio_lyrics_static">كلمات ثابتة</string>
+    <string name="folder">مجلد</string>
+    <string name="movies">أفلام</string>
+
+    <string name="settings">الإعدادات</string>
+    <string name="login_optional">تسجيل الدخول (اختياري)</string>
+<string name="upgrade_to_pro">⭐ الترقية إلى Blaze Player Pro أو Pro+</string>
+<string name="settings_rate_app">تقييم التطبيق</string>
+    <string name="settings_rate_app_desc">شارك تقييمك على Play Store</string>
+    <string name="restore_purchases">استعادة المشتريات</string>
+<string name="about_section">حول التطبيق</string>
+    <string name="interface_section">الواجهة</string>
+    <string name="data_section">البيانات</string>
+    <string name="contact_section">التواصل</string>
+    <string name="settings_suggestions">اقتراحات</string>
+    <string name="settings_suggestions_desc">contact@retro-spare.fr</string>
+    <string name="settings_report_bug">الإبلاغ عن خطأ</string>
+    <string name="settings_report_bug_desc">dev@retro-spare.fr</string>
+    <string name="toast_no_email_app">لم يتم العثور على تطبيق بريد إلكتروني</string>
+    <string name="presets_section">الإعدادات المسبقة</string>
+    <string name="local_network_label">الشبكة المحلية</string>
+
+    <string name="settings_resume_playback">استئناف التشغيل</string>
+    <string name="resume_always">دائمًا</string>
+    <string name="resume_ask">اسأل</string>
+    <string name="resume_never">أبدًا</string>
+    <string name="settings_autoplay_next">تشغيل التالي تلقائيًا</string>
+    <string name="settings_autoplay_next_desc">تشغيل الملف التالي تلقائيًا، بما في ذلك داخل قوائم الانتظار</string>
+    <string name="settings_playback_speed">سرعة التشغيل</string>
+    <string name="speed_normal">1x (عادي)</string>
+    <string name="settings_seek_duration">مدة التقديم أو الترجيع</string>
+    <string name="seconds_5">5 ثوانٍ</string>
+    <string name="seconds_10">10 ثوانٍ</string>
+    <string name="seconds_15">15 ثانية</string>
+    <string name="seconds_30">30 ثانية</string>
+    <string name="seconds_60">60 ثانية</string>
+    <string name="settings_default_orientation">الاتجاه الافتراضي</string>
+    <string name="orientation_auto">تلقائي</string>
+    <string name="orientation_portrait">عمودي</string>
+    <string name="orientation_landscape">أفقي</string>
+    <string name="settings_auto_pip">صورة داخل صورة تلقائيًا</string>
+    <string name="settings_auto_pip_desc">الانتقال إلى وضع صورة داخل صورة عند مغادرة التطبيق</string>
+
+    <string name="lang_no_preference">بدون تفضيل</string>
+    <string name="lang_french">الفرنسية</string>
+    <string name="lang_english">الإنجليزية</string>
+    <string name="lang_spanish">الإسبانية</string>
+    <string name="lang_german">الألمانية</string>
+    <string name="lang_italian">الإيطالية</string>
+    <string name="lang_japanese">اليابانية</string>
+    <string name="lang_portuguese">البرتغالية</string>
+    <string name="lang_dutch">الهولندية</string>
+    <string name="lang_russian">الروسية</string>
+    <string name="lang_chinese">الصينية</string>
+    <string name="settings_preferred_audio_lang">لغة الصوت المفضلة</string>
+    <string name="settings_remember_volume">تذكّر مستوى الصوت</string>
+    <string name="settings_remember_volume_desc">الاحتفاظ بمستوى الصوت بين مرات التشغيل</string>
+
+    <string name="settings_mini_player">المشغّل المصغّر</string>
+    <string name="settings_mini_player_desc">إظهار المشغّل المصغّر في التطبيق</string>
+    <string name="settings_show_hidden_files">إظهار الملفات المخفية</string>
+    <string name="settings_show_hidden_files_desc">الملفات التي تبدأ بنقطة (.)</string>
+
+    <string name="settings_clear_history">مسح السجل</string>
+    <string name="settings_clear_history_desc">حذف جميع الملفات التي شُغّلت مؤخرًا</string>
+    <string name="dialog_clear_history_message">هل تريد حذف جميع الملفات التي شُغّلت مؤخرًا؟</string>
+    <string name="action_clear">مسح</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="toast_history_cleared">تم مسح السجل</string>
+
+    <string name="settings_about">حول</string>
+    <string name="settings_about_desc">ما تحتاج إلى معرفته عن Blaze Player</string>
+    <string name="about_dialog_message">الإصدار %1$s
+
+Retro-Spare Dev / Anthony Gentil
+
+مشغّل الوسائط الخاص بك لنظام Android</string>
+    <string name="action_ok">موافق</string>
+    <string name="settings_language">اللغة</string>
+    <string name="language_system_auto">لغة النظام (تلقائي)</string>
+    <string name="dialog_choose_language">اختر اللغة</string>
+    <string name="toast_play_store_unavailable">تعذّر فتح Play Store</string>
+    <string name="toast_restore_purchases_soon">جارٍ استعادة المشتريات… (قريبًا)</string>
+
+    <string name="ratio_auto">تلقائي</string>
+    <string name="ratio_zoom">تكبير</string>
+    <string name="ratio_stretched">ممدّد</string>
+    <string name="ratio_full">كامل</string>
+    <string name="toast_no_audio_track">لا يوجد مسار صوتي</string>
+    <string name="track_generic">مسار</string>
+    <string name="subtitles_disabled">إيقاف</string>
+    <string name="dialog_title_subtitles">الترجمات</string>
+    <string name="toast_chromecast_incompatible">قد لا يكون جهاز Chromecast (%1$s) متوافقًا مع هذا الفيديو: %2$s.</string>
+    <string name="unknown_model">طراز غير معروف</string>
+    <string name="casting_on_device">جارٍ البث إلى %1$s</string>
+    <string name="casting_chromecast">جارٍ البث إلى Chromecast</string>
+    <string name="dialog_resume_message">هل تريد الاستئناف من %1$d:%2$02d؟</string>
+    <string name="action_resume">استئناف</string>
+    <string name="action_from_beginning">من البداية</string>
+    <string name="dialog_title_network_error">خطأ في تشغيل الشبكة</string>
+    <string name="dialog_network_error_message">فشل تشغيل هذا الفيديو (انقطع اتصال NAS أو شبكة Wi‑Fi غير مستقرة أو الملف غير متاح).</string>
+    <string name="action_retry">إعادة المحاولة</string>
+    <string name="action_quit">خروج</string>
+
+    <string name="toast_no_track_selected">لم يتم اختيار مسار</string>
+    <string name="toast_select_tracks_first">اختر المسارات أولًا (مربع الاختيار على يسار كل ملف)</string>
+<string name="toast_no_network_path_configured">لم يتم إعداد مسار شبكة</string>
+    <string name="dialog_choose_network_path">اختر مسار شبكة</string>
+    <string name="local_storage">التخزين المحلي</string>
+    <string name="lossless_label">دون فقدان</string>
+
+    <plurals name="folder_count">
+        <item quantity="one">%1$d مجلد واحد</item>
+        <item quantity="other">%1$d مجلدات</item>
+    </plurals>
+    <plurals name="track_count_found">
+        <item quantity="one">%1$d تم العثور على مسار واحد</item>
+        <item quantity="other">تم العثور على %1$d مسارات</item>
+    </plurals>
+
+    <string name="preset_flat">مسطّح</string>
+    <string name="preset_custom">مخصص</string>
+    <string name="preset_rock">روك</string>
+    <string name="preset_pop">بوب</string>
+    <string name="preset_jazz">جاز</string>
+    <string name="preset_classical">كلاسيكي</string>
+    <string name="preset_hiphop">هيب هوب</string>
+    <string name="preset_electronic">إلكتروني</string>
+    <string name="preset_funk">فانك</string>
+    <string name="preset_bassboost">تعزيز الجهير</string>
+    <string name="preset_treble">الترددات العالية</string>
+    <string name="preset_vocal">صوت غنائي</string>
+    <string name="preset_acoustic">أكوستيك</string>
+
+    <string name="toast_no_device_detected">لم يتم اكتشاف أي جهاز على الشبكة.</string>
+    <string name="toast_click_device_to_explore">اضغط على جهاز لاستعراضه.</string>
+    <string name="scan_in_progress">جارٍ المسح…</string>
+    <string name="scan_complete">اكتمل المسح</string>
+    <string name="audio_scan_deferred_playback">التشغيل نشط: تم تأجيل فحص الصوت لتجنّب الانقطاع.</string>
+    <string name="dialog_choose_share">اختر مشاركة</string>
+    <string name="action_add_to_favorites">إضافة إلى المفضلة</string>
+    <string name="toast_added_to_favorites">تمت إضافة %1$s إلى المفضلة</string>
+    <string name="dialog_edit_path">تعديل المسار</string>
+    <string name="action_save">حفظ</string>
+    <string name="toast_name_host_required">الاسم والمضيف مطلوبان</string>
+    <string name="action_delete">حذف</string>
+    <string name="dialog_delete_message">هل تريد حذف "%1$s"؟</string>
+
+    <plurals name="devices_found">
+        <item quantity="one">%1$d تم العثور على جهاز واحد</item>
+        <item quantity="other">تم العثور على %1$d أجهزة</item>
+    </plurals>
+
+    <string name="dialog_title_already_favorite">موجود في المفضلة</string>
+    <string name="dialog_already_favorite_message">«%1$s» موجود بالفعل في مجلداتك المفضلة.</string>
+    <string name="dialog_add_favorite_folder">إضافة مجلد مفضل</string>
+    <string name="dialog_add_favorite_message">هل تريد إضافة «%1$s» إلى مجلداتك المفضلة؟ ستتمكن من الوصول إليه مباشرة من الصفحة الرئيسية.</string>
+    <string name="toast_added_to_favorites_short">تمت الإضافة إلى المفضلة</string>
+    <string name="dialog_no_favorite_folders">لا توجد مجلدات مفضلة بعد.
+
+في المتصفح، افتح القائمة (⋮) بجوار مجلد لإضافته إلى المفضلة.</string>
+    <string name="dialog_favorite_folders">المجلدات المفضلة</string>
+    <string name="action_manage">إدارة</string>
+    <string name="action_close">إغلاق</string>
+    <string name="info_dialog_title_chromecast">Chromecast</string>
+    <string name="info_dialog_title_error">خطأ</string>
+    <string name="info_dialog_title_unavailable">غير متاح</string>
+    <string name="info_dialog_title_info">معلومات</string>
+    <string name="toast_capture_unavailable_cast">الالتقاط غير متاح أثناء البث</string>
+    <string name="toast_capture_unavailable">التقاط الفيديو غير متاح</string>
+    <string name="toast_capture_failed">فشل التقاط الفيديو</string>
+    <string name="toast_screenshot_saved">تم حفظ لقطة الشاشة في Pictures/Blaze Screenshots</string>
+    <string name="toast_screenshot_save_error">خطأ أثناء حفظ لقطة الشاشة</string>
+    <string name="dialog_remove_favorites">إزالة من المفضلة</string>
+    <string name="action_remove">إزالة</string>
+
+    <string name="unknown_generic">غير معروف</string>
+<string name="sleep_timer_title">مؤقت النوم</string>
+    <string name="minutes_5">5 دقائق</string>
+    <string name="minutes_15">15 دقيقة</string>
+    <string name="minutes_30">30 دقيقة</string>
+    <string name="hour_1">ساعة واحدة</string>
+    <string name="toast_list_already_empty">القائمة فارغة بالفعل</string>
+    <string name="dialog_clean_list">تنظيف القائمة</string>
+    <string name="action_remove_selection">إزالة المحدد</string>
+    <string name="action_clear_all">مسح الكل</string>
+
+    <string name="toast_no_file_selected">لم يتم اختيار ملف</string>
+    <string name="dialog_which_playlist">إلى أي قائمة تشغيل تريد الإضافة؟</string>
+    <string name="playlist_slot_name">قائمة التشغيل %1$d</string>
+    <string name="playlist_empty">(فارغة)</string>
+    <string name="action_to_playlist">إلى قائمة التشغيل</string>
+    <string name="content_desc_queue_to_playlist">حفظ قائمة الانتظار في قائمة تشغيل</string>
+    <string name="playlist_existing_with_count">(موجودة — %1$s)</string>
+    <string name="dialog_playlist_not_empty_title">قائمة تشغيل موجودة</string>
+    <string name="dialog_playlist_not_empty_message">تحتوي قائمة التشغيل %1$d بالفعل على %2$s. هل تريد إضافة العناصر المحددة إليها رغم ذلك؟</string>
+    <string name="action_confirm_add_to_existing_playlist">إضافة على أي حال</string>
+    <string name="playlist_added_to_slot">%1$s إلى قائمة التشغيل %2$d</string>
+    <string name="playlist_added_partial">%1$s (%2$s)</string>
+    <string name="dialog_playlist_empty_message">قائمة التشغيل هذه فارغة.
+
+في المتصفح، اختر الملفات ثم استخدم «إضافة إلى قائمة تشغيل» لملئها.</string>
+    <string name="action_play_playlist">تشغيل قائمة التشغيل</string>
+    <string name="action_empty_playlist">إفراغ</string>
+    <string name="toast_playlist_emptied">تم إفراغ قائمة التشغيل %1$d</string>
+
+    <plurals name="playlist_item_count">
+        <item quantity="one">%1$d عنصر واحد</item>
+        <item quantity="other">%1$d عناصر</item>
+    </plurals>
+    <plurals name="playlist_items_added">
+        <item quantity="one">%1$d تمت إضافة عنصر واحد</item>
+        <item quantity="other">تمت إضافة %1$d عناصر</item>
+    </plurals>
+    <plurals name="playlist_items_already_present">
+        <item quantity="one">%1$d واحد موجود بالفعل</item>
+        <item quantity="other">%1$d موجودة بالفعل</item>
+    </plurals>
+<string name="category_network">الشبكة</string>
+    <string name="category_audio">الصوت</string>
+
+    <string name="toast_error_generic">خطأ: %1$s</string>
+    <string name="action_play">تشغيل</string>
+    <string name="action_information">معلومات</string>
+    <string name="unknown_size">غير معروف</string>
+    <string name="dialog_video_info_message">المسار: %1$s
+
+الحاوية: %2$s
+الدقة: %3$s
+المدة: %4$s
+الحجم: %5$s</string>
+
+    <string name="dialog_video_info_video_codec">ترميز الفيديو: %1$s</string>
+
+    <string name="dialog_video_info_audio_codec">ترميز الصوت: %1$s</string>
+
+    <plurals name="video_count">
+        <item quantity="one">%1$d فيديو واحد</item>
+        <item quantity="other">%1$d فيديو</item>
+    </plurals>
+
+    <string name="toast_cannot_open_screen_cast_settings">تعذّر فتح إعدادات بث الشاشة</string>
+    <string name="toast_share_not_found">لم يتم العثور على المشاركة الخاصة بهذا العنصر المفضل</string>
+    <string name="action_remove_from_history">إزالة من السجل</string>
+
+    <string name="sort_name_za">الاسم ي–أ</string>
+    <string name="sort_date_recent">الأحدث</string>
+    <string name="sort_size">الحجم</string>
+    <string name="sort_album_order">ترتيب الألبوم</string>
+
+    <string name="dialog_permission_needed">يلزم إذن</string>
+
+    <string name="dialog_permission_intro_title">الأذونات مطلوبة</string>
+
+    <string name="dialog_permission_intro_message">لكي يعمل Blaze Player بشكل صحيح، سيطلب بعض الأذونات دفعة واحدة:
+
+• الصور والموسيقى والفيديو: لعرض مكتبتك وBlaze Gallery
+• الإشعارات: لعناصر التحكم في التشغيل
+• الشبكة المحلية: لاكتشاف ضيوف Blaze Party
+• الميكروفون: فقط للمعادل المرئي الديناميكي — لا يتم تسجيل أي صوت</string>
+
+    <string name="action_continue">متابعة</string>
+    <string name="dialog_permission_message">يحتاج Blaze Player إلى الوصول إلى ملفات الفيديو كي يعمل.</string>
+    <string name="action_allow">سماح</string>
+    <string name="action_ignore">تجاهل</string>
+
+    <string name="action_edit">تعديل</string>
+    <string name="browser_files_audio">ملفاتي الصوتية</string>
+<string name="breadcrumb_home">الرئيسية</string>
+    <string name="toast_path_saved">تم حفظ المسار</string>
+    <string name="toast_path_deleted">تم حذف المسار</string>
+<string name="search_hint_video">البحث عن فيديو</string>
+    <string name="browser_search_in_progress">جارٍ البحث…</string>
+    <string name="hint_path_name">اسم المسار</string>
+    <string name="hint_shared_folder">المجلد المشترك</string>
+<string name="hint_ip_host">عنوان IP / المضيف</string>
+    <string name="hint_port">المنفذ</string>
+    <string name="hint_shared_folder_example">المجلد المشترك (مثل videos)</string>
+    <string name="hint_username_optional">اسم المستخدم (اختياري)</string>
+    <string name="hint_password_optional">كلمة المرور (اختيارية)</string>
+    <string name="hint_username">اسم المستخدم</string>
+    <string name="hint_password">كلمة المرور</string>
+<string name="history_empty_blaze_video_subtitle">استعرض مقاطع الفيديو المحلية أو على الشبكة للبدء</string>
+
+    <string name="history_empty_blaze_video_title">لا توجد فيديوهات شوهدت مؤخرًا</string>
+
+    <string name="history_blaze_video">السجل</string>
+
+    <string name="history_selection_active">التحديد نشط: تم تحديد %1$d صورة مصغرة.</string>
+    <string name="history_action_prompt">اختر إجراءً لهذا السجل.</string>
+    <string name="history_delete_selection">حذف المحدد (%1$d)</string>
+    <string name="history_finish_selection">إنهاء التحديد</string>
+    <string name="history_select_thumbnails">تحديد الصور المصغرة</string>
+    <string name="history_delete_all">حذف السجل بالكامل</string>
+    <string name="history_confirm_delete_items">هل تريد حذف %1$d عنصر من السجل؟</string>
+    <string name="history_confirm_delete_all_local">هل تريد حذف السجل المحلي بالكامل؟</string>
+    <string name="history_confirm_delete_all_network">هل تريد حذف سجل الشبكة بالكامل؟</string>
+    <string name="history_toast_select_thumbnails">اختر الصور المصغرة التي تريد إزالتها من السجل</string>
+    <string name="permission_gallery_required">اسمح بالوصول إلى الصور ومقاطع الفيديو لعرض Blaze Gallery.</string>
+<string name="browse_files_local">استعراض</string>
+<plurals name="file_count">
+        <item quantity="one">%1$d ملف واحد</item>
+        <item quantity="other">%1$d ملفات</item>
+    </plurals>
+    <string name="browser_folder_file_count">%1$s · %2$s</string>
+    <string name="content_desc_back">رجوع</string>
+
+    <plurals name="results_found">
+        <item quantity="one">%1$d نتيجة واحدة</item>
+        <item quantity="other">%1$d نتائج</item>
+    </plurals>
+    <string name="path_internal_storage">/وحدة التخزين الداخلية</string>
+
+    <plurals name="selected_tracks_count">
+        <item quantity="one">%1$d تم تحديد مسار واحد</item>
+        <item quantity="other">تم تحديد %1$d مسارات</item>
+    </plurals>
+<string name="settings_section_playback">التشغيل</string>
+    <string name="settings_section_audio">الصوت</string>
+    <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
+    <string name="label_default">افتراضي</string>
+    <string name="eq_preamp_compressor_section">المضخم الأولي والضاغط</string>
+    <string name="eq_preamp_label">المضخم الأولي</string>
+    <string name="eq_compressor_label">الضاغط</string>
+    <string name="player_casting_in_progress">البث جارٍ</string>
+    <string name="player_stop_casting">إيقاف البث</string>
+    <string name="player_speed_label_short">السرعة</string>
+    <string name="player_ratio_label">النسبة</string>
+
+    <string name="content_desc_close_playlist">إغلاق قائمة التشغيل</string>
+    <string name="content_desc_clean">تنظيف</string>
+    <string name="content_desc_playlist">قائمة التشغيل</string>
+    <string name="content_desc_shuffle">عشوائي</string>
+    <string name="content_desc_previous">السابق</string>
+    <string name="content_desc_play_pause">تشغيل/إيقاف مؤقت</string>
+    <string name="content_desc_next">التالي</string>
+    <string name="content_desc_repeat">تكرار</string>
+    <string name="content_desc_timer">المؤقت</string>
+    <string name="content_desc_options">الخيارات</string>
+<string name="error_loading_media">تعذّر بدء تشغيل الفيديو.</string>
+
+    <string name="cast_dialog_status">يتم البث الآن</string>
+    <string name="cast_dialog_stop">إيقاف البث</string>
+    <string name="select_all">تحديد الكل</string>
+    <string name="deselect_all">إلغاء تحديد الكل</string>
+    <string name="cast_subtitles_unavailable">الترجمات غير متاحة أثناء البث</string>
+    <string name="cast_audio_language_unavailable">تغيير لغة الصوت غير متاح أثناء البث</string>
+    <string name="paywall_title">اختر إصدار Blaze المناسب</string>
+    <string name="paywall_subtitle">استمتع بجميع مزايا Pro+ لمدة 15 يومًا، ثم اختر الإصدار المناسب لك.</string>
+    <string name="paywall_free_title">Blaze Player Free</string>
+    <string name="paywall_free_desc">تشغيل Blaze Video محليًا وبث الفيديوهات المحلية إلى Chromecast. تبقى علامة تبويب الشبكة وأزرار الشبكة في المتصفحات مقفلة.</string>
+    <string name="paywall_pro_title">Blaze Player Pro</string>
+    <string name="paywall_pro_price">3.99 يورو</string>
+    <string name="paywall_pro_desc">يتضمن Free ويفتح الشبكة المحلية SMB/UPnP وBlaze Gallery.</string>
+    <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
+    <string name="paywall_pro_plus_price">5.99 يورو</string>
+    <string name="paywall_pro_plus_desc">يتضمن جميع مزايا Pro ويفتح مشغل الصوت المميز Blaze Audio.</string>
+    <string name="paywall_buy_pro">فتح Pro — 3.99 يورو</string>
+    <string name="paywall_buy_pro_plus">فتح Pro+ — 5.99 يورو</string>
+    <string name="paywall_debug_unlocked">وضع التصحيح: تم فتح Pro وPro+ مؤقتًا.</string>
+    <string name="paywall_restore">استعادة المشتريات</string>
+    <string name="action_back">رجوع</string>
+    <string name="toast_billing_soon">المشتريات قادمة قريبًا</string>
+    <string name="video_settings_title">إعدادات الفيديو</string>
+    <string name="video_setting_brightness">السطوع</string>
+    <string name="video_setting_contrast">التباين</string>
+    <string name="video_setting_color">تدرج اللون</string>
+    <string name="video_setting_saturation">التشبع</string>
+    <string name="video_setting_dialogue_mode">وضع الحوار</string>
+    <string name="action_off">إيقاف</string>
+    <string name="video_setting_volume_boost">تعزيز مستوى الصوت</string>
+    <string name="action_reset">إعادة ضبط</string>
+
+    
+
+<string name="gallery_folders">المعرض</string>
+
+    <string name="gallery_empty_folders">لا توجد مجلدات بعد — أنشئ واحدًا للبدء</string>
+
+    <string name="gallery_empty_photos">هذا المجلد فارغ</string>
+
+    <string name="gallery_trash_empty_message">سلة المهملات فارغة</string>
+    <string name="gallery_type_photo">صور</string>
+    <string name="gallery_type_video">فيديوهات</string>
+    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
+    <string name="gallery_sort">فرز</string>
+<string name="gallery_sort_date_desc">الأحدث أولًا</string>
+    <string name="gallery_sort_date_asc">الأقدم أولًا</string>
+    <string name="gallery_sort_name">ترتيب أبجدي</string>
+    <string name="gallery_sort_size">حجم الملف</string>
+    <string name="gallery_unknown_folder">مجلد غير معروف</string>
+
+    <string name="action_open">فتح</string>
+    <string name="action_share">مشاركة</string>
+    <string name="gallery_trash">سلة المهملات</string>
+    <string name="gallery_empty_trash">إفراغ نهائيًا</string>
+    <string name="gallery_restore">استعادة</string>
+    <string name="gallery_delete">حذف</string>
+    <string name="gallery_delete_folder">حذف المجلد</string>
+    <string name="gallery_delete_permanently_from_trash">حذف نهائيًا من سلة المهملات</string>
+<string name="gallery_delete_all">حذف الكل</string>
+    <string name="gallery_share_all">مشاركة الكل</string>
+    <string name="gallery_selected_count">تم تحديد %1$d</string>
+    <string name="confirm_delete_title">تأكيد الحذف</string>
+    <string name="confirm_delete_photo_message">هل تريد نقل هذه الصورة إلى سلة المهملات؟</string>
+    <string name="confirm_delete_folder_message">هل تريد نقل جميع الصور في هذا المجلد إلى سلة المهملات؟</string>
+    <string name="confirm_delete_selected_message">هل تريد نقل الصور المحددة إلى سلة المهملات؟</string>
+    <string name="confirm_empty_trash_message">هل تريد إفراغ سلة المهملات نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.</string>
+    <string name="confirm_permanent_delete_message">هل تريد حذف هذه الصورة نهائيًا من سلة المهملات؟</string>
+    <string name="action_confirm_delete">حذف</string>
+    <plurals name="gallery_photo_count">
+        <item quantity="one">%d صورة واحدة</item>
+        <item quantity="other">%d صور</item>
+    </plurals>
+    <plurals name="gallery_video_count">
+        <item quantity="one">%d فيديو واحد</item>
+        <item quantity="other">%d فيديوهات</item>
+    </plurals>
+    <string name="settings_audio_spectrum">تفعيل الطيف المرئي</string>
+    <string name="settings_audio_spectrum_desc">إظهار مؤثر الصوت المتحرك في Blaze Audio.</string>
+
+    
+    <string name="blaze_party">Blaze Party</string>
+    <string name="blaze_party_intro">أنشئ جلسة محلية أو انضم إلى قائمة انتظار مشتركة على شبكة Wi‑Fi نفسها.</string>
+    <string name="blaze_party_host">مضيف Blaze Party</string>
+    <string name="blaze_party_join">الانضمام إلى Blaze Party</string>
+    <string name="blaze_party_disconnect">قطع الاتصال</string>
+    <string name="blaze_party_disconnected">تم قطع الاتصال بـ Blaze Party</string>
+    <string name="blaze_party_connection_lost">فُقد الاتصال بالمضيف — العودة إلى قائمة الانتظار المحلية</string>
+    <string name="blaze_party_host_title">مضيف Blaze Party</string>
+    <string name="blaze_party_qr_desc">رمز QR لـ Blaze Party</string>
+    <string name="blaze_party_share_code">العنوان: %1$s
+الرمز: %2$s</string>
+    <string name="blaze_party_host_waiting">الجلسة جاهزة: يمكن للضيوف مسح هذا الرمز.</string>
+<string name="blaze_party_scan_unavailable">ماسح QR غير متاح. ثبّت ماسحًا أو أدخل الرمز يدويًا.</string>
+    <string name="blaze_party_joined">تم الانضمام إلى جلسة Blaze Party</string>
+<string name="blaze_party_short">Party</string>
+    <string name="add_to_blaze_party">إضافة إلى Blaze Party</string>
+    <string name="blaze_party_playlist_title">قائمة تشغيل Blaze Party</string>
+    <string name="blaze_party_playlist_empty_message">لا توجد مسارات في قائمة تشغيل Blaze Party. أضف مسارات من متصفح الصوت باستخدام «إضافة إلى Blaze Party».</string>
+    <string name="blaze_party_items_already_present">هذه المسارات موجودة بالفعل في Blaze Party</string>
+    <string name="toast_blaze_party_playlist_emptied">تم إفراغ قائمة تشغيل Blaze Party</string>
+    <plurals name="blaze_party_items_added">
+        <item quantity="one">%d تمت إضافة مسار واحد إلى Blaze Party</item>
+        <item quantity="other">تمت إضافة %d مسارات إلى Blaze Party</item>
+    </plurals>
+
+    <string name="blaze_party_launch">بدء</string>
+    <string name="blaze_party_vote">تصويت</string>
+    <string name="blaze_party_vote_hint">اضغط على مسار لرؤية الأصوات والتصويت.</string>
+    <string name="blaze_party_vote_saved">تم حفظ التصويت</string>
+    <string name="blaze_party_no_voters">لا توجد أصوات بعد</string>
+    <string name="blaze_party_nickname">الاسم المستعار</string>
+    <string name="blaze_party_nickname_hint">اسمك المستعار</string>
+    <string name="blaze_party_nickname_title">اختر اسمًا مستعارًا لـ Blaze Party</string>
+    <plurals name="blaze_party_vote_count">
+        <item quantity="one">%d صوت واحد</item>
+        <item quantity="other">%d أصوات</item>
+    </plurals>
+
+    <string name="gallery_folder_button">مجلد</string>
+    <string name="gallery_create_folder">إضافة</string>
+    <string name="gallery_create_folder_title">مجلد صور جديد</string>
+    <string name="gallery_create_folder_hint">اسم المجلد</string>
+    <string name="gallery_folder_created">تم إنشاء المجلد</string>
+    <string name="gallery_folder_create_error">تعذّر إنشاء المجلد</string>
+    <string name="gallery_move_to_folder">نقل إلى مجلد آخر</string>
+    <string name="gallery_move_photo_title">نقل الصورة</string>
+    <string name="gallery_photo_moved">تم نقل الصورة</string>
+    <string name="gallery_photo_move_error">تعذّر نقل الصورة</string>
+    <string name="action_custom_thumbnail">صورة مصغرة مخصصة</string>
+    <string name="action_delete_thumbnail">حذف الصورة المصغرة</string>
+    <string name="custom_thumbnail_pick_folder">اختر مجلدًا</string>
+    <string name="custom_thumbnail_pick_image">اختر صورة</string>
+    <string name="custom_thumbnail_pick_toast">اختر صورة للصورة المصغرة</string>
+    <string name="custom_thumbnail_saved">تم حفظ الصورة المصغرة</string>
+    <string name="custom_thumbnail_deleted">تم حذف الصورة المصغرة</string>
+    <string name="custom_thumbnail_error">تعذّر تحديث الصورة المصغرة</string>
+    <string name="blaze_party_not_host_queue">يمكن للمضيف فقط تغيير قائمة الانتظار هذه</string>
+    <string name="blaze_party_remove_vote">إزالة تصويتي</string>
+    <string name="blaze_party_vote_removed">تمت إزالة التصويت</string>
+    <string name="blaze_party_default_host">المضيف</string>
+    <string name="blaze_party_default_guest">ضيف</string>
+    <string name="app_name_gallery">Blaze Gallery</string>
+
+    
+    <string name="photo_editor_title">تعديل</string>
+    <string name="filter_normal">عادي</string>
+    <string name="filter_vivid">زاهٍ</string>
+    <string name="filter_bw">أبيض وأسود</string>
+    <string name="filter_noir">داكن</string>
+    <string name="filter_sepia">بني داكن</string>
+    <string name="filter_warm">دافئ</string>
+    <string name="filter_cool">بارد</string>
+    <string name="filter_fade">باهت</string>
+    <string name="filter_dramatic">درامي</string>
+    <string name="filter_matte">مطفي</string>
+    <string name="filter_vintage">قديم</string>
+    <string name="filter_rose">وردي</string>
+    <string name="filter_deep_blue">أزرق عميق</string>
+    <string name="filter_silver">فضي</string>
+    <string name="filter_sunset">غروب</string>
+    <string name="filter_emerald">زمردي</string>
+    <string name="filter_soft">ناعم</string>
+    <string name="filter_punch">قوي</string>
+    <string name="filter_lavender">لافندر</string>
+    <string name="filter_coral">مرجاني</string>
+    <string name="filter_steel">فولاذي</string>
+    <string name="filter_amber">كهرماني</string>
+    <string name="filter_midnight">منتصف الليل</string>
+    <string name="filter_polaroid">Polaroid</string>
+    <string name="editor_tab_filters">الفلاتر</string>
+    <string name="editor_tab_crop">اقتصاص</string>
+    <string name="editor_tab_rotate">تدوير</string>
+    <string name="editor_tab_blur">تمويه</string>
+<string name="blur_effect_blur">تمويه</string>
+    <string name="blur_effect_mosaic">فسيفساء</string>
+    <string name="blur_shape_circle">دائرة</string>
+    <string name="blur_shape_square">مربع</string>
+    <string name="blur_intensity_label">الشدة</string>
+    <string name="dialog_after_save_title">تم حفظ التعديل</string>
+    <string name="dialog_after_save_message">ماذا تريد أن تفعل الآن؟</string>
+    <string name="action_stay_editing">البقاء هنا</string>
+    <string name="action_back_to_gallery">العودة إلى المعرض</string>
+    <string name="crop_ratio_free">حر</string>
+    <string name="crop_ratio_square">1:1</string>
+    <string name="crop_ratio_4_3">4:3</string>
+    <string name="crop_ratio_16_9">16:9</string>
+    <string name="action_compare_hold">اضغط مطولًا للمقارنة</string>
+    <string name="content_desc_rotate_left">تدوير لليسار</string>
+    <string name="content_desc_rotate_right">تدوير لليمين</string>
+<string name="toast_photo_save_failed">فشل الحفظ</string>
+    <string name="photo_details_no_exif">لا توجد بيانات وصفية لهذه الصورة</string>
+    <string name="photo_details_dimensions">الأبعاد: %1$s</string>
+    <string name="photo_details_size">الحجم: %1$s</string>
+    <string name="photo_details_date">التاريخ: %1$s</string>
+    <string name="photo_details_camera">الكاميرا: %1$s</string>
+    <string name="photo_details_location">الموقع: %1$s</string>
+    <string name="gallery_menu_edit">تعديل</string>
+
+    
+    <string name="video_trim_title">قص</string>
+    <string name="action_export_fast">SQ</string>
+    <string name="action_export_precise">HQ</string>
+    <string name="action_export_gif">GIF</string>
+    <string name="action_export_mp3">MP3</string>
+    <string name="toast_video_saved">تم حفظ الفيديو في Blaze Gallery</string>
+    <string name="toast_video_export_failed">فشل التصدير</string>
+    <string name="toast_gif_saved">تم حفظ GIF في Blaze Gallery</string>
+    <string name="toast_mp3_saved">تم حفظ MP3 في Documents/Blaze Audio Extractor</string>
+    <string name="toast_mp3_export_failed">فشل تصدير MP3</string>
+    <string name="gallery_menu_cut">قص</string>
+
+    <string name="add_to_video_queue_short">قائمة الانتظار</string>
+    <string name="video_queue_title">قائمة انتظار الفيديو</string>
+    <string name="video_queue_title_with_category">قائمة انتظار الفيديو — %1$s (%2$d)</string>
+    <string name="video_queue_empty_message">لا يوجد فيديو في قائمة الانتظار هذه. اختر فيديوهات من المتصفح ثم استخدم «+ قائمة الانتظار».</string>
+    <string name="toast_video_queue_added">تمت إضافة %1$d فيديو إلى قائمة الانتظار</string>
+    <string name="toast_video_queue_added_partial">تمت إضافة %1$d فيديو، و%2$d موجودة بالفعل</string>
+    <string name="toast_video_queue_no_video_selected">اختر فيديو واحدًا على الأقل</string>
+    <string name="toast_video_queue_cleared">تم مسح قائمة انتظار الفيديو</string>
+    <string name="toast_video_queue_item_removed">تمت إزالة الفيديو من قائمة الانتظار</string>
+    <string name="content_desc_video_queue">قائمة انتظار الفيديو</string>
+    <string name="content_desc_close_video_queue">إغلاق قائمة انتظار الفيديو</string>
+
+    
+    <string name="add_to_playlist_fixed_short">إضافة إلى قائمة تشغيل</string>
+    <string name="app_name_audio">Blaze Audio</string>
+    <string name="blaze_party_network_error">تعذّر الاتصال بالمضيف. تأكّد من أنك على شبكة Wi‑Fi نفسها.</string>
+
+    
+    <string name="audio_library_title">المكتبة</string>
+    <string name="audio_library_subtitle">مكتبة الموسيقى Pro+ الخاصة بك</string>
+    <string name="audio_loading_in_progress">جارٍ التحميل...</string>
+    <string name="audio_search">بحث</string>
+<string name="audio_tab_albums">الألبومات</string>
+    <string name="audio_tab_artists">الفنانون</string>
+    <string name="audio_tab_titles">المسارات</string>
+    <string name="audio_tab_playlists">قوائم التشغيل</string>
+    <string name="audio_resume_listening">استمعت إليها مؤخرًا</string>
+    <string name="audio_recent_albums">ألبوماتي</string>
+    <string name="audio_played_tracks">المسارات</string>
+    <string name="audio_all">إظهار الكل</string>
+    <string name="audio_album_view_grid_3">شبكة 3</string>
+    <string name="audio_album_view_grid_4">شبكة 4</string>
+    <string name="audio_album_view_list">قائمة</string>
+    <string name="audio_no_music">لم يتم العثور على موسيقى</string>
+    <string name="audio_settings_title">إعدادات الصوت</string>
+    <string name="audio_settings_subtitle">خصّص تجربة الاستماع Pro+</string>
+    <string name="audio_section_playback">التشغيل</string>
+    <string name="audio_gapless_title">تشغيل بلا فواصل</string>
+    <string name="audio_gapless_subtitle">تشغيل المسارات من دون صمت</string>
+    <string name="audio_crossfade_title">تداخل تدريجي</string>
+    <string name="audio_crossfade_subtitle">انتقالات سلسة بين المسارات</string>
+    <string name="audio_crossfade_duration">مدة التلاشي</string>
+    <string name="audio_normalize_volume">تسوية مستوى الصوت</string>
+    <string name="audio_normalize_volume_subtitle">موازنة مستوى الصوت بين المسارات</string>
+    <string name="audio_section_quality">جودة الصوت</string>
+    <string name="audio_high_quality_output">إخراج عالي الجودة</string>
+    <string name="audio_high_quality_subtitle">يعطّل إعدادات الصوت لإعطاء الأولوية للإخراج الصوتي المباشر</string>
+    <string name="audio_replaygain_title">ReplayGain</string>
+    <string name="audio_replaygain_off">إيقاف</string>
+    <string name="audio_replaygain_track">المسار</string>
+    <string name="audio_replaygain_album">الألبوم</string>
+    <string name="audio_preamp_title">المضخم الأولي</string>
+    <string name="audio_preamp_subtitle">ضبط مستوى الإخراج</string>
+    <string name="audio_output_mode_title">وضع الدقة</string>
+    <string name="audio_output_mode_subtitle">يكيّف مسار PCM مع جودة الجهاز وتوافقه</string>
+    <string name="audio_output_mode_auto">تلقائي</string>
+    <string name="audio_output_mode_compatibility">التوافق</string>
+    <string name="audio_output_mode_high_precision">دقة عالية</string>
+    <string name="audio_replaygain_subtitle">يوازن مستوى الصوت بين المسارات بشكل مستقل عن المؤثرات الصوتية</string>
+    <string name="audio_section_library">المكتبة</string>
+    <string name="audio_auto_scan">المسح تلقائيًا</string>
+    <string name="audio_auto_scan_subtitle">إضافة الملفات الجديدة</string>
+    <string name="audio_watched_folders">المجلدات المراقبة</string>
+    <string name="audio_watched_folders_subtitle">اختر مجلدات الصوت</string>
+<string name="audio_sort_album_track">الفرز حسب رقم المسار</string>
+    <string name="audio_sort_album_track_subtitle">احترام ترتيب الألبوم والقرص</string>
+    <string name="audio_ignore_short_files">تجاهل الملفات القصيرة</string>
+    <string name="audio_ignore_short_files_subtitle">أقل من 30 ثانية</string>
+    <string name="audio_section_interface">الواجهة</string>
+    <string name="audio_dynamic_theme">سمة ديناميكية</string>
+    <string name="audio_dynamic_theme_subtitle">أخضر Blaze افتراضيًا، وألوان الغلاف عند التفعيل</string>
+    <string name="audio_cover_border">إطار غلاف ملوّن</string>
+    <string name="audio_cover_border_subtitle">تمييز ديناميكي حول الغلاف</string>
+<string name="audio_artwork_size">حجم الغلاف</string>
+    <string name="audio_size_small">صغير</string>
+    <string name="audio_size_medium">متوسط</string>
+    <string name="audio_size_large">كبير</string>
+    <string name="audio_section_lyrics_metadata">الكلمات والبيانات الوصفية</string>
+    <string name="audio_synced_lyrics">كلمات متزامنة</string>
+    <string name="audio_synced_lyrics_subtitle">المفتاح الرئيسي لكلمات LRC/TXT المحلية</string>
+    <string name="audio_tag_editor">محرر الوسوم</string>
+    <string name="audio_tag_editor_subtitle">تعديل العنوان والفنان والألبوم والنوع والمسار والقرص</string>
+<string name="audio_no_current_track">لا يوجد مسار حالي</string>
+    <string name="audio_tag_title">العنوان</string>
+    <string name="audio_tag_artist">الفنان</string>
+    <string name="audio_tag_album">الألبوم</string>
+    <string name="audio_tag_reset">إعادة ضبط</string>
+    <string name="audio_tag_saved">تم حفظ بيانات الصوت الوصفية</string>
+    <string name="audio_tag_reset_done">تم مسح البيانات الوصفية المحلية</string>
+    <plurals name="audio_folder_count_compact">
+        <item quantity="one">%d مجلد واحد</item>
+        <item quantity="other">%d مجلدات</item>
+    </plurals>
+    <plurals name="audio_track_count_compact">
+        <item quantity="one">%d مسار واحد</item>
+        <item quantity="other">%d مسارات</item>
+    </plurals>
+    <plurals name="audio_album_count_compact">
+        <item quantity="one">%d ألبوم واحد</item>
+        <item quantity="other">%d ألبومات</item>
+    </plurals>
+    <plurals name="audio_artist_count_compact">
+        <item quantity="one">%d فنان واحد</item>
+        <item quantity="other">%d فنانين</item>
+    </plurals>
+    <string name="audio_watched_folders_empty_info">لا يوجد مجلد مراقب بعد. في متصفح الصوت، افتح قائمة مجلد واختر «إضافة إلى المجلدات المراقبة».</string>
+    <string name="audio_watched_folders_manage_info">اضغط على مجلد لإزالته من المراقبة. أضف مجلدات جديدة من قوائم المجلدات في متصفح الصوت.</string>
+    <string name="audio_remove_watched_folder">إزالة</string>
+    <string name="audio_add_to_watched">إضافة إلى المجلدات المراقبة</string>
+    <string name="audio_add_to_favorites">إضافة إلى المفضلة</string>
+    <string name="audio_watched_folder_added">تمت إضافة المجلد إلى المجلدات المراقبة</string>
+    <string name="audio_watched_folder_refresh_hint">تمت إضافة المجلد إلى المجلدات المراقبة. يبدأ تحديث كامل للمكتبة تلقائيًا عند العودة إليها.</string>
+    <string name="audio_watched_folder_removed">تمت إزالة المجلد من المجلدات المراقبة</string>
+    <string name="audio_watched_folder_already">هذا المجلد مراقب بالفعل</string>
+    <string name="audio_tag_genre">النوع</string>
+    <string name="audio_tag_year">السنة</string>
+    <string name="audio_tag_track">المسار</string>
+    <string name="audio_tag_disc">القرص</string>
+    <string name="audio_tag_writing">جارٍ كتابة الوسوم…</string>
+    <string name="audio_tag_saved_hard">تمت كتابة الوسوم إلى ملف الصوت</string>
+    <string name="audio_tag_write_failed">تعذّرت كتابة الوسوم إلى هذا الملف</string>
+    <string name="audio_tag_network_not_supported">الكتابة المباشرة متاحة للملفات المحلية وملفات شبكة SMB/NAS. هذا المصدر لا يسمح بالتعديل عن بُعد.</string>
+    <string name="action_scan">مسح</string>
+    <string name="action_done">تم</string>
+<string name="audio_play_album">تشغيل الألبوم كاملًا</string>
+    <string name="audio_add_album_queue">إضافة إلى قائمة الانتظار</string>
+    <string name="audio_select_tracks">اختيار المسارات</string>
+    <string name="audio_add_playlist_blaze_party">إضافة قائمة التشغيل إلى Blaze Party</string>
+    <string name="audio_add_playlist_queue">إضافة قائمة التشغيل إلى قائمة الانتظار</string>
+    <string name="audio_various_artists">فنانون متنوعون</string>
+    <string name="queue_clear_all">مسح الكل</string>
+    <string name="queue_clear_selection">مسح المحدد</string>
+    <string name="queue_clear_hint">«مسح الكل» يزيل قائمة الانتظار كاملة. وإلا فحدّد فقط المسارات المراد إزالتها ثم امسح المحدد.</string>
+    <string name="audio_track_more_options">خيارات المسار</string>
+    <string name="audio_album_more_options">خيارات الألبوم</string>
+    <string name="audio_add_track_queue">إضافة إلى قائمة الانتظار</string>
+    <string name="audio_add_track_playlist">إضافة إلى قائمة تشغيل</string>
+    <string name="audio_add_track_blaze_party">إضافة إلى Blaze Party</string>
+    <string name="audio_back_to_albums">العودة إلى الألبومات</string>
+    <string name="audio_back_to_albums_hint">العودة إلى عرض المكتبة الكامل</string>
+
+    <string name="action_refresh">تحديث</string>
+    <string name="audio_watched_folders_empty_short">لا يوجد مجلد مراقب</string>
+    <string name="audio_watched_folders_summary_mixed">%1$d محلي · %2$d %3$s</string>
+    <string name="audio_watched_folders_summary_network">%1$d %2$s</string>
+    <string name="audio_watched_folders_summary_local">%1$d مجلد محلي</string>
+    <string name="audio_library_refresh_started">بدأ التحديث في الخلفية</string>
+    <string name="audio_library_refresh_done">تم تحديث المكتبة</string>
+    <string name="audio_library_refresh_in_progress_message">تحديث المكتبة جارٍ. يُرجى الانتظار قبل بدء التشغيل.</string>
+    <string name="audio_library_refresh_failed">فشل التحديث</string>
+    <string name="audio_library_network_synced">تمت مزامنة الشبكة</string>
+    <string name="audio_album_sort_album">اسم الألبوم</string>
+    <string name="audio_album_sort_artist">اسم الفنان</string>
+
+    <string name="close">إغلاق</string>
+    <string name="eq_tab_tone">النغمة</string>
+    <string name="eq_tab_dynamics">الديناميكية</string>
+    <string name="eq_tab_ambience">الأجواء</string>
+    <string name="eq_bass">الجهير</string>
+    <string name="eq_treble">الترددات العالية</string>
+    <string name="eq_balance">التوازن</string>
+    <string name="eq_stereo">ستيريو</string>
+    <string name="eq_center">الوسط</string>
+    <string name="eq_balance_left">يسار %1$d</string>
+    <string name="eq_balance_right">يمين %1$d</string>
+    <string name="eq_mono">أحادي</string>
+    <string name="eq_mono_active">تم تفعيل الأحادي</string>
+    <string name="eq_auto_headroom">هامش تلقائي</string>
+    <string name="eq_auto_headroom_summary">يخفض المضخم الأولي تلقائيًا عندما قد يتسبب المنحنى في تشويه.</string>
+    <string name="eq_limiter">المحدِّد</string>
+    <string name="eq_limiter_summary">يتحكم في القمم الرقمية قبل إخراج الصوت.</string>
+    <string name="eq_loudness">الجهارة</string>
+    <string name="eq_reverb">الصدى</string>
+    <string name="eq_room_type">نوع الغرفة</string>
+    <string name="eq_reverb_mix">المزج</string>
+    <string name="eq_room_studio">استوديو</string>
+    <string name="eq_room_small">غرفة صغيرة</string>
+    <string name="eq_room_hall">قاعة كبيرة</string>
+    <string name="eq_room_plate">لوح</string>
+    <string name="eq_equalizer_unavailable">معادل الجهاز غير متاح على هذا الإخراج. تظل عناصر تحكم القنوات فعّالة.</string>
+
+    <string name="action_play_pause">تشغيل / إيقاف مؤقت</string>
+    <string name="action_stop">إيقاف</string>
+    <string name="cast_remote_title">جهاز تحكم Cast</string>
+    <string name="cast_remote_subtitle">تحكّم في الفيديو على التلفزيون</string>
+    <string name="cast_remote_power">توصيل Chromecast أو فصله</string>
+    <string name="cast_remote_not_connected">لا يوجد بث نشط</string>
+    <string name="cast_remote_connected">البث متصل</string>
+    <string name="cast_remote_no_media">لا يتم بث أي فيديو حاليًا</string>
+    <string name="cast_remote_control_label">جهاز تحكم BLAZE</string>
+    <string name="cast_remote_volume_up">رفع مستوى الصوت</string>
+    <string name="cast_remote_volume_down">خفض مستوى الصوت</string>
+    <string name="cast_remote_mute">كتم الصوت أو إلغاء كتمه</string>
+    <string name="cast_remote_rewind">ترجيع 10 ثوانٍ</string>
+    <string name="cast_remote_forward">تقديم 10 ثوانٍ</string>
+    <string name="cast_remote_previous">الفيديو السابق</string>
+    <string name="cast_remote_next">الفيديو التالي</string>
+    <string name="cast_remote_hint">يفتح الزر الأحمر لوحة Chromecast لتوصيل التلفزيون أو فصله.</string>
+    <string name="content_desc_cast_remote">جهاز تحكم Chromecast</string>
+
+    <string name="cast_remote_led_on">تشغيل</string>
+    <string name="cast_remote_led_off">إيقاف</string>
+
+    <string name="content_desc_rewind">ترجيع</string>
+    <string name="content_desc_forward">تقديم سريع</string>
+    <string name="content_desc_video_screenshot">التقاط إطار من الفيديو</string>
+    <string name="content_desc_stop">إيقاف</string>
+    <string name="content_desc_settings">الإعدادات</string>
+    <string name="content_desc_cast_screen">بث شاشة الهاتف</string>
+    <string name="content_desc_sort">فرز</string>
+    <string name="content_desc_show_audio_files">إظهار ملفات الصوت</string>
+    <string name="content_desc_rescan">إعادة المسح</string>
+
+    <string name="eq_status_on">تشغيل</string>
+    <string name="eq_status_off">إيقاف</string>
+
+    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
+    <string name="audio_watched_help_button_desc">مساعدة حول المجلدات المراقبة</string>
+    <string name="audio_watched_help_title">كيفية إعداد مكتبة الصوت</string>
+    <string name="audio_watched_help_desc">عند إضافة مجلدات محلية أو شبكية إلى مكتبتك لأول مرة، يُرجى التحلي بالصبر: قد يستغرق تحميل البيانات الوصفية والأغلفة وقتًا طويلاً، خاصة إذا كان لديك الكثير من الألبومات أو المقاطع.</string>
+    <string name="audio_watched_help_desc_2">لكي ينظّم Blaze Audio موسيقاك بشكل صحيح، حاول قدر الإمكان الالتزام بالبنية التالية.</string>
+    <string name="audio_watched_help_structure_title">البنية الموصى بها</string>
+    <string name="audio_watched_help_root">المجلد المراقَب (محلي أو شبكي)/</string>
+    <string name="audio_watched_help_artist_folder">└── الفنان/</string>
+    <string name="audio_watched_help_album_folder">    └── الألبوم/</string>
+    <string name="audio_watched_help_cover">        ├── cover.jpg</string>
+    <string name="audio_watched_help_track">        ├── 01 - عنوان المقطع.flac</string>
+    <string name="audio_watched_help_lrc">        └── 01 - عنوان المقطع.lrc</string>
+    <string name="audio_watched_help_cover_note">ضع الغلاف داخل مجلد الألبوم باسم cover.jpg أو cover.png.</string>
+    <string name="audio_watched_help_lrc_note">ضع ملفات ‎.lrc بجانب كل مقطع مع استخدام الاسم نفسه تمامًا.</string>
+
+    <!-- Aide de l’onglet Réseau -->
+    <string name="network_help_button_desc">مساعدة حول مسارات الشبكة</string>
+    <string name="network_help_title">مساعدة الشبكة</string>
+    <string name="network_help_message">يجب حفظ مسارات ملفاتك الموجودة على شبكتك المحلية هنا، حتى تتمكن من تصفحها لاحقًا داخل التطبيق.</string>
+    <string name="about_developed_in_france">طُوّر في فرنسا بكل حب</string>
+    <string name="paywall_status_unavailable">حالة الاشتراك غير متاحة</string>
+    <string name="paywall_active_pro_plus">إصدار Pro+ نشط</string>
+    <string name="paywall_active_pro">إصدار Pro نشط</string>
+    <string name="paywall_trial_expired">انتهت تجربة Pro+ — الميزات المميزة مقفلة</string>
+    <string name="trial_notification_channel_name">تجربة Blaze Pro+</string>
+    <string name="trial_notification_title">ستنتهي تجربة Blaze Pro+ قريبًا</string>
+    <string name="trial_notification_message">بقيت 48 ساعة على انتهاء التجربة. فعّل Pro أو Pro+ للاحتفاظ بالميزات المميزة.</string>
+    <plurals name="paywall_trial_days_left">
+        <item quantity="one">تجربة Pro+: بقي يوم واحد</item>
+        <item quantity="other">تجربة Pro+: بقي %1$d أيام</item>
+    </plurals>
+</resources>

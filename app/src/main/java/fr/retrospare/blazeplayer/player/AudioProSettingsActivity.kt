@@ -33,6 +33,8 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class AudioProSettingsActivity : AppCompatActivity() {
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+
 
     @Inject lateinit var dataStore: DataStore<Preferences>
 
@@ -45,8 +47,19 @@ class AudioProSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
+                this,
+                userRepository,
+                fr.retrospare.blazeplayer.paywall.AccessLevel.PRO_PLUS
+            )) return
+        fr.retrospare.blazeplayer.paywall.AccessGateUi.monitor(
+            this,
+            userRepository,
+            fr.retrospare.blazeplayer.paywall.AccessLevel.PRO_PLUS
+        )
         setContentView(R.layout.activity_blaze_audio_settings)
         applySystemBarColors(ContextCompat.getColor(this, R.color.background))
+        AudioProSettings.migrateOutputPreferences(this)
         prefs = AudioProSettings.prefs(this)
         AudioPremiumUi.applyDynamicHero(findViewById<View>(R.id.audioSettingsHero), heroAccentColor)
         findViewById<TextView>(R.id.badgeSettingsPro)?.let {
@@ -66,11 +79,9 @@ class AudioProSettingsActivity : AppCompatActivity() {
             addView(switchRow(AudioProSettings.KEY_NORMALIZE, R.drawable.ic_volume, R.string.audio_normalize_volume, R.string.audio_normalize_volume_subtitle, true))
         })
         container.addView(section(R.string.audio_section_quality).apply {
-            addView(switchRow(AudioProSettings.KEY_HI_RES, R.drawable.ic_equalizer, R.string.audio_high_quality_output, R.string.audio_high_quality_subtitle, true))
+            addView(switchRow(AudioProSettings.KEY_HI_RES, R.drawable.ic_equalizer, R.string.audio_high_quality_output, R.string.audio_high_quality_subtitle, false))
             addView(separator())
-            addView(choiceRow(AudioProSettings.KEY_REPLAYGAIN, R.drawable.ic_layout_list, R.string.audio_replaygain_title, arrayOf(getString(R.string.audio_replaygain_off), getString(R.string.audio_replaygain_track), getString(R.string.audio_replaygain_album)), AudioProSettings.REPLAYGAIN_TRACK))
-            addView(separator())
-            addView(bitDepthRow())
+            addView(outputPrecisionRow())
         })
         container.addView(section(R.string.audio_section_library).apply {
             addView(switchRow(AudioProSettings.KEY_AUTO_SCAN, R.drawable.ic_refresh, R.string.audio_auto_scan, R.string.audio_auto_scan_subtitle, true))
@@ -133,11 +144,15 @@ class AudioProSettingsActivity : AppCompatActivity() {
             applyAudioStyleToggle(this)
             isChecked = prefs.getBoolean(key, defaultValue)
             setOnCheckedChangeListener { _, checked ->
-                val edit = prefs.edit().putBoolean(key, checked)
-                if (key == AudioProSettings.KEY_SYNCED_LYRICS) {
-                    edit.putBoolean(AudioProSettings.KEY_LYRICS_PLAYER, checked)
+                if (key == AudioProSettings.KEY_HI_RES) {
+                    AudioProSettings.setHighQualityEnabled(this@AudioProSettingsActivity, checked)
+                } else {
+                    val edit = prefs.edit().putBoolean(key, checked)
+                    if (key == AudioProSettings.KEY_SYNCED_LYRICS) {
+                        edit.putBoolean(AudioProSettings.KEY_LYRICS_PLAYER, checked)
+                    }
+                    edit.apply()
                 }
-                edit.apply()
                 if (key == AudioProSettings.KEY_DYNAMIC_THEME) recreate()
             }
         }
@@ -251,27 +266,48 @@ class AudioProSettingsActivity : AppCompatActivity() {
         return root
     }
 
-    private fun bitDepthRow(): View {
+    private fun outputPrecisionRow(): View {
         val root = baseRow(R.drawable.ic_audio)
-        root.addView(textColumn(getString(R.string.audio_bit_depth_title), null), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(14) })
-        val choices = listOf("16", "24", "32")
-        val strip = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; background = ContextCompat.getDrawable(this@AudioProSettingsActivity, R.drawable.bg_audio_pro_chip) }
-        val current = prefs.getString(AudioProSettings.KEY_BIT_DEPTH, "24") ?: "24"
-        choices.forEach { value ->
-            strip.addView(TextView(this).apply {
-                text = "$value bit"
-                textSize = 12f
-                typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
-                gravity = Gravity.CENTER
-                setTextColor(if (value == current) accentColor else textMuted)
-                setOnClickListener {
-                    prefs.edit().putString(AudioProSettings.KEY_BIT_DEPTH, value).apply()
-                    for (i in 0 until strip.childCount) (strip.getChildAt(i) as? TextView)?.setTextColor(textMuted)
-                    setTextColor(accentColor)
-                }
-            }, LinearLayout.LayoutParams(dp(58), dp(34)))
+        root.addView(
+            textColumn(
+                getString(R.string.audio_output_mode_title),
+                getString(R.string.audio_output_mode_subtitle)
+            ),
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(14)
+            }
+        )
+        val modes = listOf(
+            AudioProSettings.OUTPUT_MODE_AUTO to getString(R.string.audio_output_mode_auto),
+            AudioProSettings.OUTPUT_MODE_COMPATIBILITY to getString(R.string.audio_output_mode_compatibility),
+            AudioProSettings.OUTPUT_MODE_HIGH_PRECISION to getString(R.string.audio_output_mode_high_precision)
+        )
+        val current = AudioProSettings.normalizeOutputMode(
+            prefs.getString(AudioProSettings.KEY_OUTPUT_MODE, AudioProSettings.OUTPUT_MODE_AUTO)
+        )
+        val chip = TextView(this).apply {
+            text = modes.firstOrNull { it.first == current }?.second ?: modes.first().second
+            setTextColor(if (current == AudioProSettings.OUTPUT_MODE_AUTO) accentColor else textMuted)
+            textSize = 12f
+            gravity = Gravity.CENTER
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            setPadding(dp(12), 0, dp(12), 0)
+            maxLines = 1
+            background = ContextCompat.getDrawable(this@AudioProSettingsActivity, R.drawable.bg_audio_pro_chip)
+            setOnClickListener {
+                val active = AudioProSettings.normalizeOutputMode(
+                    prefs.getString(AudioProSettings.KEY_OUTPUT_MODE, AudioProSettings.OUTPUT_MODE_AUTO)
+                )
+                val index = modes.indexOfFirst { it.first == active }.coerceAtLeast(0)
+                val next = modes[(index + 1) % modes.size]
+                AudioProSettings.setOutputMode(this@AudioProSettingsActivity, next.first)
+                text = next.second
+                setTextColor(if (next.first == AudioProSettings.OUTPUT_MODE_AUTO) accentColor else textMuted)
+            }
         }
-        root.addView(strip)
+        root.addView(chip, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(36)).apply {
+            marginStart = dp(8)
+        })
         return root
     }
 

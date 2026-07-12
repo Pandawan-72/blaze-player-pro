@@ -46,19 +46,22 @@ object VideoQueueManager {
         return base
     }
 
+    /**
+     * Ajoute sans limite artificielle tous les éléments reçus. La synchronisation évite qu'un
+     * second ajout lancé presque au même moment relise une ancienne version et écrase une partie
+     * du premier lot.
+     */
+    @Synchronized
     fun addToQueue(context: Context, category: PlaylistCategory, tracks: List<PlaylistTrackRef>): Int {
         if (tracks.isEmpty()) return 0
         val current = getQueue(context, category).toMutableList()
-        val existing = current.map { it.path }.toHashSet()
-        var added = 0
-        tracks.forEach { ref ->
-            if (ref.path.isNotBlank() && existing.add(ref.path)) {
-                current.add(ref)
-                added++
-            }
-        }
-        if (added > 0) saveQueue(context, category, current)
-        return added
+        val existing = current.mapTo(HashSet(current.size + tracks.size)) { it.path }
+        val uniqueIncoming = tracks.filter { it.path.isNotBlank() }.distinctBy { it.path }
+        val addedTracks = uniqueIncoming.filter { existing.add(it.path) }
+        if (addedTracks.isEmpty()) return 0
+        current.addAll(addedTracks)
+        saveQueue(context, category, current)
+        return addedTracks.size
     }
 
     fun removeFromQueue(context: Context, category: PlaylistCategory, path: String) {
@@ -69,6 +72,7 @@ object VideoQueueManager {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(key(category)).commit()
     }
 
+    @Synchronized
     fun saveQueue(context: Context, category: PlaylistCategory, tracks: List<PlaylistTrackRef>) {
         val arr = JSONArray()
         tracks.forEach { ref ->

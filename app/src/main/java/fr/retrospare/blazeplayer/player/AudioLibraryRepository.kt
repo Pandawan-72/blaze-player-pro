@@ -51,22 +51,24 @@ class AudioLibraryRepository @Inject constructor(
         private const val MAX_NETWORK_SCAN_TRACKS = 8000
         private const val MAX_MANUAL_NETWORK_SCAN_TRACKS = 200000
         private const val MAX_NETWORK_DEPTH = 12
+        private const val NETWORK_PROGRESS_BATCH_SIZE = 80
+        private const val NETWORK_PROGRESS_MAX_DELAY_MS = 700L
 
         /** Nombre de titres traités en parallèle pendant l'enrichissement optionnel/cover. Les
          *  latences réseau NAS se chevauchent au lieu de s'additionner titre par titre. */
-        const val ENRICHMENT_CONCURRENCY = 3
+        const val ENRICHMENT_CONCURRENCY = 1
     }
 
     private val scanDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(3) { runnable ->
         Thread {
-            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + 4) } catch (_: Exception) {}
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND) } catch (_: Exception) {}
             runnable.run()
         }.apply { name = "BlazeLibraryScan"; isDaemon = true; priority = Thread.MIN_PRIORITY + 1 }
     }.asCoroutineDispatcher()
 
     private val roomDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(2) { runnable ->
         Thread {
-            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + 2) } catch (_: Exception) {}
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND) } catch (_: Exception) {}
             runnable.run()
         }.apply { name = "BlazeLibraryRoom"; isDaemon = true; priority = Thread.MIN_PRIORITY + 1 }
     }.asCoroutineDispatcher()
@@ -81,6 +83,25 @@ class AudioLibraryRepository @Inject constructor(
         val scannedTrackCount: Int,
         val prunedCount: Int
     )
+
+    private class NetworkProgressEmitter(
+        private val onBatch: suspend (List<LibraryTrack>) -> Unit
+    ) {
+        private var emittedCount = 0
+        private var lastEmitAt = android.os.SystemClock.elapsedRealtime()
+
+        suspend fun emitIfNeeded(source: List<LibraryTrack>, force: Boolean = false) {
+            val pendingCount = source.size - emittedCount
+            if (pendingCount <= 0) return
+            val now = android.os.SystemClock.elapsedRealtime()
+            val delayedEnough = now - lastEmitAt >= NETWORK_PROGRESS_MAX_DELAY_MS
+            if (!force && pendingCount < NETWORK_PROGRESS_BATCH_SIZE && !delayedEnough) return
+            val batch = source.subList(emittedCount, source.size).toList()
+            emittedCount = source.size
+            lastEmitAt = now
+            onBatch(batch)
+        }
+    }
 
     /** Source de vérité pour l'UI : émet à chaque écriture Room (skeleton pass ou enrichissement).
      *  Debounce + distinctUntilChanged : l'enrichissement de pochettes peut écrire titre par titre,
@@ -113,8 +134,28 @@ class AudioLibraryRepository @Inject constructor(
         val (mediaStoreTracks, localTracks, networkScan) = coroutineScope {
             val mediaStoreDeferred = async { queryMediaStoreWatchedTracks(appContext) }
             val localDeferred = async { scanWatchedLocalFolders(appContext) }
-            val networkDeferred = async { scanWatchedNetworkFolders(appContext, manual, isPlaybackCritical) }
-            Triple(mediaStoreDeferred.await(), localDeferred.await(), networkDeferred.await())
+            val networkDeferred = async {
+                scanWatchedNetworkFolders(
+                    appContext,
+                    manual,
+                    isPlaybackCritical,
+                    onProgress = { batch ->
+                        persistProgressiveSkeletonBatch(appContext, batch, generation, watched)
+                    }
+                )
+            }
+
+            // Le stockage local est généralement disponible en quelques millisecondes. On écrit
+            // cette première tranche dès qu'elle est prête, sans attendre le NAS.
+            val mediaStore = mediaStoreDeferred.await()
+            val local = localDeferred.await()
+            persistProgressiveSkeletonBatch(
+                appContext,
+                AudioLibraryHeuristics.mergeTracks(mediaStore + local, emptyList(), appContext),
+                generation,
+                watched
+            )
+            Triple(mediaStore, local, networkDeferred.await())
         }
 
         val merged = AudioLibraryHeuristics.mergeTracks(mediaStoreTracks + localTracks, networkScan.tracks, appContext)
@@ -134,6 +175,27 @@ class AudioLibraryRepository @Inject constructor(
         )
     }
 
+    /** Écriture non destructive utilisée pendant le scan progressif. */
+    private suspend fun persistProgressiveSkeletonBatch(
+        context: Context,
+        tracks: List<LibraryTrack>,
+        generation: Long,
+        watchedFolders: List<AudioProSettings.WatchedFolder>
+    ) {
+        if (tracks.isEmpty()) return
+        val canonical = AudioLibraryHeuristics.canonicalLibraryTracks(
+            context,
+            tracks.distinctBy { it.path }
+        )
+        val entities = canonical.mapNotNull { it.toRoomEntity(context, generation, watchedFolders) }
+        if (entities.isEmpty()) return
+        withContext(roomDispatcher) {
+            AudioLibraryRoomStore.upsertSkeletonBatch(context, entities, generation)
+        }
+        // Les invalidations de caches sont volontairement regroupées à la passe finale. Les faire
+        // pour chaque lot réseau doublerait les accès disque pendant le premier indexage.
+    }
+
     /**
      * API conservée pour les seules données techniques optionnelles. Les champs texte écrits en
      * base restent systématiquement recalculés depuis l'arborescence et aucun écran ne déclenche
@@ -150,6 +212,8 @@ class AudioLibraryRepository @Inject constructor(
         val appContext = context.applicationContext
         var pendingMetadata = mutableListOf<AudioLibraryTrackEntity>()
         for (batch in candidates.chunked(concurrency.coerceAtLeast(1))) {
+            if (!currentCoroutineContext().isActive) break
+            AudioLibraryWorkState.awaitEnrichmentWindow()
             if (!currentCoroutineContext().isActive) break
             val results = coroutineScope {
                 batch.map { track ->
@@ -180,6 +244,8 @@ class AudioLibraryRepository @Inject constructor(
         concurrency: Int = 2
     ) {
         for (batch in candidates.chunked(concurrency.coerceAtLeast(1))) {
+            if (!currentCoroutineContext().isActive) break
+            AudioLibraryWorkState.awaitEnrichmentWindow()
             if (!currentCoroutineContext().isActive) break
             coroutineScope {
                 batch.map { track -> async(scanDispatcher) { runCatching { loadArtwork(track) } } }.awaitAll()
@@ -323,33 +389,51 @@ class AudioLibraryRepository @Inject constructor(
     private suspend fun scanWatchedNetworkFolders(
         context: Context,
         manual: Boolean,
-        isPlaybackCritical: () -> Boolean
+        isPlaybackCritical: () -> Boolean,
+        onProgress: suspend (List<LibraryTrack>) -> Unit
     ): NetworkFolderScanResult {
         val watched = AudioProSettings.watchedFolders(context).filter { it.isNetwork }
         if (watched.isEmpty()) return NetworkFolderScanResult(emptyList(), emptyList())
         val shares = runCatching { networkRepository.getShares().first().associateBy { it.id } }.getOrDefault(emptyMap())
         val settings = AudioProSettings.read(context)
-        return coroutineScope {
-            val partial = watched.map { folder ->
-                async(scanDispatcher) {
-                    val share = shares[folder.shareId] ?: return@async NetworkFolderScanResult(emptyList(), emptyList())
-                    val result = mutableListOf<LibraryTrack>()
-                    val seen = mutableSetOf<String>()
-                    val confirmed = scanNetworkFolder(context, share, folder, folder.path, 0, result, seen, settings, inheritedCover = "", manual = manual, isPlaybackCritical = isPlaybackCritical)
-                    if (confirmed) {
-                        NetworkFolderScanResult(result, listOf(folder))
-                    } else {
-                        // Pas de pruning sur timeout/réseau indisponible : on garde le dernier index
-                        // pour éviter qu'une coupure Wi-Fi vide toute la bibliothèque.
-                        NetworkFolderScanResult(result, emptyList())
-                    }
-                }
-            }.awaitAll()
-            NetworkFolderScanResult(
-                tracks = partial.flatMap { it.tracks }.distinctBy { it.path },
-                confirmedFolders = partial.flatMap { it.confirmedFolders }
+        val allTracks = mutableListOf<LibraryTrack>()
+        val confirmedFolders = mutableListOf<AudioProSettings.WatchedFolder>()
+
+        // Un seul parcours NAS à la fois. Plusieurs listings SMB concurrents entraient en
+        // compétition avec le flux audio et pouvaient provoquer des rebufferings, voire une
+        // pression mémoire suffisante pour recréer l'Activity.
+        for (folder in watched) {
+            if (!currentCoroutineContext().isActive) break
+            AudioLibraryWorkState.awaitPlaybackIdle(isPlaybackCritical)
+            if (!currentCoroutineContext().isActive) break
+
+            val share = shares[folder.shareId] ?: continue
+            val result = mutableListOf<LibraryTrack>()
+            val seen = mutableSetOf<String>()
+            val progress = NetworkProgressEmitter(onProgress)
+            val confirmed = scanNetworkFolder(
+                context,
+                share,
+                folder,
+                folder.path,
+                0,
+                result,
+                seen,
+                settings,
+                inheritedCover = "",
+                manual = manual,
+                isPlaybackCritical = isPlaybackCritical,
+                progress = progress
             )
+            progress.emitIfNeeded(result, force = true)
+            allTracks += result
+            if (confirmed) confirmedFolders += folder
         }
+
+        return NetworkFolderScanResult(
+            tracks = allTracks.distinctBy { it.path },
+            confirmedFolders = confirmedFolders
+        )
     }
 
     private suspend fun scanNetworkFolder(
@@ -363,11 +447,13 @@ class AudioLibraryRepository @Inject constructor(
         settings: AudioProSettings.Values,
         inheritedCover: String,
         manual: Boolean,
-        isPlaybackCritical: () -> Boolean
+        isPlaybackCritical: () -> Boolean,
+        progress: NetworkProgressEmitter
     ): Boolean {
         val scanLimit = if (manual) MAX_MANUAL_NETWORK_SCAN_TRACKS else MAX_NETWORK_SCAN_TRACKS
         if (!currentCoroutineContext().isActive || depth > MAX_NETWORK_DEPTH || result.size >= scanLimit) return false
-        if (!manual && isPlaybackCritical()) return false
+        AudioLibraryWorkState.awaitPlaybackIdle(isPlaybackCritical)
+        if (!currentCoroutineContext().isActive) return false
         val items = withTimeoutOrNull(if (manual) 30_000L else 6_000L) {
             runCatching {
                 if (share.type == ShareType.UPNP) upnpBrowser.listFiles(share, browsePath.ifBlank { "0" }).getOrThrow()
@@ -409,6 +495,7 @@ class AudioLibraryRepository @Inject constructor(
                 modifiedAt = item.modifiedAt
             )
         }
+        progress.emitIfNeeded(result)
         val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" }
         var complete = result.size < scanLimit
         for (folder in folders) {
@@ -416,7 +503,20 @@ class AudioLibraryRepository @Inject constructor(
                 complete = false
                 break
             }
-            if (!scanNetworkFolder(context, share, watchedFolder, folder.path, depth + 1, result, seen, settings, folderCover, manual, isPlaybackCritical)) {
+            if (!scanNetworkFolder(
+                    context,
+                    share,
+                    watchedFolder,
+                    folder.path,
+                    depth + 1,
+                    result,
+                    seen,
+                    settings,
+                    folderCover,
+                    manual,
+                    isPlaybackCritical,
+                    progress
+                )) {
                 complete = false
             }
         }

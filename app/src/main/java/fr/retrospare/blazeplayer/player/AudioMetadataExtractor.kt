@@ -39,16 +39,16 @@ object AudioMetadataExtractor {
     private val inFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<AudioTechnicalInfo>>()
     private val durationInFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<Long>>()
     private val qualityInFlight = ConcurrentHashMap<String, kotlinx.coroutines.Deferred<AudioTechnicalInfo>>()
-    private val metadataDispatcher = Executors.newFixedThreadPool(4) { runnable ->
+    private val metadataDispatcher = Executors.newFixedThreadPool(2) { runnable ->
         Thread {
-            // Pool technique borné : les durées manquantes sont calculées hors UI, sans modifier
-            // les noms issus des dossiers. Priorité normale pour ne pas gêner la lecture audio.
-            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DEFAULT) } catch (_: Exception) {}
+            // Les accès metadata peuvent ouvrir un second flux sur le même NAS que le Player.
+            // Deux workers basse priorité suffisent et évitent de préempter les threads audio.
+            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND) } catch (_: Exception) {}
             runnable.run()
         }.apply {
-            name = "BlazeAudioMetadataPriority"
+            name = "BlazeAudioMetadata"
             isDaemon = true
-            priority = (Thread.NORM_PRIORITY + 1).coerceAtMost(Thread.MAX_PRIORITY)
+            priority = (Thread.NORM_PRIORITY - 2).coerceAtLeast(Thread.MIN_PRIORITY)
         }
     }.asCoroutineDispatcher()
 
@@ -248,23 +248,19 @@ object AudioMetadataExtractor {
         qualityInFlight.clear()
     }
 
+    /** Met à jour immédiatement le cache mémoire avec des données déjà fournies par Media3. */
+    fun putMemoryCached(path: String, info: AudioTechnicalInfo): AudioTechnicalInfo? {
+        if (path.isBlank()) return null
+        val merged = mergeKnownMetadata(info, cache[path])
+        cache[path] = merged
+        return merged
+    }
+
     /** Met à jour le cache mémoire + disque avec des métadonnées déjà connues par Media3 ou le player.
      *  Utilisé notamment à la restauration de la file audio : évite que l'artiste retombe sur
      *  "Unknown" quand le fichier réseau n'a pas encore été ré-ouvert. */
     fun putCached(context: Context, path: String, info: AudioTechnicalInfo) {
-        if (path.isBlank()) return
-        val previous = cache[path]
-        val merged = AudioTechnicalInfo(
-            artist = info.artist.ifBlank { previous?.artist.orEmpty() },
-            duration = if (info.duration > 0L) info.duration else previous?.duration ?: 0L,
-            bitrate = if (info.bitrate > 0L) info.bitrate else previous?.bitrate ?: 0L,
-            extension = info.extension.ifBlank { previous?.extension.orEmpty() },
-            isLossless = info.isLossless || previous?.isLossless == true,
-            title = info.title.ifBlank { previous?.title.orEmpty() },
-            album = info.album.ifBlank { previous?.album.orEmpty() },
-            trackNumber = if (info.trackNumber > 0) info.trackNumber else previous?.trackNumber ?: 0
-        )
-        cache[path] = merged
+        val merged = putMemoryCached(path, info) ?: return
         saveToDisk(context, path, merged)
     }
 

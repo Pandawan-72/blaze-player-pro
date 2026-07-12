@@ -2,8 +2,12 @@ package fr.retrospare.blazeplayer.player
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.RadialGradient
 import android.graphics.RectF
+import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
@@ -25,6 +29,9 @@ import kotlin.math.sin
  * Le doigt tourne autour du centre comme sur un bouton matériel : dans le sens horaire la valeur
  * augmente, dans le sens antihoraire elle diminue. Le calcul est relatif au point de départ, ce qui
  * évite tout saut de valeur au premier contact. Un double appui restaure la valeur neutre.
+ *
+ * Le rendu visuel rappelle un potentiomètre métallique d'ampli, mais reste volontairement sobre :
+ * une bague usinée, une face légèrement bombée et un repère lumineux.
  */
 class RotaryKnobView @JvmOverloads constructor(
     context: Context,
@@ -76,22 +83,46 @@ class RotaryKnobView @JvmOverloads constructor(
         strokeWidth = 5f * density
         color = ContextCompat.getColor(context, R.color.green_accent)
     }
-    private val bodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+
+    // Rendu métallique volontairement épuré : une ombre, une bague et une face bombée. On évite
+    // les stries, les petits anneaux et les liserés lumineux qui surchargeaient le bouton.
+    private val knobShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
-        color = ContextCompat.getColor(context, R.color.surface_variant)
+        color = Color.argb(205, 4, 7, 11)
+        setShadowLayer(8f * density, 0f, 4f * density, Color.argb(175, 0, 0, 0))
     }
-    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val outerBezelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val bezelBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 2f * density
-        color = ContextCompat.getColor(context, R.color.on_surface_variant)
-        alpha = 120
+        strokeWidth = 1.1f * density
+        color = Color.argb(185, 205, 220, 232)
+    }
+    private val metalBodyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val bodyBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1f * density
+        color = Color.argb(105, 225, 238, 246)
+    }
+
+    private val markerGroovePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 5.2f * density
+        color = Color.argb(175, 5, 9, 13)
     }
     private val markerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
-        strokeWidth = 4f * density
+        strokeWidth = 2.2f * density
         color = ContextCompat.getColor(context, R.color.on_background)
+        setShadowLayer(2.5f * density, 0f, 0f, Color.argb(155, 205, 235, 255))
     }
+    private var shaderWidth = -1
+    private var shaderHeight = -1
 
     private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent): Boolean = true
@@ -143,8 +174,10 @@ class RotaryKnobView @JvmOverloads constructor(
         val cx = width / 2f
         val cy = height / 2f
         val outerRadius = (minOf(width, height) / 2f) - 9f * density
-        val bodyRadius = outerRadius - 9f * density
+        val bezelRadius = outerRadius - 8.2f * density
+        val bodyRadius = bezelRadius - 4.2f * density
         val arcRect = RectF(cx - outerRadius, cy - outerRadius, cx + outerRadius, cy + outerRadius)
+        ensureMetalShaders(cx, cy, bezelRadius, bodyRadius)
 
         canvas.saveLayerAlpha(0f, 0f, width.toFloat(), height.toFloat(), (255 * alphaFactor).toInt())
         canvas.drawArc(arcRect, START_ANGLE, SWEEP_ANGLE, false, inactivePaint)
@@ -160,20 +193,60 @@ class RotaryKnobView @JvmOverloads constructor(
             activePaint.clearShadowLayer()
         }
 
-        canvas.drawCircle(cx, cy, bodyRadius, bodyPaint)
-        canvas.drawCircle(cx, cy, bodyRadius, borderPaint)
+        // Bague extérieure usinée, avec un seul chanfrein lisible.
+        canvas.drawCircle(cx, cy + 1.4f * density, bezelRadius + 1f * density, knobShadowPaint)
+        canvas.drawCircle(cx, cy, bezelRadius, outerBezelPaint)
+        canvas.drawCircle(cx, cy, bezelRadius, bezelBorderPaint)
 
+        // Face métallique légèrement bombée.
+        canvas.drawCircle(cx, cy, bodyRadius, metalBodyPaint)
+        canvas.drawCircle(cx, cy, bodyRadius, bodyBorderPaint)
+        // Repère incrusté, contrasté mais simple.
         val angleRadians = Math.toRadians((START_ANGLE + currentSweep).toDouble())
-        val markerInner = bodyRadius * 0.55f
+        val markerInner = bodyRadius * 0.46f
         val markerOuter = bodyRadius * 0.78f
-        canvas.drawLine(
-            cx + cos(angleRadians).toFloat() * markerInner,
-            cy + sin(angleRadians).toFloat() * markerInner,
-            cx + cos(angleRadians).toFloat() * markerOuter,
-            cy + sin(angleRadians).toFloat() * markerOuter,
-            markerPaint
-        )
+        val markerStartX = cx + cos(angleRadians).toFloat() * markerInner
+        val markerStartY = cy + sin(angleRadians).toFloat() * markerInner
+        val markerEndX = cx + cos(angleRadians).toFloat() * markerOuter
+        val markerEndY = cy + sin(angleRadians).toFloat() * markerOuter
+        canvas.drawLine(markerStartX, markerStartY, markerEndX, markerEndY, markerGroovePaint)
+        canvas.drawLine(markerStartX, markerStartY, markerEndX, markerEndY, markerPaint)
+
         canvas.restore()
+    }
+
+    private fun ensureMetalShaders(cx: Float, cy: Float, bezelRadius: Float, bodyRadius: Float) {
+        if (shaderWidth == width && shaderHeight == height) return
+        shaderWidth = width
+        shaderHeight = height
+
+        outerBezelPaint.shader = LinearGradient(
+            cx - bezelRadius,
+            cy - bezelRadius,
+            cx + bezelRadius,
+            cy + bezelRadius,
+            intArrayOf(
+                Color.rgb(220, 230, 236),
+                Color.rgb(96, 108, 118),
+                Color.rgb(42, 50, 57),
+                Color.rgb(140, 153, 162)
+            ),
+            floatArrayOf(0f, 0.34f, 0.64f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        metalBodyPaint.shader = RadialGradient(
+            cx - bodyRadius * 0.30f,
+            cy - bodyRadius * 0.34f,
+            bodyRadius * 1.35f,
+            intArrayOf(
+                Color.rgb(232, 239, 243),
+                Color.rgb(155, 167, 175),
+                Color.rgb(76, 88, 97),
+                Color.rgb(35, 43, 50)
+            ),
+            floatArrayOf(0f, 0.35f, 0.70f, 1f),
+            Shader.TileMode.CLAMP
+        )
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

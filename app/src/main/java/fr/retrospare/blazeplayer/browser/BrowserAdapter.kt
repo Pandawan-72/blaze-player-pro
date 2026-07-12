@@ -42,16 +42,43 @@ class BrowserAdapter(
         }
     }
 
-    private val selectedItems = mutableSetOf<String>()
+    private val selectedItems = linkedSetOf<String>()
     var isGridMode = false
     var selectionMode = false
     var onSelectionChanged: ((Set<String>) -> Unit)? = null
     private var fullList: List<fr.retrospare.blazeplayer.data.model.MediaItem> = emptyList()
     private var currentQuery = ""
 
-    fun getSelectedItems() = currentList.filter { selectedItems.contains(it.id) }
-    fun clearSelection() { selectedItems.clear(); selectionMode = false; notifyDataSetChanged() }
-    fun selectAll() { selectedItems.addAll(currentList.map { it.id }); notifyDataSetChanged() }
+    /**
+     * La sélection est indexée par chemin, pas par l'id temporaire de la ligne. Les listes du
+     * navigateur sont régulièrement remplacées pendant l'enrichissement des métadonnées ; le
+     * chemin reste stable alors que l'objet MediaItem et parfois son id peuvent changer.
+     *
+     * L'ordre de sélection est conservé et aucune limite n'est appliquée : les éléments hors écran
+     * restent sélectionnés lorsque RecyclerView recycle leurs ViewHolder.
+     */
+    fun getSelectedItems(): List<MediaItem> {
+        if (selectedItems.isEmpty()) return emptyList()
+        val latestByPath = LinkedHashMap<String, MediaItem>()
+        fullList.forEach { latestByPath[selectionKey(it)] = it }
+        currentList.forEach { latestByPath[selectionKey(it)] = it }
+        return selectedItems.mapNotNull { latestByPath[it] }
+    }
+
+    fun clearSelection() {
+        selectedItems.clear()
+        selectionMode = false
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(emptySet())
+    }
+
+    fun selectAll() {
+        currentList.forEach { selectedItems.add(selectionKey(it)) }
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(selectedItems.toSet())
+    }
+
+    private fun selectionKey(item: MediaItem): String = item.path.ifBlank { item.id }
 
     fun setFullList(list: List<fr.retrospare.blazeplayer.data.model.MediaItem>) {
         fullList = list
@@ -72,8 +99,11 @@ class BrowserAdapter(
     }
 
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
-        super.onViewRecycled(holder)
+        // Un listener de checkbox ne doit jamais survivre au recyclage de sa ligne.
+        holder.itemView.findViewById<android.widget.CheckBox>(R.id.checkboxSelect)
+            ?.setOnCheckedChangeListener(null)
         if (holder is FileViewHolder) holder.thumbnailJob?.cancel()
+        super.onViewRecycled(holder)
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
@@ -89,6 +119,7 @@ class BrowserAdapter(
         private val tvCount: TextView = view.findViewById(R.id.tvFolderCount)
         private val btnMore: ImageView? = view.findViewById(fr.retrospare.blazeplayer.R.id.btnFolderMore)
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
+            val key = selectionKey(item)
             tvName.text = item.name
             tvCount.text = when (item.mimeType) {
                 "network" -> itemView.context.getString(R.string.tab_network)
@@ -98,16 +129,18 @@ class BrowserAdapter(
             // Checkbox visibilité
             val checkbox = itemView.findViewById<android.widget.CheckBox>(fr.retrospare.blazeplayer.R.id.checkboxSelect)
             checkbox?.visibility = if (isSelectionMode) android.view.View.VISIBLE else android.view.View.GONE
-            checkbox?.isChecked = selected.contains(item.id)
+            // Toujours détacher l'ancien listener AVANT de modifier isChecked. Sinon le listener
+            // du ViewHolder recyclé modifie la sélection de l'ancienne ligne.
             checkbox?.setOnCheckedChangeListener(null)
+            checkbox?.isChecked = selected.contains(key)
             checkbox?.setOnCheckedChangeListener { _, checked ->
-                if (checked) selected.add(item.id) else selected.remove(item.id)
+                if (checked) selected.add(key) else selected.remove(key)
                 onSelectionChanged?.invoke(selected.toSet())
             }
             itemView.setOnClickListener {
                 if (isSelectionMode) {
-                    val checked = !selected.contains(item.id)
-                    if (checked) selected.add(item.id) else selected.remove(item.id)
+                    val checked = !selected.contains(key)
+                    if (checked) selected.add(key) else selected.remove(key)
                     checkbox?.isChecked = checked
                     onSelectionChanged?.invoke(selected.toSet())
                 } else {
@@ -117,7 +150,7 @@ class BrowserAdapter(
             itemView.setOnLongClickListener {
                 if (!selectionMode) {
                     selectionMode = true
-                    selectedItems.add(item.id)
+                    selectedItems.add(key)
                     notifyDataSetChanged()
                     onSelectionChanged?.invoke(selectedItems.toSet())
                 }
@@ -173,6 +206,7 @@ class BrowserAdapter(
         }
 
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
+            val key = selectionKey(item)
             tvName.text = item.name
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFormat, item.extension)
             tvFormat.visibility = if (item.extension.isNotEmpty()) View.VISIBLE else View.GONE
@@ -203,7 +237,15 @@ class BrowserAdapter(
             if (isAudio) {
                 // Pour l'audio, le conteneur et la qualité restent côte à côte dans la rangée.
                 tvFormat.visibility = View.GONE
-                AudioQualityBadgeBinder.bind(tvAudioCodec, tvAudioQuality, item.path, item.name, item.extension)
+                AudioQualityBadgeBinder.bind(
+                    tvAudioCodec,
+                    tvAudioQuality,
+                    item.path,
+                    item.name,
+                    item.extension,
+                    knownDurationMs = item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
+                    knownSizeBytes = item.size
+                )
             } else {
                 tvAudioQuality.visibility = View.GONE
             }
@@ -260,10 +302,12 @@ class BrowserAdapter(
             // normalement (plus besoin d'appui long pour activer un "mode sélection").
             val checkbox = itemView.findViewById<android.widget.CheckBox>(fr.retrospare.blazeplayer.R.id.checkboxSelect)
             checkbox?.visibility = View.VISIBLE
-            checkbox?.isChecked = selected.contains(item.id)
+            // Le listener du ViewHolder précédent doit être retiré avant isChecked. C'était la
+            // cause des sélections tronquées au nombre de lignes visibles (souvent 8).
             checkbox?.setOnCheckedChangeListener(null)
+            checkbox?.isChecked = selected.contains(key)
             checkbox?.setOnCheckedChangeListener { _, checked ->
-                if (checked) selected.add(item.id) else selected.remove(item.id)
+                if (checked) selected.add(key) else selected.remove(key)
                 onSelectionChanged?.invoke(selected.toSet())
             }
 

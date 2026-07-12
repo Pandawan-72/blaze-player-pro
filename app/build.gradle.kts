@@ -1,22 +1,6 @@
-import java.util.Properties
+import java.io.File
 import java.io.FileInputStream
-
-val localProperties = Properties().apply {
-    val localPropsFile = rootProject.file("local.properties")
-    if (localPropsFile.exists()) {
-        load(FileInputStream(localPropsFile))
-    }
-}
-
-val releaseKeystorePath = localProperties.getProperty("BLAZE_KEYSTORE_FILE", "../blaze-player.keystore")
-val releaseStorePassword = localProperties.getProperty("BLAZE_KEYSTORE_PASSWORD")
-    ?: System.getenv("BLAZE_KEYSTORE_PASSWORD").orEmpty()
-val releaseKeyAlias = localProperties.getProperty("BLAZE_KEY_ALIAS")
-    ?: System.getenv("BLAZE_KEY_ALIAS").orEmpty()
-val releaseKeyPassword = localProperties.getProperty("BLAZE_KEY_PASSWORD")
-    ?: System.getenv("BLAZE_KEY_PASSWORD").orEmpty()
-val hasReleaseSigning = rootProject.file(releaseKeystorePath).exists() &&
-    releaseStorePassword.isNotBlank() && releaseKeyAlias.isNotBlank() && releaseKeyPassword.isNotBlank()
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -26,11 +10,57 @@ plugins {
     // REMOVED: alias(libs.plugins.google.services)
 }
 
+val localProperties = Properties().apply {
+    val localPropsFile = rootProject.file("local.properties")
+    if (localPropsFile.isFile) {
+        FileInputStream(localPropsFile).use { input -> load(input) }
+    }
+}
+
+fun signingValue(propertyName: String, environmentName: String = propertyName): String =
+    localProperties.getProperty(propertyName)?.trim().orEmpty()
+        .ifBlank { System.getenv(environmentName)?.trim().orEmpty() }
+
+// Le chemin peut être absolu ou relatif à la racine du projet.
+// BLAZE_KEYSTORE_PATH est également accepté pour compatibilité avec les commandes Terminal.
+val releaseKeystorePath = signingValue("BLAZE_KEYSTORE_FILE")
+    .ifBlank { signingValue("BLAZE_KEYSTORE_PATH") }
+    .ifBlank { "../blaze-player.keystore" }
+
+val releaseKeystoreFile = File(releaseKeystorePath).let { candidate ->
+    if (candidate.isAbsolute) candidate else rootProject.file(releaseKeystorePath)
+}
+val releaseStorePassword = signingValue("BLAZE_KEYSTORE_PASSWORD")
+val releaseKeyAlias = signingValue("BLAZE_KEY_ALIAS")
+val releaseKeyPassword = signingValue("BLAZE_KEY_PASSWORD")
+
+val missingReleaseSigningValues = buildList {
+    if (!releaseKeystoreFile.isFile) add("BLAZE_KEYSTORE_FILE/BLAZE_KEYSTORE_PATH")
+    if (releaseStorePassword.isBlank()) add("BLAZE_KEYSTORE_PASSWORD")
+    if (releaseKeyAlias.isBlank()) add("BLAZE_KEY_ALIAS")
+    if (releaseKeyPassword.isBlank()) add("BLAZE_KEY_PASSWORD")
+}
+val hasReleaseSigning = missingReleaseSigningValues.isEmpty()
+val releaseBuildRequested = gradle.startParameter.taskNames.any { taskName ->
+    taskName.contains("bundleRelease", ignoreCase = true) ||
+        taskName.contains("assembleRelease", ignoreCase = true) ||
+        taskName.contains("publishRelease", ignoreCase = true)
+}
+
+// Empêche explicitement la création accidentelle d'un bundle release non signé.
+if (releaseBuildRequested && !hasReleaseSigning) {
+    throw GradleException(
+        "Configuration de signature release incomplète. Valeurs manquantes : " +
+            missingReleaseSigningValues.joinToString() +
+            ". Renseigne-les dans local.properties ou dans les variables d'environnement."
+    )
+}
+
 android {
     signingConfigs {
-        if (hasReleaseSigning) {
-            create("release") {
-                storeFile = file(releaseKeystorePath)
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = releaseKeystoreFile
                 storePassword = releaseStorePassword
                 keyAlias = releaseKeyAlias
                 keyPassword = releaseKeyPassword
@@ -44,8 +74,8 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 45
-        versionName = "0.9.81-Beta-Party"
+        versionCode = 57
+        versionName = "0.9.90-Beta RC1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Clé API YouTube Data v3 : lue depuis local.properties (jamais commité), à ajouter
         // toi-même sous la forme YOUTUBE_API_KEY=ta_cle dans ce fichier à la racine du projet.
@@ -66,7 +96,7 @@ android {
             optimization {
                 enable = false
             }
-            signingConfig = signingConfigs.findByName("release")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 

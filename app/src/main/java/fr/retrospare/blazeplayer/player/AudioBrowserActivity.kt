@@ -3,6 +3,10 @@ package fr.retrospare.blazeplayer.player
 import fr.retrospare.blazeplayer.ui.showPremium
 import android.content.ContentUris
 import android.content.Intent
+import android.app.Dialog
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.view.WindowManager
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
 import android.provider.MediaStore
@@ -33,6 +37,8 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class AudioBrowserActivity : AppCompatActivity() {
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+
 
     companion object {
         const val EXTRA_PATHS = "extra_paths"
@@ -47,6 +53,9 @@ class AudioBrowserActivity : AppCompatActivity() {
         const val EXTRA_FAVORITE_SHARE_ID = "extra_favorite_share_id"
         /** Mode lancé depuis les paramètres audio : le navigateur sert à choisir les dossiers à surveiller. */
         const val EXTRA_WATCHED_FOLDERS_MODE = "extra_watched_folders_mode"
+
+        private const val PREFS_HELP_MODALS = "blaze_help_modals"
+        private const val KEY_WATCHED_FOLDERS_HELP_SHOWN = "audio_watched_folders_help_shown"
     }
 
     @Inject lateinit var networkRepository: NetworkRepository
@@ -78,10 +87,24 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
+                this,
+                userRepository,
+                fr.retrospare.blazeplayer.paywall.AccessLevel.PRO_PLUS
+            )) return
+        fr.retrospare.blazeplayer.paywall.AccessGateUi.monitor(
+            this,
+            userRepository,
+            fr.retrospare.blazeplayer.paywall.AccessLevel.PRO_PLUS
+        )
         binding = ActivityAudioBrowserBinding.inflate(layoutInflater)
         setContentView(binding.root)
         watchedFoldersMode = intent.getBooleanExtra(EXTRA_WATCHED_FOLDERS_MODE, false)
         if (watchedFoldersMode) configureWatchedFoldersMode()
+
+        binding.btnWatchedHelp.setOnClickListener {
+            showWatchedFoldersHelpDialog()
+        }
 
         binding.btnHome?.setOnClickListener {
             // Dans le navigateur audio, la maison ne doit pas revenir à l'accueil général :
@@ -194,6 +217,10 @@ class AudioBrowserActivity : AppCompatActivity() {
             }
             else -> loadLocalFiles()
         }
+
+        if (watchedFoldersMode) {
+            binding.root.post { showWatchedFoldersHelpOnce() }
+        }
     }
 
     private var currentItems: List<AudioFile> = emptyList()
@@ -222,6 +249,7 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     private fun configureWatchedFoldersMode() {
         binding.tvBrowserTitle.text = getString(R.string.audio_watched_folders)
+        binding.btnWatchedHelp.visibility = View.VISIBLE
         // En mode "dossiers surveillés", les cases à cocher sur les dossiers + le bouton
         // Terminer suffisent. On masque donc l'ancien bouton "Ajouter dossier" pour réduire
         // la friction et éviter une action redondante.
@@ -229,6 +257,39 @@ class AudioBrowserActivity : AppCompatActivity() {
         binding.btnConfirm.text = getString(R.string.action_done)
         binding.btnConfirm.setIconResource(R.drawable.ic_check)
         (binding.btnAddToSavedPlaylist.parent as? View)?.visibility = View.GONE
+    }
+
+    private fun showWatchedFoldersHelpOnce() {
+        val prefs = getSharedPreferences(PREFS_HELP_MODALS, MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_WATCHED_FOLDERS_HELP_SHOWN, false)) return
+        prefs.edit().putBoolean(KEY_WATCHED_FOLDERS_HELP_SHOWN, true).apply()
+        showWatchedFoldersHelpDialog()
+    }
+
+    private fun showWatchedFoldersHelpDialog() {
+        val view = layoutInflater.inflate(R.layout.dialog_audio_watched_help, null)
+        val dialog = Dialog(this).apply {
+            setContentView(view)
+            setCanceledOnTouchOutside(true)
+        }
+        view.findViewById<android.view.View>(R.id.btnCloseWatchedHelp).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            attributes = attributes.apply { dimAmount = 0.72f }
+        }
+        dialog.show()
+
+        val targetWidth = (resources.displayMetrics.widthPixels * 0.90f).toInt()
+        val maxHeight = (resources.displayMetrics.heightPixels * 0.90f).toInt()
+        dialog.window?.setLayout(targetWidth, WindowManager.LayoutParams.WRAP_CONTENT)
+        view.post {
+            val contentHeight = view.measuredHeight.takeIf { it > 0 } ?: maxHeight
+            dialog.window?.setLayout(targetWidth, minOf(contentHeight, maxHeight))
+        }
     }
 
     private fun addCurrentFolderToWatched() {
@@ -352,15 +413,8 @@ class AudioBrowserActivity : AppCompatActivity() {
         val alreadyWatched = isFolderWatched(watched)
         AlertDialog.Builder(this)
             .setTitle(folder.name)
-            .setItems(arrayOf(getString(if (alreadyWatched) R.string.audio_remove_watched_folder else R.string.audio_add_to_watched), getString(R.string.audio_add_to_favorites))) { _, which ->
-                when (which) {
-                    0 -> setWatchedFolder(watched, !alreadyWatched)
-                    1 -> fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
-                        this,
-                        fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
-                        fr.retrospare.blazeplayer.favorites.FavoriteFolder(path = folder.absolutePath, name = folder.name)
-                    )
-                }
+            .setItems(arrayOf(getString(if (alreadyWatched) R.string.audio_remove_watched_folder else R.string.audio_add_to_watched))) { _, _ ->
+                setWatchedFolder(watched, !alreadyWatched)
             }
             .showPremium()
     }
@@ -370,18 +424,8 @@ class AudioBrowserActivity : AppCompatActivity() {
         val alreadyWatched = isFolderWatched(watched)
         AlertDialog.Builder(this)
             .setTitle(folderName)
-            .setItems(arrayOf(getString(if (alreadyWatched) R.string.audio_remove_watched_folder else R.string.audio_add_to_watched), getString(R.string.audio_add_to_favorites))) { _, which ->
-                when (which) {
-                    0 -> setWatchedFolder(watched, !alreadyWatched)
-                    1 -> fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showAddFavoriteDialog(
-                        this,
-                        fr.retrospare.blazeplayer.favorites.FavoriteCategory.AUDIO,
-                        fr.retrospare.blazeplayer.favorites.FavoriteFolder(
-                            path = folderPath, name = folderName,
-                            shareId = share.id, shareName = share.name
-                        )
-                    )
-                }
+            .setItems(arrayOf(getString(if (alreadyWatched) R.string.audio_remove_watched_folder else R.string.audio_add_to_watched))) { _, _ ->
+                setWatchedFolder(watched, !alreadyWatched)
             }
             .showPremium()
     }
@@ -938,7 +982,15 @@ class AudioBrowserAdapter(
             itemView.setOnClickListener { checkbox.isChecked = !checkbox.isChecked }
 
             val ext = item.path.substringBefore('?').substringAfterLast(".", "").uppercase()
-            AudioQualityBadgeBinder.bind(tvCodec, tvBitrate, item.path, item.name, ext)
+            AudioQualityBadgeBinder.bind(
+                tvCodec,
+                tvBitrate,
+                item.path,
+                item.name,
+                ext,
+                knownDurationMs = item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
+                knownSizeBytes = item.size
+            )
 
             // Cover à gauche du titre : cache local d'abord, extraction asynchrone ensuite.
             bindCachedAudioCover(itemView, item.path)
@@ -1018,7 +1070,15 @@ class CombinedAudioAdapter(
             val ext = file.path.substringBefore('?').substringAfterLast(".", "").uppercase()
             val tvCodec = holder.itemView.findViewById<TextView>(R.id.tvAudioCodec)
             val tvBitrate = holder.itemView.findViewById<TextView>(R.id.tvAudioBitrate)
-            AudioQualityBadgeBinder.bind(tvCodec, tvBitrate, file.path, file.name, ext)
+            AudioQualityBadgeBinder.bind(
+                tvCodec,
+                tvBitrate,
+                file.path,
+                file.name,
+                ext,
+                knownDurationMs = file.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
+                knownSizeBytes = file.size
+            )
             bindCachedAudioCover(holder.itemView, file.path)
             val cb = holder.itemView.findViewById<CheckBox>(R.id.checkAudio)
             cb?.setOnCheckedChangeListener(null)
@@ -1091,7 +1151,15 @@ class FolderBrowserAdapter(
                 val ext = file.path.substringBefore('?').substringAfterLast(".", "").uppercase()
                 val tvCodec = holder.itemView.findViewById<TextView>(R.id.tvAudioSimpleCodec)
                 val tvFormatBadge = holder.itemView.findViewById<TextView>(R.id.tvAudioSimpleFormatBadge)
-                AudioQualityBadgeBinder.bind(tvCodec, tvFormatBadge, file.path, file.name, ext)
+                AudioQualityBadgeBinder.bind(
+                    tvCodec,
+                    tvFormatBadge,
+                    file.path,
+                    file.name,
+                    ext,
+                    knownDurationMs = file.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
+                    knownSizeBytes = file.size
+                )
                 holder.itemView.setOnClickListener { 
                     onAddAll(listOf(file))
                 }
@@ -1206,7 +1274,15 @@ class MixedAudioAdapter(
             val ext = item.path.substringBefore('?').substringAfterLast(".", "").uppercase()
             val tvCodec = v.findViewById<android.widget.TextView>(R.id.tvAudioCodec)
             val tvBitrate = v.findViewById<android.widget.TextView>(R.id.tvAudioBitrate)
-            AudioQualityBadgeBinder.bind(tvCodec, tvBitrate, item.path, item.name, ext)
+            AudioQualityBadgeBinder.bind(
+                tvCodec,
+                tvBitrate,
+                item.path,
+                item.name,
+                ext,
+                knownDurationMs = item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
+                knownSizeBytes = item.size
+            )
             val checkbox = v.findViewById<android.widget.CheckBox>(R.id.checkAudio)
             val isSelected = filePos in selected
             checkbox?.setOnCheckedChangeListener(null)

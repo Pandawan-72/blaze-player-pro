@@ -155,14 +155,16 @@ object AudioLibraryHeuristics {
         .sortedWith(compareBy<fr.retrospare.blazeplayer.data.model.MediaItem> { coverPriority(it.name.ifBlank { fileNameFromPath(it.path) }) }.thenBy { normalize(it.name) })
         .firstOrNull()?.path.orEmpty()
 
-    fun isPreferredCoverName(name: String): Boolean = when (name.substringAfterLast('/').lowercase(Locale.getDefault())) {
-        "cover.jpg", "cover.png" -> true
-        else -> false
-    }
+    fun isPreferredCoverName(name: String): Boolean =
+        name.substringAfterLast('/').substringAfterLast('\\').lowercase(Locale.ROOT) in
+            setOf("cover.jpg", "cover.jpeg", "cover.png")
 
-    fun coverPriority(name: String): Int = when (name.substringAfterLast('/').lowercase(Locale.getDefault())) {
+    fun coverPriority(name: String): Int = when (
+        name.substringAfterLast('/').substringAfterLast('\\').lowercase(Locale.ROOT)
+    ) {
         "cover.jpg" -> 0
         "cover.png" -> 1
+        "cover.jpeg" -> 2
         else -> 100
     }
 

@@ -125,7 +125,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_skip_previous"
                 android:tint="@color/on_surface"
-                android:contentDescription="Précédent" />
+                android:contentDescription="@string/content_desc_previous" />
 
             <ImageButton
                 android:id="@+id/btnMiniPlayPause"
@@ -134,7 +134,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_pause"
                 android:tint="@color/on_surface"
-                android:contentDescription="Play/Pause" />
+                android:contentDescription="@string/content_desc_play_pause" />
 
             <ImageButton
                 android:id="@+id/btnMiniNext"
@@ -143,7 +143,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_skip_next"
                 android:tint="@color/on_surface"
-                android:contentDescription="Suivant" />
+                android:contentDescription="@string/content_desc_next" />
 
             <ImageButton
                 android:id="@+id/btnMiniClose"

@@ -21,6 +21,9 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
     private var fileSize: Long = -1L
 
     init {
+        if (BlazePlayerService.isAudioPlaybackActive) {
+            throw java.io.InterruptedIOException("SMB metadata deferred while audio playback is active")
+        }
         // Un seul bloc de tentative recouvrant TOUTE la séquence d'ouverture (pas seulement
         // getShare()) : le DiskShare renvoyé peut devenir obsolète/fermé entre le moment où on
         // l'obtient et le moment où on l'utilise, si un autre consommateur concurrent (le lecteur
@@ -66,6 +69,10 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
     private var retryBudget = 2 // éviter des dizaines de secondes de tentatives sur une cover
 
     override fun readAt(position: Long, buffer: ByteArray, offset: Int, size: Int): Int {
+        // Cette source sert uniquement aux covers/métadonnées. Une tâche commencée juste avant le
+        // lancement d'un morceau doit céder immédiatement la connexion au Player.
+        if (BlazePlayerService.isAudioPlaybackActive) return -1
+
         // MediaMetadataRetriever/MediaExtractor peuvent demander une lecture unique de plusieurs
         // Mo (sondage de conteneur MKV/MP4). Sans plafond, ça forçait smbj à allouer un paquet
         // SMB2READ de cette taille d'un bloc, ce qui a provoqué un OutOfMemoryError en combinaison
@@ -76,8 +83,10 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
         }
         val file = smbFile ?: return -1
         return try {
+            if (BlazePlayerService.isAudioPlaybackActive) return -1
             file.read(buffer, position, offset, size)
         } catch (e: Exception) {
+            if (BlazePlayerService.isAudioPlaybackActive) return -1
             if (retryBudget <= 0) {
                 android.util.Log.e("SmbMediaDataSource", "Budget de nouvelles tentatives épuisé à la position $position, abandon")
                 return -1
@@ -119,6 +128,7 @@ class SmbMediaDataSource(val originalUri: String) : MediaDataSource() {
     private fun readAtChunked(position: Long, buffer: ByteArray, offset: Int, size: Int): Int {
         var totalRead = 0
         while (totalRead < size) {
+            if (BlazePlayerService.isAudioPlaybackActive) return if (totalRead > 0) totalRead else -1
             val chunkSize = minOf(MAX_SINGLE_READ_BYTES, size - totalRead)
             val read = readAt(position + totalRead, buffer, offset + totalRead, chunkSize)
             if (read <= 0) {

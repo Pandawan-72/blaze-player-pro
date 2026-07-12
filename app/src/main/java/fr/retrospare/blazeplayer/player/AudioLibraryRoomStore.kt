@@ -101,6 +101,9 @@ interface AudioLibraryTrackDao {
     @Query("UPDATE audio_library_tracks SET artworkPath = :artworkPath, artworkVersion = :artworkVersion WHERE path = :path AND deleted = 0")
     suspend fun updateArtwork(path: String, artworkPath: String, artworkVersion: Int): Int
 
+    @Query("UPDATE audio_library_tracks SET artworkPath = :persistedPath, artworkVersion = :artworkVersion WHERE artworkPath = :sourcePath AND deleted = 0")
+    suspend fun updateArtworkForSource(sourcePath: String, persistedPath: String, artworkVersion: Int): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(items: List<AudioLibraryTrackEntity>): List<Long>
 
@@ -148,16 +151,52 @@ object AudioLibraryRoomStore {
         val removedCount: Int
     )
 
+    data class TechnicalSnapshot(
+        val durationMs: Long,
+        val sizeBytes: Long,
+        val extension: String
+    )
+
     fun observeActive(context: Context): Flow<List<AudioLibraryTrackEntity>> =
         AudioLibraryRoomDatabase.get(context).trackDao().observeActive()
 
     suspend fun loadActive(context: Context, limit: Int = Int.MAX_VALUE): List<AudioLibraryTrackEntity> =
         AudioLibraryRoomDatabase.get(context).trackDao().activeOnce(if (limit == Int.MAX_VALUE) Int.MAX_VALUE else limit)
 
+    /** Données déjà indexées permettant de calculer un débit moyen sans rouvrir le fichier NAS. */
+    suspend fun loadTechnicalSnapshot(context: Context, path: String): TechnicalSnapshot? {
+        if (path.isBlank()) return null
+        val entity = AudioLibraryRoomDatabase.get(context).trackDao().byPath(path) ?: return null
+        return TechnicalSnapshot(
+            durationMs = entity.durationMs.coerceAtLeast(0L),
+            sizeBytes = entity.sizeBytes.coerceAtLeast(0L),
+            extension = entity.extension
+        )
+    }
+
     suspend fun replaceSkeletonPass(
         context: Context,
         skeletons: List<AudioLibraryTrackEntity>,
         confirmedFolderKeys: Set<String>,
+        generation: Long
+    ): ReplaceResult {
+        val partial = upsertSkeletonBatch(context, skeletons, generation)
+        val dao = AudioLibraryRoomDatabase.get(context).trackDao()
+        var removed = 0
+        if (confirmedFolderKeys.isNotEmpty()) {
+            confirmedFolderKeys.chunked(300).forEach { removed += dao.deleteMissingInFolders(it, generation) }
+        }
+        return partial.copy(removedCount = removed)
+    }
+
+    /**
+     * Écrit immédiatement un lot de squelettes sans purger les autres entrées. Cette variante est
+     * utilisée pendant le parcours d'un NAS afin que la bibliothèque commence à apparaître dès
+     * les premiers dossiers trouvés, au lieu d'attendre la fin de tout le scan réseau.
+     */
+    suspend fun upsertSkeletonBatch(
+        context: Context,
+        skeletons: List<AudioLibraryTrackEntity>,
         generation: Long
     ): ReplaceResult {
         val dao = AudioLibraryRoomDatabase.get(context).trackDao()
@@ -199,11 +238,15 @@ object AudioLibraryRoomStore {
                     sizeBytes = skeleton.sizeBytes.takeIf { it > 0L } ?: old.sizeBytes,
                     modifiedAt = skeleton.modifiedAt.takeIf { it > 0L } ?: old.modifiedAt,
                     extension = skeleton.extension.ifBlank { old.extension },
-                    // Un scan explicite doit pouvoir remplacer une ancienne embedded ou une cover
-                    // supprimée. Le squelette contient soit cover.jpg/png détecté, soit le chemin
-                    // audio qui déclenchera le repli embedded.
-                    artworkPath = skeleton.artworkPath.ifBlank { skeleton.path },
+                    // Une pochette déjà extraite est notre source stable : un simple rescan ne
+                    // doit pas la remplacer par une URL NAS ou le chemin audio, sinon les écrans
+                    // redeviennent dépendants du réseau et peuvent afficher un placeholder.
+                    artworkPath = old.artworkPath.takeIf {
+                        AudioArtworkPersistence.isPersistedPath(context, it) && java.io.File(it).isFile
+                    } ?: skeleton.artworkPath.ifBlank { skeleton.path },
                     artworkVersion = if (
+                        AudioArtworkPersistence.isPersistedPath(context, old.artworkPath) && java.io.File(old.artworkPath).isFile
+                    ) CURRENT_ARTWORK_VERSION else if (
                         AudioLibraryHeuristics.isImagePath(skeleton.artworkPath) &&
                         AudioLibraryHeuristics.isPreferredCoverName(AudioLibraryHeuristics.fileNameFromPath(skeleton.artworkPath))
                     ) CURRENT_ARTWORK_VERSION else 0
@@ -212,7 +255,12 @@ object AudioLibraryRoomStore {
                     seenGeneration = generation,
                     deleted = false,
                     metadataVersion = 0,
-                    artworkVersion = 0,
+                    artworkPath = old?.artworkPath?.takeIf {
+                        !fileChanged && AudioArtworkPersistence.isPersistedPath(context, it) && java.io.File(it).isFile
+                    } ?: skeleton.artworkPath,
+                    artworkVersion = if (
+                        old != null && !fileChanged && AudioArtworkPersistence.isPersistedPath(context, old.artworkPath) && java.io.File(old.artworkPath).isFile
+                    ) CURRENT_ARTWORK_VERSION else 0,
                     albumSortKey = normalizeForStore(skeleton.album),
                     artistSortKey = normalizeForStore(skeleton.artist),
                     titleSortKey = normalizeForStore(skeleton.title)
@@ -220,11 +268,7 @@ object AudioLibraryRoomStore {
             }
         }
         merged.chunked(300).forEach { dao.upsertAll(it) }
-        var removed = 0
-        if (confirmedFolderKeys.isNotEmpty()) {
-            confirmedFolderKeys.chunked(300).forEach { removed += dao.deleteMissingInFolders(it, generation) }
-        }
-        return ReplaceResult(changedPaths, merged.size, removed)
+        return ReplaceResult(changedPaths, merged.size, 0)
     }
 
     suspend fun upsertMetadata(context: Context, updates: List<AudioLibraryTrackEntity>) {
@@ -244,7 +288,9 @@ object AudioLibraryRoomStore {
                 durationMs = update.durationMs.takeIf { it > 0L } ?: old.durationMs,
                 trackNumber = update.trackNumber.takeIf { it > 0 } ?: old.trackNumber,
                 extension = update.extension.ifBlank { old.extension },
-                artworkPath = update.artworkPath.ifBlank { old.artworkPath },
+                artworkPath = old.artworkPath.takeIf {
+                    AudioArtworkPersistence.isPersistedPath(context, it) && java.io.File(it).isFile
+                } ?: update.artworkPath.ifBlank { old.artworkPath },
                 titleFromTag = update.titleFromTag || old.titleFromTag,
                 artistFromTag = update.artistFromTag || old.artistFromTag,
                 albumFromTag = update.albumFromTag || old.albumFromTag,
@@ -288,6 +334,12 @@ object AudioLibraryRoomStore {
     suspend fun updateArtworkPath(context: Context, path: String, artworkPath: String) {
         if (path.isBlank() || artworkPath.isBlank()) return
         AudioLibraryRoomDatabase.get(context).trackDao().updateArtwork(path, artworkPath, CURRENT_ARTWORK_VERSION)
+    }
+
+    suspend fun updateArtworkPathForSource(context: Context, sourcePath: String, persistedPath: String) {
+        if (sourcePath.isBlank() || persistedPath.isBlank() || sourcePath == persistedPath) return
+        AudioLibraryRoomDatabase.get(context).trackDao()
+            .updateArtworkForSource(sourcePath, persistedPath, CURRENT_ARTWORK_VERSION)
     }
 
     suspend fun deleteFolders(context: Context, folderKeys: Set<String>) {

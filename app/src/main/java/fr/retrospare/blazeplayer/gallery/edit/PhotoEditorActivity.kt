@@ -19,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
+import javax.inject.Inject
 
 /**
  * Éditeur photo façon Google Photos : filtres (aperçu temps réel via ColorMatrix), recadrage
@@ -38,7 +40,10 @@ import java.io.InputStream
  * rotation en degrés — tout est ré-appliqué sur le fichier source rechargé en pleine résolution
  * au moment d'enregistrer, jamais sur l'aperçu lui-même.
  */
+@AndroidEntryPoint
 class PhotoEditorActivity : AppCompatActivity() {
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+
 
     companion object {
         const val EXTRA_PHOTO_PATH = "photo_path"
@@ -81,6 +86,16 @@ class PhotoEditorActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
+                this,
+                userRepository,
+                fr.retrospare.blazeplayer.paywall.AccessLevel.PRO
+            )) return
+        fr.retrospare.blazeplayer.paywall.AccessGateUi.monitor(
+            this,
+            userRepository,
+            fr.retrospare.blazeplayer.paywall.AccessLevel.PRO
+        )
         setContentView(R.layout.activity_photo_editor)
 
         photoPath = intent.getStringExtra(EXTRA_PHOTO_PATH) ?: run { finish(); return }

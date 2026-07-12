@@ -20,9 +20,12 @@ import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentBrowserBinding
 import fr.retrospare.blazeplayer.player.PlayerRouter
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class BrowserFragment : Fragment() {
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+
     private enum class SourceMode { LOCAL, NETWORK }
     private data class BrowserCrumb(val name: String, val path: String, val shareId: String? = null)
 
@@ -57,18 +60,49 @@ class BrowserFragment : Fragment() {
         observeViewModel()
         setupSelectionToolbar()
         updateSourceTabs()
+        monitorNetworkTrialExpiry()
 
         val shareId = arguments?.getString("shareId")
         val initPath = arguments?.getString("path") ?: ""
-        when {
-            sourceMode == SourceMode.NETWORK && !shareId.isNullOrEmpty() -> {
-                if (initPath.isNotBlank()) breadcrumbParts += BrowserCrumb(initPath.substringAfterLast('/').ifBlank { initPath }, initPath, shareId)
-                viewModel.loadNetworkFilesById(shareId, initPath)
+        if (sourceMode == SourceMode.NETWORK) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                if (!fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)) {
+                    sourceMode = SourceMode.LOCAL
+                    updateSourceTabs()
+                    updateBreadcrumb()
+                    viewModel.loadLocalFiles("")
+                    openPaywall()
+                } else {
+                    if (!shareId.isNullOrEmpty()) {
+                        if (initPath.isNotBlank()) breadcrumbParts += BrowserCrumb(initPath.substringAfterLast('/').ifBlank { initPath }, initPath, shareId)
+                        viewModel.loadNetworkFilesById(shareId, initPath)
+                    } else {
+                        viewModel.loadNetworkShares()
+                    }
+                    updateBreadcrumb()
+                }
             }
-            sourceMode == SourceMode.NETWORK -> viewModel.loadNetworkShares()
-            else -> viewModel.loadLocalFiles(initPath)
+        } else {
+            viewModel.loadLocalFiles(initPath)
+            updateBreadcrumb()
         }
-        updateBreadcrumb()
+    }
+
+    private fun monitorNetworkTrialExpiry() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                val state = userRepository.currentAccessState()
+                if (state.isTrialActive) {
+                    kotlinx.coroutines.delay(
+                        (state.trialEndMillis - state.evaluatedAtMillis).coerceAtLeast(1L)
+                    )
+                }
+                if (_binding != null && isAdded && sourceMode == SourceMode.NETWORK && !userRepository.currentAccessState().hasProAccess) {
+                    switchToLocalRoot()
+                    openPaywall()
+                }
+            }
+        }
     }
 
     private fun isVideoItem(item: MediaItem): Boolean {
@@ -132,12 +166,18 @@ class BrowserFragment : Fragment() {
     private fun openFolderLikeItem(item: MediaItem) {
         when {
             item.mimeType == "network" -> {
-                sourceMode = SourceMode.NETWORK
-                breadcrumbParts.clear()
-                breadcrumbParts += BrowserCrumb(item.name, "", item.id)
-                updateSourceTabs()
-                updateBreadcrumb()
-                viewModel.loadNetworkFilesById(item.id, "")
+                viewLifecycleOwner.lifecycleScope.launch {
+                    if (!fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)) {
+                        openPaywall()
+                        return@launch
+                    }
+                    sourceMode = SourceMode.NETWORK
+                    breadcrumbParts.clear()
+                    breadcrumbParts += BrowserCrumb(item.name, "", item.id)
+                    updateSourceTabs()
+                    updateBreadcrumb()
+                    viewModel.loadNetworkFilesById(item.id, "")
+                }
             }
             sourceMode == SourceMode.NETWORK || item.isNetwork -> {
                 val shareId = item.networkShareId ?: viewModel.currentShare?.id
@@ -273,11 +313,24 @@ class BrowserFragment : Fragment() {
     }
 
     private fun switchToNetworkRoot() {
-        sourceMode = SourceMode.NETWORK
-        breadcrumbParts.clear()
-        updateSourceTabs()
-        updateBreadcrumb()
-        viewModel.loadNetworkShares()
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)) {
+                openPaywall()
+                return@launch
+            }
+            sourceMode = SourceMode.NETWORK
+            breadcrumbParts.clear()
+            updateSourceTabs()
+            updateBreadcrumb()
+            viewModel.loadNetworkShares()
+        }
+    }
+
+    private fun openPaywall() {
+        val nav = findNavController()
+        if (nav.currentDestination?.id != R.id.paywallFragment) {
+            runCatching { nav.navigate(R.id.paywallFragment) }
+        }
     }
 
     private fun navigateBack() {

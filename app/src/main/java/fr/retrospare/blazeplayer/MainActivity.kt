@@ -7,15 +7,9 @@ import android.os.Build
 import android.content.Intent
 import androidx.activity.viewModels
 import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.map
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import android.os.Handler
 import android.os.Looper
 import android.os.Bundle
@@ -29,9 +23,12 @@ import androidx.navigation.fragment.NavHostFragment
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.databinding.ActivityMainBinding
 import fr.retrospare.blazeplayer.player.AudioLibraryHeuristics
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+
     private val handler = Handler(Looper.getMainLooper())
     private val miniTimeTicker = object : Runnable {
         override fun run() {
@@ -59,14 +56,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val miniPlayerVm: fr.retrospare.blazeplayer.player.MiniPlayerViewModel by viewModels()
+    private var miniPlayerUiInitialized = false
+    private var miniPlayerAccessJob: kotlinx.coroutines.Job? = null
 
+    /** Initialise uniquement les vues et observateurs du mini player.
+     * La connexion MediaController est volontairement différée jusqu'à ce que les droits Pro+
+     * aient été résolus de façon asynchrone et qu'une vraie session audio existe déjà. */
     private fun setupMiniPlayer() {
-        miniPlayerVm.connect()
+        if (miniPlayerUiInitialized) return
+        miniPlayerUiInitialized = true
 
-        // Observe le state — collecte sur toute la durée de vie de l'Activity
         lifecycleScope.launch {
-            miniPlayerVm.state.collect { state ->
-                applyMiniPlayerState(state)
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                miniPlayerVm.state.collect { state ->
+                    applyMiniPlayerState(state)
+                }
             }
         }
 
@@ -85,6 +89,29 @@ class MainActivity : AppCompatActivity() {
         setupMiniPlayerDrag()
         handler.removeCallbacks(miniTimeTicker)
         handler.post(miniTimeTicker)
+    }
+
+    private fun updateMiniPlayerConnection(
+        knownState: fr.retrospare.blazeplayer.data.repository.SubscriptionAccessState? = null
+    ) {
+        miniPlayerAccessJob?.cancel()
+        miniPlayerAccessJob = lifecycleScope.launch {
+            val state = knownState ?: userRepository.currentAccessState()
+            val enabled = userRepository.miniPlayerEnabledFlow.first()
+            val shouldConnect = state.hasProPlusAccess && enabled &&
+                fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioSessionActive
+
+            if (shouldConnect) {
+                miniPlayerVm.connect()
+                miniPlayerVm.refresh()
+            } else {
+                miniPlayerVm.disconnect()
+                if (::binding.isInitialized) {
+                    binding.miniPlayerBar.visibility = android.view.View.GONE
+                    stopMiniPlayingAnimation(keepVisible = false)
+                }
+            }
+        }
     }
 
     private fun formatMiniTime(ms: Long): String {
@@ -293,7 +320,7 @@ class MainActivity : AppCompatActivity() {
      *  évènement ne force sa réapparition. bringToFront() re-garantit aussi qu'il reste au-dessus
      *  du contenu qui vient d'être réinflaté, au cas où l'ordre de dessin aurait été perturbé. */
     fun refreshMiniPlayer() {
-        miniPlayerVm.refresh()
+        updateMiniPlayerConnection()
         if (::binding.isInitialized) {
             applyMiniPlayerState(miniPlayerVm.state.value)
             binding.miniPlayerBar.bringToFront()
@@ -308,7 +335,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        miniPlayerVm.refresh()
+        refreshTrialAccess()
         if (::binding.isInitialized) {
             applyMiniPlayerState(miniPlayerVm.state.value)
         }
@@ -384,7 +411,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleAudioIntent(intent)
+        if (!handlePaywallIntent(intent)) handleAudioIntent(intent)
     }
 
     /** Traite les intents demandant l'ouverture d'un fichier audio (depuis PlayerRouter) ou le
@@ -450,29 +477,37 @@ class MainActivity : AppCompatActivity() {
             intent.removeExtra("blazePartyInvite")
             return true
         }
-        fr.retrospare.blazeplayer.player.BlazePartyVoteManager.setHost(this, false)
-        fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveConnection(this, connection)
-        fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveSessionPayload(this, data.toString())
-        getSharedPreferences("launcher_requests", MODE_PRIVATE)
-            .edit()
-            .putBoolean("pendingOpenBlazeAudio", true)
-            .putLong("pendingOpenBlazeAudioAt", System.currentTimeMillis())
-            .putBoolean("pendingOpenBlazePartySheet", true)
-            .putLong("pendingOpenBlazePartySheetAt", System.currentTimeMillis())
-            .apply()
-        // Ne pas afficher "Blaze Party rejoint" ici : à ce stade le QR est seulement parsé et
-        // mémorisé. La vraie confirmation arrive depuis AudioPlayerFragment uniquement après un
-        // /join + snapshot /state valides ; sinon l'utilisateur voit une connexion fantôme puis
-        // "connexion à l'hôte perdue" sans avoir jamais reçu la file partagée.
-        handler.postDelayed({
-            openBlazeAudio()
-            showBlazePartyNicknameDialogFromInvite()
-        }, 120L)
+        val partyPayload = data.toString()
         intent.data = null
         intent.removeExtra("blazePartyInvite")
-        // host/port/token sont maintenant persistés via BlazePartyVoteManager.saveConnection() ;
-        // AudioPlayerFragment s'y connecte réellement via PartyClient dès son affichage
-        // (cf. maybeResumeGuestPartySync()).
+
+        // Le contrôle DataStore est asynchrone : aucun runBlocking ne doit immobiliser le thread
+        // principal lors d'un démarrage à froid ou de l'ouverture d'un lien Blaze Party.
+        lifecycleScope.launch {
+            val hasAudioAccess = fr.retrospare.blazeplayer.paywall.FeatureAccess.isProPlus(userRepository)
+            if (!hasAudioAccess) {
+                openPaywall()
+                return@launch
+            }
+
+            fr.retrospare.blazeplayer.player.BlazePartyVoteManager.setHost(this@MainActivity, false)
+            fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveConnection(this@MainActivity, connection)
+            fr.retrospare.blazeplayer.player.BlazePartyVoteManager.saveSessionPayload(this@MainActivity, partyPayload)
+            getSharedPreferences("launcher_requests", MODE_PRIVATE)
+                .edit()
+                .putBoolean("pendingOpenBlazeAudio", true)
+                .putLong("pendingOpenBlazeAudioAt", System.currentTimeMillis())
+                .putBoolean("pendingOpenBlazePartySheet", true)
+                .putLong("pendingOpenBlazePartySheetAt", System.currentTimeMillis())
+                .apply()
+            // Ne pas afficher "Blaze Party rejoint" ici : à ce stade le QR est seulement parsé et
+            // mémorisé. La vraie confirmation arrive depuis AudioPlayerFragment uniquement après un
+            // /join + snapshot /state valides.
+            handler.postDelayed({
+                openBlazeAudio()
+                showBlazePartyNicknameDialogFromInvite()
+            }, 120L)
+        }
         return true
     }
 
@@ -512,27 +547,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startExternalAudioInMain(path: String, name: String, grantUri: android.net.Uri?) {
-        try {
-            if (grantUri?.scheme == android.content.ContentResolver.SCHEME_CONTENT) {
-                grantUriPermission(packageName, grantUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        lifecycleScope.launch {
+            if (!fr.retrospare.blazeplayer.paywall.FeatureAccess.isProPlus(userRepository)) {
+                openPaywall()
+                return@launch
             }
-        } catch (_: Exception) {}
+            try {
+                if (grantUri?.scheme == android.content.ContentResolver.SCHEME_CONTENT) {
+                    grantUriPermission(packageName, grantUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            } catch (_: Exception) {}
 
-        startService(Intent(this, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java).apply {
-            action = fr.retrospare.blazeplayer.player.BlazePlayerService.ACTION_PLAY_EXTERNAL_AUDIO
-            putExtra(fr.retrospare.blazeplayer.player.BlazePlayerService.EXTRA_EXTERNAL_AUDIO_PATH, path)
-            putExtra(fr.retrospare.blazeplayer.player.BlazePlayerService.EXTRA_EXTERNAL_AUDIO_NAME, name)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            if (grantUri != null) {
-                data = grantUri
-                clipData = android.content.ClipData.newUri(contentResolver, name, grantUri)
-            }
-        })
+            startService(Intent(this@MainActivity, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java).apply {
+                action = fr.retrospare.blazeplayer.player.BlazePlayerService.ACTION_PLAY_EXTERNAL_AUDIO
+                putExtra(fr.retrospare.blazeplayer.player.BlazePlayerService.EXTRA_EXTERNAL_AUDIO_PATH, path)
+                putExtra(fr.retrospare.blazeplayer.player.BlazePlayerService.EXTRA_EXTERNAL_AUDIO_NAME, name)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                if (grantUri != null) {
+                    data = grantUri
+                    clipData = android.content.ClipData.newUri(contentResolver, name, grantUri)
+                }
+            })
 
-        handler.postDelayed({
-            openBlazeAudio()
-            miniPlayerVm.refresh()
-        }, 120L)
+            handler.postDelayed({
+                openBlazeAudio()
+                miniPlayerVm.refresh()
+            }, 120L)
+        }
     }
 
     /** Ouvre les fichiers envoyés par Android depuis Galerie / explorateur de fichiers
@@ -629,6 +670,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        miniPlayerAccessJob?.cancel()
         handler.removeCallbacks(miniTimeTicker)
         stopMiniPlayingAnimation(keepVisible = false)
         super.onDestroy()
@@ -664,10 +706,50 @@ class MainActivity : AppCompatActivity() {
             insets
         }
         setupNavigation()
-        maybeRequestBlazeVideoPermissionsOnFirstLaunch()
-        // Connecte le mini player seulement si activé dans les préférences
         setupMiniPlayer()
-        handleAudioIntent(intent)
+        initializeTrialAccess()
+        maybeRequestBlazeVideoPermissionsOnFirstLaunch()
+        if (!handlePaywallIntent(intent)) handleAudioIntent(intent)
+    }
+
+    private fun initializeTrialAccess() {
+        lifecycleScope.launch {
+            val state = userRepository.ensureTrialStarted()
+            if (!state.hasProPlusAccess) {
+                stopService(Intent(this@MainActivity, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java))
+            }
+            fr.retrospare.blazeplayer.paywall.TrialReminderScheduler.sync(this@MainActivity, state)
+            updateMiniPlayerConnection(state)
+        }
+    }
+
+    private fun refreshTrialAccess() {
+        lifecycleScope.launch {
+            val state = userRepository.currentAccessState()
+            if (!state.hasProPlusAccess) {
+                stopService(Intent(this@MainActivity, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java))
+            }
+            fr.retrospare.blazeplayer.paywall.TrialReminderScheduler.sync(this@MainActivity, state)
+            updateMiniPlayerConnection(state)
+        }
+    }
+
+    private fun handlePaywallIntent(intent: Intent): Boolean {
+        if (!intent.getBooleanExtra(fr.retrospare.blazeplayer.paywall.TrialReminderScheduler.EXTRA_OPEN_PAYWALL, false)) return false
+        intent.removeExtra(fr.retrospare.blazeplayer.paywall.TrialReminderScheduler.EXTRA_OPEN_PAYWALL)
+        binding.root.post { openPaywall() }
+        return true
+    }
+
+    private fun openPaywall() {
+        val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
+        val nav = navHost.navController
+        if (nav.currentDestination?.id == R.id.paywallFragment) return
+        runCatching { nav.navigate(R.id.paywallFragment) }
+            .onFailure {
+                nav.popBackStack(R.id.homeFragment, false)
+                runCatching { nav.navigate(R.id.action_home_to_paywall) }
+            }
     }
 
     private fun setupNavigation() {
@@ -687,10 +769,7 @@ class MainActivity : AppCompatActivity() {
      *  leurs permissions au premier accès à leur onglet respectif depuis HomeFragment. */
     private fun blazeVideoPermissions(): Array<String> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arrayOf(
-                Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.POST_NOTIFICATIONS
-            )
+            arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
         } else {
             arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
@@ -717,15 +796,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun maybeRequestBlazeVideoPermissionsOnFirstLaunch() {
-        // Si l'utilisateur démarre directement depuis l'icône Blaze Gallery ou Blaze Audio, on ne
-        // lui affiche pas une permission vidéo avant même d'arriver dans le module demandé.
-        if (launchTargetsAnotherBlazeModule()) return
         val prefs = getSharedPreferences(PREFS_ONBOARDING, android.content.Context.MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_VIDEO_PERMISSIONS_PROMPTED, false)) return
-        val permissions = blazeVideoPermissions()
-        if (missingPermissions(permissions).isEmpty()) return
-        prefs.edit().putBoolean(KEY_VIDEO_PERMISSIONS_PROMPTED, true).apply()
-        launchRuntimePermissions(permissions)
+        val requested = mutableListOf<String>()
+        val editor = prefs.edit()
+
+        // Depuis les icônes Blaze Gallery / Blaze Audio, ne pas demander la permission vidéo.
+        // La permission de notification reste toutefois indépendante : elle est nécessaire au
+        // rappel de fin d'essai Pro+ programmé 48 h avant l'échéance.
+        if (!launchTargetsAnotherBlazeModule() &&
+            !prefs.getBoolean(KEY_VIDEO_PERMISSIONS_PROMPTED, false)
+        ) {
+            requested += blazeVideoPermissions()
+            editor.putBoolean(KEY_VIDEO_PERMISSIONS_PROMPTED, true)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !prefs.getBoolean(KEY_NOTIFICATION_PERMISSION_PROMPTED, false)
+        ) {
+            requested += Manifest.permission.POST_NOTIFICATIONS
+            editor.putBoolean(KEY_NOTIFICATION_PERMISSION_PROMPTED, true)
+        }
+
+        val missing = missingPermissions(requested.distinct().toTypedArray())
+        if (requested.isNotEmpty()) editor.apply()
+        if (missing.isNotEmpty()) launchRuntimePermissions(missing)
     }
 
     private fun showPermissionRationale() {
@@ -741,5 +834,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_ONBOARDING = "blaze_onboarding"
         private const val KEY_VIDEO_PERMISSIONS_PROMPTED = "video_permissions_prompted"
+        private const val KEY_NOTIFICATION_PERMISSION_PROMPTED = "notification_permission_prompted"
     }
 }

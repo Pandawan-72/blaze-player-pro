@@ -1,25 +1,25 @@
 package fr.retrospare.blazeplayer.paywall
 
 import fr.retrospare.blazeplayer.data.repository.UserRepository
-import kotlinx.coroutines.flow.first
 
-/**
- * Point unique de verrouillage freemium.
+/** Point unique de verrouillage freemium.
  *
- * Règles produit :
- * - Gratuit : onglet Local + Cast vidéo locale.
- * - Pro : onglet Réseau (SMB) + onglet Blaze Gallery.
- * - Pro+ : onglet Blaze Audio / mini player, inclut automatiquement Pro.
- *
- * DEBUG_UNLOCK_ALL reste à true pour les builds de développement actuels afin de ne pas bloquer
- * les tests. Passer à false en production quand l'achat sera branché.
+ * Matrice produit :
+ * - Free : Blaze Video local et Cast de vidéos locales.
+ * - Pro : Free + réseau local SMB/UPnP + Blaze Gallery.
+ * - Pro+ : Pro + lecteur premium Blaze Audio.
+ * - Essai : droits Pro+ complets pendant exactement quinze jours.
  */
 object FeatureAccess {
-    const val DEBUG_UNLOCK_ALL: Boolean = true
-
     suspend fun isPro(userRepository: UserRepository): Boolean =
-        DEBUG_UNLOCK_ALL || userRepository.isProFlow.first() || userRepository.isProPlusFlow.first()
+        userRepository.ensureTrialStarted().hasProAccess
 
     suspend fun isProPlus(userRepository: UserRepository): Boolean =
-        DEBUG_UNLOCK_ALL || userRepository.isProPlusFlow.first()
+        userRepository.ensureTrialStarted().hasProPlusAccess
+
+    fun isNetworkMediaPath(path: String): Boolean =
+        path.startsWith("smb://", ignoreCase = true) ||
+            path.startsWith("ftp://", ignoreCase = true) ||
+            path.startsWith("http://", ignoreCase = true) ||
+            path.startsWith("https://", ignoreCase = true)
 }

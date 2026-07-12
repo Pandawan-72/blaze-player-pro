@@ -19,13 +19,17 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
+import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
+import javax.inject.Inject
 
 /**
  * Découpe vidéo façon Google Photos : barre de sélection à deux poignées + prévisualisation en
@@ -35,7 +39,10 @@ import java.util.Locale
  * est aussi proposé, via la technique classique palette ffmpeg (bien meilleure qualité qu'un GIF
  * généré sans palette dédiée).
  */
+@AndroidEntryPoint
 class VideoTrimActivity : AppCompatActivity() {
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+
 
     companion object {
         const val EXTRA_VIDEO_PATH = "video_path"
@@ -62,6 +69,16 @@ class VideoTrimActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
+                this,
+                userRepository,
+                fr.retrospare.blazeplayer.paywall.AccessLevel.PRO
+            )) return
+        fr.retrospare.blazeplayer.paywall.AccessGateUi.monitor(
+            this,
+            userRepository,
+            fr.retrospare.blazeplayer.paywall.AccessLevel.PRO
+        )
         setContentView(R.layout.activity_video_trim)
 
         videoPath = intent.getStringExtra(EXTRA_VIDEO_PATH) ?: run { finish(); return }
@@ -290,23 +307,24 @@ class VideoTrimActivity : AppCompatActivity() {
                 }
             }
 
-            // Étape 2 : injecter les métadonnées ID3v2.3 directement dans les octets du MP3.
-            // Le tag artiste TPE1 est écrit systématiquement, même si la jaquette échoue, pour éviter
-            // que les lecteurs affichent "artiste inconnu" sur les exports Blaze Gallery.
-            if (success) {
-                val metadataEmbedded = embedMp3Id3v23Metadata(
-                    mp3File = outFile,
-                    coverFile = coverFile.takeIf { exportedCover }
-                )
-                if (!metadataEmbedded) {
-                    android.util.Log.w("VideoTrimActivity", "MP3 exporté, mais injection ID3 metadata échouée")
-                }
-            }
+            val exportDate = SimpleDateFormat("yyyy_MM_dd", Locale.US).format(Date())
+            val requestedDisplayName = "Blaze_Extractor_${exportDate}.mp3"
 
+            // Étape 2 : MediaSaveUtils choisit d'abord le nom final réellement disponible
+            // (avec _001, _002, etc. si nécessaire), puis ce nom exact est écrit dans le champ
+            // titre TIT2 du tag ID3v2.3 avant la copie vers Documents/Blaze Audio Extractor.
+            // Le tag artiste TPE1 et la jaquette APIC restent également intégrés.
             val publishedUri = if (success) MediaSaveUtils.publishMp3CutFile(
-                this@VideoTrimActivity,
-                outFile,
-                "${sanitizeName(videoName)}_mp3_cut_${System.currentTimeMillis()}.mp3"
+                context = this@VideoTrimActivity,
+                sourceFile = outFile,
+                displayName = requestedDisplayName,
+                prepareSourceForDisplayName = { finalDisplayName ->
+                    embedMp3Id3v23Metadata(
+                        mp3File = outFile,
+                        coverFile = coverFile.takeIf { exportedCover },
+                        title = finalDisplayName
+                    )
+                }
             ) else null
             outFile.delete()
             coverFile.delete()
@@ -435,7 +453,7 @@ class VideoTrimActivity : AppCompatActivity() {
         return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
     }
 
-    private fun embedMp3Id3v23Metadata(mp3File: File, coverFile: File?): Boolean {
+    private fun embedMp3Id3v23Metadata(mp3File: File, coverFile: File?, title: String): Boolean {
         return try {
             if (!mp3File.exists() || mp3File.length() <= 0L) return false
             val coverBytes = coverFile
@@ -448,13 +466,17 @@ class VideoTrimActivity : AppCompatActivity() {
 
             val original = mp3File.readBytes()
             val audioBytes = stripExistingId3v2Tag(original)
-            val id3Tag = buildId3v23Tag(artist = MP3_EXPORT_ARTIST, jpegBytes = coverBytes)
+            val id3Tag = buildId3v23Tag(
+                title = title,
+                artist = MP3_EXPORT_ARTIST,
+                jpegBytes = coverBytes
+            )
             val taggedFile = File(mp3File.parentFile, "${mp3File.nameWithoutExtension}_tagged_${System.currentTimeMillis()}.mp3")
             taggedFile.outputStream().use { out ->
                 out.write(id3Tag)
                 out.write(audioBytes)
             }
-            if (!hasTextFrame(taggedFile, "TPE1")) {
+            if (!hasTextFrame(taggedFile, "TIT2") || !hasTextFrame(taggedFile, "TPE1")) {
                 taggedFile.delete()
                 return false
             }
@@ -466,7 +488,7 @@ class VideoTrimActivity : AppCompatActivity() {
             taggedFile.delete()
             android.util.Log.i(
                 "VideoTrimActivity",
-                "Métadonnées MP3 intégrées en ID3v2.3 : artiste=$MP3_EXPORT_ARTIST, cover=${coverBytes?.size ?: 0} octets"
+                "Métadonnées MP3 intégrées en ID3v2.3 : titre=$title, artiste=$MP3_EXPORT_ARTIST, cover=${coverBytes?.size ?: 0} octets"
             )
             true
         } catch (e: Exception) {
@@ -475,8 +497,9 @@ class VideoTrimActivity : AppCompatActivity() {
         }
     }
 
-    private fun buildId3v23Tag(artist: String, jpegBytes: ByteArray?): ByteArray {
+    private fun buildId3v23Tag(title: String, artist: String, jpegBytes: ByteArray?): ByteArray {
         val frames = ByteArrayOutputStream().apply {
+            write(buildId3v23TextFrame("TIT2", title))
             write(buildId3v23TextFrame("TPE1", artist))
             if (jpegBytes != null) write(buildId3v23ApicFrame(jpegBytes))
         }.toByteArray()
@@ -491,7 +514,7 @@ class VideoTrimActivity : AppCompatActivity() {
 
     private fun buildId3v23TextFrame(frameId: String, value: String): ByteArray {
         val payload = ByteArrayOutputStream().apply {
-            write(0x00) // ISO-8859-1 : compatible ID3v2.3 et suffisant pour "Blaze Video to MP3"
+            write(0x00) // ISO-8859-1 : compatible ID3v2.3 pour les noms Blaze générés
             write(value.toByteArray(Charsets.ISO_8859_1))
         }.toByteArray()
         return ByteArrayOutputStream().apply {

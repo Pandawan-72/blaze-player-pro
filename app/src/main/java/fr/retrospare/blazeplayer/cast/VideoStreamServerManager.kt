@@ -16,40 +16,73 @@ object VideoStreamServerManager {
     // en cours).
     @Volatile private var sharedServer: LocalStreamServer? = null
     @Volatile private var sharedSourcePath: String = ""
+    @Volatile private var desiredSourcePath: String = ""
+    private val sourceVersions = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     val currentSourcePath: String get() = sharedSourcePath
+    val requestedSourcePath: String get() = desiredSourcePath
 
     /** Démarre (ou réutilise) le serveur pour ce fichier. À appeler avant de construire le
      *  MediaItem, qui a besoin de l'URL retournée par [getStreamUrl]. */
     @Synchronized
     fun startServer(context: Context, sourcePath: String) {
-        sharedSourcePath = sourcePath
+        desiredSourcePath = sourcePath
+        activateSource(context, sourcePath)
+    }
+
+    /** Retourne une URL LAN propre à CE MediaItem sans autoriser une conversion Cast tardive à
+     *  remplacer la source active demandée par l'utilisateur. Les anciennes et nouvelles URLs
+     *  restent valides simultanément grâce au registre versionné de [LocalStreamServer]. */
+    @Synchronized
+    fun getLanStreamUrlFor(context: Context, sourcePath: String): String? {
+        val server = ensureServer(context) ?: return null
+        val version = if (desiredSourcePath == sourcePath) {
+            if (sharedSourcePath != sourcePath) {
+                sharedSourcePath = sourcePath
+                server.setSource(sourcePath).also { sourceVersions[sourcePath] = it }
+            } else {
+                sourceVersions[sourcePath] ?: server.setSource(sourcePath).also { sourceVersions[sourcePath] = it }
+            }
+        } else {
+            sourceVersions[sourcePath] ?: server.registerSource(sourcePath).also { sourceVersions[sourcePath] = it }
+        }
+        return server.getLanStreamUrl(version)
+    }
+
+    private fun ensureServer(context: Context): LocalStreamServer? {
         var server = sharedServer
         if (server == null) {
             server = LocalStreamServer(context.applicationContext)
             try {
-                // Timeout socket généreux : sur un flux 4K haut débit, une pause de buffering un
-                // peu longue peut dépasser un timeout court et couper la connexion prématurément.
                 server.start(90_000, false)
                 sharedServer = server
             } catch (e: Exception) {
                 android.util.Log.e("VideoStreamServerManager", "Failed to start HTTP server", e)
-                return
+                return null
             }
         }
-        server.setSource(sourcePath)
+        return server
     }
 
+    private fun activateSource(context: Context, sourcePath: String) {
+        val server = ensureServer(context) ?: return
+        sharedSourcePath = sourcePath
+        sourceVersions[sourcePath] = server.setSource(sourcePath)
+    }
+
+    @Synchronized
     fun stopServer() {
         val server = sharedServer
         sharedServer = null
         sharedSourcePath = ""
+        desiredSourcePath = ""
+        sourceVersions.clear()
         try { server?.clearSource() } catch (_: Exception) {}
-        if (server != null) {
-            Thread({
-                try { server.stop() } catch (_: Exception) {}
-            }, "BlazeVideoStreamServerStop").apply { isDaemon = true }.start()
-        }
+        // L'ancien arrêt asynchrone permettait à un nouveau serveur d'essayer de reprendre le port
+        // 8927 avant que l'ancien ne l'ait réellement libéré. Pendant une transition Cast, cela
+        // pouvait produire une URL valide quelques instants puis un flux brutalement coupé.
+        // NanoHTTPD.stop() est court : on le termine donc avant d'autoriser un redémarrage.
+        try { server?.stop() } catch (_: Exception) {}
     }
 
     fun getStreamUrl(): String? = sharedServer?.getStreamUrl()

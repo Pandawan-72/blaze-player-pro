@@ -4,6 +4,9 @@ package fr.retrospare.blazeplayer.settings
 import fr.retrospare.blazeplayer.ui.showPremium
 import android.os.Bundle
 import android.content.res.ColorStateList
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ImageSpan
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import android.view.LayoutInflater
@@ -16,6 +19,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.core.content.ContextCompat
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.graphics.drawable.DrawableCompat
 import com.google.android.material.materialswitch.MaterialSwitch
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
@@ -188,9 +193,31 @@ class SettingsFragment : Fragment() {
             getString(R.string.settings_about),
             getString(R.string.settings_about_desc)
         ) {
+            val aboutMessage = SpannableStringBuilder()
+                .append(getString(R.string.about_dialog_message, appVersion))
+                .append("\n\n")
+                .append(getString(R.string.about_developed_in_france))
+                .append(" ")
+
+            AppCompatResources.getDrawable(requireContext(), R.drawable.ic_heart_filled)?.let { heart ->
+                val tintedHeart = DrawableCompat.wrap(heart.mutate())
+                DrawableCompat.setTint(tintedHeart, ContextCompat.getColor(requireContext(), R.color.green_accent))
+                val size = (20 * resources.displayMetrics.density).toInt()
+                tintedHeart.setBounds(0, 0, size, size)
+
+                val iconStart = aboutMessage.length
+                aboutMessage.append("\uFFFC")
+                aboutMessage.setSpan(
+                    ImageSpan(tintedHeart, ImageSpan.ALIGN_BASELINE),
+                    iconStart,
+                    iconStart + 1,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+
             android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Blaze Player")
-                .setMessage(getString(R.string.about_dialog_message, appVersion))
+                .setMessage(aboutMessage)
                 .setPositiveButton(getString(R.string.action_ok), null)
                 .showPremium()
         }
@@ -249,21 +276,34 @@ class SettingsFragment : Fragment() {
             "pt" to "Português",
             "de" to "Deutsch",
             "nl" to "Nederlands",
-            "ru" to "Русский"
+            "ru" to "Русский",
+            "hi" to "हिन्दी",
+            "uk" to "Українська",
+            "ar" to "العربية",
+            "id" to "Bahasa Indonesia"
         )
+
+    /** Java/Android peut encore renvoyer le code ISO historique "in" pour l'indonésien,
+     *  alors que le tag BCP-47 moderne enregistré par l'application est "id". */
+    private fun normalizeLanguageCode(code: String?): String? = when (code?.lowercase()) {
+        "in" -> "id"
+        else -> code?.lowercase()
+    }
 
     private fun currentLanguageLabel(): String {
         val currentTags = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
         if (currentTags.isEmpty) return getString(R.string.language_system_auto)
-        val currentTag = currentTags[0]?.language
-        return supportedLanguages.firstOrNull { it.first == currentTag }?.second ?: getString(R.string.language_system_auto)
+        val currentTag = normalizeLanguageCode(currentTags[0]?.language)
+        return supportedLanguages.firstOrNull { normalizeLanguageCode(it.first) == currentTag }?.second
+            ?: getString(R.string.language_system_auto)
     }
 
     private fun showLanguagePicker() {
         val currentTags = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales()
-        val currentTag = if (currentTags.isEmpty) null else currentTags[0]?.language
+        val currentTag = if (currentTags.isEmpty) null else normalizeLanguageCode(currentTags[0]?.language)
         val languages = supportedLanguages
-        val selectedIndex = languages.indexOfFirst { it.first == currentTag }.let { if (it < 0) 0 else it }
+        val selectedIndex = languages.indexOfFirst { normalizeLanguageCode(it.first) == currentTag }
+            .let { if (it < 0) 0 else it }
         val labels = languages.map { it.second }.toTypedArray()
         android.app.AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.dialog_choose_language))

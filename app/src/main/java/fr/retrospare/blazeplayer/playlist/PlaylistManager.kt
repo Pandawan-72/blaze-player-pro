@@ -58,18 +58,19 @@ object PlaylistManager {
         return parsePlaylist(json)
     }
 
+    @Synchronized
     fun addToBlazePartyPlaylist(context: Context, tracks: List<PlaylistTrackRef>): Int {
         val current = getBlazePartyPlaylist(context).toMutableList()
-        val existingPaths = current.map { it.path }.toHashSet()
-        var added = 0
-        tracks.forEach { track ->
-            if (existingPaths.add(track.path)) {
-                current.add(track)
-                added++
-            }
+        val existingPaths = current.mapTo(HashSet(current.size + tracks.size)) { it.path }
+        val addedTracks = tracks
+            .filter { it.path.isNotBlank() }
+            .distinctBy { it.path }
+            .filter { existingPaths.add(it.path) }
+        if (addedTracks.isNotEmpty()) {
+            current.addAll(addedTracks)
+            saveBlazePartyPlaylist(context, current)
         }
-        if (added > 0) saveBlazePartyPlaylist(context, current)
-        return added
+        return addedTracks.size
     }
 
     fun removeFromBlazePartyPlaylist(context: Context, path: String) {
@@ -80,6 +81,7 @@ object PlaylistManager {
         context.getSharedPreferences(BLAZE_PARTY_PREFS, Context.MODE_PRIVATE).edit().remove(BLAZE_PARTY_KEY).commit()
     }
 
+    @Synchronized
     private fun saveBlazePartyPlaylist(context: Context, tracks: List<PlaylistTrackRef>) {
         val arr = JSONArray()
         tracks.forEach { ref ->
@@ -159,18 +161,19 @@ object PlaylistManager {
 
     /** Ajoute un ou plusieurs éléments à une playlist (ignore les doublons par chemin).
      *  Retourne le nombre d'éléments réellement ajoutés (hors doublons). */
+    @Synchronized
     fun addToPlaylist(context: Context, category: PlaylistCategory, slot: Int, tracks: List<PlaylistTrackRef>): Int {
         val current = getPlaylist(context, category, slot).toMutableList()
-        val existingPaths = current.map { it.path }.toHashSet()
-        var added = 0
-        tracks.forEach { track ->
-            if (existingPaths.add(track.path)) {
-                current.add(track)
-                added++
-            }
+        val existingPaths = current.mapTo(HashSet(current.size + tracks.size)) { it.path }
+        val addedTracks = tracks
+            .filter { it.path.isNotBlank() }
+            .distinctBy { it.path }
+            .filter { existingPaths.add(it.path) }
+        if (addedTracks.isNotEmpty()) {
+            current.addAll(addedTracks)
+            savePlaylist(context, category, slot, current)
         }
-        if (added > 0) savePlaylist(context, category, slot, current)
-        return added
+        return addedTracks.size
     }
 
     fun removeFromPlaylist(context: Context, category: PlaylistCategory, slot: Int, path: String) {
@@ -178,6 +181,7 @@ object PlaylistManager {
         savePlaylist(context, category, slot, current)
     }
 
+    @Synchronized
     fun savePlaylist(context: Context, category: PlaylistCategory, slot: Int, tracks: List<PlaylistTrackRef>) {
         val arr = JSONArray()
         tracks.forEach { ref ->

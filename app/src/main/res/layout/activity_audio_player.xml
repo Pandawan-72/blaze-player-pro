@@ -33,7 +33,7 @@
                 android:id="@+id/btnAudioLibrary"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginEnd="2dp"
+                android:layout_marginEnd="4dp"
                 android:background="@drawable/bg_header_action_button"
                 android:contentDescription="@string/audio_library_title"
                 android:padding="9dp"
@@ -42,19 +42,15 @@
 
             <ImageButton
                 android:id="@+id/btnAudioPlaylistParty"
-                android:layout_width="42dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="2dp"
-                android:minWidth="42dp"
-                android:minHeight="42dp"
-                android:padding="6dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/bg_header_action_button"
+                android:contentDescription="@string/content_desc_playlist"
+                android:padding="9dp"
                 android:scaleType="centerInside"
                 android:src="@drawable/ic_layout_list"
                 android:tint="@color/yellow_accent"
-                android:background="@android:color/transparent"
-                android:elevation="0dp"
-                android:translationZ="0dp"
-                android:contentDescription="@string/content_desc_playlist"
                 android:clickable="true"
                 android:focusable="true" />
 
@@ -96,22 +92,21 @@
 
             <ImageButton
                 android:id="@+id/btnPlaylistSheet"
-                android:layout_width="42dp"
-                android:layout_height="44dp"
-                android:minWidth="42dp"
-                android:minHeight="42dp"
-                android:padding="6dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/bg_header_action_button"
+                android:contentDescription="@string/content_desc_playlist"
+                android:padding="9dp"
                 android:scaleType="centerInside"
-                android:background="@android:color/transparent"
                 android:src="@drawable/ic_layout_list"
-                android:tint="@android:color/white"
-                android:contentDescription="@string/content_desc_playlist" />
+                android:tint="@android:color/white" />
 
             <ImageButton
                 android:id="@+id/btnAudioSettings"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="4dp"
                 android:background="@drawable/bg_header_action_button"
                 android:contentDescription="@string/audio_settings_title"
                 android:padding="9dp"
@@ -445,7 +440,7 @@
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:visibility="gone"
-                android:contentDescription="-10s" />
+                android:contentDescription="@string/content_desc_rewind" />
 
             <ImageButton
                 android:id="@+id/btnPlayPause"
@@ -465,7 +460,7 @@
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:visibility="gone"
-                android:contentDescription="+10s" />
+                android:contentDescription="@string/content_desc_forward" />
 
             <ImageButton
                 android:id="@+id/btnNext"
@@ -513,12 +508,12 @@
                     android:layout_height="22dp"
                     android:src="@drawable/ic_equalizer"
                     android:tint="@color/on_surface_variant"
-                    android:contentDescription="EQ" />
+                    android:contentDescription="@string/sound_short" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/equalizer"
+                    android:text="@string/sound_short"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="10sp"
                     android:fontFamily="sans-serif-condensed"

@@ -21,9 +21,12 @@ import fr.retrospare.blazeplayer.data.model.ShareType
 import fr.retrospare.blazeplayer.databinding.DialogAddNetworkShareBinding
 import fr.retrospare.blazeplayer.databinding.FragmentNetworkSharesBinding
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class NetworkSharesFragment : Fragment() {
+
+    @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
 
     private val viewModel: NetworkSharesViewModel by viewModels()
     private var _binding: FragmentNetworkSharesBinding? = null
@@ -38,6 +41,9 @@ class NetworkSharesFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Masqué tant que le droit Pro n'est pas confirmé : aucun chemin réseau ne doit apparaître
+        // fugitivement après expiration de l'essai ou via une navigation directe.
+        binding.root.visibility = View.INVISIBLE
         val embeddedInHome = arguments?.getBoolean("embeddedInHome", false) == true ||
             parentFragment is fr.retrospare.blazeplayer.home.HomeFragment
         if (embeddedInHome) {
@@ -60,7 +66,46 @@ class NetworkSharesFragment : Fragment() {
         setupRecyclerViews()
         setupButtons(embeddedInHome)
         observeViewModel()
-        viewModel.scanNetwork() // Scan automatique à l'ouverture
+        monitorNetworkTrialExpiry(embeddedInHome)
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)) {
+                if (embeddedInHome) {
+                    binding.root.visibility = View.GONE
+                    (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
+                }
+                val nav = runCatching { findNavController() }.getOrNull()
+                if (nav?.currentDestination?.id != R.id.paywallFragment) {
+                    runCatching { nav?.navigate(R.id.paywallFragment) }
+                }
+                return@launch
+            }
+            binding.root.visibility = View.VISIBLE
+            viewModel.scanNetwork() // Scan automatique uniquement avec les droits Pro.
+        }
+    }
+
+    private fun monitorNetworkTrialExpiry(embeddedInHome: Boolean) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                val state = userRepository.currentAccessState()
+                if (state.isTrialActive) {
+                    kotlinx.coroutines.delay(
+                        (state.trialEndMillis - state.evaluatedAtMillis).coerceAtLeast(1L)
+                    )
+                }
+                val refreshed = userRepository.currentAccessState()
+                if (!refreshed.hasProAccess && _binding != null && isAdded) {
+                    binding.root.visibility = View.GONE
+                    if (embeddedInHome) {
+                        (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.returnToHome()
+                    }
+                    val nav = runCatching { findNavController() }.getOrNull()
+                    if (nav?.currentDestination?.id != R.id.paywallFragment) {
+                        runCatching { nav?.navigate(R.id.paywallFragment) }
+                    }
+                }
+            }
+        }
     }
 
     private fun setupRecyclerViews() {

@@ -120,27 +120,17 @@
 
 
 
-        <TextView
-            android:id="@+id/tvSourceBadge"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <ImageView
+            android:id="@+id/ivSourceBadge"
+            android:layout_width="32dp"
+            android:layout_height="26dp"
             android:layout_gravity="top|end"
             android:layout_margin="7dp"
             android:background="@drawable/bg_history_source_badge"
             android:elevation="3dp"
-            android:fontFamily="sans-serif-condensed"
-            android:includeFontPadding="false"
-            android:minWidth="32dp"
-            android:gravity="center"
-            android:paddingHorizontal="7dp"
-            android:paddingVertical="3dp"
-            android:shadowColor="#99000000"
-            android:shadowDx="0"
-            android:shadowDy="1"
-            android:shadowRadius="2"
-            android:textColor="#FFFFFFFF"
-            android:textSize="9sp"
-            android:textStyle="bold" />
+            android:padding="5dp"
+            android:scaleType="centerInside"
+            android:tint="#FFFFFFFF" />
 
         <CheckBox
             android:id="@+id/cbHistorySelect"

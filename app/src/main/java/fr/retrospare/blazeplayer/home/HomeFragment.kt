@@ -71,6 +71,7 @@ class HomeFragment : Fragment() {
     private var galleryFoldersScrollPosition: Int = 0
     private var galleryFoldersScrollOffset: Int = 0
 
+    private var allVideoHistoryItems: List<MediaItem> = emptyList()
     private var latestLocalHistoryItems: List<MediaItem> = emptyList()
     private var latestNetworkHistoryItems: List<MediaItem> = emptyList()
     private var historySelectionTab: Int? = null
@@ -102,17 +103,34 @@ class HomeFragment : Fragment() {
     }
 
     private val galleryPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        if (hasGalleryPermission()) {
-            showGalleryFolders()
-        } else {
-            showGalleryPermissionPlaceholder()
+        if (_binding == null || !isAdded) return@registerForActivityResult
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!canOpenTab(3)) {
+                returnToHome()
+                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                return@launch
+            }
+            if (hasGalleryPermission()) {
+                showGalleryFolders()
+            } else {
+                showGalleryPermissionPlaceholder()
+            }
         }
     }
 
     private val audioPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        if (pendingAudioTabAfterPermission) {
-            pendingAudioTabAfterPermission = false
-            showAudioTab()
+        if (_binding == null || !isAdded) return@registerForActivityResult
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!canOpenTab(4)) {
+                pendingAudioTabAfterPermission = false
+                returnToHome()
+                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                return@launch
+            }
+            if (pendingAudioTabAfterPermission) {
+                pendingAudioTabAfterPermission = false
+                showAudioTab()
+            }
         }
     }
 
@@ -120,6 +138,9 @@ class HomeFragment : Fragment() {
         if (pendingNetworkScanAfterPermission) {
             pendingNetworkScanAfterPermission = false
             requestEmbeddedNetworkScan()
+        }
+        if (_binding != null && currentTabIndex == 2 && missingRuntimePermissions(networkPermissions()).isEmpty()) {
+            binding.root.post { showNetworkHelpOnce() }
         }
     }
 
@@ -240,10 +261,12 @@ class HomeFragment : Fragment() {
             }
         }
 
+        binding.btnNetworkHelp.setOnClickListener { showNetworkHelpDialog() }
         binding.btnSettings.setOnClickListener {
             findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_settings)
         }
         setupTabs()
+        monitorTrialExpiryWhileVisible()
         setupButtons()
         setupGalleryTab()
         observeViewModel()
@@ -279,9 +302,14 @@ class HomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             sharedAudioVm.pendingTracks.collect { tracks ->
                 if (tracks.isNotEmpty()) {
-                    currentTabIndex = 4
-                    updateTabStyles(4)
-                    showAudioTab()
+                    if (canOpenTab(4)) {
+                        currentTabIndex = 4
+                        updateTabStyles(4)
+                        showAudioTab()
+                    } else {
+                        sharedAudioVm.consumePendingTracks()
+                        findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                    }
                 }
             }
         }
@@ -289,6 +317,8 @@ class HomeFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        enforceCurrentTabAccess()
+        refreshAccessibleVideoHistory()
         updateVersionBadge()
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
@@ -304,6 +334,38 @@ class HomeFragment : Fragment() {
             suppressGalleryResetOnResume = false
         } else if (currentTabIndex == 3) {
             refreshCurrentGalleryView()
+        }
+    }
+
+    private fun monitorTrialExpiryWhileVisible() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                val state = userRepository.currentAccessState()
+                if (state.isTrialActive) {
+                    kotlinx.coroutines.delay(
+                        (state.trialEndMillis - state.evaluatedAtMillis).coerceAtLeast(1L)
+                    )
+                }
+                if (_binding != null && isAdded) {
+                    enforceCurrentTabAccess()
+                    refreshAccessibleVideoHistory()
+                    updateVersionBadge()
+                }
+            }
+        }
+    }
+
+    private fun enforceCurrentTabAccess() {
+        if (_binding == null || !isAdded) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (currentTabIndex in 2..4 && !canOpenTab(currentTabIndex)) {
+                if (currentTabIndex == 4) {
+                    requireContext().stopService(
+                        android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.BlazePlayerService::class.java)
+                    )
+                }
+                returnToHome()
+            }
         }
     }
 
@@ -415,6 +477,7 @@ class HomeFragment : Fragment() {
                 viewModel.onTabSelected(index)
                 if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
+                if (index == 2) showNetworkHelpOnce()
             }
         }
     }
@@ -425,19 +488,35 @@ class HomeFragment : Fragment() {
         binding.tabGallery.setOnClickListener { selectTab(3) }
         binding.tabAudio.setOnClickListener { selectTab(4) }
 
-        val activeTab = when (viewModel.currentTabIndex.value) {
+        val requestedTab = when (viewModel.currentTabIndex.value) {
             2, 3, 4 -> viewModel.currentTabIndex.value
             else -> 1
         }
-        currentTabIndex = activeTab
-        updateTabStyles(activeTab)
-        updateSectionTitles(activeTab)
-        if (activeTab == 4) {
-            if (requestAudioPermissionsIfNeeded()) showAudioTab()
-        } else {
-            hideAudioTab()
-            if (activeTab == 2) requestNetworkPermissionsIfNeeded()
-            viewModel.onTabSelected(activeTab)
+
+        // Toujours construire l'accueil sur Blaze Video (gratuit). Un onglet mémorisé Pro/Pro+
+        // n'est restauré qu'après vérification des droits, ce qui évite d'afficher ou d'initialiser
+        // brièvement une fonctionnalité premium après l'expiration de l'essai.
+        currentTabIndex = 1
+        updateTabStyles(1)
+        hideAudioTab()
+        updateSectionTitles(1)
+        viewModel.onTabSelected(1)
+
+        if (requestedTab != 1) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                if (!canOpenTab(requestedTab) || _binding == null) return@launch
+                currentTabIndex = requestedTab
+                updateTabStyles(requestedTab)
+                viewModel.onTabSelected(requestedTab)
+                if (requestedTab == 4) {
+                    if (requestAudioPermissionsIfNeeded()) showAudioTab()
+                } else {
+                    hideAudioTab()
+                    if (requestedTab == 2) requestNetworkPermissionsIfNeeded()
+                    updateSectionTitles(requestedTab)
+                    if (requestedTab == 2) showNetworkHelpOnce()
+                }
+            }
         }
     }
 
@@ -453,6 +532,7 @@ class HomeFragment : Fragment() {
             hideAudioTab()
             requestNetworkPermissionsIfNeeded()
             updateSectionTitles(2)
+            showNetworkHelpOnce()
         }
     }
 
@@ -477,14 +557,27 @@ class HomeFragment : Fragment() {
     }
 
     private fun requestEmbeddedNetworkScan() {
+        runWithProAccess {
+            if (_binding == null || !isAdded) return@runWithProAccess
+            if (!requestNetworkPermissionsIfNeeded(scanAfterGrant = true)) return@runWithProAccess
+            updateEmbeddedNetworkScanState(scanning = true)
+            ensureEmbeddedNetworkSources()
+            binding.root.post {
+                (childFragmentManager.findFragmentByTag("home_network_sources") as? fr.retrospare.blazeplayer.network.NetworkSharesFragment)
+                    ?.requestScanFromParent()
+                    ?: updateEmbeddedNetworkScanState(scanning = false)
+            }
+        }
+    }
+
+    private fun runWithProAccess(action: () -> Unit) {
         if (_binding == null || !isAdded) return
-        if (!requestNetworkPermissionsIfNeeded(scanAfterGrant = true)) return
-        updateEmbeddedNetworkScanState(scanning = true)
-        ensureEmbeddedNetworkSources()
-        binding.root.post {
-            (childFragmentManager.findFragmentByTag("home_network_sources") as? fr.retrospare.blazeplayer.network.NetworkSharesFragment)
-                ?.requestScanFromParent()
-                ?: updateEmbeddedNetworkScanState(scanning = false)
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)) {
+                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                return@launch
+            }
+            if (_binding != null && isAdded) action()
         }
     }
 
@@ -494,6 +587,26 @@ class HomeFragment : Fragment() {
         binding.btnCast.visibility = visibility
         binding.btnScreenCast.visibility = visibility
         binding.btnCastRemote.visibility = visibility
+        binding.btnNetworkHelp.visibility = if (tabIndex == 2) View.VISIBLE else View.GONE
+    }
+
+    private fun showNetworkHelpOnce() {
+        if (_binding == null || !isAdded || currentTabIndex != 2) return
+        if (missingRuntimePermissions(networkPermissions()).isNotEmpty()) return
+        val prefs = requireContext().getSharedPreferences(PREFS_HELP_MODALS, android.content.Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_NETWORK_HELP_SHOWN, false)) return
+        prefs.edit().putBoolean(KEY_NETWORK_HELP_SHOWN, true).apply()
+        binding.root.post { showNetworkHelpDialog() }
+    }
+
+    private fun showNetworkHelpDialog() {
+        if (!isAdded) return
+        fr.retrospare.blazeplayer.ui.InfoDialog.show(
+            requireContext(),
+            getString(R.string.network_help_title),
+            getString(R.string.network_help_message),
+            iconRes = R.drawable.ic_help_circle
+        )
     }
 
     fun updateEmbeddedNetworkScanState(scanning: Boolean) {
@@ -514,8 +627,8 @@ class HomeFragment : Fragment() {
         }
     }
 
-    /** Affiche à droite du logo la mention Free / Pro / Pro+ correspondant à la version
-     *  actuellement débloquée (en debug, DEBUG_UNLOCK_ALL fait toujours remonter Pro+). */
+    /** Affiche à droite du logo la mention Free / Pro / Pro+ correspondant aux droits effectifs
+     *  (achat persistant ou essai Pro+ actif). */
     private fun updateVersionBadge() {
         if (_binding == null) return
         viewLifecycleOwner.lifecycleScope.launch {
@@ -2036,10 +2149,7 @@ class HomeFragment : Fragment() {
     }
 
     fun switchToAudioTab() {
-        currentTabIndex = 4
-        viewModel.onTabSelected(4)
-        updateTabStyles(4)
-        if (requestAudioPermissionsIfNeeded()) showAudioTab()
+        switchToTab(4)
     }
 
     fun switchToTab(index: Int) {
@@ -2060,6 +2170,7 @@ class HomeFragment : Fragment() {
                 hideAudioTab()
                 if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
+                if (index == 2) showNetworkHelpOnce()
             }
         }
     }
@@ -2094,6 +2205,19 @@ class HomeFragment : Fragment() {
     }
 
     fun openAudioPlayer(path: String, name: String) {
+        if (_binding == null || !isAdded) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            if (!canOpenTab(4)) {
+                findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                return@launch
+            }
+            openAudioPlayerAfterAccess(path, name)
+        }
+    }
+
+    private fun openAudioPlayerAfterAccess(path: String, name: String) {
+        currentTabIndex = 4
+        viewModel.onTabSelected(4)
         updateTabStyles(4)
         showAudioTab()
 
@@ -2208,23 +2332,25 @@ class HomeFragment : Fragment() {
             showBlazeVideoFavorites()
         }
         binding.btnFavoritesNetwork.setOnClickListener {
-            fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
-                requireContext(), fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK
-            ) { favorite ->
-                val shareId = favorite.shareId
-                if (shareId.isNullOrEmpty()) {
-                    fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_error), getString(R.string.toast_share_not_found))
-                    return@showFavoritesList
-                }
-                audioPlayerFragment?.savePlaylistFromController() ?: Unit
-                findNavController().navigate(
-                    R.id.action_home_to_browser,
-                    android.os.Bundle().apply {
-                        putBoolean("isNetwork", true)
-                        putString("shareId", shareId)
-                        putString("path", favorite.path)
+            runWithProAccess {
+                fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
+                    requireContext(), fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK
+                ) { favorite ->
+                    val shareId = favorite.shareId
+                    if (shareId.isNullOrEmpty()) {
+                        fr.retrospare.blazeplayer.ui.InfoDialog.show(requireContext(), getString(R.string.info_dialog_title_error), getString(R.string.toast_share_not_found))
+                        return@showFavoritesList
                     }
-                )
+                    audioPlayerFragment?.savePlaylistFromController() ?: Unit
+                    findNavController().navigate(
+                        R.id.action_home_to_browser,
+                        android.os.Bundle().apply {
+                            putBoolean("isNetwork", true)
+                            putString("shareId", shareId)
+                            putString("path", favorite.path)
+                        }
+                    )
+                }
             }
         }
         binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueLocal)?.setOnClickListener {
@@ -2236,11 +2362,13 @@ class HomeFragment : Fragment() {
             }
         }
         binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueNetwork)?.setOnClickListener {
-            fr.retrospare.blazeplayer.player.VideoQueueSheet.show(
-                requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
-            ) {
-                setupPlaylistButtons()
-                setupVideoQueueButtons()
+            runWithProAccess {
+                fr.retrospare.blazeplayer.player.VideoQueueSheet.show(
+                    requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
+                ) {
+                    setupPlaylistButtons()
+                    setupVideoQueueButtons()
+                }
             }
         }
         setupPlaylistButtons()
@@ -2248,39 +2376,50 @@ class HomeFragment : Fragment() {
     }
 
     private fun showBlazeVideoFavorites() {
-        fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
-            requireContext(),
-            listOf(
-                fr.retrospare.blazeplayer.favorites.FavoriteCategory.LOCAL,
-                fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK
-            )
-        ) { category, favorite ->
-            audioPlayerFragment?.savePlaylistFromController() ?: Unit
-            if (category == fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK) {
-                val shareId = favorite.shareId
-                if (shareId.isNullOrEmpty()) {
-                    fr.retrospare.blazeplayer.ui.InfoDialog.show(
-                        requireContext(),
-                        getString(R.string.info_dialog_title_error),
-                        getString(R.string.toast_share_not_found)
-                    )
-                    return@showFavoritesList
-                }
-                findNavController().navigate(
-                    R.id.action_home_to_browser,
-                    android.os.Bundle().apply {
-                        putBoolean("isNetwork", true)
-                        putString("shareId", shareId)
-                        putString("path", favorite.path)
-                    }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val hasPro = fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
+            val categories = if (hasPro) {
+                listOf(
+                    fr.retrospare.blazeplayer.favorites.FavoriteCategory.LOCAL,
+                    fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK
                 )
             } else {
-                findNavController().navigate(
-                    R.id.action_home_to_browser,
-                    android.os.Bundle().apply {
-                        putString("path", favorite.path)
+                listOf(fr.retrospare.blazeplayer.favorites.FavoriteCategory.LOCAL)
+            }
+            fr.retrospare.blazeplayer.favorites.FavoriteDialogs.showFavoritesList(
+                requireContext(), categories
+            ) { category, favorite ->
+                audioPlayerFragment?.savePlaylistFromController() ?: Unit
+                if (category == fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK) {
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        if (!fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)) {
+                            findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+                            return@launch
+                        }
+                        val shareId = favorite.shareId
+                        if (shareId.isNullOrEmpty()) {
+                            fr.retrospare.blazeplayer.ui.InfoDialog.show(
+                                requireContext(),
+                                getString(R.string.info_dialog_title_error),
+                                getString(R.string.toast_share_not_found)
+                            )
+                            return@launch
+                        }
+                        findNavController().navigate(
+                            R.id.action_home_to_browser,
+                            android.os.Bundle().apply {
+                                putBoolean("isNetwork", true)
+                                putString("shareId", shareId)
+                                putString("path", favorite.path)
+                            }
+                        )
                     }
-                )
+                } else {
+                    findNavController().navigate(
+                        R.id.action_home_to_browser,
+                        android.os.Bundle().apply { putString("path", favorite.path) }
+                    )
+                }
             }
         }
     }
@@ -2303,8 +2442,21 @@ class HomeFragment : Fragment() {
                 }
             )
         )
-        btn.setOnClickListener { openSavedPlaylist(category, slot) }
-        btn.setOnLongClickListener { showPlaylistQuickMenu(category, slot, btn); true }
+        btn.setOnClickListener {
+            if (category == fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO) {
+                runWithProAccess { openSavedPlaylist(category, slot) }
+            } else {
+                openSavedPlaylist(category, slot)
+            }
+        }
+        btn.setOnLongClickListener {
+            if (category == fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO) {
+                runWithProAccess { showPlaylistQuickMenu(category, slot, btn) }
+            } else {
+                showPlaylistQuickMenu(category, slot, btn)
+            }
+            true
+        }
     }
 
     /** Menu rapide d'une puce de playlist (appui long) : évite d'ouvrir le dialogue complet rien
@@ -2370,6 +2522,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun openSavedPlaylist(category: fr.retrospare.blazeplayer.playlist.PlaylistCategory, slot: Int) {
+        if (category == fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO &&
+            !kotlinx.coroutines.runBlocking {
+                fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
+            }
+        ) {
+            findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
+            return
+        }
         fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showPlaylistViewer(
             requireContext(), category, slot,
             onPlayAll = { tracks ->
@@ -2421,12 +2581,18 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun sourceBadgeFrom(item: MediaItem): String = when {
-        item.path.startsWith("smb://", ignoreCase = true) -> "SMB"
-        item.networkShareId?.startsWith("upnp_", ignoreCase = true) == true -> "UPNP"
-        item.isNetwork && (item.path.startsWith("http://", ignoreCase = true) || item.path.startsWith("https://", ignoreCase = true)) -> "UPNP"
-        item.isNetwork -> "SMB"
-        else -> "LOC"
+    private fun isNetworkHistorySource(item: MediaItem): Boolean = when {
+        item.path.startsWith("smb://", ignoreCase = true) -> true
+        item.networkShareId?.startsWith("upnp_", ignoreCase = true) == true -> true
+        item.path.startsWith("http://", ignoreCase = true) -> item.isNetwork
+        item.path.startsWith("https://", ignoreCase = true) -> item.isNetwork
+        else -> item.isNetwork
+    }
+
+    private fun bindHistorySourceIcon(view: ImageView, item: MediaItem) {
+        val isNetwork = isNetworkHistorySource(item)
+        view.setImageResource(if (isNetwork) R.drawable.ic_network else R.drawable.ic_sd_card)
+        view.contentDescription = getString(if (isNetwork) R.string.tab_network else R.string.local_storage)
     }
 
     private fun historyItemsForTab(tab: Int): List<MediaItem> = latestLocalHistoryItems
@@ -2630,6 +2796,17 @@ class HomeFragment : Fragment() {
         binding.listNetwork.adapter?.notifyDataSetChanged()
     }
 
+    private fun refreshAccessibleVideoHistory(items: List<MediaItem> = allVideoHistoryItems) {
+        if (_binding == null || !isAdded) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val hasPro = fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
+            val visible = if (hasPro) items else items.filterNot { it.isNetwork ||
+                fr.retrospare.blazeplayer.paywall.FeatureAccess.isNetworkMediaPath(it.path) }
+            latestLocalHistoryItems = visible
+            if (_binding != null) updateRecycler(binding.listLocal, visible)
+        }
+    }
+
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -2640,8 +2817,8 @@ class HomeFragment : Fragment() {
                 }
                 launch {
                     viewModel.recentLocalItems.collect { items ->
-                        latestLocalHistoryItems = items
-                        updateRecycler(binding.listLocal, items)
+                        allVideoHistoryItems = items
+                        refreshAccessibleVideoHistory(items)
                     }
                 }
             }
@@ -2678,7 +2855,7 @@ class HomeFragment : Fragment() {
                 // Titre + durée, dans l'overlay bas comme sur les tuiles photo de Blaze Gallery.
                 v.findViewById<TextView>(R.id.tvFileName).text = item.name
                 v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
-                v.findViewById<TextView>(R.id.tvSourceBadge)?.text = sourceBadgeFrom(item)
+                v.findViewById<ImageView>(R.id.ivSourceBadge)?.let { bindHistorySourceIcon(it, item) }
 
                 // Badges conteneur + qualité en haut à gauche de la tuile (résolution seule sert
                 // désormais de badge "qualité" : le champ MediaItem.resolution est déjà normalisé
@@ -2690,7 +2867,13 @@ class HomeFragment : Fragment() {
                     item.extension.lowercase() in setOf("mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "wv", "aiff", "alac")
                 if (isAudioItem) {
                     fr.retrospare.blazeplayer.player.AudioQualityBadgeBinder.bind(
-                        tvFmt, tvRes, item.path, item.name, ext
+                        tvFmt,
+                        tvRes,
+                        item.path,
+                        item.name,
+                        ext,
+                        knownDurationMs = item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
+                        knownSizeBytes = item.size
                     )
                 } else {
                     if (ext.isNotEmpty()) {
@@ -2786,6 +2969,8 @@ class HomeFragment : Fragment() {
 
     companion object {
         private const val PREFS_RUNTIME_PERMISSIONS = "blaze_runtime_permissions"
+        private const val PREFS_HELP_MODALS = "blaze_help_modals"
+        private const val KEY_NETWORK_HELP_SHOWN = "network_help_shown"
         private const val KEY_GALLERY_PERMISSIONS_PROMPTED = "gallery_permissions_prompted"
         private const val KEY_AUDIO_PERMISSIONS_PROMPTED = "audio_permissions_prompted"
         private const val KEY_NETWORK_PERMISSIONS_PROMPTED = "network_permissions_prompted"

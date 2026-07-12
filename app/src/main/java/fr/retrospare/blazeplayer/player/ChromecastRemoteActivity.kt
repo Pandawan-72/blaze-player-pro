@@ -293,9 +293,16 @@ class ChromecastRemoteActivity : AppCompatActivity() {
         }
     }
 
-    private fun playAdjacent(offset: Int) {
+    private fun playAdjacent(offset: Int, controllerRetry: Int = 0) {
         val state = VideoRemoteQueueState.load(this)
         val player = controller
+        // Le MediaController peut être encore en reconnexion quand la télécommande vient d'être
+        // ouverte. Ne pas abandonner silencieusement la commande de file : attendre brièvement le
+        // contrôleur du service vidéo, au maximum trois fois.
+        if (state != null && player == null && controllerRetry < 3) {
+            handler.postDelayed({ playAdjacent(offset, controllerRetry + 1) }, 350L)
+            return
+        }
         if (state != null && player != null) {
             val targetIndex = state.index + offset
             if (targetIndex in state.paths.indices) {
@@ -307,10 +314,21 @@ class ChromecastRemoteActivity : AppCompatActivity() {
                 player.prepare()
                 player.play()
                 VideoRemoteQueueState.updateIndex(this, targetIndex)
+                android.util.Log.i("CAST", "Remote queue item started index=$targetIndex/${state.paths.size} path=$path")
+                // Le MediaQueueItem produit par le converter porte aussi autoplay=true. Ce rappel
+                // Media3 couvre les récepteurs qui publient brièvement PAUSED après le LOAD.
+                handler.postDelayed({
+                    if (controller?.currentMediaItem?.mediaId == path && controller?.playWhenReady != true) {
+                        controller?.playWhenReady = true
+                        controller?.play()
+                    }
+                }, 500L)
                 return
             }
             if (offset < 0 && state.index == 0) {
                 player.seekTo(0L)
+                player.playWhenReady = true
+                player.play()
                 return
             }
         }

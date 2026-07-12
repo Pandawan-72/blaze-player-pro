@@ -21,7 +21,8 @@ object AudioProSettings {
     const val KEY_NORMALIZE = "normalize"
     const val KEY_HI_RES = "hi_res"
     const val KEY_REPLAYGAIN = "replaygain"
-    const val KEY_BIT_DEPTH = "bit_depth"
+    const val KEY_OUTPUT_MODE = "output_mode"
+    private const val LEGACY_KEY_BIT_DEPTH = "bit_depth"
     const val KEY_AUTO_SCAN = "auto_scan"
     const val KEY_TRACK_ORDER = "track_order"
     const val KEY_IGNORE_SHORT = "ignore_short"
@@ -38,6 +39,10 @@ object AudioProSettings {
     const val REPLAYGAIN_TRACK = 1
     const val REPLAYGAIN_ALBUM = 2
 
+    const val OUTPUT_MODE_AUTO = "auto"
+    const val OUTPUT_MODE_COMPATIBILITY = "compatibility"
+    const val OUTPUT_MODE_HIGH_PRECISION = "high_precision"
+
     const val ARTWORK_SMALL = 0
     const val ARTWORK_MEDIUM = 1
     const val ARTWORK_LARGE = 2
@@ -47,9 +52,9 @@ object AudioProSettings {
         val crossfade: Boolean = true,
         val crossfadeDurationSec: Int = 3,
         val normalize: Boolean = true,
-        val hiRes: Boolean = true,
+        val hiRes: Boolean = false,
         val replayGain: Int = REPLAYGAIN_TRACK,
-        val bitDepth: String = "24",
+        val outputMode: String = OUTPUT_MODE_AUTO,
         val autoScan: Boolean = true,
         val trackOrder: Boolean = true,
         val ignoreShort: Boolean = false,
@@ -64,16 +69,107 @@ object AudioProSettings {
     fun prefs(context: Context): SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+
+    /** Migre l'ancien sélecteur 16/24/32 bits vers des modes qui correspondent réellement à la
+     * chaîne Media3, puis retire l'ancienne clé sans perdre le choix de l'utilisateur. */
+    fun migrateOutputPreferences(context: Context) {
+        val audioPrefs = prefs(context)
+        val rawMode = if (audioPrefs.contains(KEY_OUTPUT_MODE)) {
+            audioPrefs.getString(KEY_OUTPUT_MODE, null)
+        } else {
+            audioPrefs.getString(LEGACY_KEY_BIT_DEPTH, null)
+        }
+        val normalizedMode = normalizeOutputMode(rawMode)
+        val edit = audioPrefs.edit()
+        var changed = false
+        if (!audioPrefs.contains(KEY_HI_RES)) {
+            edit.putBoolean(KEY_HI_RES, false)
+            changed = true
+        }
+        if (!audioPrefs.contains(KEY_OUTPUT_MODE) || rawMode != normalizedMode) {
+            edit.putString(KEY_OUTPUT_MODE, normalizedMode)
+            changed = true
+        }
+        if (audioPrefs.contains(LEGACY_KEY_BIT_DEPTH)) {
+            edit.remove(LEGACY_KEY_BIT_DEPTH)
+            changed = true
+        }
+        if (changed) edit.apply()
+
+        val eqPrefs = context.applicationContext.getSharedPreferences(EqualizerManager.PREFS_NAME, Context.MODE_PRIVATE)
+        if (!eqPrefs.contains(EqualizerManager.KEY_EQ_ENABLED)) {
+            eqPrefs.edit().putBoolean(EqualizerManager.KEY_EQ_ENABLED, true).apply()
+        }
+        // Les sorties directes/float contournent les AudioProcessor : un ancien réglage incohérent
+        // est donc remis dans un état sûr dès la migration.
+        if (audioPrefs.getBoolean(KEY_HI_RES, false) || normalizedMode == OUTPUT_MODE_HIGH_PRECISION) {
+            if (eqPrefs.getBoolean(EqualizerManager.KEY_EQ_ENABLED, true)) {
+                eqPrefs.edit().putBoolean(EqualizerManager.KEY_EQ_ENABLED, false).apply()
+            }
+        }
+    }
+
+    fun normalizeOutputMode(raw: String?): String = when (raw) {
+        OUTPUT_MODE_AUTO, "24" -> OUTPUT_MODE_AUTO
+        OUTPUT_MODE_COMPATIBILITY, "16" -> OUTPUT_MODE_COMPATIBILITY
+        OUTPUT_MODE_HIGH_PRECISION, "32" -> OUTPUT_MODE_HIGH_PRECISION
+        else -> OUTPUT_MODE_AUTO
+    }
+
+    /** Active la préférence de sortie directe et coupe immédiatement les effets incompatibles. */
+    fun setHighQualityEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_HI_RES, enabled).apply()
+        if (enabled) {
+            context.applicationContext
+                .getSharedPreferences(EqualizerManager.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(EqualizerManager.KEY_EQ_ENABLED, false)
+                .apply()
+        }
+    }
+
+    /** Sélectionne le mode PCM réel. La haute précision requiert une sortie float sans DSP. */
+    fun setOutputMode(context: Context, mode: String) {
+        val normalized = normalizeOutputMode(mode)
+        prefs(context).edit().putString(KEY_OUTPUT_MODE, normalized).apply()
+        if (normalized == OUTPUT_MODE_HIGH_PRECISION) {
+            context.applicationContext
+                .getSharedPreferences(EqualizerManager.PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(EqualizerManager.KEY_EQ_ENABLED, false)
+                .apply()
+        }
+    }
+
+    /** Prépare la chaîne pour les réglages son : pas d'offload imposé ni de sortie float forcée. */
+    fun prepareForSoundSettings(context: Context) {
+        val audioPrefs = prefs(context)
+        val edit = audioPrefs.edit().putBoolean(KEY_HI_RES, false)
+        if (normalizeOutputMode(audioPrefs.getString(KEY_OUTPUT_MODE, OUTPUT_MODE_AUTO)) == OUTPUT_MODE_HIGH_PRECISION) {
+            edit.putString(KEY_OUTPUT_MODE, OUTPUT_MODE_AUTO)
+        }
+        edit.apply()
+    }
+
+    /** La sortie float est automatique lorsque le DSP est coupé, forcée en haute précision et
+     * désactivée en compatibilité. */
+    fun shouldUseFloatOutput(values: Values, soundSettingsEnabled: Boolean): Boolean = when (values.outputMode) {
+        OUTPUT_MODE_HIGH_PRECISION -> true
+        OUTPUT_MODE_COMPATIBILITY -> false
+        else -> !soundSettingsEnabled
+    }
+
     fun read(context: Context): Values {
+        migrateOutputPreferences(context)
         val p = prefs(context)
         return Values(
             gapless = p.getBoolean(KEY_GAPLESS, true),
             crossfade = p.getBoolean(KEY_CROSSFADE, true),
             crossfadeDurationSec = p.getInt(KEY_CROSSFADE_DURATION, 3).coerceIn(0, 12),
             normalize = p.getBoolean(KEY_NORMALIZE, true),
-            hiRes = p.getBoolean(KEY_HI_RES, true),
+            hiRes = p.getBoolean(KEY_HI_RES, false),
             replayGain = p.getInt(KEY_REPLAYGAIN, REPLAYGAIN_TRACK).coerceIn(REPLAYGAIN_OFF, REPLAYGAIN_ALBUM),
-            bitDepth = p.getString(KEY_BIT_DEPTH, "24") ?: "24",
+            outputMode = normalizeOutputMode(p.getString(KEY_OUTPUT_MODE, OUTPUT_MODE_AUTO)),
             autoScan = p.getBoolean(KEY_AUTO_SCAN, true),
             trackOrder = p.getBoolean(KEY_TRACK_ORDER, true),
             ignoreShort = p.getBoolean(KEY_IGNORE_SHORT, false),
@@ -212,9 +308,8 @@ object AudioProSettings {
         var gain = 0
         if (values.normalize) gain += 180
         if (replayGainDb > 0f) gain += (replayGainDb * 100f).toInt()
-        // En mode 16-bit, on garde plus de marge ; en 24/32, on peut permettre un rendu un peu
-        // plus ouvert. Cela reste un réglage logiciel prudent, pas une promesse DAC universelle.
-        if (values.bitDepth == "16") gain = (gain * 0.75f).toInt()
+        // La précision de sortie est désormais gérée par le véritable AudioSink Media3. Elle ne
+        // doit plus modifier artificiellement le LoudnessEnhancer.
         return gain.coerceIn(0, 1200)
     }
 

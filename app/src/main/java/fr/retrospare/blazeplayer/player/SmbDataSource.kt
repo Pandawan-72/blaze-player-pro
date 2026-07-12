@@ -7,6 +7,9 @@ import androidx.media3.datasource.BaseDataSource
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import com.hierynomus.msfscc.fileinformation.FileStandardInformation
+import com.hierynomus.smbj.auth.AuthenticationContext
+import com.hierynomus.smbj.connection.Connection
+import com.hierynomus.smbj.session.Session
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.smbj.share.DiskShare
@@ -16,18 +19,21 @@ import java.util.EnumSet
 /**
  * DataSource Media3 permettant de streamer un fichier via SMB (protocole smb://).
  * Format URI attendu: smb://[user[:pass]@]host[:port]/share/path/to/file.ext
- * Utilise SmbSessionPool pour reutiliser connexion/session/share entre fichiers
- * (evite reconnexion + reauth a chaque vidéo/piste suivante).
+ * Le flux du Player utilise une connexion dédiée afin que les scans, covers et métadonnées
+ * exécutés en parallèle ne puissent pas fermer sa session réseau.
  */
 @UnstableApi
 class SmbDataSource : BaseDataSource(true) {
 
+    private var connection: Connection? = null
+    private var session: Session? = null
     private var diskShare: DiskShare? = null
     private var smbFile: SmbFile? = null
     private var uri: Uri? = null
     private var bytesRemaining: Long = 0
     private var currentPosition: Long = 0
     private var parsedUri: ParsedSmbUri? = null
+    @Volatile private var transferOpen = false
 
     // Buffer interne pour eviter des centaines de micro-requetes SMB (1-4 octets) lors du parsing MKV/EBML.
     // On lit par blocs de 2 Mo depuis le reseau et on sert les petites lectures de Media3 depuis ce buffer.
@@ -50,11 +56,34 @@ class SmbDataSource : BaseDataSource(true) {
         }
     }
 
-    private fun openSmbFile(parsed: ParsedSmbUri): Triple<DiskShare, SmbFile, Long> {
-        val share = SmbSessionPool.getShare(parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName)
+    private data class OpenedSmbFile(
+        val connection: Connection,
+        val session: Session,
+        val share: DiskShare,
+        val file: SmbFile,
+        val size: Long
+    )
+
+    /**
+     * Le flux de lecture possède sa propre connexion SMB. Les covers, métadonnées et scans peuvent
+     * continuer à utiliser le pool partagé sans pouvoir fermer la session du Player en cours.
+     */
+    private fun openSmbFile(parsed: ParsedSmbUri): OpenedSmbFile {
+        var conn: Connection? = null
+        var sess: Session? = null
+        var share: DiskShare? = null
         var file: SmbFile? = null
         return try {
-            val openedFile = share.openFile(
+            conn = SmbClientPool.getClient().connect(parsed.host, parsed.port)
+            val username = parsed.username
+            val auth = if (!username.isNullOrEmpty()) {
+                AuthenticationContext(username, (parsed.password ?: "").toCharArray(), "")
+            } else {
+                AuthenticationContext.anonymous()
+            }
+            sess = conn.authenticate(auth)
+            share = sess.connectShare(parsed.shareName) as DiskShare
+            file = share.openFile(
                 parsed.filePath,
                 EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
                 null,
@@ -62,33 +91,56 @@ class SmbDataSource : BaseDataSource(true) {
                 SMB2CreateDisposition.FILE_OPEN,
                 EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
             )
-            file = openedFile
-            val size = openedFile.getFileInformation(FileStandardInformation::class.java).endOfFile
-            Triple(share, openedFile, size)
+            val size = file.getFileInformation(FileStandardInformation::class.java).endOfFile
+            OpenedSmbFile(conn, sess, share, file, size)
         } catch (error: Exception) {
             try { file?.close() } catch (_: Exception) {}
-            try { share.close() } catch (_: Exception) {}
+            try { share?.close() } catch (_: Exception) {}
+            try { sess?.close() } catch (_: Exception) {}
+            try { conn?.close() } catch (_: Exception) {}
             throw error
         }
     }
 
+    private data class ActiveSmbResources(
+        val connection: Connection?,
+        val session: Session?,
+        val share: DiskShare?,
+        val file: SmbFile?
+    )
+
+    private fun closeSmbResources() {
+        val resources = synchronized(this) {
+            ActiveSmbResources(connection, session, diskShare, smbFile).also {
+                smbFile = null
+                diskShare = null
+                session = null
+                connection = null
+            }
+        }
+        try { resources.file?.close() } catch (_: Exception) {}
+        try { resources.share?.close() } catch (_: Exception) {}
+        try { resources.session?.close() } catch (_: Exception) {}
+        try { resources.connection?.close() } catch (_: Exception) {}
+    }
+
     private fun reopenAfterReadFailure(error: Exception): Boolean {
         val parsed = parsedUri ?: return false
-        android.util.Log.w("SmbDataSource", "SMB read failed at $currentPosition, reconnecting once", error)
-        try { smbFile?.close() } catch (_: Exception) {}
-        try { diskShare?.close() } catch (_: Exception) {}
-        smbFile = null
-        diskShare = null
-        SmbSessionPool.invalidate(parsed.host, parsed.port, parsed.username, parsed.shareName)
+        android.util.Log.w("SmbDataSource", "SMB read failed at $currentPosition, reconnecting dedicated stream", error)
+        closeSmbResources()
         return try {
-            val (share, file, _) = openSmbFile(parsed)
-            diskShare = share
-            smbFile = file
+            val opened = openSmbFile(parsed)
+            synchronized(this) {
+                connection = opened.connection
+                session = opened.session
+                diskShare = opened.share
+                smbFile = opened.file
+            }
             readBufferStart = -1
             readBufferLength = 0
             true
         } catch (e: Exception) {
-            android.util.Log.e("SmbDataSource", "SMB reconnect failed after read error", e)
+            android.util.Log.e("SmbDataSource", "SMB dedicated reconnect failed after read error", e)
             false
         }
     }
@@ -102,22 +154,25 @@ class SmbDataSource : BaseDataSource(true) {
         // getShare()) : le DiskShare renvoyé peut devenir obsolète/fermé entre son obtention et
         // son utilisation, si un autre consommateur concurrent (le relais HTTP de cast, une
         // extraction de sous-titres...) l'invalide entre-temps.
-        fun attemptOpen(): Triple<DiskShare, SmbFile, Long> = openSmbFile(parsed)
+        fun attemptOpen(): OpenedSmbFile = openSmbFile(parsed)
 
-        val (share, file, fileSize) = try {
+        val opened = try {
             attemptOpen()
         } catch (e: Exception) {
             if (isMissingPathError(e)) throw e
-            // Ressource potentiellement cassee (timeout, NAS redemarre, invalidée par un autre
-            // consommateur concurrent...) -> on invalide et on reessaie une fois
-            SmbSessionPool.invalidate(parsed.host, parsed.port, parsed.username, parsed.shareName)
             attemptOpen()
         }
-        diskShare = share
-        smbFile = file
+        synchronized(this) {
+            connection = opened.connection
+            session = opened.session
+            diskShare = opened.share
+            smbFile = opened.file
+        }
+        val fileSize = opened.size
 
         val position = dataSpec.position
         if (position > fileSize) {
+            closeSmbResources()
             throw androidx.media3.datasource.DataSourceException(androidx.media3.common.PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE)
         }
         currentPosition = position
@@ -127,6 +182,7 @@ class SmbDataSource : BaseDataSource(true) {
 
         transferInitializing(dataSpec)
         transferStarted(dataSpec)
+        transferOpen = true
         return bytesRemaining
     }
 
@@ -194,13 +250,28 @@ class SmbDataSource : BaseDataSource(true) {
     override fun getUri(): Uri? = uri
 
     override fun close() {
-        // DiskShare n'est plus partagé : on ferme le handle puis le share privé de CE DataSource,
-        // sans toucher à la session/connexion mutualisée.
-        try { smbFile?.close() } catch (_: Exception) {}
-        try { diskShare?.close() } catch (_: Exception) {}
-        smbFile = null
-        diskShare = null
-        transferEnded()
+        // close() peut être rappelé par plusieurs couches Media3 après une erreur. Le callback de
+        // transfert doit être émis une seule fois, sinon BaseDataSource transmet un DataSpec null au
+        // DefaultBandwidthMeter et transforme une fermeture normale en erreur de lecture fatale.
+        val shouldEndTransfer = synchronized(this) {
+            if (transferOpen) {
+                transferOpen = false
+                true
+            } else {
+                false
+            }
+        }
+        closeSmbResources()
+        if (shouldEndTransfer) {
+            runCatching { transferEnded() }
+                .onFailure { android.util.Log.w("SmbDataSource", "Ignoring transfer end callback failure", it) }
+        }
+        uri = null
+        parsedUri = null
+        bytesRemaining = 0L
+        currentPosition = 0L
+        readBufferStart = -1L
+        readBufferLength = 0
     }
 
     data class ParsedSmbUri(

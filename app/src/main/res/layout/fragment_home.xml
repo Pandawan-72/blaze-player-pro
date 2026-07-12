@@ -53,6 +53,20 @@
                         tools:text="Pro+" />
 
                     <ImageButton
+                        android:id="@+id/btnNetworkHelp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_centerVertical="true"
+                        android:layout_toStartOf="@id/btnSettings"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_header_action_button"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_help_circle"
+                        android:tint="@color/on_surface"
+                        android:contentDescription="@string/network_help_button_desc"
+                        android:visibility="gone" />
+
+                    <ImageButton
                         android:id="@+id/btnSettings"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
@@ -62,7 +76,7 @@
                         android:padding="8dp"
                         android:src="@drawable/ic_settings"
                         android:tint="@color/on_surface"
-                        android:contentDescription="Réglages" />
+                        android:contentDescription="@string/content_desc_settings" />
 
                     <androidx.mediarouter.app.MediaRouteButton
                         android:id="@+id/btnCast"
@@ -74,7 +88,7 @@
                         android:background="@drawable/bg_header_action_button"
                         android:padding="9dp"
                         app:mediaRouteButtonTint="@color/on_surface"
-                        android:contentDescription="Chromecast" />
+                        android:contentDescription="@string/info_dialog_title_chromecast" />
 
                     <ImageButton
                         android:id="@+id/btnCastRemote"
@@ -100,7 +114,7 @@
                         android:padding="9dp"
                         android:src="@drawable/ic_screen_cast"
                         android:tint="@color/on_surface"
-                        android:contentDescription="Caster l'écran du téléphone" />
+                        android:contentDescription="@string/content_desc_cast_screen" />
 
                     <LinearLayout
                         android:id="@+id/galleryTypeHeaderToggle"

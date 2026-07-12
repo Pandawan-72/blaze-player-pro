@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.cast
 
+import android.content.Context
 import android.net.Uri
 import androidx.media3.cast.DefaultMediaItemConverter
 import androidx.media3.cast.MediaItemConverter
@@ -23,7 +24,9 @@ import com.google.android.gms.common.images.WebImage
  * mais ajoute explicitement les pistes WebVTT au MediaInfo Cast et les active par défaut.
  */
 @UnstableApi
-class BlazeCastMediaItemConverter : MediaItemConverter {
+class BlazeCastMediaItemConverter(context: Context) : MediaItemConverter {
+
+    private val appContext = context.applicationContext
 
     private val fallback = DefaultMediaItemConverter()
 
@@ -39,8 +42,16 @@ class BlazeCastMediaItemConverter : MediaItemConverter {
         // d'état/métadonnées avec la vidéo.
         val originalUrl = local.uri.toString()
         val scheme = local.uri.scheme?.lowercase()
-        val contentUrl = if (originalUrl.contains("127.0.0.1") || originalUrl.contains("localhost") || scheme !in setOf("http", "https")) {
-            VideoStreamServerManager.getLanStreamUrl() ?: originalUrl
+        val needsRelay = originalUrl.contains("127.0.0.1") ||
+            originalUrl.contains("localhost") || scheme !in setOf("http", "https")
+        val sourcePath = mediaItem.mediaId.takeIf { it.isNotBlank() } ?:
+            VideoStreamServerManager.currentSourcePath.takeIf { it.isNotBlank() } ?: originalUrl
+        val contentUrl = if (needsRelay) {
+            // Chaque MediaItem obtient sa propre URL versionnée. Une conversion retardée de
+            // l'ancienne vidéo ne peut donc plus faire servir son fichier à l'URL de la nouvelle.
+            runCatching { VideoStreamServerManager.getLanStreamUrlFor(appContext, sourcePath) }
+                .onFailure { android.util.Log.e("CAST", "Impossible de préparer le relais pour $sourcePath", it) }
+                .getOrNull() ?: originalUrl
         } else originalUrl
         val contentId = contentUrl
         val contentType = local.mimeType ?: guessContentType(local.uri)
