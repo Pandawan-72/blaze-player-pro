@@ -786,4 +786,25 @@ Code : %2$s</string>
     <string name="eq_room_plate">Plaque</string>
     <string name="eq_equalizer_unavailable">L’égaliseur matériel n’est pas disponible sur cette sortie. Les réglages de canaux restent actifs.</string>
 
+    <string name="action_play_pause">Lecture / pause</string>
+    <string name="action_stop">Arrêter</string>
+    <string name="cast_remote_title">Télécommande Cast</string>
+    <string name="cast_remote_subtitle">Contrôle de la vidéo sur le téléviseur</string>
+    <string name="cast_remote_power">Connexion et déconnexion Chromecast</string>
+    <string name="cast_remote_not_connected">AUCUN CAST ACTIF</string>
+    <string name="cast_remote_connected">CAST CONNECTÉ</string>
+    <string name="cast_remote_no_media">Aucune vidéo en cours de diffusion</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_volume_up">Augmenter le volume</string>
+    <string name="cast_remote_volume_down">Diminuer le volume</string>
+    <string name="cast_remote_mute">Couper ou rétablir le son</string>
+    <string name="cast_remote_rewind">Reculer de 10 secondes</string>
+    <string name="cast_remote_forward">Avancer de 10 secondes</string>
+    <string name="cast_remote_previous">Vidéo précédente</string>
+    <string name="cast_remote_next">Vidéo suivante</string>
+    <string name="cast_remote_hint">Le bouton rouge ouvre le panneau Chromecast pour connecter ou déconnecter le téléviseur.</string>
+    <string name="content_desc_cast_remote">Télécommande Chromecast</string>
+
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_led_off">OFF</string>
 </resources>

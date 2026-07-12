@@ -39,6 +39,9 @@ public final class FragmentHomeBinding implements ViewBinding {
   public final MediaRouteButton btnCast;
 
   @NonNull
+  public final ImageButton btnCastRemote;
+
+  @NonNull
   public final MaterialButton btnEmptyStateBrowseLocal;
 
   @NonNull
@@ -224,7 +227,7 @@ public final class FragmentHomeBinding implements ViewBinding {
   private FragmentHomeBinding(@NonNull CoordinatorLayout rootView,
       @NonNull FrameLayout audioContainer, @NonNull MaterialButton btnBrowseLocal,
       @NonNull MaterialButton btnBrowseNetwork, @NonNull MediaRouteButton btnCast,
-      @NonNull MaterialButton btnEmptyStateBrowseLocal,
+      @NonNull ImageButton btnCastRemote, @NonNull MaterialButton btnEmptyStateBrowseLocal,
       @NonNull MaterialButton btnEmptyStateBrowseNetwork, @NonNull MaterialButton btnFavoritesLocal,
       @NonNull MaterialButton btnFavoritesNetwork, @NonNull MaterialButton btnGalleryPrimary,
       @NonNull MaterialButton btnGallerySecondary, @NonNull ImageButton btnGalleryTypePhoto,
@@ -260,6 +263,7 @@ public final class FragmentHomeBinding implements ViewBinding {
     this.btnBrowseLocal = btnBrowseLocal;
     this.btnBrowseNetwork = btnBrowseNetwork;
     this.btnCast = btnCast;
+    this.btnCastRemote = btnCastRemote;
     this.btnEmptyStateBrowseLocal = btnEmptyStateBrowseLocal;
     this.btnEmptyStateBrowseNetwork = btnEmptyStateBrowseNetwork;
     this.btnFavoritesLocal = btnFavoritesLocal;
@@ -371,6 +375,12 @@ public final class FragmentHomeBinding implements ViewBinding {
       id = R.id.btnCast;
       MediaRouteButton btnCast = ViewBindings.findChildViewById(rootView, id);
       if (btnCast == null) {
+        break missingId;
+      }
+
+      id = R.id.btnCastRemote;
+      ImageButton btnCastRemote = ViewBindings.findChildViewById(rootView, id);
+      if (btnCastRemote == null) {
         break missingId;
       }
 
@@ -741,20 +751,20 @@ public final class FragmentHomeBinding implements ViewBinding {
       }
 
       return new FragmentHomeBinding((CoordinatorLayout) rootView, audioContainer, btnBrowseLocal,
-          btnBrowseNetwork, btnCast, btnEmptyStateBrowseLocal, btnEmptyStateBrowseNetwork,
-          btnFavoritesLocal, btnFavoritesNetwork, btnGalleryPrimary, btnGallerySecondary,
-          btnGalleryTypePhoto, btnGalleryTypeVideo, btnHistoryDeleteOverlay, btnHistoryLocal,
-          btnHistoryNetwork, btnNetworkHeaderScan, btnPlaylistLocal1, btnPlaylistLocal2,
-          btnPlaylistLocal3, btnPlaylistLocal4, btnPlaylistLocal5, btnPlaylistNetwork1,
-          btnPlaylistNetwork2, btnPlaylistNetwork3, btnPlaylistNetwork4, btnPlaylistNetwork5,
-          btnScreenCast, btnSettings, btnVideoQueueLocal, btnVideoQueueNetwork, emptyStateGallery,
-          emptyStateLocal, emptyStateNetwork, galleryTypeHeaderToggle, headerCard,
-          headerControlsGallery, headerControlsLocal, headerControlsNetwork, ivLogo, listGallery,
-          listLocal, listNetwork, networkConfigContainer, scrollContent, sectionGallery,
-          sectionLocal, sectionNetwork, tabAll, tabAudio, tabAudioIcon, tabAudioText, tabGallery,
-          tabGalleryIcon, tabGalleryText, tabLocal, tabLocalIcon, tabLocalText, tabNetwork,
-          tabNetworkIcon, tabNetworkText, tvEmptyStateGallery, tvNetworkHeaderSubtitle,
-          tvNetworkHeaderTitle, tvSectionGallery, tvVersionBadge);
+          btnBrowseNetwork, btnCast, btnCastRemote, btnEmptyStateBrowseLocal,
+          btnEmptyStateBrowseNetwork, btnFavoritesLocal, btnFavoritesNetwork, btnGalleryPrimary,
+          btnGallerySecondary, btnGalleryTypePhoto, btnGalleryTypeVideo, btnHistoryDeleteOverlay,
+          btnHistoryLocal, btnHistoryNetwork, btnNetworkHeaderScan, btnPlaylistLocal1,
+          btnPlaylistLocal2, btnPlaylistLocal3, btnPlaylistLocal4, btnPlaylistLocal5,
+          btnPlaylistNetwork1, btnPlaylistNetwork2, btnPlaylistNetwork3, btnPlaylistNetwork4,
+          btnPlaylistNetwork5, btnScreenCast, btnSettings, btnVideoQueueLocal, btnVideoQueueNetwork,
+          emptyStateGallery, emptyStateLocal, emptyStateNetwork, galleryTypeHeaderToggle,
+          headerCard, headerControlsGallery, headerControlsLocal, headerControlsNetwork, ivLogo,
+          listGallery, listLocal, listNetwork, networkConfigContainer, scrollContent,
+          sectionGallery, sectionLocal, sectionNetwork, tabAll, tabAudio, tabAudioIcon,
+          tabAudioText, tabGallery, tabGalleryIcon, tabGalleryText, tabLocal, tabLocalIcon,
+          tabLocalText, tabNetwork, tabNetworkIcon, tabNetworkText, tvEmptyStateGallery,
+          tvNetworkHeaderSubtitle, tvNetworkHeaderTitle, tvSectionGallery, tvVersionBadge);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

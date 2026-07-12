@@ -750,4 +750,25 @@
     <string name="audio_library_network_synced">Сеть синхронизирована</string>
     <string name="audio_album_sort_album">Название альбома</string>
     <string name="audio_album_sort_artist">Имя исполнителя</string>
+    <string name="action_play_pause">Воспроизведение / пауза</string>
+    <string name="action_stop">Стоп</string>
+    <string name="cast_remote_title">Пульт Cast</string>
+    <string name="cast_remote_subtitle">Управление видео на телевизоре</string>
+    <string name="cast_remote_power">Подключить или отключить Chromecast</string>
+    <string name="cast_remote_not_connected">НЕТ АКТИВНОЙ ТРАНСЛЯЦИИ</string>
+    <string name="cast_remote_connected">CAST ПОДКЛЮЧЕН</string>
+    <string name="cast_remote_no_media">Видео сейчас не транслируется</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_volume_up">Увеличить громкость</string>
+    <string name="cast_remote_volume_down">Уменьшить громкость</string>
+    <string name="cast_remote_mute">Выключить или включить звук</string>
+    <string name="cast_remote_rewind">Назад на 10 секунд</string>
+    <string name="cast_remote_forward">Вперёд на 10 секунд</string>
+    <string name="cast_remote_previous">Предыдущее видео</string>
+    <string name="cast_remote_next">Следующее видео</string>
+    <string name="cast_remote_hint">Красная кнопка открывает панель Chromecast для подключения или отключения телевизора.</string>
+    <string name="content_desc_cast_remote">Пульт Chromecast</string>
+
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_led_off">OFF</string>
 </resources>

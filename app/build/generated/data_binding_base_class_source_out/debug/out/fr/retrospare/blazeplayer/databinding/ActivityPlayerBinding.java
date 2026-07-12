@@ -34,6 +34,9 @@ public final class ActivityPlayerBinding implements ViewBinding {
   public final ImageButton btnBack;
 
   @NonNull
+  public final ImageButton btnCastRemote;
+
+  @NonNull
   public final LinearLayout btnForward;
 
   @NonNull
@@ -179,20 +182,21 @@ public final class ActivityPlayerBinding implements ViewBinding {
 
   private ActivityPlayerBinding(@NonNull FrameLayout rootView,
       @NonNull LinearLayout bottomControlsContainer, @NonNull LinearLayout btnAudio,
-      @NonNull ImageButton btnBack, @NonNull LinearLayout btnForward,
-      @NonNull MediaRouteButton btnHeaderCast, @NonNull LinearLayout btnNext,
-      @NonNull FrameLayout btnPlayPause, @NonNull LinearLayout btnPrevious,
-      @NonNull LinearLayout btnRatio, @NonNull LinearLayout btnRewind,
-      @NonNull FrameLayout btnScreenshot, @NonNull ImageButton btnSeekInfo,
-      @NonNull LinearLayout btnSpeed, @NonNull FrameLayout btnStop,
-      @NonNull TextView btnStopCasting, @NonNull LinearLayout btnSubtitles,
-      @NonNull FrameLayout btnVideoQueue, @NonNull ImageButton btnVideoSettings,
-      @NonNull View castBlackout, @NonNull LinearLayout castStatusCard,
-      @NonNull LinearLayout centerTransportControls, @NonNull View controlsDimOverlay,
-      @NonNull PlayerView filteredPlayerView, @NonNull ImageView ivPlayPause,
-      @NonNull LinearLayout playPauseStack, @NonNull PlayerView playerView,
-      @NonNull View progressBuffer, @NonNull FrameLayout progressContainer,
-      @NonNull View progressFill, @NonNull View progressThumb, @NonNull TextView seekIndicator,
+      @NonNull ImageButton btnBack, @NonNull ImageButton btnCastRemote,
+      @NonNull LinearLayout btnForward, @NonNull MediaRouteButton btnHeaderCast,
+      @NonNull LinearLayout btnNext, @NonNull FrameLayout btnPlayPause,
+      @NonNull LinearLayout btnPrevious, @NonNull LinearLayout btnRatio,
+      @NonNull LinearLayout btnRewind, @NonNull FrameLayout btnScreenshot,
+      @NonNull ImageButton btnSeekInfo, @NonNull LinearLayout btnSpeed,
+      @NonNull FrameLayout btnStop, @NonNull TextView btnStopCasting,
+      @NonNull LinearLayout btnSubtitles, @NonNull FrameLayout btnVideoQueue,
+      @NonNull ImageButton btnVideoSettings, @NonNull View castBlackout,
+      @NonNull LinearLayout castStatusCard, @NonNull LinearLayout centerTransportControls,
+      @NonNull View controlsDimOverlay, @NonNull PlayerView filteredPlayerView,
+      @NonNull ImageView ivPlayPause, @NonNull LinearLayout playPauseStack,
+      @NonNull PlayerView playerView, @NonNull View progressBuffer,
+      @NonNull FrameLayout progressContainer, @NonNull View progressFill,
+      @NonNull View progressThumb, @NonNull TextView seekIndicator,
       @NonNull LinearLayout timelineRow, @NonNull FrameLayout touchZoneLeft,
       @NonNull View touchZoneLeftFill, @NonNull View touchZoneLeftThumb,
       @NonNull FrameLayout touchZoneRight, @NonNull View touchZoneRightFill,
@@ -207,6 +211,7 @@ public final class ActivityPlayerBinding implements ViewBinding {
     this.bottomControlsContainer = bottomControlsContainer;
     this.btnAudio = btnAudio;
     this.btnBack = btnBack;
+    this.btnCastRemote = btnCastRemote;
     this.btnForward = btnForward;
     this.btnHeaderCast = btnHeaderCast;
     this.btnNext = btnNext;
@@ -299,6 +304,12 @@ public final class ActivityPlayerBinding implements ViewBinding {
       id = R.id.btnBack;
       ImageButton btnBack = ViewBindings.findChildViewById(rootView, id);
       if (btnBack == null) {
+        break missingId;
+      }
+
+      id = R.id.btnCastRemote;
+      ImageButton btnCastRemote = ViewBindings.findChildViewById(rootView, id);
+      if (btnCastRemote == null) {
         break missingId;
       }
 
@@ -591,15 +602,16 @@ public final class ActivityPlayerBinding implements ViewBinding {
       }
 
       return new ActivityPlayerBinding((FrameLayout) rootView, bottomControlsContainer, btnAudio,
-          btnBack, btnForward, btnHeaderCast, btnNext, btnPlayPause, btnPrevious, btnRatio,
-          btnRewind, btnScreenshot, btnSeekInfo, btnSpeed, btnStop, btnStopCasting, btnSubtitles,
-          btnVideoQueue, btnVideoSettings, castBlackout, castStatusCard, centerTransportControls,
-          controlsDimOverlay, filteredPlayerView, ivPlayPause, playPauseStack, playerView,
-          progressBuffer, progressContainer, progressFill, progressThumb, seekIndicator,
-          timelineRow, touchZoneLeft, touchZoneLeftFill, touchZoneLeftThumb, touchZoneRight,
-          touchZoneRightFill, touchZoneRightThumb, tvBrightnessZone, tvCastDeviceName,
-          tvCastMediaTitle, tvCastStatusTitle, tvCurrentTime, tvForwardLabel, tvRewindLabel,
-          tvSpeedValue, tvSubtitle, tvTitle, tvTotalTime, tvVolumeZone, uiOverlay);
+          btnBack, btnCastRemote, btnForward, btnHeaderCast, btnNext, btnPlayPause, btnPrevious,
+          btnRatio, btnRewind, btnScreenshot, btnSeekInfo, btnSpeed, btnStop, btnStopCasting,
+          btnSubtitles, btnVideoQueue, btnVideoSettings, castBlackout, castStatusCard,
+          centerTransportControls, controlsDimOverlay, filteredPlayerView, ivPlayPause,
+          playPauseStack, playerView, progressBuffer, progressContainer, progressFill,
+          progressThumb, seekIndicator, timelineRow, touchZoneLeft, touchZoneLeftFill,
+          touchZoneLeftThumb, touchZoneRight, touchZoneRightFill, touchZoneRightThumb,
+          tvBrightnessZone, tvCastDeviceName, tvCastMediaTitle, tvCastStatusTitle, tvCurrentTime,
+          tvForwardLabel, tvRewindLabel, tvSpeedValue, tvSubtitle, tvTitle, tvTotalTime,
+          tvVolumeZone, uiOverlay);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

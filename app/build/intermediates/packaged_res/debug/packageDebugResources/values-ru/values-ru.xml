@@ -124,6 +124,7 @@
     <string name="action_ok">OK</string>
     <string name="action_open">Открыть</string>
     <string name="action_play">Воспроизвести</string>
+    <string name="action_play_pause">Воспроизведение / пауза</string>
     <string name="action_play_playlist">Воспроизвести плейлист</string>
     <string name="action_quit">Выйти</string>
     <string name="action_refresh">Обновить</string>
@@ -137,6 +138,7 @@
     <string name="action_scan">Сканировать</string>
     <string name="action_share">Поделиться</string>
     <string name="action_stay_editing">Остаться здесь</string>
+    <string name="action_stop">Стоп</string>
     <string name="action_to_playlist">В плейлист</string>
     <string name="add">Добавить</string>
     <string name="add_manually">Добавить вручную</string>
@@ -312,6 +314,23 @@
     <string name="cast_audio_language_unavailable">Смена языка недоступна при трансляции</string>
     <string name="cast_dialog_status">Идет трансляция</string>
     <string name="cast_dialog_stop">Остановить трансляцию</string>
+    <string name="cast_remote_connected">CAST ПОДКЛЮЧЕН</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_forward">Вперёд на 10 секунд</string>
+    <string name="cast_remote_hint">Красная кнопка открывает панель Chromecast для подключения или отключения телевизора.</string>
+    <string name="cast_remote_led_off">OFF</string>
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_mute">Выключить или включить звук</string>
+    <string name="cast_remote_next">Следующее видео</string>
+    <string name="cast_remote_no_media">Видео сейчас не транслируется</string>
+    <string name="cast_remote_not_connected">НЕТ АКТИВНОЙ ТРАНСЛЯЦИИ</string>
+    <string name="cast_remote_power">Подключить или отключить Chromecast</string>
+    <string name="cast_remote_previous">Предыдущее видео</string>
+    <string name="cast_remote_rewind">Назад на 10 секунд</string>
+    <string name="cast_remote_subtitle">Управление видео на телевизоре</string>
+    <string name="cast_remote_title">Пульт Cast</string>
+    <string name="cast_remote_volume_down">Уменьшить громкость</string>
+    <string name="cast_remote_volume_up">Увеличить громкость</string>
     <string name="cast_subtitles_unavailable">Субтитры недоступны при трансляции</string>
     <string name="casting_chromecast">Трансляция на Chromecast</string>
     <string name="casting_on_device">Трансляция на %1$s</string>
@@ -325,6 +344,7 @@
     <string name="confirm_permanent_delete_message">Окончательно удалить это фото из корзины?</string>
     <string name="contact_section">КОНТАКТЫ</string>
     <string name="content_desc_back">Назад</string>
+    <string name="content_desc_cast_remote">Пульт Chromecast</string>
     <string name="content_desc_clean">Очистить</string>
     <string name="content_desc_close_playlist">Закрыть плейлист</string>
     <string name="content_desc_close_video_queue">Закрыть очередь видео</string>

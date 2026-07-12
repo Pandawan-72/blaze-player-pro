@@ -760,4 +760,25 @@ Token: %2$s</string>
     <string name="eq_room_plate">Plate</string>
     <string name="eq_equalizer_unavailable">The device equalizer is unavailable on this output. Channel controls remain active.</string>
 
+    <string name="action_play_pause">Play / pause</string>
+    <string name="action_stop">Stop</string>
+    <string name="cast_remote_title">Cast remote</string>
+    <string name="cast_remote_subtitle">Control the video on your TV</string>
+    <string name="cast_remote_power">Connect or disconnect Chromecast</string>
+    <string name="cast_remote_not_connected">NO ACTIVE CAST</string>
+    <string name="cast_remote_connected">CAST CONNECTED</string>
+    <string name="cast_remote_no_media">No video is currently being cast</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_volume_up">Volume up</string>
+    <string name="cast_remote_volume_down">Volume down</string>
+    <string name="cast_remote_mute">Mute or unmute</string>
+    <string name="cast_remote_rewind">Rewind 10 seconds</string>
+    <string name="cast_remote_forward">Forward 10 seconds</string>
+    <string name="cast_remote_previous">Previous video</string>
+    <string name="cast_remote_next">Next video</string>
+    <string name="cast_remote_hint">The red button opens the Chromecast panel to connect or disconnect the TV.</string>
+    <string name="content_desc_cast_remote">Chromecast remote control</string>
+
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_led_off">OFF</string>
 </resources>

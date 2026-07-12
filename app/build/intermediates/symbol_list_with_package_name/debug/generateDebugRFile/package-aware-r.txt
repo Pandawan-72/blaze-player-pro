@@ -98,6 +98,18 @@ drawable bg_badge_green
 drawable bg_badge_yellow
 drawable bg_bottom_nav
 drawable bg_cast_icon_circle
+drawable bg_cast_remote_display
+drawable bg_cast_remote_key
+drawable bg_cast_remote_key_primary
+drawable bg_cast_remote_led_display
+drawable bg_cast_remote_power
+drawable bg_cast_remote_screen
+drawable bg_cast_remote_seek_thumb
+drawable bg_cast_remote_seekbar
+drawable bg_cast_remote_shell
+drawable bg_cast_remote_status_connected
+drawable bg_cast_remote_status_idle
+drawable bg_cast_remote_volume_key
 drawable bg_cast_status_card
 drawable bg_cast_stop_button
 drawable bg_circle_translucent
@@ -189,7 +201,9 @@ drawable ic_play_circle
 drawable ic_play_small
 drawable ic_play_white
 drawable ic_playing_spinner
+drawable ic_power
 drawable ic_refresh
+drawable ic_remote_control
 drawable ic_repeat
 drawable ic_repeat_one
 drawable ic_rewind_10
@@ -215,6 +229,9 @@ drawable ic_trash
 drawable ic_tune
 drawable ic_video_camera
 drawable ic_volume
+drawable ic_volume_down_remote
+drawable ic_volume_mute_remote
+drawable ic_volume_up_remote
 drawable ic_wifi
 drawable logo
 drawable pixel_dancer_1
@@ -289,6 +306,7 @@ id btnBuyProPlus
 id btnCast
 id btnCastDialogClose
 id btnCastDialogStop
+id btnCastRemote
 id btnCleanPlaylist
 id btnClearPartyPlaylist
 id btnClearVideoQueue
@@ -339,6 +357,7 @@ id btnMiniPlayPause
 id btnMiniPrev
 id btnMono
 id btnMore
+id btnMute
 id btnNetwork
 id btnNetworkHeaderScan
 id btnNext
@@ -357,6 +376,7 @@ id btnPlaylistSheet
 id btnPlaylistSheetClear
 id btnPlaylistSheetPlayAll
 id btnPlaylistSheetSecondary
+id btnPower
 id btnPrev
 id btnPrevious
 id btnQueueToPlaylist
@@ -403,6 +423,8 @@ id btnVideoQueueLocal
 id btnVideoQueueNetwork
 id btnVideoQueueToPlaylist
 id btnVideoSettings
+id btnVolumeDown
+id btnVolumeUp
 id btnVotePartyPlaylist
 id castBlackout
 id castStatusCard
@@ -444,6 +466,7 @@ id headerCard
 id headerControlsGallery
 id headerControlsLocal
 id headerControlsNetwork
+id hiddenCastRouteButton
 id homeFragment
 id iconWatchedFolders
 id imgAppIcon
@@ -541,6 +564,10 @@ id recyclerSearch
 id recyclerTracks
 id recyclerVideoQueue
 id recyclerView
+id remoteCard
+id remoteControls
+id remoteRoot
+id remoteScroll
 id resumeContainer
 id resumeScroll
 id resumeSectionHeader
@@ -556,6 +583,7 @@ id sectionNetwork
 id seekBar
 id seekBlurIntensity
 id seekIndicator
+id seekPosition
 id seekStraighten
 id settingAbout
 id settingAudioLang
@@ -599,6 +627,7 @@ id tabNetwork
 id tabNetworkIcon
 id tabNetworkText
 id tabRotate
+id timelineContainer
 id timelineRow
 id touchZoneLeft
 id touchZoneLeftFill
@@ -650,6 +679,7 @@ id tvCodec
 id tvCompressorKnobValue
 id tvCount
 id tvCurrentTime
+id tvDevice
 id tvDeviceIp
 id tvDeviceName
 id tvDialogTitle
@@ -669,6 +699,7 @@ id tvFolderPath
 id tvFormat
 id tvForwardLabel
 id tvIp
+id tvLedStatus
 id tvLibraryMiniArtist
 id tvLibraryMiniTime
 id tvLibraryMiniTitle
@@ -677,6 +708,7 @@ id tvLibraryTitle
 id tvLoudnessValue
 id tvLyricsCurrent
 id tvLyricsNext
+id tvMediaTitle
 id tvMiniArtist
 id tvMiniTime
 id tvMiniTitle
@@ -689,6 +721,7 @@ id tvPlaylistCodec
 id tvPlaylistFormatBadge
 id tvPlaylistSheetEmpty
 id tvPlaylistSheetTitle
+id tvPosition
 id tvPreampKnobValue
 id tvPresetTitle
 id tvResolution
@@ -727,6 +760,7 @@ id tvVersionBadge
 id tvVideoCodec
 id tvVideoQueueEmpty
 id tvVideoQueueTitle
+id tvVolume
 id tvVolumeZone
 id tvWatchedSummary
 id uiOverlay
@@ -738,6 +772,7 @@ layout activity_audio_browser
 layout activity_audio_player
 layout activity_blaze_audio_library
 layout activity_blaze_audio_settings
+layout activity_chromecast_remote
 layout activity_main
 layout activity_network_video_browser
 layout activity_photo_editor
@@ -840,6 +875,7 @@ string action_off
 string action_ok
 string action_open
 string action_play
+string action_play_pause
 string action_play_playlist
 string action_quit
 string action_refresh
@@ -853,6 +889,7 @@ string action_save
 string action_scan
 string action_share
 string action_stay_editing
+string action_stop
 string action_to_playlist
 string add
 string add_manually
@@ -1027,6 +1064,23 @@ string browser_search_in_progress
 string cast_audio_language_unavailable
 string cast_dialog_status
 string cast_dialog_stop
+string cast_remote_connected
+string cast_remote_control_label
+string cast_remote_forward
+string cast_remote_hint
+string cast_remote_led_off
+string cast_remote_led_on
+string cast_remote_mute
+string cast_remote_next
+string cast_remote_no_media
+string cast_remote_not_connected
+string cast_remote_power
+string cast_remote_previous
+string cast_remote_rewind
+string cast_remote_subtitle
+string cast_remote_title
+string cast_remote_volume_down
+string cast_remote_volume_up
 string cast_subtitles_unavailable
 string casting_chromecast
 string casting_on_device
@@ -1041,6 +1095,7 @@ string confirm_empty_trash_message
 string confirm_permanent_delete_message
 string contact_section
 string content_desc_back
+string content_desc_cast_remote
 string content_desc_clean
 string content_desc_close_playlist
 string content_desc_close_video_queue

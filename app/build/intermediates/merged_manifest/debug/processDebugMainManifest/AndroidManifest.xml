@@ -277,6 +277,11 @@
             </intent-filter>
         </activity>
         <activity
+            android:name="fr.retrospare.blazeplayer.player.ChromecastRemoteActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
+        <activity
             android:name="fr.retrospare.blazeplayer.player.PlayerActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
             android:exported="true"

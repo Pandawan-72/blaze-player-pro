@@ -104,6 +104,7 @@
     <string name="action_ok">OK</string>
     <string name="action_open">Openen</string>
     <string name="action_play">Afspelen</string>
+    <string name="action_play_pause">Afspelen / pauzeren</string>
     <string name="action_play_playlist">Afspeellijst afspelen</string>
     <string name="action_quit">Afsluiten</string>
     <string name="action_refresh">Vernieuwen</string>
@@ -117,6 +118,7 @@
     <string name="action_scan">Scannen</string>
     <string name="action_share">Delen</string>
     <string name="action_stay_editing">Hier blijven</string>
+    <string name="action_stop">Stoppen</string>
     <string name="action_to_playlist">Naar playlist</string>
     <string name="add">Toevoegen</string>
     <string name="add_manually">Handmatig toevoegen</string>
@@ -292,6 +294,23 @@ Token: %2$s</string>
     <string name="cast_audio_language_unavailable">Taal wijzigen niet beschikbaar tijdens casten</string>
     <string name="cast_dialog_status">Casten bezig</string>
     <string name="cast_dialog_stop">Casten stoppen</string>
+    <string name="cast_remote_connected">CAST VERBONDEN</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_forward">10 seconden vooruit</string>
+    <string name="cast_remote_hint">De rode knop opent het Chromecast-paneel om de tv te verbinden of los te koppelen.</string>
+    <string name="cast_remote_led_off">OFF</string>
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_mute">Geluid dempen of herstellen</string>
+    <string name="cast_remote_next">Volgende video</string>
+    <string name="cast_remote_no_media">Er wordt geen video gecast</string>
+    <string name="cast_remote_not_connected">GEEN ACTIEVE CAST</string>
+    <string name="cast_remote_power">Chromecast verbinden of loskoppelen</string>
+    <string name="cast_remote_previous">Vorige video</string>
+    <string name="cast_remote_rewind">10 seconden terug</string>
+    <string name="cast_remote_subtitle">Bedien de video op de tv</string>
+    <string name="cast_remote_title">Cast-afstandsbediening</string>
+    <string name="cast_remote_volume_down">Volume lager</string>
+    <string name="cast_remote_volume_up">Volume hoger</string>
     <string name="cast_subtitles_unavailable">Ondertitels niet beschikbaar tijdens casten</string>
     <string name="casting_chromecast">Casten naar Chromecast</string>
     <string name="casting_on_device">Casten naar %1$s</string>
@@ -305,6 +324,7 @@ Token: %2$s</string>
     <string name="confirm_permanent_delete_message">Deze foto permanent uit de prullenbak verwijderen?</string>
     <string name="contact_section">CONTACT</string>
     <string name="content_desc_back">Terug</string>
+    <string name="content_desc_cast_remote">Chromecast-afstandsbediening</string>
     <string name="content_desc_clean">Opschonen</string>
     <string name="content_desc_close_playlist">Afspeellijst sluiten</string>
     <string name="content_desc_close_video_queue">Videowachtrij sluiten</string>

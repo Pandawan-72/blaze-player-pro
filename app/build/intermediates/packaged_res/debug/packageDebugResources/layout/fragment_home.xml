@@ -77,6 +77,19 @@
                         android:contentDescription="Chromecast" />
 
                     <ImageButton
+                        android:id="@+id/btnCastRemote"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_centerVertical="true"
+                        android:layout_toStartOf="@id/btnScreenCast"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_header_action_button"
+                        android:padding="9dp"
+                        android:src="@drawable/ic_remote_control"
+                        android:tint="@color/on_surface"
+                        android:contentDescription="@string/content_desc_cast_remote" />
+
+                    <ImageButton
                         android:id="@+id/btnScreenCast"
                         android:layout_width="40dp"
                         android:layout_height="40dp"

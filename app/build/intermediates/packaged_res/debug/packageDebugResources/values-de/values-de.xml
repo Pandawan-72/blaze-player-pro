@@ -104,6 +104,7 @@
     <string name="action_ok">OK</string>
     <string name="action_open">Öffnen</string>
     <string name="action_play">Abspielen</string>
+    <string name="action_play_pause">Wiedergabe / Pause</string>
     <string name="action_play_playlist">Playlist abspielen</string>
     <string name="action_quit">Beenden</string>
     <string name="action_refresh">Aktualisieren</string>
@@ -117,6 +118,7 @@
     <string name="action_scan">Scannen</string>
     <string name="action_share">Teilen</string>
     <string name="action_stay_editing">Hier bleiben</string>
+    <string name="action_stop">Stopp</string>
     <string name="action_to_playlist">Zur Playlist</string>
     <string name="add">Hinzufügen</string>
     <string name="add_manually">Manuell hinzufügen</string>
@@ -292,6 +294,23 @@ Token: %2$s</string>
     <string name="cast_audio_language_unavailable">Sprachwechsel beim Casten nicht verfügbar</string>
     <string name="cast_dialog_status">Übertragung läuft</string>
     <string name="cast_dialog_stop">Übertragung beenden</string>
+    <string name="cast_remote_connected">CAST VERBUNDEN</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_forward">10 Sekunden vor</string>
+    <string name="cast_remote_hint">Die rote Taste öffnet das Chromecast-Fenster zum Verbinden oder Trennen des Fernsehers.</string>
+    <string name="cast_remote_led_off">OFF</string>
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_mute">Ton aus- oder einschalten</string>
+    <string name="cast_remote_next">Nächstes Video</string>
+    <string name="cast_remote_no_media">Derzeit wird kein Video übertragen</string>
+    <string name="cast_remote_not_connected">KEIN CAST AKTIV</string>
+    <string name="cast_remote_power">Chromecast verbinden oder trennen</string>
+    <string name="cast_remote_previous">Vorheriges Video</string>
+    <string name="cast_remote_rewind">10 Sekunden zurück</string>
+    <string name="cast_remote_subtitle">Video auf dem Fernseher steuern</string>
+    <string name="cast_remote_title">Cast-Fernbedienung</string>
+    <string name="cast_remote_volume_down">Leiser</string>
+    <string name="cast_remote_volume_up">Lauter</string>
     <string name="cast_subtitles_unavailable">Untertitel beim Casten nicht verfügbar</string>
     <string name="casting_chromecast">Übertragung auf Chromecast</string>
     <string name="casting_on_device">Übertragung auf %1$s</string>
@@ -305,6 +324,7 @@ Token: %2$s</string>
     <string name="confirm_permanent_delete_message">Dieses Foto endgültig aus dem Papierkorb löschen?</string>
     <string name="contact_section">KONTAKT</string>
     <string name="content_desc_back">Zurück</string>
+    <string name="content_desc_cast_remote">Chromecast-Fernbedienung</string>
     <string name="content_desc_clean">Bereinigen</string>
     <string name="content_desc_close_playlist">Playlist schließen</string>
     <string name="content_desc_close_video_queue">Video-Warteschlange schließen</string>

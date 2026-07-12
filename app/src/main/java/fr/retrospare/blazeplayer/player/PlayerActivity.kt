@@ -83,7 +83,7 @@ import javax.inject.Inject
  * `setMediaItem()` spécifique au cast, on laisse Media3 s'en charger.
  */
 @AndroidEntryPoint
-class PlayerActivity : AppCompatActivity() {
+class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target {
 
     @Inject lateinit var dataStore: DataStore<Preferences>
     @Inject lateinit var mediaRepository: MediaRepository
@@ -162,6 +162,7 @@ class PlayerActivity : AppCompatActivity() {
     private var hasEnteredPip = false
     private var videoStoppedByUser = false
     private var closingPlayerExplicitly = false
+    private var openingCastRemote = false
     private var lastProgressPersistAt = 0L
     private var networkPlaybackReachedNaturalEnd = false
     private var prematureLocalEndRecoveries = 0
@@ -212,6 +213,7 @@ class PlayerActivity : AppCompatActivity() {
             videoQueueIndex = 0
         }
         if (newPath.isBlank() || newPath == mediaPath) {
+            persistRemoteQueueState()
             isNetworkMedia = intent.getBooleanExtra("isNetworkMedia", false) ||
                 newPath.startsWith("smb://", true) || newPath.startsWith("ftp://", true) ||
                 newPath.startsWith("http://", true) || newPath.startsWith("https://", true)
@@ -284,6 +286,8 @@ class PlayerActivity : AppCompatActivity() {
             } catch (_: Exception) {}
         }
         isNetworkMedia = intent.getBooleanExtra("isNetworkMedia", false) || mediaPath.startsWith("smb://", true) || mediaPath.startsWith("ftp://", true) || mediaPath.startsWith("http://", true) || mediaPath.startsWith("https://", true)
+        persistRemoteQueueState()
+        ChromecastRemoteCommandBridge.attach(this)
 
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() { goBackToHistory() }
@@ -467,53 +471,19 @@ class PlayerActivity : AppCompatActivity() {
             .build()
     }
 
-    private fun guessVideoMimeType(path: String): String {
-        return when (path.substringBefore('?').substringAfterLast('.', "").lowercase()) {
-            "mp4", "m4v" -> androidx.media3.common.MimeTypes.VIDEO_MP4
-            "mkv" -> "video/x-matroska"
-            "webm" -> androidx.media3.common.MimeTypes.VIDEO_WEBM
-            "mov" -> "video/quicktime"
-            "ts", "m2ts", "mts" -> "video/mp2t"
-            else -> androidx.media3.common.MimeTypes.VIDEO_MP4
-        }
-    }
+    private fun buildMediaItem(path: String, name: String): MediaItem =
+        VideoMediaItemFactory.build(this, path, name)
 
-    /** Construit le MediaItem pour la lecture locale.
-     *
-     *  Important : on ne force plus toutes les vidéos à passer par le relais HTTP 127.0.0.1.
-     *  Le lecteur local lit directement file://, content://, http(s):// et smb:// via
-     *  BlazeDataSourceFactory. Le relais reste actif uniquement pour Chromecast, où
-     *  BlazeCastMediaItemConverter réécrit les sources non joignables en URL LAN. */
-    private fun buildMediaItem(path: String, name: String): MediaItem {
-        try {
-            if (!path.startsWith("http://", true) && !path.startsWith("https://", true)) {
-                VideoStreamServerManager.startServer(applicationContext, path)
-            }
-        } catch (e: Exception) {
-            CrashReporter.log(this, "Failed to refresh cast fallback stream for $path", e)
-        }
-        val uri = when {
-            path.startsWith("content://", true) || path.startsWith("file://", true) ||
-                path.startsWith("smb://", true) || path.startsWith("ftp://", true) ||
-                path.startsWith("http://", true) || path.startsWith("https://", true) -> Uri.parse(path)
-            else -> Uri.fromFile(File(path))
-        }
-        val builder = MediaItem.Builder()
-            .setUri(uri)
-            .setMediaId(path)
-            .setMimeType(guessVideoMimeType(path))
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(name)
-                    .setMediaType(MediaMetadata.MEDIA_TYPE_MOVIE)
-                    .apply {
-                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailJpegBytes(applicationContext, path)?.let { bytes ->
-                            setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                        }
-                    }
-                    .build()
-            )
-        return builder.build()
+    private fun persistRemoteQueueState() {
+        if (mediaPath.isBlank()) return
+        VideoRemoteQueueState.save(
+            context = applicationContext,
+            queuePaths = videoQueuePaths,
+            queueNames = videoQueueNames,
+            index = videoQueueIndex,
+            currentPath = mediaPath,
+            currentName = mediaName
+        )
     }
 
     /** Point d'entrée UNIQUE pour charger un média. API Player standard uniquement :
@@ -958,13 +928,14 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        openingCastRemote = false
         applyImmersiveMode()
     }
 
     override fun onPause() {
         super.onPause()
         if (!::player.isInitialized) return
-        if (prefPip && player.isPlaying) enterPipIfEnabled()
+        if (!openingCastRemote && prefPip && player.isPlaying) enterPipIfEnabled()
     }
 
     override fun onStop() {
@@ -988,6 +959,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        ChromecastRemoteCommandBridge.detach(this)
         detachPlayerViews()
         super.onDestroy()
         uiHandler.removeCallbacksAndMessages(null)
@@ -1594,9 +1566,45 @@ class PlayerActivity : AppCompatActivity() {
         binding.btnStopCasting.setOnClickListener {
             stopChromecastFromUi()
         }
+
+        binding.btnCastRemote.setOnClickListener {
+            openingCastRemote = true
+            startActivity(Intent(this, ChromecastRemoteActivity::class.java))
+        }
     }
 
-
+    override fun onChromecastRemoteCommand(command: ChromecastRemoteCommandBridge.Command): Boolean {
+        if (!::player.isInitialized || isDestroyed || isFinishing) return false
+        runOnUiThread {
+            try {
+                when (command) {
+                    ChromecastRemoteCommandBridge.Command.PLAY_PAUSE -> {
+                        if (videoStoppedByUser) {
+                            lifecycleScope.launch { restartVideoAfterUserStop() }
+                        } else if (player.isPlaying) {
+                            player.pause()
+                        } else {
+                            player.play()
+                        }
+                    }
+                    ChromecastRemoteCommandBridge.Command.PREVIOUS -> playPrevious()
+                    ChromecastRemoteCommandBridge.Command.NEXT -> playNext()
+                    ChromecastRemoteCommandBridge.Command.SEEK_BACK -> {
+                        player.seekTo((player.currentPosition - 10_000L).coerceAtLeast(0L))
+                    }
+                    ChromecastRemoteCommandBridge.Command.SEEK_FORWARD -> {
+                        val duration = player.duration.takeIf { it > 0L && it != C.TIME_UNSET } ?: Long.MAX_VALUE
+                        player.seekTo((player.currentPosition + 10_000L).coerceAtMost(duration))
+                    }
+                    ChromecastRemoteCommandBridge.Command.STOP -> stopVideoPlaybackFromUi()
+                }
+                showUI()
+            } catch (e: Exception) {
+                CrashReporter.log(applicationContext, "Player remote command failed: $command", e)
+            }
+        }
+        return true
+    }
 
     private fun maybeCapturePlaybackThumbnail(posMs: Long, durMs: Long) {
         if (!::player.isInitialized || mediaPath.isBlank()) return
@@ -2361,6 +2369,7 @@ class PlayerActivity : AppCompatActivity() {
         binding.root.animate().alpha(0f).setDuration(400).withEndAction {
             mediaPath = path
             mediaName = name
+            persistRemoteQueueState()
             binding.tvTitle.text = mediaName
             resumeHandled = true
             playNextCalled = false

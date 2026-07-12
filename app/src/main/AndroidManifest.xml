@@ -220,6 +220,12 @@ android:name=".player.BlazePlayerService"
         </activity>
 
         <activity
+            android:name=".player.ChromecastRemoteActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
+
+        <activity
             android:name=".player.PlayerActivity"
             android:supportsPictureInPicture="true"
             android:exported="true"

@@ -104,6 +104,7 @@
     <string name="action_ok">OK</string>
     <string name="action_open">Apri</string>
     <string name="action_play">Riproduci</string>
+    <string name="action_play_pause">Riproduci / pausa</string>
     <string name="action_play_playlist">Riproduci playlist</string>
     <string name="action_quit">Esci</string>
     <string name="action_refresh">Aggiorna</string>
@@ -117,6 +118,7 @@
     <string name="action_scan">Scansiona</string>
     <string name="action_share">Condividi</string>
     <string name="action_stay_editing">Resta qui</string>
+    <string name="action_stop">Stop</string>
     <string name="action_to_playlist">A playlist</string>
     <string name="add">Aggiungi</string>
     <string name="add_manually">Aggiungi manualmente</string>
@@ -292,6 +294,23 @@ Token: %2$s</string>
     <string name="cast_audio_language_unavailable">Cambio lingua non disponibile durante il cast</string>
     <string name="cast_dialog_status">Trasmissione in corso</string>
     <string name="cast_dialog_stop">Interrompi trasmissione</string>
+    <string name="cast_remote_connected">CAST CONNESSO</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_forward">Avanti di 10 secondi</string>
+    <string name="cast_remote_hint">Il pulsante rosso apre il pannello Chromecast per collegare o scollegare il televisore.</string>
+    <string name="cast_remote_led_off">OFF</string>
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_mute">Disattiva o riattiva audio</string>
+    <string name="cast_remote_next">Video successivo</string>
+    <string name="cast_remote_no_media">Nessun video in trasmissione</string>
+    <string name="cast_remote_not_connected">NESSUN CAST ATTIVO</string>
+    <string name="cast_remote_power">Connetti o disconnetti Chromecast</string>
+    <string name="cast_remote_previous">Video precedente</string>
+    <string name="cast_remote_rewind">Indietro di 10 secondi</string>
+    <string name="cast_remote_subtitle">Controlla il video sul televisore</string>
+    <string name="cast_remote_title">Telecomando Cast</string>
+    <string name="cast_remote_volume_down">Diminuisci volume</string>
+    <string name="cast_remote_volume_up">Aumenta volume</string>
     <string name="cast_subtitles_unavailable">Sottotitoli non disponibili durante il cast</string>
     <string name="casting_chromecast">Trasmissione su Chromecast</string>
     <string name="casting_on_device">Trasmissione su %1$s</string>
@@ -305,6 +324,7 @@ Token: %2$s</string>
     <string name="confirm_permanent_delete_message">Eliminare definitivamente questa foto dal cestino?</string>
     <string name="contact_section">CONTATTO</string>
     <string name="content_desc_back">Indietro</string>
+    <string name="content_desc_cast_remote">Telecomando Chromecast</string>
     <string name="content_desc_clean">Pulisci</string>
     <string name="content_desc_close_playlist">Chiudi playlist</string>
     <string name="content_desc_close_video_queue">Chiudi la coda video</string>

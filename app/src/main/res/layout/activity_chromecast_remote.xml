@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/remoteRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_cast_remote_screen"
+    android:clipToPadding="false">
+
+    <ScrollView
+        android:id="@+id/remoteScroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:id="@+id/remoteCard"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:minHeight="650dp"
+            android:background="@drawable/bg_cast_remote_shell"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingTop="18dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="22dp">
+
+            <!-- Barre supérieure intégrée à la coque de la télécommande. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <FrameLayout
+                    android:layout_width="54dp"
+                    android:layout_height="54dp">
+
+                    <ImageButton
+                        android:id="@+id/btnBack"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_top_icon_btn"
+                        android:contentDescription="@string/action_back"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_arrow_back"
+                        android:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginHorizontal="10dp"
+                    android:layout_weight="1">
+
+                    <TextView
+                        android:id="@+id/tvLedStatus"
+                        android:layout_width="92dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_cast_remote_led_display"
+                        android:fontFamily="monospace"
+                        android:gravity="center"
+                        android:letterSpacing="0.18"
+                        android:text="@string/cast_remote_led_off"
+                        android:textColor="@color/red_accent"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="54dp"
+                    android:layout_height="54dp">
+
+                    <ImageButton
+                        android:id="@+id/btnPower"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/bg_cast_remote_power"
+                        android:contentDescription="@string/cast_remote_power"
+                        android:padding="13dp"
+                        android:src="@drawable/ic_cast"
+                        android:tint="#FFFFFF" />
+
+                    <androidx.mediarouter.app.MediaRouteButton
+                        android:id="@+id/hiddenCastRouteButton"
+                        android:layout_width="1dp"
+                        android:layout_height="1dp"
+                        android:layout_gravity="bottom|end"
+                        android:alpha="0.01"
+                        android:contentDescription="@string/cast_remote_power"
+                        app:mediaRouteButtonTint="@android:color/transparent" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- Affichage compact du récepteur et du média, sans carte secondaire. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="13dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="4dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvDevice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="Chromecast"
+                        android:textColor="@color/on_background"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvMediaTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/cast_remote_no_media"
+                        android:textColor="#9EACBF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvVolume"
+                    android:layout_width="48dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="end"
+                    android:text="--%"
+                    android:textColor="@color/audio_library_accent"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="18dp"
+                android:background="#1FFFFFFF" />
+
+            <!-- Timeline précise du média casté. -->
+            <LinearLayout
+                android:id="@+id/timelineContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="13dp"
+                android:orientation="vertical">
+
+                <androidx.appcompat.widget.AppCompatSeekBar
+                    android:id="@+id/seekPosition"
+                    android:enabled="false"
+                    android:layout_width="match_parent"
+                    android:layout_height="34dp"
+                    android:max="1000"
+                    android:maxHeight="34dp"
+                    android:minHeight="34dp"
+                    android:paddingStart="2dp"
+                    android:paddingEnd="2dp"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/bg_cast_remote_seekbar"
+                    android:splitTrack="false"
+                    android:thumb="@drawable/bg_cast_remote_seek_thumb"
+                    android:thumbOffset="0dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvPosition"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="monospace"
+                        android:text="00:00"
+                        android:textColor="#9EACBF"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvDuration"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:text="--:--"
+                        android:textColor="#9EACBF"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="15dp"
+                android:background="#1FFFFFFF" />
+
+            <LinearLayout
+                android:id="@+id/remoteControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingTop="17dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.18"
+                    android:text="@string/cast_remote_control_label"
+                    android:textColor="#8391A6"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <!-- Navigation dans la file, alignée au-dessus des sauts de 10 secondes. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/btnPrevious"
+                        android:layout_width="58dp"
+                        android:layout_height="58dp"
+                        android:background="@drawable/bg_cast_remote_key"
+                        android:contentDescription="@string/cast_remote_previous"
+                        android:padding="15dp"
+                        android:src="@drawable/ic_skip_previous"
+                        android:tint="#FFFFFF" />
+
+                    <Space
+                        android:layout_width="112dp"
+                        android:layout_height="1dp" />
+
+                    <ImageButton
+                        android:id="@+id/btnNext"
+                        android:layout_width="58dp"
+                        android:layout_height="58dp"
+                        android:background="@drawable/bg_cast_remote_key"
+                        android:contentDescription="@string/cast_remote_next"
+                        android:padding="15dp"
+                        android:src="@drawable/ic_skip_next"
+                        android:tint="#FFFFFF" />
+                </LinearLayout>
+
+                <!-- Lecture et recherche rapide -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/btnRewind"
+                        android:layout_width="58dp"
+                        android:layout_height="58dp"
+                        android:background="@drawable/bg_cast_remote_key"
+                        android:contentDescription="@string/cast_remote_rewind"
+                        android:padding="16dp"
+                        android:src="@drawable/ic_rewind_10"
+                        android:tint="#FFFFFF" />
+
+                    <ImageButton
+                        android:id="@+id/btnPlayPause"
+                        android:layout_width="82dp"
+                        android:layout_height="82dp"
+                        android:layout_marginHorizontal="15dp"
+                        android:background="@drawable/bg_cast_remote_key_primary"
+                        android:contentDescription="@string/action_play_pause"
+                        android:padding="24dp"
+                        android:src="@drawable/ic_play"
+                        android:tint="#07120D" />
+
+                    <ImageButton
+                        android:id="@+id/btnForward"
+                        android:layout_width="58dp"
+                        android:layout_height="58dp"
+                        android:background="@drawable/bg_cast_remote_key"
+                        android:contentDescription="@string/cast_remote_forward"
+                        android:padding="16dp"
+                        android:src="@drawable/ic_forward_10"
+                        android:tint="#FFFFFF" />
+                </LinearLayout>
+
+                <!-- Stop reste centré sous la commande de lecture. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/btnStop"
+                        android:layout_width="54dp"
+                        android:layout_height="54dp"
+                        android:background="@drawable/bg_cast_remote_key"
+                        android:contentDescription="@string/action_stop"
+                        android:padding="17dp"
+                        android:src="@drawable/ic_stop"
+                        android:tint="@color/red_accent" />
+                </LinearLayout>
+
+                <!-- Volume déplacé en bas de la télécommande. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/btnVolumeDown"
+                        android:layout_width="64dp"
+                        android:layout_height="58dp"
+                        android:background="@drawable/bg_cast_remote_volume_key"
+                        android:contentDescription="@string/cast_remote_volume_down"
+                        android:padding="17dp"
+                        android:src="@drawable/ic_volume_down_remote"
+                        android:tint="#FFFFFF" />
+
+                    <ImageButton
+                        android:id="@+id/btnMute"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:layout_marginHorizontal="18dp"
+                        android:background="@drawable/bg_cast_remote_key"
+                        android:contentDescription="@string/cast_remote_mute"
+                        android:padding="16dp"
+                        android:src="@drawable/ic_volume_mute_remote"
+                        android:tint="#FFFFFF" />
+
+                    <ImageButton
+                        android:id="@+id/btnVolumeUp"
+                        android:layout_width="64dp"
+                        android:layout_height="58dp"
+                        android:background="@drawable/bg_cast_remote_volume_key"
+                        android:contentDescription="@string/cast_remote_volume_up"
+                        android:padding="17dp"
+                        android:src="@drawable/ic_volume_up_remote"
+                        android:tint="#FFFFFF" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center"
+                    android:text="@string/cast_remote_hint"
+                    android:textColor="#728096"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

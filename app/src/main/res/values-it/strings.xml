@@ -730,4 +730,25 @@ Token: %2$s</string>
     <string name="audio_library_network_synced">Rete sincronizzata</string>
     <string name="audio_album_sort_album">Nome album</string>
     <string name="audio_album_sort_artist">Nome artista</string>
+    <string name="action_play_pause">Riproduci / pausa</string>
+    <string name="action_stop">Stop</string>
+    <string name="cast_remote_title">Telecomando Cast</string>
+    <string name="cast_remote_subtitle">Controlla il video sul televisore</string>
+    <string name="cast_remote_power">Connetti o disconnetti Chromecast</string>
+    <string name="cast_remote_not_connected">NESSUN CAST ATTIVO</string>
+    <string name="cast_remote_connected">CAST CONNESSO</string>
+    <string name="cast_remote_no_media">Nessun video in trasmissione</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_volume_up">Aumenta volume</string>
+    <string name="cast_remote_volume_down">Diminuisci volume</string>
+    <string name="cast_remote_mute">Disattiva o riattiva audio</string>
+    <string name="cast_remote_rewind">Indietro di 10 secondi</string>
+    <string name="cast_remote_forward">Avanti di 10 secondi</string>
+    <string name="cast_remote_previous">Video precedente</string>
+    <string name="cast_remote_next">Video successivo</string>
+    <string name="cast_remote_hint">Il pulsante rosso apre il pannello Chromecast per collegare o scollegare il televisore.</string>
+    <string name="content_desc_cast_remote">Telecomando Chromecast</string>
+
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_led_off">OFF</string>
 </resources>

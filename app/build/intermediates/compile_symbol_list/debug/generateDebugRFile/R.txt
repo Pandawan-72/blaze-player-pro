@@ -97,6 +97,18 @@ int drawable bg_badge_green 0x0
 int drawable bg_badge_yellow 0x0
 int drawable bg_bottom_nav 0x0
 int drawable bg_cast_icon_circle 0x0
+int drawable bg_cast_remote_display 0x0
+int drawable bg_cast_remote_key 0x0
+int drawable bg_cast_remote_key_primary 0x0
+int drawable bg_cast_remote_led_display 0x0
+int drawable bg_cast_remote_power 0x0
+int drawable bg_cast_remote_screen 0x0
+int drawable bg_cast_remote_seek_thumb 0x0
+int drawable bg_cast_remote_seekbar 0x0
+int drawable bg_cast_remote_shell 0x0
+int drawable bg_cast_remote_status_connected 0x0
+int drawable bg_cast_remote_status_idle 0x0
+int drawable bg_cast_remote_volume_key 0x0
 int drawable bg_cast_status_card 0x0
 int drawable bg_cast_stop_button 0x0
 int drawable bg_circle_translucent 0x0
@@ -188,7 +200,9 @@ int drawable ic_play_circle 0x0
 int drawable ic_play_small 0x0
 int drawable ic_play_white 0x0
 int drawable ic_playing_spinner 0x0
+int drawable ic_power 0x0
 int drawable ic_refresh 0x0
+int drawable ic_remote_control 0x0
 int drawable ic_repeat 0x0
 int drawable ic_repeat_one 0x0
 int drawable ic_rewind_10 0x0
@@ -214,6 +228,9 @@ int drawable ic_trash 0x0
 int drawable ic_tune 0x0
 int drawable ic_video_camera 0x0
 int drawable ic_volume 0x0
+int drawable ic_volume_down_remote 0x0
+int drawable ic_volume_mute_remote 0x0
+int drawable ic_volume_up_remote 0x0
 int drawable ic_wifi 0x0
 int drawable logo 0x0
 int drawable pixel_dancer_1 0x0
@@ -288,6 +305,7 @@ int id btnBuyProPlus 0x0
 int id btnCast 0x0
 int id btnCastDialogClose 0x0
 int id btnCastDialogStop 0x0
+int id btnCastRemote 0x0
 int id btnCleanPlaylist 0x0
 int id btnClearPartyPlaylist 0x0
 int id btnClearVideoQueue 0x0
@@ -338,6 +356,7 @@ int id btnMiniPlayPause 0x0
 int id btnMiniPrev 0x0
 int id btnMono 0x0
 int id btnMore 0x0
+int id btnMute 0x0
 int id btnNetwork 0x0
 int id btnNetworkHeaderScan 0x0
 int id btnNext 0x0
@@ -356,6 +375,7 @@ int id btnPlaylistSheet 0x0
 int id btnPlaylistSheetClear 0x0
 int id btnPlaylistSheetPlayAll 0x0
 int id btnPlaylistSheetSecondary 0x0
+int id btnPower 0x0
 int id btnPrev 0x0
 int id btnPrevious 0x0
 int id btnQueueToPlaylist 0x0
@@ -402,6 +422,8 @@ int id btnVideoQueueLocal 0x0
 int id btnVideoQueueNetwork 0x0
 int id btnVideoQueueToPlaylist 0x0
 int id btnVideoSettings 0x0
+int id btnVolumeDown 0x0
+int id btnVolumeUp 0x0
 int id btnVotePartyPlaylist 0x0
 int id castBlackout 0x0
 int id castStatusCard 0x0
@@ -443,6 +465,7 @@ int id headerCard 0x0
 int id headerControlsGallery 0x0
 int id headerControlsLocal 0x0
 int id headerControlsNetwork 0x0
+int id hiddenCastRouteButton 0x0
 int id homeFragment 0x0
 int id iconWatchedFolders 0x0
 int id imgAppIcon 0x0
@@ -540,6 +563,10 @@ int id recyclerSearch 0x0
 int id recyclerTracks 0x0
 int id recyclerVideoQueue 0x0
 int id recyclerView 0x0
+int id remoteCard 0x0
+int id remoteControls 0x0
+int id remoteRoot 0x0
+int id remoteScroll 0x0
 int id resumeContainer 0x0
 int id resumeScroll 0x0
 int id resumeSectionHeader 0x0
@@ -555,6 +582,7 @@ int id sectionNetwork 0x0
 int id seekBar 0x0
 int id seekBlurIntensity 0x0
 int id seekIndicator 0x0
+int id seekPosition 0x0
 int id seekStraighten 0x0
 int id settingAbout 0x0
 int id settingAudioLang 0x0
@@ -598,6 +626,7 @@ int id tabNetwork 0x0
 int id tabNetworkIcon 0x0
 int id tabNetworkText 0x0
 int id tabRotate 0x0
+int id timelineContainer 0x0
 int id timelineRow 0x0
 int id touchZoneLeft 0x0
 int id touchZoneLeftFill 0x0
@@ -649,6 +678,7 @@ int id tvCodec 0x0
 int id tvCompressorKnobValue 0x0
 int id tvCount 0x0
 int id tvCurrentTime 0x0
+int id tvDevice 0x0
 int id tvDeviceIp 0x0
 int id tvDeviceName 0x0
 int id tvDialogTitle 0x0
@@ -668,6 +698,7 @@ int id tvFolderPath 0x0
 int id tvFormat 0x0
 int id tvForwardLabel 0x0
 int id tvIp 0x0
+int id tvLedStatus 0x0
 int id tvLibraryMiniArtist 0x0
 int id tvLibraryMiniTime 0x0
 int id tvLibraryMiniTitle 0x0
@@ -676,6 +707,7 @@ int id tvLibraryTitle 0x0
 int id tvLoudnessValue 0x0
 int id tvLyricsCurrent 0x0
 int id tvLyricsNext 0x0
+int id tvMediaTitle 0x0
 int id tvMiniArtist 0x0
 int id tvMiniTime 0x0
 int id tvMiniTitle 0x0
@@ -688,6 +720,7 @@ int id tvPlaylistCodec 0x0
 int id tvPlaylistFormatBadge 0x0
 int id tvPlaylistSheetEmpty 0x0
 int id tvPlaylistSheetTitle 0x0
+int id tvPosition 0x0
 int id tvPreampKnobValue 0x0
 int id tvPresetTitle 0x0
 int id tvResolution 0x0
@@ -726,6 +759,7 @@ int id tvVersionBadge 0x0
 int id tvVideoCodec 0x0
 int id tvVideoQueueEmpty 0x0
 int id tvVideoQueueTitle 0x0
+int id tvVolume 0x0
 int id tvVolumeZone 0x0
 int id tvWatchedSummary 0x0
 int id uiOverlay 0x0
@@ -737,6 +771,7 @@ int layout activity_audio_browser 0x0
 int layout activity_audio_player 0x0
 int layout activity_blaze_audio_library 0x0
 int layout activity_blaze_audio_settings 0x0
+int layout activity_chromecast_remote 0x0
 int layout activity_main 0x0
 int layout activity_network_video_browser 0x0
 int layout activity_photo_editor 0x0
@@ -839,6 +874,7 @@ int string action_off 0x0
 int string action_ok 0x0
 int string action_open 0x0
 int string action_play 0x0
+int string action_play_pause 0x0
 int string action_play_playlist 0x0
 int string action_quit 0x0
 int string action_refresh 0x0
@@ -852,6 +888,7 @@ int string action_save 0x0
 int string action_scan 0x0
 int string action_share 0x0
 int string action_stay_editing 0x0
+int string action_stop 0x0
 int string action_to_playlist 0x0
 int string add 0x0
 int string add_manually 0x0
@@ -1026,6 +1063,23 @@ int string browser_search_in_progress 0x0
 int string cast_audio_language_unavailable 0x0
 int string cast_dialog_status 0x0
 int string cast_dialog_stop 0x0
+int string cast_remote_connected 0x0
+int string cast_remote_control_label 0x0
+int string cast_remote_forward 0x0
+int string cast_remote_hint 0x0
+int string cast_remote_led_off 0x0
+int string cast_remote_led_on 0x0
+int string cast_remote_mute 0x0
+int string cast_remote_next 0x0
+int string cast_remote_no_media 0x0
+int string cast_remote_not_connected 0x0
+int string cast_remote_power 0x0
+int string cast_remote_previous 0x0
+int string cast_remote_rewind 0x0
+int string cast_remote_subtitle 0x0
+int string cast_remote_title 0x0
+int string cast_remote_volume_down 0x0
+int string cast_remote_volume_up 0x0
 int string cast_subtitles_unavailable 0x0
 int string casting_chromecast 0x0
 int string casting_on_device 0x0
@@ -1040,6 +1094,7 @@ int string confirm_empty_trash_message 0x0
 int string confirm_permanent_delete_message 0x0
 int string contact_section 0x0
 int string content_desc_back 0x0
+int string content_desc_cast_remote 0x0
 int string content_desc_clean 0x0
 int string content_desc_close_playlist 0x0
 int string content_desc_close_video_queue 0x0

@@ -214,6 +214,10 @@ class HomeFragment : Fragment() {
         // (CastRemoteDisplay) est abandonnée depuis plusieurs années, et reconstruire l'équivalent
         // soi-même serait un chantier bien plus lourd que tout le reste de l'app, avec un risque
         // élevé de ne pas fonctionner de façon fiable. Android sait déjà le faire nativement.
+        binding.btnCastRemote.setOnClickListener {
+            startActivity(android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.ChromecastRemoteActivity::class.java))
+        }
+
         binding.btnScreenCast.setOnClickListener {
             val activity = requireActivity()
             val candidates = listOf(
@@ -489,6 +493,7 @@ class HomeFragment : Fragment() {
         val visibility = if (showCastButtons) View.VISIBLE else View.GONE
         binding.btnCast.visibility = visibility
         binding.btnScreenCast.visibility = visibility
+        binding.btnCastRemote.visibility = visibility
     }
 
     fun updateEmbeddedNetworkScanState(scanning: Boolean) {

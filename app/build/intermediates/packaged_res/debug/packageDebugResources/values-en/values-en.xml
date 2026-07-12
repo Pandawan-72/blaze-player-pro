@@ -104,6 +104,7 @@
     <string name="action_ok">OK</string>
     <string name="action_open">Open</string>
     <string name="action_play">Play</string>
+    <string name="action_play_pause">Play / pause</string>
     <string name="action_play_playlist">Play playlist</string>
     <string name="action_quit">Quit</string>
     <string name="action_refresh">Refresh</string>
@@ -117,6 +118,7 @@
     <string name="action_scan">Scan</string>
     <string name="action_share">Share</string>
     <string name="action_stay_editing">Stay here</string>
+    <string name="action_stop">Stop</string>
     <string name="action_to_playlist">To playlist</string>
     <string name="add">Add</string>
     <string name="add_manually">Add manually</string>
@@ -292,6 +294,23 @@ Token: %2$s</string>
     <string name="cast_audio_language_unavailable">Audio language change unavailable while casting</string>
     <string name="cast_dialog_status">Casting now</string>
     <string name="cast_dialog_stop">Stop casting</string>
+    <string name="cast_remote_connected">CAST CONNECTED</string>
+    <string name="cast_remote_control_label">BLAZE REMOTE</string>
+    <string name="cast_remote_forward">Forward 10 seconds</string>
+    <string name="cast_remote_hint">The red button opens the Chromecast panel to connect or disconnect the TV.</string>
+    <string name="cast_remote_led_off">OFF</string>
+    <string name="cast_remote_led_on">ON</string>
+    <string name="cast_remote_mute">Mute or unmute</string>
+    <string name="cast_remote_next">Next video</string>
+    <string name="cast_remote_no_media">No video is currently being cast</string>
+    <string name="cast_remote_not_connected">NO ACTIVE CAST</string>
+    <string name="cast_remote_power">Connect or disconnect Chromecast</string>
+    <string name="cast_remote_previous">Previous video</string>
+    <string name="cast_remote_rewind">Rewind 10 seconds</string>
+    <string name="cast_remote_subtitle">Control the video on your TV</string>
+    <string name="cast_remote_title">Cast remote</string>
+    <string name="cast_remote_volume_down">Volume down</string>
+    <string name="cast_remote_volume_up">Volume up</string>
     <string name="cast_subtitles_unavailable">Subtitles unavailable while casting</string>
     <string name="casting_chromecast">Casting to Chromecast</string>
     <string name="casting_on_device">Casting to %1$s</string>
@@ -306,6 +325,7 @@ Token: %2$s</string>
     <string name="confirm_permanent_delete_message">Permanently delete this photo from trash?</string>
     <string name="contact_section">CONTACT</string>
     <string name="content_desc_back">Back</string>
+    <string name="content_desc_cast_remote">Chromecast remote control</string>
     <string name="content_desc_clean">Clean up</string>
     <string name="content_desc_close_playlist">Close playlist</string>
     <string name="content_desc_close_video_queue">Close video queue</string>
