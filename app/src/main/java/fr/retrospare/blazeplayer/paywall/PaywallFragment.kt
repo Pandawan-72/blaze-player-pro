@@ -15,6 +15,7 @@ import androidx.navigation.fragment.findNavController
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.databinding.FragmentPaywallBinding
+import fr.retrospare.blazeplayer.ui.InfoDialog
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -36,30 +37,13 @@ class PaywallFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         applySystemBarPadding()
         observeState()
+        observeEvents()
         viewModel.checkProStatus()
 
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
-        binding.btnBuyPro.setOnClickListener {
-            fr.retrospare.blazeplayer.ui.InfoDialog.show(
-                requireContext(),
-                getString(R.string.info_dialog_title_info),
-                getString(R.string.toast_billing_soon)
-            )
-        }
-        binding.btnBuyProPlus.setOnClickListener {
-            fr.retrospare.blazeplayer.ui.InfoDialog.show(
-                requireContext(),
-                getString(R.string.info_dialog_title_info),
-                getString(R.string.toast_billing_soon)
-            )
-        }
-        binding.btnRestore.setOnClickListener {
-            fr.retrospare.blazeplayer.ui.InfoDialog.show(
-                requireContext(),
-                getString(R.string.info_dialog_title_info),
-                getString(R.string.toast_restore_purchases_soon)
-            )
-        }
+        binding.btnBuyPro.setOnClickListener { viewModel.purchasePro(requireActivity()) }
+        binding.btnBuyProPlus.setOnClickListener { viewModel.purchaseProPlus(requireActivity()) }
+        binding.btnRestore.setOnClickListener { viewModel.restorePurchases() }
     }
 
     override fun onResume() {
@@ -85,6 +69,39 @@ class PaywallFragment : Fragment() {
         }
     }
 
+    private fun observeEvents() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.events.collect { event -> handleEvent(event) }
+            }
+        }
+    }
+
+    private fun handleEvent(event: PaywallViewModel.PaywallEvent) {
+        val context = context ?: return
+        when (event) {
+            PaywallViewModel.PaywallEvent.ProPurchaseSuccess -> InfoDialog.show(
+                context, getString(R.string.info_dialog_title_info), getString(R.string.paywall_purchase_success_pro)
+            )
+            PaywallViewModel.PaywallEvent.ProPlusPurchaseSuccess -> InfoDialog.show(
+                context, getString(R.string.info_dialog_title_info), getString(R.string.paywall_purchase_success_pro_plus)
+            )
+            PaywallViewModel.PaywallEvent.PurchaseCancelled -> Unit
+            is PaywallViewModel.PaywallEvent.PurchaseError -> InfoDialog.show(
+                context, getString(R.string.info_dialog_title_info), getString(R.string.paywall_purchase_error, event.message)
+            )
+            PaywallViewModel.PaywallEvent.RestoreSuccess -> InfoDialog.show(
+                context, getString(R.string.info_dialog_title_info), getString(R.string.paywall_restore_success)
+            )
+            PaywallViewModel.PaywallEvent.RestoreNothingFound -> InfoDialog.show(
+                context, getString(R.string.info_dialog_title_info), getString(R.string.paywall_restore_nothing_found)
+            )
+            is PaywallViewModel.PaywallEvent.RestoreError -> InfoDialog.show(
+                context, getString(R.string.info_dialog_title_info), getString(R.string.paywall_restore_error, event.message)
+            )
+        }
+    }
+
     private fun renderState(state: PaywallViewModel.PaywallState.Ready) {
         binding.tvTrialStatus.text = when {
             state.isProPlusPurchased -> getString(R.string.paywall_active_pro_plus)
@@ -97,10 +114,21 @@ class PaywallFragment : Fragment() {
             else -> getString(R.string.paywall_trial_expired)
         }
 
-        binding.btnBuyPro.isEnabled = !state.isProPurchased && !state.isProPlusPurchased
-        binding.btnBuyPro.alpha = if (binding.btnBuyPro.isEnabled) 1f else 0.55f
-        binding.btnBuyProPlus.isEnabled = !state.isProPlusPurchased
-        binding.btnBuyProPlus.alpha = if (binding.btnBuyProPlus.isEnabled) 1f else 0.55f
+        state.proPriceFormatted?.let { binding.tvProPrice.text = it }
+        state.proPlusPriceFormatted?.let { binding.tvProPlusPrice.text = it }
+        binding.btnBuyPro.text = state.proPriceFormatted?.let { getString(R.string.paywall_buy_pro_dynamic, it) }
+            ?: getString(R.string.paywall_buy_pro)
+        binding.btnBuyProPlus.text = state.proPlusPriceFormatted?.let { getString(R.string.paywall_buy_pro_plus_dynamic, it) }
+            ?: getString(R.string.paywall_buy_pro_plus)
+
+        val canBuyPro = !state.isProPurchased && !state.isProPlusPurchased && !state.isPurchaseInProgress
+        val canBuyProPlus = !state.isProPlusPurchased && !state.isPurchaseInProgress
+        binding.btnBuyPro.isEnabled = canBuyPro
+        binding.btnBuyPro.alpha = if (canBuyPro) 1f else 0.55f
+        binding.btnBuyProPlus.isEnabled = canBuyProPlus
+        binding.btnBuyProPlus.alpha = if (canBuyProPlus) 1f else 0.55f
+        binding.btnRestore.isEnabled = !state.isPurchaseInProgress
+        binding.btnRestore.alpha = if (state.isPurchaseInProgress) 0.55f else 1f
     }
 
     private fun applySystemBarPadding() {

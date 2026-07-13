@@ -34,11 +34,20 @@ object AudioArtworkResolver {
         AudioLibraryHeuristics.isImagePath(path) &&
             AudioLibraryHeuristics.isPreferredCoverName(AudioLibraryHeuristics.fileNameFromPath(path))
 
+    /**
+     * Room peut contenir soit le cover.jpg/cover.png d'origine, soit le JPEG persistant créé par
+     * l'app. Les deux sont des sources valides pour le player. L'ancienne version n'acceptait que
+     * les fichiers nommés exactement cover.*, ce qui faisait perdre les pochettes déjà persistées
+     * et les chemins transmis par la bibliothèque.
+     */
+    private fun isUsableArtworkPath(path: String): Boolean =
+        AudioLibraryHeuristics.isImagePath(path) &&
+            !AudioArtworkPersistence.isLegacyPersistedPath(path)
+
     private suspend fun indexedArtworkPath(context: Context, audioPath: String): String? {
         if (audioPath.isBlank()) return null
         indexedArtworkPaths[audioPath]?.let { cached ->
-            return cached.takeIf(::isPreferredCoverPath)
-                ?.takeUnless(AudioArtworkPersistence::isLegacyPersistedPath)
+            return cached.takeIf(::isUsableArtworkPath)
         }
         val indexed = withContext(Dispatchers.IO) {
             runCatching {
@@ -53,19 +62,17 @@ object AudioArtworkResolver {
         // chaque rebind du même titre. Le refresh de bibliothèque invalide explicitement ce cache.
         val safeIndexed = indexed.takeUnless(AudioArtworkPersistence::isLegacyPersistedPath).orEmpty()
         indexedArtworkPaths[audioPath] = safeIndexed
-        return safeIndexed.takeIf(::isPreferredCoverPath)
+        return safeIndexed.takeIf(::isUsableArtworkPath)
     }
 
     private fun explicitPreferredPath(candidate: String?): String? =
-        candidate.orEmpty()
-            .takeIf(::isPreferredCoverPath)
-            ?.takeUnless(AudioArtworkPersistence::isLegacyPersistedPath)
+        candidate.orEmpty().takeIf(::isUsableArtworkPath)
 
     /** Cache RAM uniquement, sans accès disque/Room/réseau. */
     fun memoryCachedBitmap(audioPath: String, preferredArtworkPath: String? = null): Bitmap? {
         val explicit = explicitPreferredPath(preferredArtworkPath)
         if (explicit != null && audioPath.isNotBlank()) indexedArtworkPaths[audioPath] = explicit
-        val preferred = explicit ?: indexedArtworkPaths[audioPath]?.takeIf(::isPreferredCoverPath)?.takeUnless(AudioArtworkPersistence::isLegacyPersistedPath)
+        val preferred = explicit ?: indexedArtworkPaths[audioPath]?.takeIf(::isUsableArtworkPath)
         preferred?.let { ThumbnailUtils.getMemoryCachedAudioArtworkBitmapNoIo(it)?.let { bitmap -> return bitmap } }
         return ThumbnailUtils.getMemoryCachedAudioArtworkBitmapNoIo(audioPath)
     }
@@ -75,7 +82,7 @@ object AudioArtworkResolver {
         val appContext = context.applicationContext
         val explicit = explicitPreferredPath(preferredArtworkPath)
         if (explicit != null && audioPath.isNotBlank()) indexedArtworkPaths[audioPath] = explicit
-        val preferred = explicit ?: indexedArtworkPaths[audioPath]?.takeIf(::isPreferredCoverPath)?.takeUnless(AudioArtworkPersistence::isLegacyPersistedPath)
+        val preferred = explicit ?: indexedArtworkPaths[audioPath]?.takeIf(::isUsableArtworkPath)
         preferred?.let {
             ThumbnailUtils.getCachedAudioArtworkBitmapNoFolderProbe(appContext, it)?.let { bitmap ->
                 if (audioPath.isNotBlank()) ThumbnailUtils.cacheResolvedAudioArtworkBitmap(appContext, audioPath, bitmap)

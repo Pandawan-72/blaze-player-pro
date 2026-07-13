@@ -46,7 +46,14 @@ object AudioRepository {
         val audioOnlyItems = sanitizeAudioItems(items)
         if (audioOnlyItems.isEmpty()) return
         val arr = JSONArray()
-        audioOnlyItems.forEach { arr.put(JSONObject().put("path", it.path).put("name", it.name)) }
+        audioOnlyItems.forEach { item ->
+            arr.put(
+                JSONObject()
+                    .put("path", item.path)
+                    .put("name", item.name)
+                    .put("artworkPath", item.artworkPath)
+            )
+        }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_ITEMS, arr.toString())
@@ -64,7 +71,7 @@ object AudioRepository {
             val arr = JSONArray(json)
             val items = sanitizeAudioItems((0 until arr.length()).map {
                 val o = arr.getJSONObject(it)
-                PlaylistItem(o.getString("path"), o.getString("name"))
+                PlaylistItem(o.getString("path"), o.getString("name"), o.optString("artworkPath"))
             })
             if (items.isEmpty()) return AudioQueueState(emptyList(), 0, 0L, androidx.media3.common.Player.REPEAT_MODE_OFF, false)
             AudioQueueState(
@@ -109,12 +116,19 @@ object AudioRepository {
     private const val EXTRA_MEDIA_KIND = "blaze_media_kind"
     private const val EXTRA_ORIGINAL_NAME = "blaze_original_name"
     const val EXTRA_CONTAINER_EXTENSION = "blaze_container_extension"
+    const val EXTRA_ARTWORK_PATH = "blaze_artwork_path"
 
-    private fun localExtras(path: String, containerExtension: String = "", originalName: String = ""): Bundle = Bundle().apply {
+    private fun localExtras(
+        path: String,
+        containerExtension: String = "",
+        originalName: String = "",
+        artworkPath: String = ""
+    ): Bundle = Bundle().apply {
         putString(EXTRA_ORIGINAL_PATH, path)
         putString(EXTRA_MEDIA_KIND, "audio")
         if (originalName.isNotBlank()) putString(EXTRA_ORIGINAL_NAME, originalName)
         if (containerExtension.isNotBlank()) putString(EXTRA_CONTAINER_EXTENSION, containerExtension.uppercase())
+        if (artworkPath.isNotBlank()) putString(EXTRA_ARTWORK_PATH, artworkPath)
     }
 
 
@@ -182,7 +196,7 @@ object AudioRepository {
     private fun folderMetadata(path: String, fileName: String): AudioLibraryHeuristics.FolderMetadata =
         AudioLibraryHeuristics.folderMetadata(path, fileName)
 
-    fun buildSimpleMediaItem(context: Context, path: String, fileName: String): MediaItem {
+    fun buildSimpleMediaItem(context: Context, path: String, fileName: String, artworkPath: String = ""): MediaItem {
         val folder = folderMetadata(path, fileName)
         val containerExtension = extensionForAudio(path, fileName)
         return MediaItem.Builder()
@@ -194,7 +208,7 @@ object AudioRepository {
                     .setTitle(folder.title.ifBlank { "Audio" })
                     .setArtist(folder.artist)
                     .setAlbumTitle(folder.album)
-                    .setExtras(localExtras(path, containerExtension, fileName))
+                    .setExtras(localExtras(path, containerExtension, fileName, artworkPath))
                     .build()
             )
             .build()
@@ -204,11 +218,15 @@ object AudioRepository {
      * Enrichit uniquement la pochette. Les champs titre/artiste/album restent toujours dérivés du
      * chemin afin de ne jamais lancer AudioMetadataExtractor pendant la lecture.
      */
-    fun buildMediaItemWithMetadata(context: Context, path: String, fileName: String): MediaItem {
+    fun buildMediaItemWithMetadata(context: Context, path: String, fileName: String, artworkPath: String = ""): MediaItem {
         val folder = folderMetadata(path, fileName)
         val cachedTechnical = AudioMediaCache.getCachedMetadata(context, path)
         val extension = extensionForAudio(path, fileName).ifBlank { cachedTechnical?.extension.orEmpty() }
-        val artwork = AudioMediaCache.getCachedArtworkJpegBytes(context, path)
+        val artwork = AudioArtworkResolver.cachedJpegBytes(context, path, artworkPath)
+            ?: runCatching {
+                AudioArtworkResolver.resolveJpegBytesBlocking(context, path, artworkPath)
+            }.getOrNull()
+            ?: AudioMediaCache.getCachedArtworkJpegBytes(context, path)
             ?: runCatching { AudioMediaCache.extractArtworkJpegBytesBlocking(context, path) }.getOrNull()
         return MediaItem.Builder()
             .setMediaId(path)
@@ -220,7 +238,7 @@ object AudioRepository {
                     .setArtist(folder.artist)
                     .setAlbumTitle(folder.album)
                     .setArtworkData(artwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                    .setExtras(localExtras(path, extension, fileName))
+                    .setExtras(localExtras(path, extension, fileName, artworkPath))
                     .build()
             )
             .build()

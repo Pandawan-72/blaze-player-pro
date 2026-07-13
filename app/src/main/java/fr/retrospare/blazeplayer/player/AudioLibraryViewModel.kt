@@ -375,7 +375,15 @@ class AudioLibraryViewModel @Inject constructor(
         }
         val filtered = filteredTracks(tracks, selection.query)
         val albums = buildAlbums(filtered)
-        val artists = buildArtists(filtered)
+        // La carte album connaît parfois une cover commune alors que certaines lignes de titres
+        // n'ont encore qu'un artworkPath vide / égal au chemin audio. Réinjecter ici la cover
+        // d'album dans toutes les représentations UI garantit que le clic depuis Titres, Artistes
+        // ou le détail Album transmet exactement la pochette affichée par la bibliothèque.
+        val albumTrackByPath = albums.asSequence()
+            .flatMap { it.tracks.asSequence() }
+            .associateBy { it.path }
+        val filteredWithArtwork = filtered.map { albumTrackByPath[it.path] ?: it }
+        val artists = buildArtists(filteredWithArtwork)
         val openedAlbum = resolveOpenedAlbumForDetail(selection, albums, tracks)
 
         val fullTrackCount = tracks.distinctBy { it.path }.size
@@ -395,7 +403,7 @@ class AudioLibraryViewModel @Inject constructor(
             }
             selection.tab == LibraryTab.ALBUMS -> albums.map { LibraryRow.AlbumTile(it) }
             selection.tab == LibraryTab.ARTISTS -> artists.map { LibraryRow.ArtistItem(it) }
-            selection.tab == LibraryTab.TITLES -> filtered.take(MAX_RENDER_TRACK_ROWS).mapIndexed { index, track -> LibraryRow.TrackItem(track, index + 1) }
+            selection.tab == LibraryTab.TITLES -> filteredWithArtwork.take(MAX_RENDER_TRACK_ROWS).mapIndexed { index, track -> LibraryRow.TrackItem(track, index + 1) }
             selection.tab == LibraryTab.PLAYLISTS -> playlists.map { LibraryRow.PlaylistItem(it) }
             else -> emptyList()
         }
@@ -478,12 +486,19 @@ class AudioLibraryViewModel @Inject constructor(
     private fun buildAlbumFromTracks(key: String, albumTracks: List<LibraryTrack>): LibraryAlbum {
         val sorted = albumTracks.distinctBy { it.path }
             .sortedWith(compareBy<LibraryTrack> { AudioLibraryHeuristics.discNumberFromPath(it.path) }.thenBy { AudioLibraryHeuristics.normalizedTrackNo(it.trackNo) }.thenBy { AudioLibraryHeuristics.normalize(it.title) })
+        val albumArtwork = AudioLibraryHeuristics.bestArtworkPath(sorted)
+        val tracksWithAlbumArtwork = if (AudioLibraryHeuristics.isImagePath(albumArtwork)) {
+            sorted.map { track ->
+                if (AudioLibraryHeuristics.isImagePath(track.artworkPath)) track
+                else track.copy(artworkPath = albumArtwork)
+            }
+        } else sorted
         return LibraryAlbum(
             key = key,
             title = AudioLibraryHeuristics.bestAlbumTitle(sorted),
             artist = AudioLibraryHeuristics.bestAlbumArtist(sorted),
-            tracks = sorted,
-            artworkPath = AudioLibraryHeuristics.bestArtworkPath(sorted),
+            tracks = tracksWithAlbumArtwork,
+            artworkPath = albumArtwork,
             addedAt = sorted.maxOfOrNull { it.addedAt } ?: 0L
         )
     }

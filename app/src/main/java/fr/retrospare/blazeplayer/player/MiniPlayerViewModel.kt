@@ -265,12 +265,16 @@ class MiniPlayerViewModel @Inject constructor(
             // La seule extraction autorisée ici est celle de la pochette : cover.jpg, cover.png,
             // puis embedded. On attend la résolution centrale au lieu d'afficher immédiatement
             // artworkData, qui peut contenir une ancienne embedded moins prioritaire.
-            val pathChanged = currentArtworkPath != path
+            val preferredArtworkPath = meta?.extras
+                ?.getString(AudioRepository.EXTRA_ARTWORK_PATH)
+                .orEmpty()
+            val artworkKey = "$path\u0000$preferredArtworkPath"
+            val pathChanged = currentArtworkPath != artworkKey
             if (pathChanged) {
-                currentArtworkPath = path
+                currentArtworkPath = artworkKey
                 artworkLoadJob?.cancel()
             }
-            val cachedArtwork = AudioArtworkResolver.cachedJpegBytes(context, path)
+            val cachedArtwork = AudioArtworkResolver.cachedJpegBytes(context, path, preferredArtworkPath)
             if (cachedArtwork != null) {
                 applyArtwork(cachedArtwork)
             } else if (pathChanged) {
@@ -280,12 +284,12 @@ class MiniPlayerViewModel @Inject constructor(
             }
             if (pathChanged || (cachedArtwork == null && artworkLoadJob?.isActive != true)) {
                 artworkLoadJob = viewModelScope.launch(Dispatchers.IO) {
-                    val art = AudioArtworkResolver.resolveJpegBytes(context, path)
+                    val art = AudioArtworkResolver.resolveJpegBytes(context, path, preferredArtworkPath)
                     kotlinx.coroutines.withContext(Dispatchers.Main) {
                         val currentItem = controller?.currentMediaItem
                         val current = currentItem?.mediaMetadata?.extras?.getString("blaze_original_path")
                             ?: currentItem?.mediaId.orEmpty()
-                        if (current == path) applyArtwork(art)
+                        if (current == path && currentArtworkPath == artworkKey) applyArtwork(art)
                     }
                 }
             }

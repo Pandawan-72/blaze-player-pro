@@ -84,6 +84,15 @@ android {
             "YOUTUBE_API_KEY",
             "\"${localProperties.getProperty("YOUTUBE_API_KEY", "")}\""
         )
+        // Clé publique RevenueCat (Google Play), spécifique au projet "Blaze Player" du dashboard
+        // RevenueCat : Project settings > API keys > Public app-specific key (Google Play).
+        // À ajouter toi-même sous la forme REVENUECAT_API_KEY=goog_xxx dans local.properties,
+        // à la racine du projet (jamais commité).
+        buildConfigField(
+            "String",
+            "REVENUECAT_API_KEY",
+            "\"${localProperties.getProperty("REVENUECAT_API_KEY", "")}\""
+        )
     }
 
     lint {
@@ -173,6 +182,8 @@ dependencies {
     // (erreurs 150/152/153 systématiques).
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0")
     implementation("org.nanohttpd:nanohttpd:2.3.1")
+    // RevenueCat : wrapper autour de Google Play Billing pour les achats Pro / Pro+.
+    implementation("com.revenuecat.purchases:purchases:10.10.0")
     implementation("androidx.mediarouter:mediarouter:1.7.0")
     implementation("androidx.media:media:1.7.0")
     // REMOVED: implementation("com.google.android.gms:play-services-cast-framework:21.5.0")

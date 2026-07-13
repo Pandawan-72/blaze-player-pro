@@ -74,6 +74,13 @@ class HomeFragment : Fragment() {
     private var allVideoHistoryItems: List<MediaItem> = emptyList()
     private var latestLocalHistoryItems: List<MediaItem> = emptyList()
     private var latestNetworkHistoryItems: List<MediaItem> = emptyList()
+
+    /** Une vérification d'accès Pro peut suspendre pendant l'initialisation de DataStore. Sans
+     *  sérialisation, une ancienne demande (souvent la liste vide émise au tout premier rendu)
+     *  peut terminer après la vraie liste d'historique et ré-effacer la RecyclerView. Le prochain
+     *  changement d'onglet réémettait alors la liste, ce qui expliquait le symptôme observé. */
+    private var videoHistoryRefreshJob: kotlinx.coroutines.Job? = null
+    private var videoHistoryRefreshGeneration: Long = 0L
     private var historySelectionTab: Int? = null
     private val selectedHistoryPaths = linkedSetOf<String>()
     private var pendingAudioTabAfterPermission = false
@@ -2798,12 +2805,40 @@ class HomeFragment : Fragment() {
 
     private fun refreshAccessibleVideoHistory(items: List<MediaItem> = allVideoHistoryItems) {
         if (_binding == null || !isAdded) return
-        viewLifecycleOwner.lifecycleScope.launch {
-            val hasPro = fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
-            val visible = if (hasPro) items else items.filterNot { it.isNetwork ||
-                fr.retrospare.blazeplayer.paywall.FeatureAccess.isNetworkMediaPath(it.path) }
+
+        val snapshot = items.toList()
+        val generation = ++videoHistoryRefreshGeneration
+        videoHistoryRefreshJob?.cancel()
+
+        // Les vidéos locales sont accessibles en Free : on peut donc les afficher immédiatement,
+        // sans attendre la lecture asynchrone des droits. Pour un compte Pro, les éléments réseau
+        // sont ajoutés juste après la résolution de l'accès.
+        val localOnly = snapshot.filterNot { item ->
+            item.isNetwork || fr.retrospare.blazeplayer.paywall.FeatureAccess.isNetworkMediaPath(item.path)
+        }
+        latestLocalHistoryItems = localOnly
+        updateRecycler(binding.listLocal, localOnly)
+
+        videoHistoryRefreshJob = viewLifecycleOwner.lifecycleScope.launch {
+            val hasPro = try {
+                fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                false
+            }
+
+            // Une demande plus récente a remplacé celle-ci pendant la suspension DataStore : ne
+            // jamais laisser cet ancien résultat réécrire l'historique actuellement affiché.
+            if (_binding == null || !isAdded || generation != videoHistoryRefreshGeneration) {
+                return@launch
+            }
+
+            val visible = if (hasPro) snapshot else localOnly
             latestLocalHistoryItems = visible
-            if (_binding != null) updateRecycler(binding.listLocal, visible)
+            if (visible != localOnly) {
+                updateRecycler(binding.listLocal, visible)
+            }
         }
     }
 

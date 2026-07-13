@@ -391,6 +391,14 @@
     <string name="paywall_pro_plus_desc">Enthält alle Pro-Funktionen und schaltet den Premium-Audioplayer Blaze Audio frei.</string>
     <string name="paywall_buy_pro">Pro freischalten — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Pro+ freischalten — 5,99 €</string>
+    <string name="paywall_buy_pro_dynamic">Pro freischalten — %1$s</string>
+    <string name="paywall_buy_pro_plus_dynamic">Pro+ freischalten — %1$s</string>
+    <string name="paywall_purchase_success_pro">Kauf erfolgreich: Pro ist jetzt freigeschaltet.</string>
+    <string name="paywall_purchase_success_pro_plus">Kauf erfolgreich: Pro+ ist jetzt freigeschaltet.</string>
+    <string name="paywall_purchase_error">Kauf fehlgeschlagen: %1$s</string>
+    <string name="paywall_restore_success">Käufe erfolgreich wiederhergestellt.</string>
+    <string name="paywall_restore_nothing_found">Kein Kauf zum Wiederherstellen auf diesem Google Play-Konto.</string>
+    <string name="paywall_restore_error">Wiederherstellung fehlgeschlagen: %1$s</string>
     <string name="paywall_debug_unlocked">Debug-Modus: Pro und Pro+ sind vorübergehend freigeschaltet.</string>
     <string name="paywall_restore">Käufe wiederherstellen</string>
     <string name="action_back">Zurück</string>

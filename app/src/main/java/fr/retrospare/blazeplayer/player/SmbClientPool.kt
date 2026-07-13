@@ -5,45 +5,72 @@ import com.hierynomus.smbj.SmbConfig
 import java.util.concurrent.TimeUnit
 
 /**
- * Pool simple pour mutualiser les SMBClient et eviter de recreer
- * un client (avec sa propre configuration et ses propres pools internes) a chaque connexion.
- * Un seul SMBClient est partage par toute l'application pour le streaming SMB.
+ * Pools SMB distincts :
+ * - le client partagé conserve des délais tolérants pour les scans, covers et métadonnées ;
+ * - le client de lecture a des délais beaucoup plus courts afin qu'un socket SMB bloqué ne puisse
+ *   jamais figer ExoPlayer pendant deux minutes avant d'accepter le morceau suivant.
  */
 object SmbClientPool {
 
-    private val config = SmbConfig.builder()
+    private const val SMB_BUFFER_SIZE = 2 * 1024 * 1024
+
+    private val sharedConfig = SmbConfig.builder()
         .withTimeout(30, TimeUnit.SECONDS)
-        .withReadTimeout(120, TimeUnit.SECONDS) // stable sur Wi-Fi faible, sans bloquer indéfiniment
+        .withReadTimeout(120, TimeUnit.SECONDS)
         .withSoTimeout(120, TimeUnit.SECONDS)
-        // Buffer SMB2 négocié à 2 Mo (défaut smbj : 1 Mo), aligné sur DEFAULT_READ_BUFFER_BYTES
-        // de SmbDataSource. Il était auparavant à 8 Mo : le serveur pouvait alors répondre à une
-        // seule lecture (notamment via SmbMediaDataSource.readAt, utilisé par
-        // MediaMetadataRetriever/MediaExtractor pour sonder un conteneur MKV/MP4) avec un paquet
-        // de plusieurs Mo, que smbj doit allouer d'un bloc côté client. Cumulé au tampon de
-        // lecture de la vidéo en cours (2 Mo) et aux miniatures/métadonnées lues en parallèle,
-        // ça a provoqué un OutOfMemoryError (tas cible 256 Mo, appli sans largeHeap) dans
-        // Buffer.readRawBytes lors de la lecture d'une réponse SMB2READ de ~4 Mo pendant une
-        // lecture vidéo. 2 Mo suffit largement pour saturer un lien Wi-Fi en 4K tout en gardant
-        // une marge de sécurité mémoire.
-        .withBufferSize(2 * 1024 * 1024)
+        .withBufferSize(SMB_BUFFER_SIZE)
+        .build()
+
+    private val playbackConfig = SmbConfig.builder()
+        .withTimeout(12, TimeUnit.SECONDS)
+        .withReadTimeout(20, TimeUnit.SECONDS)
+        .withSoTimeout(20, TimeUnit.SECONDS)
+        .withBufferSize(SMB_BUFFER_SIZE)
         .build()
 
     @Volatile
-    private var client: SMBClient? = null
+    private var sharedClient: SMBClient? = null
 
+    @Volatile
+    private var playbackClient: SMBClient? = null
+
+    /** Client mutualisé pour les opérations non critiques de bibliothèque et de métadonnées. */
     @Synchronized
     fun getClient(): SMBClient {
-        var c = client
-        if (c == null) {
-            c = SMBClient(config)
-            client = c
+        var current = sharedClient
+        if (current == null) {
+            current = SMBClient(sharedConfig)
+            sharedClient = current
         }
-        return c
+        return current
+    }
+
+    /**
+     * Client dédié aux flux Media3. Ses timeouts courts évitent qu'une lecture réseau suspendue
+     * retienne la file audio pendant 120 secondes. Chaque DataSource ouvre malgré tout sa propre
+     * connexion, ce qui permet de l'interrompre sans casser les scans parallèles.
+     */
+    @Synchronized
+    fun getPlaybackClient(): SMBClient {
+        var current = playbackClient
+        if (current == null) {
+            current = SMBClient(playbackConfig)
+            playbackClient = current
+        }
+        return current
+    }
+
+    @Synchronized
+    fun resetPlayback() {
+        try { playbackClient?.close() } catch (_: Exception) {}
+        playbackClient = null
     }
 
     @Synchronized
     fun reset() {
-        try { client?.close() } catch (_: Exception) {}
-        client = null
+        try { sharedClient?.close() } catch (_: Exception) {}
+        try { playbackClient?.close() } catch (_: Exception) {}
+        sharedClient = null
+        playbackClient = null
     }
 }

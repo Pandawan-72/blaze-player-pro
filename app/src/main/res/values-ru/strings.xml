@@ -411,6 +411,14 @@
     <string name="paywall_pro_plus_desc">Включает все функции Pro и открывает премиальный аудиоплеер Blaze Audio.</string>
     <string name="paywall_buy_pro">Открыть Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Открыть Pro+ — 5,99 €</string>
+    <string name="paywall_buy_pro_dynamic">Открыть Pro — %1$s</string>
+    <string name="paywall_buy_pro_plus_dynamic">Открыть Pro+ — %1$s</string>
+    <string name="paywall_purchase_success_pro">Покупка выполнена: версия Pro разблокирована.</string>
+    <string name="paywall_purchase_success_pro_plus">Покупка выполнена: версия Pro+ разблокирована.</string>
+    <string name="paywall_purchase_error">Не удалось совершить покупку: %1$s</string>
+    <string name="paywall_restore_success">Покупки успешно восстановлены.</string>
+    <string name="paywall_restore_nothing_found">Нет покупок для восстановления на этом аккаунте Google Play.</string>
+    <string name="paywall_restore_error">Не удалось восстановить покупки: %1$s</string>
     <string name="paywall_debug_unlocked">Debug-режим: Pro и Pro+ временно разблокированы.</string>
     <string name="paywall_restore">Восстановить покупки</string>
     <string name="action_back">Назад</string>

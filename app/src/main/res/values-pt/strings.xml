@@ -391,6 +391,14 @@
     <string name="paywall_pro_plus_desc">Inclui todas as funções Pro e desbloqueia o leitor de áudio premium Blaze Audio.</string>
     <string name="paywall_buy_pro">Desbloquear Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Desbloquear Pro+ — 5,99 €</string>
+    <string name="paywall_buy_pro_dynamic">Desbloquear Pro — %1$s</string>
+    <string name="paywall_buy_pro_plus_dynamic">Desbloquear Pro+ — %1$s</string>
+    <string name="paywall_purchase_success_pro">Compra concluída: o Pro está desbloqueado.</string>
+    <string name="paywall_purchase_success_pro_plus">Compra concluída: o Pro+ está desbloqueado.</string>
+    <string name="paywall_purchase_error">Não foi possível concluir a compra: %1$s</string>
+    <string name="paywall_restore_success">Compras restauradas com sucesso.</string>
+    <string name="paywall_restore_nothing_found">Nenhuma compra para restaurar nesta conta do Google Play.</string>
+    <string name="paywall_restore_error">Não foi possível restaurar: %1$s</string>
     <string name="paywall_debug_unlocked">Modo debug: Pro e Pro+ estão temporariamente desbloqueados.</string>
     <string name="paywall_restore">Restaurar compras</string>
     <string name="action_back">Voltar</string>

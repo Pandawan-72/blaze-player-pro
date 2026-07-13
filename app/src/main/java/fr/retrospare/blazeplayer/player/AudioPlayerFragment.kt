@@ -462,7 +462,7 @@ class AudioPlayerFragment : Fragment() {
                 val savedItems = savedState.items
                 if (savedItems.isNotEmpty()) {
                     // Chargement rapide : MediaItem simples d'abord, metadonnees enrichies ensuite
-                    val simpleItems = savedItems.map { AudioRepository.buildSimpleMediaItem(requireContext(), it.path, it.name) }
+                    val simpleItems = savedItems.map { AudioRepository.buildSimpleMediaItem(requireContext(), it.path, it.name, it.artworkPath) }
                     launch(Dispatchers.Main) {
                         ctrl.setMediaItems(
                             simpleItems,
@@ -487,7 +487,7 @@ class AudioPlayerFragment : Fragment() {
                     ordered.forEach { i ->
                         val item = savedItems[i]
                         try {
-                            val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), item.path, item.name)
+                            val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), item.path, item.name, item.artworkPath)
                             launch(Dispatchers.Main) {
                                 val c = controller ?: return@launch
                                 if (i < c.mediaItemCount) {
@@ -766,13 +766,17 @@ class AudioPlayerFragment : Fragment() {
         // cover.jpg, cover.png, puis embedded. Le chemin Room de la cover est consulté avant tout
         // ancien artworkData Media3, afin qu'une pochette validée dans la bibliothèque gagne partout.
         val path = originalPathOf(mediaItem)
-        val pathChanged = currentArtworkPath != path
+        val preferredArtworkPath = mediaItem.mediaMetadata.extras
+            ?.getString(AudioRepository.EXTRA_ARTWORK_PATH)
+            .orEmpty()
+        val artworkKey = "$path\u0000$preferredArtworkPath"
+        val pathChanged = currentArtworkPath != artworkKey
         if (pathChanged) {
-            currentArtworkPath = path
+            currentArtworkPath = artworkKey
             artworkLoadJob?.cancel()
         }
-        val immediateBitmap = AudioArtworkResolver.memoryCachedBitmap(path)
-            ?: AudioArtworkResolver.cachedBitmap(requireContext(), path)
+        val immediateBitmap = AudioArtworkResolver.memoryCachedBitmap(path, preferredArtworkPath)
+            ?: AudioArtworkResolver.cachedBitmap(requireContext(), path, preferredArtworkPath)
         if (immediateBitmap != null) {
             _binding?.ivArtwork?.setImageBitmap(immediateBitmap)
             applyDynamicBackgroundFromBitmap(immediateBitmap)
@@ -783,12 +787,12 @@ class AudioPlayerFragment : Fragment() {
 
         if (path.isNotEmpty() && (pathChanged || (immediateBitmap == null && artworkLoadJob?.isActive != true))) {
             artworkLoadJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                val bytes = AudioArtworkResolver.resolveJpegBytes(requireContext(), path)
+                val bytes = AudioArtworkResolver.resolveJpegBytes(requireContext(), path, preferredArtworkPath)
                 if (bytes != null) {
                     launch(Dispatchers.Main) {
                         val c = controller ?: return@launch
                         val current = c.currentMediaItem ?: return@launch
-                        if (originalPathOf(current) != path || currentArtworkPath != path) return@launch
+                        if (originalPathOf(current) != path || currentArtworkPath != artworkKey) return@launch
                         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@launch
                         _binding?.ivArtwork?.setImageBitmap(bitmap)
                         applyDynamicBackgroundFromBitmap(bitmap)
@@ -1355,21 +1359,13 @@ class AudioPlayerFragment : Fragment() {
     /**
      * Relance explicitement un élément de la file standard depuis son début.
      *
-     * Un simple seekToDefaultPosition() suivi de play() ne suffit pas toujours quand le titre a
-     * déjà atteint STATE_ENDED : suivant l'état de la MediaSession, le curseur revient bien à 0
-     * mais le player reste terminé. On envoie donc une séquence complète seek -> prepare -> play.
-     * Cette méthode fonctionne aussi pour le titre courant et permet ainsi de rejouer
-     * immédiatement un morceau déjà écouté.
+     * La commande dédiée est traitée par BlazePlayerService afin qu'il puisse interrompre un flux
+     * SMB bloqué avant de reconstruire la source. Cela couvre à la fois un titre terminé et un
+     * Loader réseau suspendu.
      */
     private fun playStandardQueueItemFromStart(index: Int) {
         val ctrl = controller ?: return
         if (index !in 0 until ctrl.mediaItemCount) return
-
-        ctrl.pause()
-        ctrl.seekTo(index, 0L)
-        ctrl.prepare()
-        ctrl.playWhenReady = true
-        ctrl.play()
 
         playlistAdapter.setCurrentIndex(index)
         playlistAdapter.setPlayingIndex(index)
@@ -1377,23 +1373,44 @@ class AudioPlayerFragment : Fragment() {
         syncMetadata()
         syncButtons()
 
-        // Filet de sécurité pour certains contrôleurs Media3 distants : si la première rafale de
-        // commandes a été traitée pendant la transition STATE_ENDED, on la rejoue une seule fois
-        // après que la session a eu le temps de publier son nouvel état.
-        handler.postDelayed({
-            if (_binding == null || controller !== ctrl) return@postDelayed
-            if (ctrl.currentMediaItemIndex != index) return@postDelayed
-            val playbackStarted = ctrl.isPlaying ||
-                (ctrl.playWhenReady && (ctrl.playbackState == Player.STATE_BUFFERING ||
-                    ctrl.playbackState == Player.STATE_READY))
-            if (playbackStarted) return@postDelayed
-            if (ctrl.currentPosition > 500L) return@postDelayed
+        // Une sélection dans la file passe par une commande de session dédiée. Le service peut
+        // ainsi interrompre immédiatement un DataSource SMB éventuellement bloqué avant de recréer
+        // la timeline. Des commandes Player classiques (seek/prepare/play) seules restent en attente
+        // derrière le Loader réseau lorsque smbj est suspendu.
+        val command = SessionCommand(
+            BlazePlayerService.COMMAND_PLAY_QUEUE_INDEX_FROM_START,
+            Bundle.EMPTY
+        )
+        val args = Bundle().apply {
+            putInt(BlazePlayerService.EXTRA_QUEUE_INDEX, index)
+        }
 
-            ctrl.seekTo(index, 0L)
-            ctrl.prepare()
-            ctrl.playWhenReady = true
-            ctrl.play()
-        }, 250L)
+        try {
+            val future = ctrl.sendCustomCommand(command, args)
+            future.addListener({
+                val resultCode = runCatching { future.get().resultCode }
+                    .getOrDefault(androidx.media3.session.SessionResult.RESULT_ERROR_UNKNOWN)
+                if (resultCode != androidx.media3.session.SessionResult.RESULT_SUCCESS &&
+                    resultCode != androidx.media3.session.SessionResult.RESULT_ERROR_PERMISSION_DENIED) {
+                    handler.post {
+                        if (_binding == null || controller !== ctrl) return@post
+                        fallbackPlayQueueItemFromStart(ctrl, index)
+                    }
+                }
+            }, MoreExecutors.directExecutor())
+        } catch (error: Exception) {
+            CrashReporter.log(requireContext(), "Queue replay command failed for index $index", error)
+            fallbackPlayQueueItemFromStart(ctrl, index)
+        }
+    }
+
+    private fun fallbackPlayQueueItemFromStart(ctrl: MediaController, index: Int) {
+        if (index !in 0 until ctrl.mediaItemCount) return
+        ctrl.pause()
+        ctrl.seekTo(index, 0L)
+        ctrl.prepare()
+        ctrl.playWhenReady = true
+        ctrl.play()
     }
 
     private fun initPlaylistUi() {
@@ -1997,7 +2014,7 @@ class AudioPlayerFragment : Fragment() {
                 val name = AudioLibraryHeuristics.fileNameFromPath(path).ifBlank {
                     mi.localConfiguration?.uri?.lastPathSegment.orEmpty()
                 }
-                PlaylistItem(path, name)
+                PlaylistItem(path, name, mi.mediaMetadata.extras?.getString(AudioRepository.EXTRA_ARTWORK_PATH).orEmpty())
             }
             if (items.isNotEmpty()) {
                 AudioRepository.save(ctx, items, 0, 0L, Player.REPEAT_MODE_OFF, false)
@@ -2013,7 +2030,7 @@ class AudioPlayerFragment : Fragment() {
             val name = AudioLibraryHeuristics.fileNameFromPath(path).ifBlank {
                 mi.localConfiguration?.uri?.lastPathSegment.orEmpty()
             }
-            PlaylistItem(path, name)
+            PlaylistItem(path, name, mi.mediaMetadata.extras?.getString(AudioRepository.EXTRA_ARTWORK_PATH).orEmpty())
         }
         if (items.isEmpty()) return
         AudioRepository.save(

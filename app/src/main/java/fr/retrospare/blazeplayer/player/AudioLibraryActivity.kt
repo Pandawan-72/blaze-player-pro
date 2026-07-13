@@ -647,13 +647,14 @@ class AudioLibraryActivity : AppCompatActivity() {
     private fun playAlbumNow(tracks: List<LibraryTrack>) {
         val ordered = tracks.distinctBy { it.path }
         if (ordered.isEmpty()) return
-        val items = ordered.map { PlaylistItem(it.path, it.title.ifBlank { AudioLibraryHeuristics.fileNameFromPath(it.path) }) }
+        val items = ordered.map { PlaylistItem(it.path, it.title.ifBlank { AudioLibraryHeuristics.fileNameFromPath(it.path) }, it.artworkPath) }
         AudioRepository.save(this, items, 0, 0L, Player.REPEAT_MODE_OFF, false)
         runCatching {
             startService(Intent(this, BlazePlayerService::class.java).apply {
                 action = BlazePlayerService.ACTION_PLAY_AUDIO_QUEUE
                 putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_PATHS, ArrayList(items.map { it.path }))
                 putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_NAMES, ArrayList(items.map { it.name }))
+                putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_ARTWORK_PATHS, ArrayList(items.map { it.artworkPath }))
                 putExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_INDEX, 0)
             })
         }
@@ -665,7 +666,7 @@ class AudioLibraryActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.playlist_empty, Toast.LENGTH_SHORT).show()
             return
         }
-        AudioRepository.save(this, playlist.tracks.map { PlaylistItem(it.path, it.title) }, 0)
+        AudioRepository.save(this, playlist.tracks.map { PlaylistItem(it.path, it.title, it.artworkPath) }, 0)
         openFullAudioPlayer()
     }
 
@@ -757,10 +758,17 @@ class AudioLibraryActivity : AppCompatActivity() {
 
     private fun appendSingleTrackToAudioQueueAndPlay(track: LibraryTrack) {
         if (track.path.isBlank()) return
-        val item = PlaylistItem(track.path, track.title.ifBlank { AudioLibraryHeuristics.fileNameFromPath(track.path) })
+        val item = PlaylistItem(track.path, track.title.ifBlank { AudioLibraryHeuristics.fileNameFromPath(track.path) }, track.artworkPath)
         val state = AudioRepository.loadState(this)
         val existingIndex = state.items.indexOfFirst { it.path == item.path }
-        val newItems = if (existingIndex >= 0) state.items else state.items + item
+        val newItems = if (existingIndex >= 0) {
+            state.items.toMutableList().also { items ->
+                val previous = items[existingIndex]
+                if (item.artworkPath.isNotBlank() && previous.artworkPath != item.artworkPath) {
+                    items[existingIndex] = previous.copy(artworkPath = item.artworkPath)
+                }
+            }
+        } else state.items + item
         val targetIndex = if (existingIndex >= 0) existingIndex else newItems.lastIndex.coerceAtLeast(0)
         if (newItems.isNotEmpty()) {
             AudioRepository.save(this, newItems, targetIndex, 0L, state.repeatMode, state.shuffle)
@@ -770,6 +778,7 @@ class AudioLibraryActivity : AppCompatActivity() {
                 action = BlazePlayerService.ACTION_APPEND_AUDIO_QUEUE_AND_PLAY
                 putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_PATHS, arrayListOf(item.path))
                 putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_NAMES, arrayListOf(item.name))
+                putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_ARTWORK_PATHS, arrayListOf(item.artworkPath))
                 putExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_INDEX, 0)
             })
         }
@@ -780,7 +789,7 @@ class AudioLibraryActivity : AppCompatActivity() {
         if (unique.isEmpty()) return
         val state = AudioRepository.loadState(this)
         val existing = state.items.map { it.path }.toHashSet()
-        val additions = unique.filter { existing.add(it.path) }.map { PlaylistItem(it.path, it.title.ifBlank { AudioLibraryHeuristics.fileNameFromPath(it.path) }) }
+        val additions = unique.filter { existing.add(it.path) }.map { PlaylistItem(it.path, it.title.ifBlank { AudioLibraryHeuristics.fileNameFromPath(it.path) }, it.artworkPath) }
         if (additions.isEmpty()) {
             Toast.makeText(this, resources.getQuantityString(R.plurals.playlist_items_already_present, unique.size, unique.size), Toast.LENGTH_SHORT).show()
             return
@@ -798,6 +807,7 @@ class AudioLibraryActivity : AppCompatActivity() {
                 action = BlazePlayerService.ACTION_APPEND_AUDIO_QUEUE
                 putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_PATHS, ArrayList(items.map { it.path }))
                 putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_NAMES, ArrayList(items.map { it.name }))
+                putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_ARTWORK_PATHS, ArrayList(items.map { it.artworkPath }))
             })
         }
     }

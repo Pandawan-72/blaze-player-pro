@@ -391,6 +391,14 @@
     <string name="paywall_pro_plus_desc">Includes every Pro feature and unlocks the premium Blaze Audio player.</string>
     <string name="paywall_buy_pro">Unlock Pro — €3.99</string>
     <string name="paywall_buy_pro_plus">Unlock Pro+ — €5.99</string>
+    <string name="paywall_buy_pro_dynamic">Unlock Pro — %1$s</string>
+    <string name="paywall_buy_pro_plus_dynamic">Unlock Pro+ — %1$s</string>
+    <string name="paywall_purchase_success_pro">Purchase successful: Pro is now unlocked.</string>
+    <string name="paywall_purchase_success_pro_plus">Purchase successful: Pro+ is now unlocked.</string>
+    <string name="paywall_purchase_error">Purchase failed: %1$s</string>
+    <string name="paywall_restore_success">Purchases restored successfully.</string>
+    <string name="paywall_restore_nothing_found">No purchase to restore on this Google Play account.</string>
+    <string name="paywall_restore_error">Restore failed: %1$s</string>
     <string name="paywall_debug_unlocked">Debug mode: Pro and Pro+ are temporarily unlocked.</string>
     <string name="paywall_restore">Restore purchases</string>
     <string name="action_back">Back</string>

@@ -1,3 +1,7 @@
 package fr.retrospare.blazeplayer.player
 
-data class PlaylistItem(val path: String, val name: String)
+data class PlaylistItem(
+    val path: String,
+    val name: String,
+    val artworkPath: String = ""
+)

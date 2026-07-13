@@ -20,15 +20,17 @@ import androidx.media3.datasource.TransferListener
  */
 @UnstableApi
 class BlazeDataSourceFactory(
-    context: Context
+    context: Context,
+    private val smbOwnerTag: String = SmbDataSource.OWNER_GENERIC
 ) : DataSource.Factory {
 
     private val appContext = context.applicationContext
 
-    override fun createDataSource(): DataSource = BlazeDispatchingDataSource(appContext)
+    override fun createDataSource(): DataSource = BlazeDispatchingDataSource(appContext, smbOwnerTag)
 
     private class BlazeDispatchingDataSource(
-        private val context: Context
+        private val context: Context,
+        private val smbOwnerTag: String
     ) : DataSource {
         @Volatile private var delegate: DataSource? = null
         private val pendingListeners = mutableListOf<TransferListener>()
@@ -48,7 +50,7 @@ class BlazeDataSourceFactory(
 
             val scheme = dataSpec.uri.scheme?.lowercase()
             val ds: DataSource = if (scheme == "smb") {
-                SmbDataSource()
+                SmbDataSource(smbOwnerTag)
             } else {
                 DefaultDataSource.Factory(context).createDataSource()
             }

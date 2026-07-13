@@ -23,7 +23,9 @@ import java.util.EnumSet
  * exécutés en parallèle ne puissent pas fermer sa session réseau.
  */
 @UnstableApi
-class SmbDataSource : BaseDataSource(true) {
+class SmbDataSource(
+    private val ownerTag: String = OWNER_GENERIC
+) : BaseDataSource(true) {
 
     private var connection: Connection? = null
     private var session: Session? = null
@@ -34,6 +36,7 @@ class SmbDataSource : BaseDataSource(true) {
     private var currentPosition: Long = 0
     private var parsedUri: ParsedSmbUri? = null
     @Volatile private var transferOpen = false
+    @Volatile private var cancelled = false
 
     // Buffer interne pour eviter des centaines de micro-requetes SMB (1-4 octets) lors du parsing MKV/EBML.
     // On lit par blocs de 2 Mo depuis le reseau et on sert les petites lectures de Media3 depuis ce buffer.
@@ -74,7 +77,10 @@ class SmbDataSource : BaseDataSource(true) {
         var share: DiskShare? = null
         var file: SmbFile? = null
         return try {
-            conn = SmbClientPool.getClient().connect(parsed.host, parsed.port)
+            if (cancelled) throw java.io.InterruptedIOException("SMB playback opening cancelled")
+            conn = SmbClientPool.getPlaybackClient().connect(parsed.host, parsed.port)
+            synchronized(this) { connection = conn }
+            if (cancelled) throw java.io.InterruptedIOException("SMB playback opening cancelled")
             val username = parsed.username
             val auth = if (!username.isNullOrEmpty()) {
                 AuthenticationContext(username, (parsed.password ?: "").toCharArray(), "")
@@ -82,7 +88,11 @@ class SmbDataSource : BaseDataSource(true) {
                 AuthenticationContext.anonymous()
             }
             sess = conn.authenticate(auth)
+            synchronized(this) { session = sess }
+            if (cancelled) throw java.io.InterruptedIOException("SMB playback authentication cancelled")
             share = sess.connectShare(parsed.shareName) as DiskShare
+            synchronized(this) { diskShare = share }
+            if (cancelled) throw java.io.InterruptedIOException("SMB playback share opening cancelled")
             file = share.openFile(
                 parsed.filePath,
                 EnumSet.of(com.hierynomus.msdtyp.AccessMask.GENERIC_READ),
@@ -91,9 +101,17 @@ class SmbDataSource : BaseDataSource(true) {
                 SMB2CreateDisposition.FILE_OPEN,
                 EnumSet.noneOf(com.hierynomus.mssmb2.SMB2CreateOptions::class.java)
             )
+            synchronized(this) { smbFile = file }
+            if (cancelled) throw java.io.InterruptedIOException("SMB playback file opening cancelled")
             val size = file.getFileInformation(FileStandardInformation::class.java).endOfFile
             OpenedSmbFile(conn, sess, share, file, size)
         } catch (error: Exception) {
+            synchronized(this) {
+                if (smbFile === file) smbFile = null
+                if (diskShare === share) diskShare = null
+                if (session === sess) session = null
+                if (connection === conn) connection = null
+            }
             try { file?.close() } catch (_: Exception) {}
             try { share?.close() } catch (_: Exception) {}
             try { sess?.close() } catch (_: Exception) {}
@@ -109,22 +127,50 @@ class SmbDataSource : BaseDataSource(true) {
         val file: SmbFile?
     )
 
-    private fun closeSmbResources() {
-        val resources = synchronized(this) {
-            ActiveSmbResources(connection, session, diskShare, smbFile).also {
-                smbFile = null
-                diskShare = null
-                session = null
-                connection = null
-            }
+    private fun detachSmbResources(): ActiveSmbResources = synchronized(this) {
+        ActiveSmbResources(connection, session, diskShare, smbFile).also {
+            smbFile = null
+            diskShare = null
+            session = null
+            connection = null
+        }
+    }
+
+    private fun closeDetachedResources(resources: ActiveSmbResources, interruptReadFirst: Boolean) {
+        // Lorsqu'une lecture SMB est bloquée dans smbj, fermer d'abord la connexion/socket est la
+        // seule façon fiable de réveiller immédiatement le thread Loader de Media3. Fermer le
+        // handle fichier en premier peut lui-même attendre la réponse réseau jusqu'au timeout.
+        if (interruptReadFirst) {
+            try { resources.connection?.close() } catch (_: Exception) {}
         }
         try { resources.file?.close() } catch (_: Exception) {}
         try { resources.share?.close() } catch (_: Exception) {}
         try { resources.session?.close() } catch (_: Exception) {}
-        try { resources.connection?.close() } catch (_: Exception) {}
+        if (!interruptReadFirst) {
+            try { resources.connection?.close() } catch (_: Exception) {}
+        }
+    }
+
+    private fun closeSmbResources(interruptReadFirst: Boolean = false) {
+        closeDetachedResources(detachSmbResources(), interruptReadFirst)
+    }
+
+    private fun abortActiveRead() {
+        cancelled = true
+        ACTIVE_SOURCES.remove(this)
+        val resources = detachSmbResources()
+        // Ne jamais fermer un socket SMB sur le thread principal : suivant l'état du NAS, même
+        // close() peut prendre quelques instants. Le flag cancelled et le détachement sont
+        // immédiats ; la fermeture réseau se fait sur un exécuteur dédié.
+        ABORT_EXECUTOR.execute {
+            closeDetachedResources(resources, interruptReadFirst = true)
+        }
+        readBufferStart = -1L
+        readBufferLength = 0
     }
 
     private fun reopenAfterReadFailure(error: Exception): Boolean {
+        if (cancelled) return false
         val parsed = parsedUri ?: return false
         android.util.Log.w("SmbDataSource", "SMB read failed at $currentPosition, reconnecting dedicated stream", error)
         closeSmbResources()
@@ -146,9 +192,11 @@ class SmbDataSource : BaseDataSource(true) {
     }
 
     override fun open(dataSpec: DataSpec): Long {
+        cancelled = false
         uri = dataSpec.uri
-        val parsed = parseSmbUri(dataSpec.uri)
-        parsedUri = parsed
+        parsedUri = parseSmbUri(dataSpec.uri)
+        ACTIVE_SOURCES.add(this)
+        val parsed = parsedUri!!
 
         // Un seul bloc de tentative recouvrant TOUTE la séquence d'ouverture (pas seulement
         // getShare()) : le DiskShare renvoyé peut devenir obsolète/fermé entre son obtention et
@@ -157,10 +205,27 @@ class SmbDataSource : BaseDataSource(true) {
         fun attemptOpen(): OpenedSmbFile = openSmbFile(parsed)
 
         val opened = try {
-            attemptOpen()
-        } catch (e: Exception) {
-            if (isMissingPathError(e)) throw e
-            attemptOpen()
+            try {
+                attemptOpen()
+            } catch (e: Exception) {
+                if (cancelled || isMissingPathError(e)) throw e
+                attemptOpen()
+            }
+        } catch (error: Exception) {
+            ACTIVE_SOURCES.remove(this)
+            uri = null
+            parsedUri = null
+            throw error
+        }
+        if (cancelled) {
+            closeDetachedResources(
+                ActiveSmbResources(opened.connection, opened.session, opened.share, opened.file),
+                interruptReadFirst = true
+            )
+            ACTIVE_SOURCES.remove(this)
+            uri = null
+            parsedUri = null
+            throw java.io.InterruptedIOException("SMB playback opening cancelled")
         }
         synchronized(this) {
             connection = opened.connection
@@ -172,7 +237,8 @@ class SmbDataSource : BaseDataSource(true) {
 
         val position = dataSpec.position
         if (position > fileSize) {
-            closeSmbResources()
+            ACTIVE_SOURCES.remove(this)
+            closeSmbResources(interruptReadFirst = true)
             throw androidx.media3.datasource.DataSourceException(androidx.media3.common.PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE)
         }
         currentPosition = position
@@ -187,6 +253,7 @@ class SmbDataSource : BaseDataSource(true) {
     }
 
     override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+        if (cancelled) throw java.io.InterruptedIOException("SMB playback read cancelled")
         if (length == 0) return 0
         if (bytesRemaining == 0L) return C.RESULT_END_OF_INPUT
 
@@ -215,8 +282,12 @@ class SmbDataSource : BaseDataSource(true) {
         var lastError: Exception? = null
         while (attempts < 3) {
             read = try {
+                if (cancelled) throw java.io.InterruptedIOException("SMB playback read cancelled")
                 smbFile?.read(readBuffer, currentPosition, 0, computeNetworkReadSize(bytesWanted)) ?: -1
             } catch (e: Exception) {
+                if (cancelled || e is java.io.InterruptedIOException) {
+                    throw java.io.InterruptedIOException("SMB playback read cancelled").apply { initCause(e) }
+                }
                 lastError = e
                 if (attempts == 0 && reopenAfterReadFailure(e)) {
                     attempts++
@@ -253,6 +324,8 @@ class SmbDataSource : BaseDataSource(true) {
         // close() peut être rappelé par plusieurs couches Media3 après une erreur. Le callback de
         // transfert doit être émis une seule fois, sinon BaseDataSource transmet un DataSpec null au
         // DefaultBandwidthMeter et transforme une fermeture normale en erreur de lecture fatale.
+        cancelled = true
+        ACTIVE_SOURCES.remove(this)
         val shouldEndTransfer = synchronized(this) {
             if (transferOpen) {
                 transferOpen = false
@@ -261,7 +334,8 @@ class SmbDataSource : BaseDataSource(true) {
                 false
             }
         }
-        closeSmbResources()
+        // Fermer le socket avant les handles pour interrompre immédiatement un read() suspendu.
+        closeSmbResources(interruptReadFirst = true)
         if (shouldEndTransfer) {
             runCatching { transferEnded() }
                 .onFailure { android.util.Log.w("SmbDataSource", "Ignoring transfer end callback failure", it) }
@@ -284,7 +358,28 @@ class SmbDataSource : BaseDataSource(true) {
     )
 
     companion object {
+        const val OWNER_GENERIC = "generic"
+        const val OWNER_AUDIO = "blaze_audio"
+        const val OWNER_VIDEO = "blaze_video"
+
         private const val DEFAULT_READ_BUFFER_BYTES = 2 * 1024 * 1024
+        private val ACTIVE_SOURCES = java.util.concurrent.ConcurrentHashMap.newKeySet<SmbDataSource>()
+        private val ABORT_EXECUTOR = java.util.concurrent.Executors.newCachedThreadPool { runnable ->
+            Thread(runnable, "Blaze-SMB-Abort").apply { isDaemon = true }
+        }
+
+        /**
+         * Interrompt uniquement les flux du lecteur demandé. Utilisé avant une sélection manuelle
+         * afin qu'un ancien read SMB bloqué ne retarde jamais le nouveau titre jusqu'au timeout.
+         */
+        fun cancelActiveReads(ownerTag: String) {
+            ACTIVE_SOURCES
+                .filter { it.ownerTag == ownerTag }
+                .forEach { source ->
+                    runCatching { source.abortActiveRead() }
+                        .onFailure { android.util.Log.w("SmbDataSource", "Unable to abort active SMB read", it) }
+                }
+        }
 
         fun parseSmbUri(uri: Uri): ParsedSmbUri {
             // smb://[user[:pass]@]host[:port]/share/path/to/file

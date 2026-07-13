@@ -391,6 +391,14 @@
     <string name="paywall_pro_plus_desc">Bevat alle Pro-functies en ontgrendelt de premium Blaze Audio-speler.</string>
     <string name="paywall_buy_pro">Pro ontgrendelen — € 3,99</string>
     <string name="paywall_buy_pro_plus">Pro+ ontgrendelen — € 5,99</string>
+    <string name="paywall_buy_pro_dynamic">Pro ontgrendelen — %1$s</string>
+    <string name="paywall_buy_pro_plus_dynamic">Pro+ ontgrendelen — %1$s</string>
+    <string name="paywall_purchase_success_pro">Aankoop geslaagd: Pro is nu ontgrendeld.</string>
+    <string name="paywall_purchase_success_pro_plus">Aankoop geslaagd: Pro+ is nu ontgrendeld.</string>
+    <string name="paywall_purchase_error">Aankoop mislukt: %1$s</string>
+    <string name="paywall_restore_success">Aankopen succesvol hersteld.</string>
+    <string name="paywall_restore_nothing_found">Geen aankoop om te herstellen op dit Google Play-account.</string>
+    <string name="paywall_restore_error">Herstellen mislukt: %1$s</string>
     <string name="paywall_debug_unlocked">Debugmodus: Pro en Pro+ zijn tijdelijk ontgrendeld.</string>
     <string name="paywall_restore">Aankopen herstellen</string>
     <string name="action_back">Terug</string>
