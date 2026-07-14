@@ -13,6 +13,7 @@ import com.revenuecat.purchases.interfaces.ReceiveCustomerInfoCallback
 import com.revenuecat.purchases.interfaces.ReceiveOfferingsCallback
 import com.revenuecat.purchases.interfaces.UpdatedCustomerInfoListener
 import com.revenuecat.purchases.models.StoreTransaction
+import fr.retrospare.blazeplayer.BuildConfig
 import fr.retrospare.blazeplayer.data.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,10 +47,10 @@ private sealed class RawPurchaseResult {
 
 /** Point d'accès unique au SDK RevenueCat.
  *
- * `Purchases.configure()` est appelé une seule fois dans [fr.retrospare.blazeplayer.BlazePlayerApp].
- * Cette classe se contente ensuite d'écouter les mises à jour de [CustomerInfo] et de les
- * répercuter sur [UserRepository], qui reste la seule source de vérité consultée par
- * [fr.retrospare.blazeplayer.paywall.FeatureAccess] dans le reste de l'application.
+ * Le stockage local de [UserRepository] est lu immédiatement au démarrage, ce qui conserve les
+ * droits achetés sans écran de chargement lorsque l'application est relancée ou mise à jour.
+ * En parallèle, [start] installe l'écouteur RevenueCat puis resynchronise silencieusement le
+ * CustomerInfo. Tout changement est écrit atomiquement dans DataStore et donc propagé à l'UI.
  */
 @Singleton
 class RevenueCatManager @Inject constructor(
@@ -57,21 +58,50 @@ class RevenueCatManager @Inject constructor(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    init {
-        // Répercute automatiquement tout changement d'entitlement (achat, restauration,
-        // remboursement détecté côté serveur RevenueCat) sur le stockage local.
-        Purchases.sharedInstance.updatedCustomerInfoListener =
-            UpdatedCustomerInfoListener { customerInfo -> scope.launch { applyCustomerInfo(customerInfo) } }
+    @Volatile
+    private var started = false
+
+    /** Démarre une seule fois l'écoute globale et la synchronisation silencieuse de lancement.
+     * Cette méthode doit être appelée après Purchases.configure(), depuis BlazePlayerApp. */
+    fun start() {
+        if (BuildConfig.REVENUECAT_API_KEY.isBlank()) {
+            Log.e(TAG, "RevenueCat non démarré : REVENUECAT_API_KEY est absente.")
+            return
+        }
+        if (started) return
+        synchronized(this) {
+            if (started) return
+            val purchases = runCatching { Purchases.sharedInstance }
+                .onFailure { Log.e(TAG, "RevenueCat n'est pas encore configuré.", it) }
+                .getOrNull() ?: return
+
+            purchases.updatedCustomerInfoListener = UpdatedCustomerInfoListener { customerInfo ->
+                scope.launch { applyCustomerInfo(customerInfo) }
+            }
+            started = true
+        }
+
+        // Ne bloque jamais le premier frame : le cache local ouvre immédiatement les fonctions
+        // déjà achetées, puis RevenueCat confirme/corrige l'état en arrière-plan.
+        scope.launch { syncCustomerInfo() }
     }
 
-    /** À appeler à l'ouverture du paywall pour être certain d'avoir l'état le plus récent
-     * (par exemple après un achat effectué depuis un autre appareil). */
-    suspend fun syncCustomerInfo() {
-        val customerInfo = awaitCustomerInfo() ?: return
+    private fun ensureStarted(): Boolean {
+        if (!started) start()
+        return started
+    }
+
+    /** Synchronise silencieusement l'état RevenueCat avec le cache local.
+     * getCustomerInfo() utilise normalement le cache SDK et le rafraîchit s'il est ancien. */
+    suspend fun syncCustomerInfo(): Boolean {
+        if (!ensureStarted()) return false
+        val customerInfo = awaitCustomerInfo() ?: return false
         applyCustomerInfo(customerInfo)
+        return true
     }
 
     suspend fun fetchPricing(): LifetimePricing {
+        if (!ensureStarted()) return LifetimePricing(null, null)
         val offering = awaitCurrentOffering()
         return LifetimePricing(
             proPriceFormatted = offering?.getPackage(RevenueCatIds.PACKAGE_PRO_LIFETIME)
@@ -81,18 +111,25 @@ class RevenueCatManager @Inject constructor(
         )
     }
 
-    suspend fun purchasePro(activity: Activity): PurchaseOutcome =
-        purchaseByPackageId(activity, RevenueCatIds.PACKAGE_PRO_LIFETIME)
+    suspend fun purchasePro(activity: Activity): PurchaseOutcome {
+        if (!ensureStarted()) return PurchaseOutcome.Failure("RevenueCat n'est pas configuré.")
+        return purchaseByPackageId(activity, RevenueCatIds.PACKAGE_PRO_LIFETIME)
+    }
 
-    suspend fun purchaseProPlus(activity: Activity): PurchaseOutcome =
-        purchaseByPackageId(activity, RevenueCatIds.PACKAGE_PRO_PLUS_LIFETIME)
+    suspend fun purchaseProPlus(activity: Activity): PurchaseOutcome {
+        if (!ensureStarted()) return PurchaseOutcome.Failure("RevenueCat n'est pas configuré.")
+        return purchaseByPackageId(activity, RevenueCatIds.PACKAGE_PRO_PLUS_LIFETIME)
+    }
 
     suspend fun restorePurchases(): PurchaseOutcome {
+        if (!ensureStarted()) return PurchaseOutcome.Failure("RevenueCat n'est pas configuré.")
         val hadAnyEntitlementBefore = awaitCustomerInfo()?.entitlements?.active?.isNotEmpty() == true
         val restored = awaitRestore()
         return when (restored) {
             null -> PurchaseOutcome.Failure("La restauration des achats a échoué. Vérifie ta connexion.")
             else -> {
+                // L'écriture DataStore est terminée avant le retour Success : le contenu est donc
+                // déjà débloqué lorsque le ViewModel reçoit le résultat.
                 applyCustomerInfo(restored)
                 val hasAnyEntitlementAfter = restored.entitlements.active.isNotEmpty()
                 if (hasAnyEntitlementAfter || hadAnyEntitlementBefore) {
@@ -112,6 +149,8 @@ class RevenueCatManager @Inject constructor(
 
         return when (val result = awaitPurchase(activity, packageToBuy)) {
             is RawPurchaseResult.Completed -> {
+                // Le CustomerInfo retourné par l'achat est la réponse la plus récente. On le
+                // persiste avant de signaler le succès afin que Pro/Pro+ soit instantané partout.
                 applyCustomerInfo(result.customerInfo)
                 PurchaseOutcome.Success
             }
@@ -121,22 +160,30 @@ class RevenueCatManager @Inject constructor(
     }
 
     private suspend fun applyCustomerInfo(customerInfo: CustomerInfo) {
-        val proActive = customerInfo.entitlements[RevenueCatIds.ENTITLEMENT_PRO]?.isActive == true
-        val proPlusActive = customerInfo.entitlements[RevenueCatIds.ENTITLEMENT_PRO_PLUS]?.isActive == true
-        userRepository.setProStatus(proActive)
-        userRepository.setProPlusStatus(proPlusActive)
+        val proPlusActive =
+            customerInfo.entitlements[RevenueCatIds.ENTITLEMENT_PRO_PLUS]?.isActive == true
+        // Pro+ inclut toujours Pro, même si le dashboard RevenueCat n'a pas encore rattaché le
+        // produit Pro+ aux deux entitlements. Cela évite un état transitoire incohérent.
+        val proActive = proPlusActive ||
+            customerInfo.entitlements[RevenueCatIds.ENTITLEMENT_PRO]?.isActive == true
+        userRepository.setPurchasedAccess(
+            isPro = proActive,
+            isProPlus = proPlusActive
+        )
     }
 
     private suspend fun awaitCurrentOffering(): Offering? =
         suspendCancellableCoroutine { continuation ->
             Purchases.sharedInstance.getOfferings(object : ReceiveOfferingsCallback {
                 override fun onReceived(offerings: Offerings) {
-                    continuation.resume(offerings.current ?: offerings[RevenueCatIds.OFFERING_DEFAULT])
+                    if (continuation.isActive) {
+                        continuation.resume(offerings.current ?: offerings[RevenueCatIds.OFFERING_DEFAULT])
+                    }
                 }
 
                 override fun onError(error: PurchasesError) {
                     Log.w(TAG, "Impossible de récupérer les offres RevenueCat : ${error.message}")
-                    continuation.resume(null)
+                    if (continuation.isActive) continuation.resume(null)
                 }
             })
         }
@@ -145,12 +192,12 @@ class RevenueCatManager @Inject constructor(
         suspendCancellableCoroutine { continuation ->
             Purchases.sharedInstance.getCustomerInfo(object : ReceiveCustomerInfoCallback {
                 override fun onReceived(customerInfo: CustomerInfo) {
-                    continuation.resume(customerInfo)
+                    if (continuation.isActive) continuation.resume(customerInfo)
                 }
 
                 override fun onError(error: PurchasesError) {
                     Log.w(TAG, "Impossible de récupérer le CustomerInfo RevenueCat : ${error.message}")
-                    continuation.resume(null)
+                    if (continuation.isActive) continuation.resume(null)
                 }
             })
         }
@@ -159,12 +206,12 @@ class RevenueCatManager @Inject constructor(
         suspendCancellableCoroutine { continuation ->
             Purchases.sharedInstance.restorePurchases(object : ReceiveCustomerInfoCallback {
                 override fun onReceived(customerInfo: CustomerInfo) {
-                    continuation.resume(customerInfo)
+                    if (continuation.isActive) continuation.resume(customerInfo)
                 }
 
                 override fun onError(error: PurchasesError) {
                     Log.w(TAG, "Échec de restauration RevenueCat : ${error.message}")
-                    continuation.resume(null)
+                    if (continuation.isActive) continuation.resume(null)
                 }
             })
         }
@@ -176,10 +223,13 @@ class RevenueCatManager @Inject constructor(
         val params = PurchaseParams.Builder(activity, packageToBuy).build()
         Purchases.sharedInstance.purchase(params, object : PurchaseCallback {
             override fun onCompleted(storeTransaction: StoreTransaction, customerInfo: CustomerInfo) {
-                continuation.resume(RawPurchaseResult.Completed(customerInfo))
+                if (continuation.isActive) {
+                    continuation.resume(RawPurchaseResult.Completed(customerInfo))
+                }
             }
 
             override fun onError(error: PurchasesError, userCancelled: Boolean) {
+                if (!continuation.isActive) return
                 if (userCancelled) {
                     continuation.resume(RawPurchaseResult.UserCancelled)
                 } else {

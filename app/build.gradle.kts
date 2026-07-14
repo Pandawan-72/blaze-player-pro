@@ -206,8 +206,9 @@ dependencies {
     implementation("androidx.room:room-ktx:2.8.3")
     ksp("androidx.room:room-compiler:2.8.3")
 
-    // RevenueCat
-    implementation(libs.revenuecat)
+    // RevenueCat est déjà déclaré explicitement plus haut en 10.10.0. Ne pas ajouter une
+    // seconde version via le version catalog : Gradle pourrait résoudre silencieusement une
+    // version différente selon le projet racine.
 
     // Coil
     implementation(libs.coil)

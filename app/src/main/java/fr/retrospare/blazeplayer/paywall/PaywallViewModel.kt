@@ -56,6 +56,18 @@ class PaywallViewModel @Inject constructor(
 
     private var cachedProPrice: String? = null
     private var cachedProPlusPrice: String? = null
+    private var purchaseInProgress: Boolean = false
+
+    init {
+        // Le paywall suit la même source de vérité que le reste de l'app. Dès qu'un achat,
+        // une restauration ou la synchronisation de lancement écrit les droits dans DataStore,
+        // les cartes/boutons se mettent à jour sans attendre un nouvel onResume().
+        viewModelScope.launch {
+            userRepository.accessStateFlow.collect { access ->
+                publishState(access, purchaseInProgress)
+            }
+        }
+    }
 
     fun checkProStatus() {
         viewModelScope.launch {
@@ -98,29 +110,39 @@ class PaywallViewModel @Inject constructor(
 
     private fun launchPurchase(block: suspend () -> Unit) {
         viewModelScope.launch {
+            purchaseInProgress = true
             refreshState(purchaseInProgress = true)
-            runCatching { block() }
+            val failure = runCatching { block() }.exceptionOrNull()
+            if (failure != null) {
+                _events.send(PaywallEvent.PurchaseError(failure.message ?: "Paywall unavailable"))
+            }
+            purchaseInProgress = false
             refreshState(purchaseInProgress = false)
         }
     }
 
     private suspend fun refreshState(purchaseInProgress: Boolean) {
         runCatching { userRepository.ensureTrialStarted() }
-            .onSuccess { access ->
-                _state.value = PaywallState.Ready(
-                    isPro = access.hasProAccess,
-                    isProPlus = access.hasProPlusAccess,
-                    isProPurchased = access.isProPurchased,
-                    isProPlusPurchased = access.isProPlusPurchased,
-                    isTrialActive = access.isTrialActive,
-                    trialDaysLeft = access.trialDaysLeft,
-                    proPriceFormatted = cachedProPrice,
-                    proPlusPriceFormatted = cachedProPlusPrice,
-                    isPurchaseInProgress = purchaseInProgress
-                )
-            }
+            .onSuccess { access -> publishState(access, purchaseInProgress) }
             .onFailure { error ->
                 _state.value = PaywallState.Error(error.message ?: "Paywall unavailable")
             }
+    }
+
+    private fun publishState(
+        access: fr.retrospare.blazeplayer.data.repository.SubscriptionAccessState,
+        purchaseInProgress: Boolean
+    ) {
+        _state.value = PaywallState.Ready(
+            isPro = access.hasProAccess,
+            isProPlus = access.hasProPlusAccess,
+            isProPurchased = access.isProPurchased,
+            isProPlusPurchased = access.isProPlusPurchased,
+            isTrialActive = access.isTrialActive,
+            trialDaysLeft = access.trialDaysLeft,
+            proPriceFormatted = cachedProPrice,
+            proPlusPriceFormatted = cachedProPlusPrice,
+            isPurchaseInProgress = purchaseInProgress
+        )
     }
 }

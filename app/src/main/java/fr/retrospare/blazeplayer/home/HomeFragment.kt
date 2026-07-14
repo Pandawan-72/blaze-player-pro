@@ -38,6 +38,7 @@ import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
 import fr.retrospare.blazeplayer.player.PlayerRouter
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.core.content.FileProvider
@@ -81,6 +82,7 @@ class HomeFragment : Fragment() {
      *  changement d'onglet réémettait alors la liste, ce qui expliquait le symptôme observé. */
     private var videoHistoryRefreshJob: kotlinx.coroutines.Job? = null
     private var videoHistoryRefreshGeneration: Long = 0L
+    private var historyAdapter: HistoryAdapter? = null
     private var historySelectionTab: Int? = null
     private val selectedHistoryPaths = linkedSetOf<String>()
     private var pendingAudioTabAfterPermission = false
@@ -276,6 +278,7 @@ class HomeFragment : Fragment() {
         monitorTrialExpiryWhileVisible()
         setupButtons()
         setupGalleryTab()
+        setupHistoryRecycler()
         observeViewModel()
         updateVersionBadge()
         // Force la réapparition du mini player si nécessaire : recréer cette vue (retour de
@@ -347,16 +350,45 @@ class HomeFragment : Fragment() {
     private fun monitorTrialExpiryWhileVisible() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                val state = userRepository.currentAccessState()
-                if (state.isTrialActive) {
-                    kotlinx.coroutines.delay(
-                        (state.trialEndMillis - state.evaluatedAtMillis).coerceAtLeast(1L)
-                    )
+                // Réagit immédiatement aux achats/restaurations/synchronisations RevenueCat :
+                // DataStore émet dès que les deux droits ont été écrits atomiquement.
+                launch {
+                    var lastAccessSignature: String? = null
+                    userRepository.accessStateFlow.collect { state ->
+                        val signature = buildString {
+                            append(state.isProPurchased).append(':')
+                            append(state.isProPlusPurchased).append(':')
+                            append(state.isTrialActive).append(':')
+                            append(state.hasProAccess).append(':')
+                            append(state.hasProPlusAccess)
+                        }
+                        if (signature == lastAccessSignature) return@collect
+                        lastAccessSignature = signature
+                        if (_binding != null && isAdded) {
+                            enforceCurrentTabAccess()
+                            refreshAccessibleVideoHistory()
+                            updateVersionBadge()
+                        }
+                    }
                 }
-                if (_binding != null && isAdded) {
-                    enforceCurrentTabAccess()
-                    refreshAccessibleVideoHistory()
-                    updateVersionBadge()
+
+                // Le passage du temps n'émet pas de nouvelle valeur DataStore. Cette seconde
+                // coroutine garde donc la révocation exacte à la fin des quinze jours.
+                launch {
+                    while (kotlinx.coroutines.currentCoroutineContext().isActive) {
+                        val state = userRepository.currentAccessState()
+                        val delayMillis = if (state.isTrialActive) {
+                            (state.trialEndMillis - state.evaluatedAtMillis).coerceAtLeast(1L)
+                        } else {
+                            fr.retrospare.blazeplayer.data.repository.UserRepository.DAY_MILLIS
+                        }
+                        kotlinx.coroutines.delay(delayMillis)
+                        if (_binding != null && isAdded) {
+                            enforceCurrentTabAccess()
+                            refreshAccessibleVideoHistory()
+                            updateVersionBadge()
+                        }
+                    }
                 }
             }
         }
@@ -1634,6 +1666,7 @@ class HomeFragment : Fragment() {
     private fun applyCustomThumbnailFromGallery(photo: MediaItem) {
         val target = pendingCustomThumbnailVideo ?: return
         val ok = fr.retrospare.blazeplayer.ui.ThumbnailUtils.setCustomVideoThumbnail(requireContext(), target.path, Uri.parse(photo.path))
+        if (ok) historyAdapter?.invalidateThumbnail(target.path)
         android.widget.Toast.makeText(
             requireContext(),
             getString(if (ok) R.string.custom_thumbnail_saved else R.string.custom_thumbnail_error),
@@ -1666,7 +1699,7 @@ class HomeFragment : Fragment() {
     private fun deleteCustomThumbnail(item: MediaItem) {
         fr.retrospare.blazeplayer.ui.ThumbnailUtils.deleteCustomVideoThumbnail(requireContext(), item.path)
         android.widget.Toast.makeText(requireContext(), getString(R.string.custom_thumbnail_deleted), android.widget.Toast.LENGTH_SHORT).show()
-        binding.listLocal.adapter?.notifyDataSetChanged()
+        historyAdapter?.invalidateThumbnail(item.path)
         binding.listNetwork.adapter?.notifyDataSetChanged()
         viewModel.onTabSelected(currentTabIndex)
     }
@@ -2864,142 +2897,277 @@ class HomeFragment : Fragment() {
         PlayerRouter.open(requireContext(), item.path, item.name)
     }
 
+    private fun setupHistoryRecycler() {
+        if (historyAdapter != null) return
+        historyAdapter = HistoryAdapter()
+        binding.listLocal.apply {
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
+            adapter = historyAdapter
+            // Les animations de changement font brièvement disparaître/réapparaître les ImageView
+            // quand une durée ou un badge est enrichi. Pour l'historique, le rendu immédiat est
+            // préférable à un fondu de quelques dizaines de millisecondes.
+            itemAnimator = null
+            setHasFixedSize(true)
+            setItemViewCacheSize(18)
+        }
+    }
+
     private fun updateRecycler(recycler: androidx.recyclerview.widget.RecyclerView, items: List<MediaItem>) {
         val historyTabForRecycler = 1
         val emptyState = binding.emptyStateLocal
         if (items.isEmpty() && historySelectionTab == historyTabForRecycler) clearHistorySelection()
+        historyAdapter?.submitHistory(items)
         recycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
         emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
-        if (items.isEmpty()) return
-        // Même design que Blaze Gallery : tuiles portrait, 3 par rangée, overlay bas avec
-        // titre/durée/"..." plutôt que des lignes empilées avec tous les badges à côté.
-        recycler.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
-        recycler.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
-            override fun getItemCount() = items.size
-            override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int) =
-                object : androidx.recyclerview.widget.RecyclerView.ViewHolder(
-                    layoutInflater.inflate(R.layout.item_history_tile, parent, false)
-                ) {}
-            override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
-                val item = items[position]
-                val v = holder.itemView
-                val lastPlayedPath = items.maxByOrNull { it.lastPlayedAt }?.path
-                v.findViewById<View>(R.id.lastPlayedBorder).visibility =
-                    if (item.path == lastPlayedPath) View.VISIBLE else View.GONE
+    }
 
-                // Titre + durée, dans l'overlay bas comme sur les tuiles photo de Blaze Gallery.
-                v.findViewById<TextView>(R.id.tvFileName).text = item.name
-                v.findViewById<TextView>(R.id.tvDuration).text = item.formattedDuration
-                v.findViewById<ImageView>(R.id.ivSourceBadge)?.let { bindHistorySourceIcon(it, item) }
+    private class HistoryViewHolder(itemView: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(itemView) {
+        val lastPlayedBorder: View = itemView.findViewById(R.id.lastPlayedBorder)
+        val fileName: TextView = itemView.findViewById(R.id.tvFileName)
+        val duration: TextView = itemView.findViewById(R.id.tvDuration)
+        val sourceBadge: ImageView? = itemView.findViewById(R.id.ivSourceBadge)
+        val format: TextView = itemView.findViewById(R.id.tvFormat)
+        val resolution: TextView = itemView.findViewById(R.id.tvResolution)
+        val thumbnail: ImageView = itemView.findViewById(R.id.ivThumbnail)
+        val playOverlay: ImageView? = itemView.findViewById(R.id.ivPlayOverlay)
+        val checkBox: android.widget.CheckBox? = itemView.findViewById(R.id.cbHistorySelect)
+        val more: View? = itemView.findViewById(R.id.btnMore)
+        var thumbnailJob: kotlinx.coroutines.Job? = null
+    }
 
-                // Badges conteneur + qualité en haut à gauche de la tuile (résolution seule sert
-                // désormais de badge "qualité" : le champ MediaItem.resolution est déjà normalisé
-                // en SD/HD/FHD/4K ailleurs dans l'app, pas une valeur brute en pixels).
-                val tvFmt = v.findViewById<TextView>(R.id.tvFormat)
-                val tvRes = v.findViewById<TextView>(R.id.tvResolution)
-                val ext = containerBadgeFrom(item)
-                val isAudioItem = item.mimeType.startsWith("audio/") ||
-                    item.extension.lowercase() in setOf("mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "wv", "aiff", "alac")
-                if (isAudioItem) {
-                    fr.retrospare.blazeplayer.player.AudioQualityBadgeBinder.bind(
-                        tvFmt,
-                        tvRes,
-                        item.path,
-                        item.name,
-                        ext,
-                        knownDurationMs = item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
-                        knownSizeBytes = item.size
-                    )
+    private inner class HistoryAdapter : androidx.recyclerview.widget.RecyclerView.Adapter<HistoryViewHolder>() {
+        private var items: List<MediaItem> = emptyList()
+        private var lastPlayedPath: String? = null
+        private val invalidatedThumbnailPaths = linkedSetOf<String>()
+
+        fun submitHistory(newItems: List<MediaItem>) {
+            val snapshot = newItems.toList()
+            if (items == snapshot) return
+            val oldItems = items
+            val newLastPlayed = snapshot.maxByOrNull { it.lastPlayedAt }?.path
+
+            // Les enrichissements de durée/résolution gardent presque toujours exactement le même
+            // ordre. Éviter DiffUtil dans ce cas permet de mettre à jour seulement les quelques
+            // tuiles modifiées, sans recalcul ni rebinding global de la grille.
+            if (oldItems.size == snapshot.size &&
+                oldItems.indices.all { oldItems[it].path == snapshot[it].path }
+            ) {
+                items = snapshot
+                val previousLastPlayed = lastPlayedPath
+                lastPlayedPath = newLastPlayed
+                oldItems.indices.forEach { index ->
+                    val lastBorderChanged =
+                        (oldItems[index].path == previousLastPlayed) !=
+                            (snapshot[index].path == newLastPlayed)
+                    if (oldItems[index] != snapshot[index] || lastBorderChanged) {
+                        notifyItemChanged(index)
+                    }
+                }
+                return
+            }
+
+            val diff = androidx.recyclerview.widget.DiffUtil.calculateDiff(
+                object : androidx.recyclerview.widget.DiffUtil.Callback() {
+                    override fun getOldListSize(): Int = oldItems.size
+                    override fun getNewListSize(): Int = snapshot.size
+                    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                        oldItems[oldItemPosition].path == snapshot[newItemPosition].path
+
+                    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                        val old = oldItems[oldItemPosition]
+                        val new = snapshot[newItemPosition]
+                        val oldWasLast = old.path == lastPlayedPath
+                        val newIsLast = new.path == newLastPlayed
+                        return old == new && oldWasLast == newIsLast
+                    }
+                },
+                true
+            )
+            items = snapshot
+            lastPlayedPath = newLastPlayed
+            diff.dispatchUpdatesTo(this)
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HistoryViewHolder {
+            return HistoryViewHolder(
+                layoutInflater.inflate(R.layout.item_history_tile, parent, false)
+            )
+        }
+
+        override fun onBindViewHolder(holder: HistoryViewHolder, position: Int) {
+            val item = items[position]
+            holder.lastPlayedBorder.visibility =
+                if (item.path == lastPlayedPath) View.VISIBLE else View.GONE
+            holder.fileName.text = item.name
+            holder.duration.text = item.formattedDuration
+            holder.sourceBadge?.let { bindHistorySourceIcon(it, item) }
+
+            val ext = containerBadgeFrom(item)
+            val isAudioItem = item.mimeType.startsWith("audio/") ||
+                item.extension.lowercase() in setOf("mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "wv", "aiff", "alac")
+            if (isAudioItem) {
+                fr.retrospare.blazeplayer.player.AudioQualityBadgeBinder.bind(
+                    holder.format,
+                    holder.resolution,
+                    item.path,
+                    item.name,
+                    ext,
+                    knownDurationMs = item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
+                    knownSizeBytes = item.size
+                )
+            } else {
+                if (ext.isNotEmpty()) {
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(holder.format, ext)
+                    holder.format.visibility = View.VISIBLE
                 } else {
-                    if (ext.isNotEmpty()) {
-                        fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFmt, ext)
-                        tvFmt.visibility = View.VISIBLE
-                    } else {
-                        tvFmt.visibility = View.GONE
-                    }
-                    if (!item.resolution.isNullOrEmpty()) {
-                        tvRes.text = item.resolution
-                        fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvRes)
-                        tvRes.visibility = View.VISIBLE
-                    } else {
-                        tvRes.visibility = View.GONE
-                    }
+                    holder.format.visibility = View.GONE
                 }
-
-                // Miniatures vidéo locales/réseau avec cache disque persistant, comme avant.
-                val ivThumb = v.findViewById<ImageView>(R.id.ivThumbnail)
-                ivThumb.setImageDrawable(null)
-                v.findViewById<ImageView>(R.id.ivPlayOverlay)?.visibility = View.VISIBLE
-                viewLifecycleOwner.lifecycleScope.launch {
-                    fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(requireContext(), item.path, ivThumb)
-                }
-
-                val inSelectionMode = historySelectionTab == historyTabForRecycler
-                val cbSelect = v.findViewById<android.widget.CheckBox>(R.id.cbHistorySelect)
-                cbSelect?.visibility = if (inSelectionMode) View.VISIBLE else View.GONE
-                cbSelect?.isChecked = selectedHistoryPaths.contains(item.path)
-                cbSelect?.setOnClickListener { toggleHistorySelection(item) }
-
-                // Click
-                v.setOnClickListener {
-                    if (inSelectionMode) toggleHistorySelection(item) else openHistoryItem(item)
-                }
-
-                // Bouton 3 points, désormais ancré dans l'overlay bas de la tuile
-                val btnMore = v.findViewById<android.view.View>(R.id.btnMore)
-                btnMore?.visibility = if (inSelectionMode) View.GONE else View.VISIBLE
-                btnMore?.setOnClickListener { anchor ->
-                    val popup = android.widget.PopupMenu(requireContext(), anchor)
-                    popup.menu.add(0, 1, 0, getString(R.string.action_play))
-                    popup.menu.add(0, 2, 1, getString(R.string.action_information))
-                    popup.menu.add(0, 3, 2, getString(R.string.add_to_playlist_short))
-                    popup.menu.add(0, 5, 3, getString(R.string.action_custom_thumbnail))
-                    popup.menu.add(0, 6, 4, getString(R.string.action_delete_thumbnail))
-                    popup.menu.add(0, 4, 5, getString(R.string.action_remove_from_history))
-                    popup.setOnMenuItemClickListener { mi ->
-                        when (mi.itemId) {
-                            1 -> { openHistoryItem(item); true }
-                            2 -> {
-                                // Codec audio/vidéo : retirés de la tuile elle-même (surchargeait
-                                // l'overlay), déplacés ici dans le détail "Informations".
-                                fr.retrospare.blazeplayer.ui.VideoInfoDialog.show(
-                                    context = requireContext(),
-                                    scope = viewLifecycleOwner.lifecycleScope,
-                                    title = item.name,
-                                    mediaPath = item.path,
-                                    displayName = item.name,
-                                    extension = item.extension.uppercase(),
-                                    itemSizeBytes = item.size,
-                                    itemDurationSeconds = item.duration,
-                                    resolution = item.resolution,
-                                    videoCodec = item.videoCodec,
-                                    audioCodec = item.audioCodec,
-                                    fullExtract = false
-                                )
-                                true
-                            }
-                            3 -> {
-                                val category = if (item.isNetwork) {
-                                    fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
-                                } else {
-                                    fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
-                                }
-                                fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
-                                    requireContext(), category,
-                                    listOf(fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(item.path, item.name))
-                                )
-                                true
-                            }
-                            5 -> { startCustomThumbnailSelection(item, historyTabForRecycler); true }
-                            6 -> { deleteCustomThumbnail(item); true }
-                            4 -> { viewModel.removeFromHistory(item); true }
-                            else -> false
-                        }
-                    }
-                    popup.show()
+                if (!item.resolution.isNullOrEmpty()) {
+                    holder.resolution.text = item.resolution
+                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(holder.resolution)
+                    holder.resolution.visibility = View.VISIBLE
+                } else {
+                    holder.resolution.visibility = View.GONE
                 }
             }
+
+            val forceThumbnailRefresh = invalidatedThumbnailPaths.remove(item.path)
+            bindHistoryThumbnail(holder, item, forceThumbnailRefresh)
+
+            val inSelectionMode = historySelectionTab == 1
+            holder.checkBox?.visibility = if (inSelectionMode) View.VISIBLE else View.GONE
+            holder.checkBox?.isChecked = selectedHistoryPaths.contains(item.path)
+            holder.checkBox?.setOnClickListener { toggleHistorySelection(item) }
+            holder.itemView.setOnClickListener {
+                if (inSelectionMode) toggleHistorySelection(item) else openHistoryItem(item)
+            }
+
+            holder.more?.visibility = if (inSelectionMode) View.GONE else View.VISIBLE
+            holder.more?.setOnClickListener { anchor -> showHistoryItemMenu(anchor, item) }
         }
+
+        override fun onViewRecycled(holder: HistoryViewHolder) {
+            holder.thumbnailJob?.cancel()
+            holder.thumbnailJob = null
+            super.onViewRecycled(holder)
+        }
+
+        fun invalidateThumbnail(path: String) {
+            invalidatedThumbnailPaths += path
+            val position = items.indexOfFirst { it.path == path }
+            if (position >= 0) notifyItemChanged(position)
+        }
+    }
+
+    private fun bindHistoryThumbnail(
+        holder: HistoryViewHolder,
+        item: MediaItem,
+        forceRefresh: Boolean = false
+    ) {
+        val imageView = holder.thumbnail
+        val alreadyBoundPath = imageView.getTag(R.id.ivThumbnail) as? String
+        if (!forceRefresh && alreadyBoundPath == item.path && imageView.drawable != null) {
+            // Même holder, même fichier : conserver le bitmap déjà affiché. C'est le cas normal au
+            // retour d'un autre onglet ou lors d'un simple enrichissement de badges.
+            return
+        }
+
+        holder.thumbnailJob?.cancel()
+        holder.thumbnailJob = null
+        imageView.setTag(R.id.ivThumbnail, item.path)
+        holder.playOverlay?.visibility = View.VISIBLE
+
+        val hotBitmap = fr.retrospare.blazeplayer.ui.ThumbnailUtils.peekMemoryThumbnailBitmap(item.path)
+        if (hotBitmap != null) {
+            imageView.setImageBitmap(hotBitmap)
+            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+            imageView.setBackgroundColor(0x00000000)
+            return
+        }
+
+        imageView.setImageDrawable(null)
+        holder.thumbnailJob = viewLifecycleOwner.lifecycleScope.launch {
+            fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(
+                requireContext(),
+                item.path,
+                imageView
+            )
+        }
+    }
+
+    private fun showHistoryItemMenu(anchor: View, item: MediaItem) {
+        val popup = android.widget.PopupMenu(requireContext(), anchor)
+        popup.menu.add(0, 1, 0, getString(R.string.action_play))
+        popup.menu.add(0, 2, 1, getString(R.string.action_information))
+        popup.menu.add(0, 3, 2, getString(R.string.add_to_playlist_short))
+        popup.menu.add(0, 5, 3, getString(R.string.action_custom_thumbnail))
+        popup.menu.add(0, 6, 4, getString(R.string.action_delete_thumbnail))
+        popup.menu.add(0, 4, 5, getString(R.string.action_remove_from_history))
+        popup.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                1 -> {
+                    openHistoryItem(item)
+                    true
+                }
+                2 -> {
+                    fr.retrospare.blazeplayer.ui.VideoInfoDialog.show(
+                        context = requireContext(),
+                        scope = viewLifecycleOwner.lifecycleScope,
+                        title = item.name,
+                        mediaPath = item.path,
+                        displayName = item.name,
+                        extension = item.extension.uppercase(),
+                        itemSizeBytes = item.size,
+                        itemDurationSeconds = item.duration,
+                        resolution = item.resolution,
+                        videoCodec = item.videoCodec,
+                        audioCodec = item.audioCodec,
+                        fullExtract = false
+                    )
+                    true
+                }
+                3 -> {
+                    val category = if (item.isNetwork) {
+                        fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO
+                    } else {
+                        fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
+                    }
+                    fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
+                        requireContext(),
+                        category,
+                        listOf(
+                            fr.retrospare.blazeplayer.playlist.PlaylistTrackRef(item.path, item.name)
+                        )
+                    )
+                    true
+                }
+                5 -> {
+                    startCustomThumbnailSelection(item, 1)
+                    true
+                }
+                6 -> {
+                    deleteCustomThumbnail(item)
+                    true
+                }
+                4 -> {
+                    viewModel.removeFromHistory(item)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    override fun onDestroyView() {
+        videoHistoryRefreshJob?.cancel()
+        videoHistoryRefreshJob = null
+        if (_binding != null) binding.listLocal.adapter = null
+        historyAdapter = null
+        _binding = null
+        super.onDestroyView()
     }
 
     companion object {

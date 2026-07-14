@@ -88,6 +88,21 @@ object ThumbnailUtils {
     private val cache = object : LruCache<String, Bitmap>(15 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
+
+    // Cache RAM chaud réservé aux miniatures vidéo. Le cache générique est partagé avec Blaze
+    // Gallery et les pochettes audio ; il pouvait donc évincer les vignettes de l'historique dès
+    // qu'on visitait un autre onglet. Ce second LRU conserve au minimum les tuiles visibles et
+    // permet leur réaffichage synchrone, sans flash vide au retour sur Blaze Video.
+    private val videoThumbnailHotCacheBytes = (Runtime.getRuntime().maxMemory() / 16)
+        .coerceIn(12L * 1024L * 1024L, 24L * 1024L * 1024L)
+        .toInt()
+    private val videoThumbnailHotCache = object : LruCache<String, Bitmap>(videoThumbnailHotCacheBytes) {
+        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+    }
+
+    private fun promoteVideoHotCache(key: String, bitmap: Bitmap) {
+        videoThumbnailHotCache.put(key, bitmap)
+    }
     // Cache RAM dédié, exclusivement pour les pochettes de la bibliothèque audio, séparé du cache
     // partagé ci-dessus (partagé avec la Galerie photo/vidéo). Une bibliothèque de plusieurs
     // centaines/milliers de titres peut faire défiler beaucoup plus de pochettes distinctes que les
@@ -1502,19 +1517,79 @@ object ThumbnailUtils {
         return -1
     }
 
-    /** Retourne immédiatement une image déjà en cache mémoire/disque, sans extraction réseau. */
-    fun getCachedThumbnailBitmap(context: Context, path: String): Bitmap? {
+    /** Retourne uniquement une miniature déjà présente en RAM. Cette méthode est sûre dans
+     *  onBindViewHolder : aucune lecture disque, MediaStore ou réseau n'est effectuée. */
+    fun peekMemoryThumbnailBitmap(path: String): Bitmap? {
         if (!isAudioPath(path)) {
             val customKey = customVideoKey(path)
-            cache.get(customKey)?.let { return it }
-            readFromDisk(context.applicationContext, customKey)?.let {
-                cache.put(customKey, it)
+            videoThumbnailHotCache.get(customKey)?.let { return it }
+            cache.get(customKey)?.let {
+                promoteVideoHotCache(customKey, it)
                 return it
             }
         }
         val key = thumbnailKey(path)
-        cache.get(key)?.let { return it }
-        return readFromDisk(context.applicationContext, key)?.also { cache.put(key, it) }
+        if (!isAudioPath(path)) {
+            videoThumbnailHotCache.get(key)?.let { return it }
+        }
+        return cache.get(key)?.also {
+            if (!isAudioPath(path)) promoteVideoHotCache(key, it)
+        }
+    }
+
+    /** Retourne une image déjà en cache mémoire/disque, sans extraction réseau. À appeler hors du
+     *  thread principal si une lecture disque est possible. */
+    fun getCachedThumbnailBitmap(context: Context, path: String): Bitmap? {
+        peekMemoryThumbnailBitmap(path)?.let { return it }
+        if (!isAudioPath(path)) {
+            val customKey = customVideoKey(path)
+            readFromDisk(context.applicationContext, customKey)?.let {
+                cache.put(customKey, it)
+                promoteVideoHotCache(customKey, it)
+                return it
+            }
+        }
+        val key = thumbnailKey(path)
+        return readFromDisk(context.applicationContext, key)?.also {
+            cache.put(key, it)
+            if (!isAudioPath(path)) promoteVideoHotCache(key, it)
+        }
+    }
+
+    /** Charge uniquement les JPEG déjà présents dans le cache disque vers le cache RAM vidéo.
+     *  Aucune vidéo n'est ouverte et aucune connexion NAS n'est créée. */
+    suspend fun prewarmCachedVideoThumbnails(
+        context: Context,
+        paths: List<String>,
+        limit: Int = 24
+    ) = coroutineScope {
+        val appContext = context.applicationContext
+        val semaphore = Semaphore(3)
+        paths.asSequence()
+            .filter { it.isNotBlank() && !isAudioPath(it) }
+            .distinct()
+            .take(limit.coerceAtLeast(0))
+            .map { path ->
+                async(Dispatchers.IO) {
+                    semaphore.withPermit {
+                        if (peekMemoryThumbnailBitmap(path) != null) return@withPermit
+                        val customKey = customVideoKey(path)
+                        val custom = readFromDisk(appContext, customKey)
+                        if (custom != null) {
+                            cache.put(customKey, custom)
+                            promoteVideoHotCache(customKey, custom)
+                            return@withPermit
+                        }
+                        val key = thumbnailKey(path)
+                        readFromDisk(appContext, key)?.let { bitmap ->
+                            cache.put(key, bitmap)
+                            promoteVideoHotCache(key, bitmap)
+                        }
+                    }
+                }
+            }
+            .toList()
+            .forEach { it.await() }
     }
 
     fun hasCustomVideoThumbnail(context: Context, path: String): Boolean {
@@ -1532,6 +1607,7 @@ object ThumbnailUtils {
             val scaled = scaleBitmap(bitmap, 1024)
             val key = customVideoKey(videoPath)
             cache.put(key, scaled)
+            promoteVideoHotCache(key, scaled)
             writeToDisk(context.applicationContext, key, scaled)
             true
         } catch (e: Exception) {
@@ -1543,6 +1619,7 @@ object ThumbnailUtils {
     fun deleteCustomVideoThumbnail(context: Context, videoPath: String) {
         val key = customVideoKey(videoPath)
         cache.remove(key)
+        videoThumbnailHotCache.remove(key)
         deleteFromDisk(context.applicationContext, key)
     }
 
@@ -1610,37 +1687,55 @@ object ThumbnailUtils {
         path: String,
         timeUs: Long = defaultVideoFrameTimeUs(path)
     ): Bitmap? = coroutineScope {
-        if (!isAudioPath(path)) {
-            val customKey = customVideoKey(path)
-            cache.get(customKey)?.let { return@coroutineScope it }
-            readFromDisk(context.applicationContext, customKey)?.let { custom ->
-                cache.put(customKey, custom)
-                return@coroutineScope custom
-            }
-        }
+        // Le bind RecyclerView peut récupérer une vignette chaude sans changer de dispatcher.
+        peekMemoryThumbnailBitmap(path)?.let { return@coroutineScope it }
 
         val key = thumbnailKey(path)
-        // Cache mémoire immédiat avant de passer sur IO.
-        cache.get(key)?.let { return@coroutineScope it }
-
-        // Cache disque persistant avant toute extraction.
-        readFromDisk(context.applicationContext, key)?.let { fromDisk ->
-            cache.put(key, fromDisk)
-            return@coroutineScope fromDisk
-        }
-
         // Déduplique les demandes simultanées causées par RecyclerView + notification.
         inFlight[key]?.let { return@coroutineScope it.await() }
 
+        // Toute lecture disque et toute extraction sont maintenant faites sur Dispatchers.IO.
+        // Auparavant readFromDisk() s'exécutait avant le changement de dispatcher lorsque
+        // loadThumbnail() était appelé depuis lifecycleScope(Main), ce qui ajoutait une micro-
+        // saccade visible et retardait le premier rendu de la grille.
         val deferred = async(Dispatchers.IO) {
+            if (!isAudioPath(path)) {
+                val customKey = customVideoKey(path)
+                videoThumbnailHotCache.get(customKey)?.let { return@async it }
+                cache.get(customKey)?.let {
+                    promoteVideoHotCache(customKey, it)
+                    return@async it
+                }
+                readFromDisk(context.applicationContext, customKey)?.let { custom ->
+                    cache.put(customKey, custom)
+                    promoteVideoHotCache(customKey, custom)
+                    return@async custom
+                }
+            }
+
+            if (!isAudioPath(path)) {
+                videoThumbnailHotCache.get(key)?.let { return@async it }
+            }
+            cache.get(key)?.let {
+                if (!isAudioPath(path)) promoteVideoHotCache(key, it)
+                return@async it
+            }
+            readFromDisk(context.applicationContext, key)?.let { fromDisk ->
+                cache.put(key, fromDisk)
+                if (!isAudioPath(path)) promoteVideoHotCache(key, fromDisk)
+                return@async fromDisk
+            }
+
             val timeoutMs = when {
                 isAudioPath(path) -> 6_000L
                 isNetworkVideoPath(path) -> 4_500L
                 else -> 2_500L
             }
-            withTimeoutOrNull(timeoutMs) {
+            val extracted = withTimeoutOrNull(timeoutMs) {
                 if (!isAudioPath(path) && isNetworkVideoPath(path)) {
-                    networkThumbnailSemaphore.withPermit { extractThumbnailInternal(context.applicationContext, path, timeUs) }
+                    networkThumbnailSemaphore.withPermit {
+                        extractThumbnailInternal(context.applicationContext, path, timeUs)
+                    }
                 } else {
                     extractThumbnailInternal(context.applicationContext, path, timeUs)
                 }
@@ -1648,6 +1743,10 @@ object ThumbnailUtils {
                 android.util.Log.w("ThumbnailUtils", "Thumbnail timeout for ${safePathForLog(path)}")
                 null
             }
+            if (extracted != null && !isAudioPath(path)) {
+                promoteVideoHotCache(key, extracted)
+            }
+            extracted
         }
         inFlight[key] = deferred
         try {
@@ -2126,7 +2225,11 @@ object ThumbnailUtils {
         }
     }
 
-    fun clearCache() = cache.evictAll()
+    fun clearCache() {
+        cache.evictAll()
+        videoThumbnailHotCache.evictAll()
+        audioCoverHotCache.evictAll()
+    }
 
     /** Vide aussi le cache disque persistant (ex: bouton "Vider le cache" dans les réglages). */
     fun clearDiskCache(context: Context) {

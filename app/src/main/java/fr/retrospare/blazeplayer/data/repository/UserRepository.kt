@@ -116,12 +116,30 @@ class UserRepository @Inject constructor(
         dataStore.edit { it[KEY_TRIAL_REMINDER_SENT] = true }
     }
 
+    /** Persiste les deux achats dans une seule transaction DataStore.
+     * Une seule émission est ainsi envoyée aux écrans : aucun instant intermédiaire ne peut
+     * afficher Pro+ actif avec Pro encore verrouillé (ou l'inverse). */
+    suspend fun setPurchasedAccess(isPro: Boolean, isProPlus: Boolean) {
+        val normalizedProPlus = isProPlus
+        val normalizedPro = isPro || normalizedProPlus
+        dataStore.edit { preferences ->
+            preferences[KEY_IS_PRO] = normalizedPro
+            preferences[KEY_IS_PRO_PLUS] = normalizedProPlus
+        }
+    }
+
     suspend fun setProStatus(isPro: Boolean) {
-        dataStore.edit { it[KEY_IS_PRO] = isPro }
+        dataStore.edit { preferences ->
+            val proPlus = preferences[KEY_IS_PRO_PLUS] ?: false
+            preferences[KEY_IS_PRO] = isPro || proPlus
+        }
     }
 
     suspend fun setProPlusStatus(isProPlus: Boolean) {
-        dataStore.edit { it[KEY_IS_PRO_PLUS] = isProPlus }
+        dataStore.edit { preferences ->
+            preferences[KEY_IS_PRO_PLUS] = isProPlus
+            if (isProPlus) preferences[KEY_IS_PRO] = true
+        }
     }
 
     suspend fun setPlayerTheme(theme: String) {

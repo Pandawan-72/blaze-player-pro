@@ -58,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private val miniPlayerVm: fr.retrospare.blazeplayer.player.MiniPlayerViewModel by viewModels()
     private var miniPlayerUiInitialized = false
     private var miniPlayerAccessJob: kotlinx.coroutines.Job? = null
+    private var accessObserverStarted = false
 
     /** Initialise uniquement les vues et observateurs du mini player.
      * La connexion MediaController est volontairement différée jusqu'à ce que les droits Pro+
@@ -715,22 +716,39 @@ class MainActivity : AppCompatActivity() {
     private fun initializeTrialAccess() {
         lifecycleScope.launch {
             val state = userRepository.ensureTrialStarted()
-            if (!state.hasProPlusAccess) {
-                stopService(Intent(this@MainActivity, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java))
-            }
-            fr.retrospare.blazeplayer.paywall.TrialReminderScheduler.sync(this@MainActivity, state)
-            updateMiniPlayerConnection(state)
+            applyResolvedAccessState(state)
+            observePurchasedAccessChanges()
         }
+    }
+
+    /** Observe en continu les écritures atomiques faites après un achat, une restauration ou la
+     * synchronisation silencieuse RevenueCat. Le déblocage n'attend donc ni onResume(), ni un
+     * changement d'onglet, ni une nouvelle ouverture du paywall. */
+    private fun observePurchasedAccessChanges() {
+        if (accessObserverStarted) return
+        accessObserverStarted = true
+        lifecycleScope.launch {
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                userRepository.accessStateFlow.collect { state ->
+                    applyResolvedAccessState(state)
+                }
+            }
+        }
+    }
+
+    private fun applyResolvedAccessState(
+        state: fr.retrospare.blazeplayer.data.repository.SubscriptionAccessState
+    ) {
+        if (!state.hasProPlusAccess) {
+            stopService(Intent(this, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java))
+        }
+        fr.retrospare.blazeplayer.paywall.TrialReminderScheduler.sync(this, state)
+        updateMiniPlayerConnection(state)
     }
 
     private fun refreshTrialAccess() {
         lifecycleScope.launch {
-            val state = userRepository.currentAccessState()
-            if (!state.hasProPlusAccess) {
-                stopService(Intent(this@MainActivity, fr.retrospare.blazeplayer.player.BlazePlayerService::class.java))
-            }
-            fr.retrospare.blazeplayer.paywall.TrialReminderScheduler.sync(this@MainActivity, state)
-            updateMiniPlayerConnection(state)
+            applyResolvedAccessState(userRepository.currentAccessState())
         }
     }
 
