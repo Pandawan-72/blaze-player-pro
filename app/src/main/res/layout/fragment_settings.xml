@@ -197,6 +197,8 @@
                 <View style="@style/BlazeSettingsSeparator" />
 
                 <include android:id="@+id/settingShowHidden" layout="@layout/item_setting" />
+                <View style="@style/BlazeSettingsSeparator" />
+                <include android:id="@+id/settingHaptic" layout="@layout/item_setting" />
 
             </LinearLayout>
 

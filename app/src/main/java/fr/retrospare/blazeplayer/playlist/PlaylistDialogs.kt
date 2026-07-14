@@ -242,5 +242,6 @@ object PlaylistDialogs {
         }
 
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
     }
 }

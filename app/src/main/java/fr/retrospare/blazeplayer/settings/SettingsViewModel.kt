@@ -17,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-    private val mediaRepository: MediaRepository
+    private val mediaRepository: MediaRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context
 ) : ViewModel() {
 
     companion object {
@@ -98,6 +99,16 @@ class SettingsViewModel @Inject constructor(
     suspend fun getMiniPlayerEnabledAsync(): Boolean =
         dataStore.data.map { it[KEY_MINI_PLAYER] ?: false }.first()
     fun setMiniPlayerEnabled(v: Boolean) = setBool(KEY_MINI_PLAYER, v)
+
+    fun getHapticFeedbackEnabled(): Boolean =
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.isEnabled()
+
+    fun setHapticFeedbackEnabled(v: Boolean) {
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.setEnabled(
+            context = appContext,
+            value = v
+        )
+    }
 
     fun getDefaultRatio()      = getInt(KEY_DEFAULT_RATIO, 0)
     fun setDefaultRatio(v: Int) = setInt(KEY_DEFAULT_RATIO, v)

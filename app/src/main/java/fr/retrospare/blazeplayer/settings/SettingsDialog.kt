@@ -34,6 +34,7 @@ object SettingsDialog {
 
         dialog.setContentView(view)
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
     }
 }
 

@@ -863,4 +863,8 @@ Code : %2$s</string>
         <item quantity="one">Essai Pro+ : %1$d jour restant</item>
         <item quantity="other">Essai Pro+ : %1$d jours restants</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Retour haptique</string>
+    <string name="settings_haptic_feedback_desc">Activer une légère vibration lors de chaque clic dans l’application.</string>
 </resources>

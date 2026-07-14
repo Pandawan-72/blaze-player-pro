@@ -410,6 +410,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                         val popup = android.widget.PopupMenu(this@NetworkVideoBrowserActivity, anchor)
                         popup.menu.add(0, 1, 0, getString(R.string.dialog_add_favorite_folder))
                         popup.setOnMenuItemClickListener { mi ->
+                            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(anchor)
                             when (mi.itemId) {
                                 1 -> {
                                     val favorite = fr.retrospare.blazeplayer.favorites.FavoriteFolder(
@@ -492,6 +493,7 @@ class NetworkVideoBrowserActivity : AppCompatActivity() {
                         popup.menu.add(0, 1, 0, getString(R.string.action_play))
                         popup.menu.add(0, 2, 1, getString(R.string.action_information))
                         popup.setOnMenuItemClickListener { mi ->
+                            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(anchor)
                             when (mi.itemId) {
                                 1 -> {
                                     startActivity(Intent(this@NetworkVideoBrowserActivity, PlayerActivity::class.java).apply {

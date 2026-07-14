@@ -851,4 +851,8 @@ Token: %2$s</string>
         <item quantity="one">Uji coba Pro+: tersisa %1$d hari</item>
         <item quantity="other">Uji coba Pro+: tersisa %1$d hari</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Umpan balik haptik</string>
+    <string name="settings_haptic_feedback_desc">Aktifkan getaran ringan setiap kali mengetuk elemen yang dapat diklik di aplikasi.</string>
 </resources>

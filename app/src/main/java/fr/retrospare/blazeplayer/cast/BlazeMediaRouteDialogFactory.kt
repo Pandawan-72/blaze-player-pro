@@ -70,6 +70,7 @@ class BlazeMediaRouteDialogFactory : MediaRouteDialogFactory() {
 
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
+            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(window)
             window?.setLayout(
                 (context.resources.displayMetrics.widthPixels * 0.92f).toInt(),
                 ViewGroup.LayoutParams.WRAP_CONTENT

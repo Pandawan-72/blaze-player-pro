@@ -107,6 +107,7 @@ object FavoriteDialogs {
         }
 
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
         fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(dialog)
         // "Gérer" ouvre un second dialogue de suppression, plutôt que de complexifier celui-ci
         // avec des boutons par ligne.

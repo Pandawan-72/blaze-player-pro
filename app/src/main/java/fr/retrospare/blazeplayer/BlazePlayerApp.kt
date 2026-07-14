@@ -8,6 +8,7 @@ import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import fr.retrospare.blazeplayer.billing.RevenueCatManager
 import fr.retrospare.blazeplayer.debug.CrashReporter
+import fr.retrospare.blazeplayer.ui.HapticFeedbackManager
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -20,6 +21,7 @@ class BlazePlayerApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        HapticFeedbackManager.initialize(this)
         CrashReporter.install(this)
         if (configureRevenueCat()) {
             // Enregistre immédiatement l'écoute globale et lance une synchronisation silencieuse.

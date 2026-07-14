@@ -280,6 +280,7 @@ class NetworkSharesFragment : Fragment() {
             .setNegativeButton(getString(R.string.action_cancel), null)
             .create().also { d ->
                 d.show()
+                fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(d.window)
                 fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(d)
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
             }
@@ -328,6 +329,7 @@ class NetworkSharesFragment : Fragment() {
             .setNegativeButton(getString(R.string.action_close), null)
             .create().also { d ->
                 d.show()
+                fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(d.window)
                 fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(d)
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
             }
@@ -391,6 +393,7 @@ class NetworkSharesFragment : Fragment() {
             .setNegativeButton(getString(R.string.action_cancel), null)
             .create().also { d ->
                 d.show()
+                fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(d.window)
                 fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(d)
                 d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
             }

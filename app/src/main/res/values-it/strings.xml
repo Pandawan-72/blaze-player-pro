@@ -837,4 +837,8 @@ Token: %2$s</string>
         <item quantity="one">Prova Pro+: %1$d giorno rimasto</item>
         <item quantity="other">Prova Pro+: %1$d giorni rimasti</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Feedback aptico</string>
+    <string name="settings_haptic_feedback_desc">Attiva una leggera vibrazione ogni volta che tocchi un elemento selezionabile nell’app.</string>
 </resources>

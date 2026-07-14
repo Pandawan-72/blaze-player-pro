@@ -118,6 +118,7 @@ object InfoDialog {
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         dialog.setOnDismissListener { onDismiss?.invoke() }
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.setLayout(
             (context.resources.displayMetrics.widthPixels * 0.88f).toInt(),
             WindowManager.LayoutParams.WRAP_CONTENT

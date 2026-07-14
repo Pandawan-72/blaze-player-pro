@@ -840,4 +840,8 @@ Token: %2$s</string>
         <item quantity="one">Pro+ trial: %1$d day left</item>
         <item quantity="other">Pro+ trial: %1$d days left</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Haptic feedback</string>
+    <string name="settings_haptic_feedback_desc">Enable a subtle vibration whenever you tap a clickable item in the app.</string>
 </resources>

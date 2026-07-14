@@ -1168,6 +1168,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
             }
         }
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
     }
 
     private fun showSubtitles() {
@@ -2565,6 +2566,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
         dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
         dialog.setOnDismissListener { persistVideoAdjustments(); scheduleHide() }
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.92f).toInt(), android.view.WindowManager.LayoutParams.WRAP_CONTENT)
     }
 

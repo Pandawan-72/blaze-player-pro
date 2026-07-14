@@ -837,4 +837,8 @@ Token: %2$s</string>
         <item quantity="one">Prueba Pro+: queda %1$d día</item>
         <item quantity="other">Prueba Pro+: quedan %1$d días</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Respuesta háptica</string>
+    <string name="settings_haptic_feedback_desc">Activa una vibración suave cada vez que pulses un elemento de la aplicación.</string>
 </resources>

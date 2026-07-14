@@ -994,6 +994,7 @@ class HomeFragment : Fragment() {
         popup.menu.add(0, 3, 2, getString(R.string.gallery_sort_name))
         popup.menu.add(0, 4, 3, getString(R.string.gallery_sort_size))
         popup.setOnMenuItemClickListener { item ->
+            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(binding.btnGalleryPrimary)
             gallerySort = when (item.itemId) {
                 2 -> GallerySort.DATE_ASC
                 3 -> GallerySort.PHOTO_NAME
@@ -1373,6 +1374,7 @@ class HomeFragment : Fragment() {
             loadGalleryImage(image, photo.path, fullScreenPhotoSize(), isFullScreen = true)
         }
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
     }
 
     /** Taille sûre pour l'affichage plein écran d'une photo : plafonnée à la résolution réelle de
@@ -1502,6 +1504,7 @@ class HomeFragment : Fragment() {
         val popup = android.widget.PopupMenu(requireContext(), anchor)
         popup.menu.add(0, 1, 0, getString(R.string.gallery_delete_folder))
         popup.setOnMenuItemClickListener { item ->
+            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(anchor)
             when (item.itemId) {
                 1 -> {
                     confirmGalleryDeletion(getString(R.string.confirm_delete_folder_message)) { moveGalleryFolderToTrash(folder) }
@@ -1722,6 +1725,7 @@ class HomeFragment : Fragment() {
             popup.menu.add(0, 3, 5, getString(R.string.gallery_delete))
         }
         popup.setOnMenuItemClickListener { item ->
+            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(anchor)
             when (item.itemId) {
                 1 -> {
                     if (galleryTrashMode) restoreGalleryPhoto(photo) else openGalleryPhoto(photo)
@@ -2507,6 +2511,7 @@ class HomeFragment : Fragment() {
         popup.menu.add(0, 1, 0, getString(R.string.action_open))
         if (hasItems) popup.menu.add(0, 2, 1, getString(R.string.action_empty_playlist))
         popup.setOnMenuItemClickListener { mi ->
+            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(anchor)
             when (mi.itemId) {
                 1 -> { openSavedPlaylist(category, slot); true }
                 2 -> {
@@ -2748,6 +2753,7 @@ class HomeFragment : Fragment() {
         dialog.setContentView(root)
         dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.88f).toInt(), android.view.WindowManager.LayoutParams.WRAP_CONTENT)
     }
 
@@ -3106,6 +3112,7 @@ class HomeFragment : Fragment() {
         popup.menu.add(0, 6, 4, getString(R.string.action_delete_thumbnail))
         popup.menu.add(0, 4, 5, getString(R.string.action_remove_from_history))
         popup.setOnMenuItemClickListener { menuItem ->
+            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(anchor)
             when (menuItem.itemId) {
                 1 -> {
                     openHistoryItem(item)

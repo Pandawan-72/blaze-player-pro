@@ -64,6 +64,7 @@ class EqualizerDialog(
 
     override fun onStart() {
         super.onStart()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog?.window)
         val bottomSheet = dialog?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
         bottomSheet?.let {
             // Le conteneur Material ne doit pas masquer le dégradé dynamique de la feuille.

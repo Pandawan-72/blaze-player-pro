@@ -11,6 +11,7 @@ import fr.retrospare.blazeplayer.R
 
 object DialogButtonStyler {
     fun style(dialog: android.app.AlertDialog) {
+        HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.decorView?.post {
             styleButton(dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE))
             styleButton(dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE))
@@ -19,6 +20,7 @@ object DialogButtonStyler {
     }
 
     fun style(dialog: androidx.appcompat.app.AlertDialog) {
+        HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.decorView?.post {
             styleButton(dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE))
             styleButton(dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE))

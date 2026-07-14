@@ -837,4 +837,8 @@ Token: %2$s</string>
         <item quantity="one">Teste Pro+: resta %1$d dia</item>
         <item quantity="other">Teste Pro+: restam %1$d dias</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Feedback tátil</string>
+    <string name="settings_haptic_feedback_desc">Ative uma vibração suave sempre que tocar num elemento clicável da aplicação.</string>
 </resources>

@@ -836,4 +836,8 @@ Token: %2$s</string>
         <item quantity="one">Pro+-proefperiode: nog %1$d dag</item>
         <item quantity="other">Pro+-proefperiode: nog %1$d dagen</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Haptische feedback</string>
+    <string name="settings_haptic_feedback_desc">Schakel een subtiele trilling in wanneer je op een aanklikbaar onderdeel in de app tikt.</string>
 </resources>

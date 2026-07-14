@@ -495,6 +495,7 @@ class AudioProSettingsActivity : AppCompatActivity() {
                     fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(dialog)
                 }
                 dialog.show()
+                fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
             }
     }
 

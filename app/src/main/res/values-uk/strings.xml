@@ -851,4 +851,8 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="one">Пробний період Pro+: залишився %1$d день</item>
         <item quantity="other">Пробний період Pro+: залишилося %1$d днів</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Тактильний відгук</string>
+    <string name="settings_haptic_feedback_desc">Увімкнути легку вібрацію під час кожного натискання на інтерактивний елемент застосунку.</string>
 </resources>

@@ -837,4 +837,8 @@ Token: %2$s</string>
         <item quantity="one">Pro+-Test: noch %1$d Tag</item>
         <item quantity="other">Pro+-Test: noch %1$d Tage</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Haptisches Feedback</string>
+    <string name="settings_haptic_feedback_desc">Aktiviert eine leichte Vibration bei jedem Antippen eines bedienbaren Elements in der App.</string>
 </resources>

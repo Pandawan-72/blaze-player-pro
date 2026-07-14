@@ -851,4 +851,8 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="one">تجربة Pro+: بقي يوم واحد</item>
         <item quantity="other">تجربة Pro+: بقي %1$d أيام</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">الاستجابة اللمسية</string>
+    <string name="settings_haptic_feedback_desc">تفعيل اهتزاز خفيف عند الضغط على أي عنصر قابل للنقر داخل التطبيق.</string>
 </resources>

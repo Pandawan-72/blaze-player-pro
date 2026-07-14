@@ -165,6 +165,14 @@ class SettingsFragment : Fragment() {
             viewModel.getShowHidden()
         ) { viewModel.setShowHidden(it) }
 
+        setupToggle(
+            binding.settingHaptic.root,
+            R.drawable.ic_vibration,
+            getString(R.string.settings_haptic_feedback),
+            getString(R.string.settings_haptic_feedback_desc),
+            viewModel.getHapticFeedbackEnabled()
+        ) { viewModel.setHapticFeedbackEnabled(it) }
+
 
 
         // DONNÉES

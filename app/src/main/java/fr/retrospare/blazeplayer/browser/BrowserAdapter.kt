@@ -160,6 +160,7 @@ class BrowserAdapter(
                 val popup = android.widget.PopupMenu(v.context, v)
                 popup.menu.add(0, 1, 0, v.context.getString(R.string.dialog_add_favorite_folder))
                 popup.setOnMenuItemClickListener { mi ->
+                    fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(v)
                     when (mi.itemId) {
                         1 -> {
                             val category = if (item.isNetwork) fr.retrospare.blazeplayer.favorites.FavoriteCategory.NETWORK
@@ -318,6 +319,7 @@ class BrowserAdapter(
                 popup.menu.add(0, 1, 0, v.context.getString(R.string.action_play))
                 popup.menu.add(0, 2, 1, v.context.getString(R.string.action_information))
                                 popup.setOnMenuItemClickListener { mi ->
+                    fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(v)
                     when (mi.itemId) {
                         1 -> { onClick(item); true }
                         2 -> {

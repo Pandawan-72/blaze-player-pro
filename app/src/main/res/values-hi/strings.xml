@@ -851,4 +851,8 @@ Android के लिए आपका मीडिया प्लेयर</str
         <item quantity="one">Pro+ ट्रायल: %1$d दिन शेष</item>
         <item quantity="other">Pro+ ट्रायल: %1$d दिन शेष</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">हैप्टिक फ़ीडबैक</string>
+    <string name="settings_haptic_feedback_desc">ऐप में किसी भी क्लिक करने योग्य आइटम पर टैप करते समय हल्का कंपन चालू करें।</string>
 </resources>

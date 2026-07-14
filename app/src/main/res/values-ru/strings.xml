@@ -857,4 +857,8 @@
         <item quantity="one">Пробный период Pro+: остался %1$d день</item>
         <item quantity="other">Пробный период Pro+: осталось %1$d дней</item>
     </plurals>
+
+    <!-- Retour haptique global, désactivé par défaut -->
+    <string name="settings_haptic_feedback">Тактильная отдача</string>
+    <string name="settings_haptic_feedback_desc">Включить лёгкую вибрацию при каждом нажатии на интерактивный элемент приложения.</string>
 </resources>

@@ -2645,6 +2645,7 @@ class AudioPlayerFragment : Fragment() {
             }
         }
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
 
         if (settings.lyricsPlayer && path.isNotBlank() && lyrics == null) {
             val appContext = ctx.applicationContext
@@ -2729,6 +2730,7 @@ class AudioPlayerFragment : Fragment() {
         dialog.setContentView(root)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
     }
 
     private fun showBlazePartyHostDialog() {
@@ -2788,6 +2790,7 @@ class AudioPlayerFragment : Fragment() {
         dialog.setContentView(root)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
     }
 
     private fun scanBlazePartyQr() {
@@ -3346,6 +3349,7 @@ class AudioPlayerFragment : Fragment() {
             }
         }
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
     }
     private fun purgeNonAudioItems(ctrl: MediaController) {
         try {

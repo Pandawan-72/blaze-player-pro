@@ -130,7 +130,7 @@ class RotaryKnobView @JvmOverloads constructor(
         override fun onDoubleTap(e: MotionEvent): Boolean {
             setValue(defaultValue, notify = true, fromUser = true)
             gestureValue = currentValue
-            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(this@RotaryKnobView, HapticFeedbackConstants.LONG_PRESS)
             return true
         }
     })
@@ -351,7 +351,7 @@ class RotaryKnobView @JvmOverloads constructor(
         val bucket = hapticBucket(currentValue)
         if (bucket == lastHapticBucket) return
         lastHapticBucket = bucket
-        performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(this, HapticFeedbackConstants.CLOCK_TICK)
     }
 
     private fun hapticBucket(value: Float): Int {

@@ -282,6 +282,7 @@ class AudioBrowserActivity : AppCompatActivity() {
             attributes = attributes.apply { dimAmount = 0.72f }
         }
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
 
         val targetWidth = (resources.displayMetrics.widthPixels * 0.90f).toInt()
         val maxHeight = (resources.displayMetrics.heightPixels * 0.90f).toInt()

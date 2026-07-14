@@ -178,6 +178,7 @@ object VideoQueueSheet {
         }
         btnClear.setOnClickListener { showRemoveDialog() }
         dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT)
     }
 }
