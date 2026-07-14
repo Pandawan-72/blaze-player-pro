@@ -653,9 +653,7 @@
     <string name="audio_crossfade_title">Кроссфейд</string>
     <string name="audio_crossfade_subtitle">Плавные переходы между треками</string>
     <string name="audio_crossfade_duration">Длительность фейда</string>
-    <string name="audio_normalize_volume">Нормализация громкости</string>
-    <string name="audio_normalize_volume_subtitle">Выравнивать громкость треков</string>
-    <string name="audio_section_quality">Качество аудио</string>
+<string name="audio_section_quality">Качество аудио</string>
     <string name="audio_high_quality_output">Высокое качество вывода</string>
     <string name="audio_high_quality_subtitle">Отключает настройки звука для приоритета прямого аудиовыхода</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -672,7 +670,7 @@
     <string name="audio_replaygain_subtitle">Выравнивает громкость треков независимо от звуковых эффектов</string>
     <string name="audio_section_library">Библиотека</string>
     <string name="audio_auto_scan">Сканировать автоматически</string>
-    <string name="audio_auto_scan_subtitle">Добавлять новые файлы</string>
+    <string name="audio_auto_scan_subtitle">Регулярно находить новые локальные и сетевые файлы</string>
     <string name="audio_watched_folders">Отслеживаемые папки</string>
     <string name="audio_watched_folders_subtitle">Выбрать аудиопапки</string>
 <string name="audio_sort_album_track">Сортировать по номеру трека</string>

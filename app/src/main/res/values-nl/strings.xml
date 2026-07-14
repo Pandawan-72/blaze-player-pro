@@ -632,9 +632,7 @@ Token: %2$s</string>
     <string name="audio_crossfade_title">Crossfade</string>
     <string name="audio_crossfade_subtitle">Vloeiende overgangen tussen nummers</string>
     <string name="audio_crossfade_duration">Fade-duur</string>
-    <string name="audio_normalize_volume">Volume normaliseren</string>
-    <string name="audio_normalize_volume_subtitle">Volume tussen nummers balanceren</string>
-    <string name="audio_section_quality">Audiokwaliteit</string>
+<string name="audio_section_quality">Audiokwaliteit</string>
     <string name="audio_high_quality_output">Uitvoer hoge kwaliteit</string>
     <string name="audio_high_quality_subtitle">Schakelt geluidsinstellingen uit voor directe audio-uitvoer</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -651,7 +649,7 @@ Token: %2$s</string>
     <string name="audio_replaygain_subtitle">Maakt het volume tussen nummers gelijk, los van geluidseffecten</string>
     <string name="audio_section_library">Bibliotheek</string>
     <string name="audio_auto_scan">Automatisch scannen</string>
-    <string name="audio_auto_scan_subtitle">Nieuwe bestanden toevoegen</string>
+    <string name="audio_auto_scan_subtitle">Regelmatig nieuwe lokale en netwerkbestanden detecteren</string>
     <string name="audio_watched_folders">Bewaakte mappen</string>
     <string name="audio_watched_folders_subtitle">Audiomappen selecteren</string>
 <string name="audio_sort_album_track">Sorteren op tracknummer</string>

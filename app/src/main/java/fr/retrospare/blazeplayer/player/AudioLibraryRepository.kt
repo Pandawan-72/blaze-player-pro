@@ -284,8 +284,6 @@ class AudioLibraryRepository @Inject constructor(
     // ---------------------------------------------------------------------
 
     private fun queryMediaStoreWatchedTracks(context: Context): List<LibraryTrack> {
-        val settings = AudioProSettings.read(context)
-        if (!settings.autoScan) return emptyList()
         val watched = AudioProSettings.watchedFolders(context).filterNot { it.isNetwork }
         if (watched.isEmpty()) return emptyList()
         val projection = arrayOf(
@@ -294,7 +292,11 @@ class AudioLibraryRepository @Inject constructor(
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.DATE_ADDED
         )
-        val selection = if (settings.ignoreShort) "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= 30000" else "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+        // Tous les titres sont indexés. Le filtre « Ignorer les fichiers courts » est appliqué
+        // de façon uniforme par le ViewModel après résolution des durées, ce qui couvre aussi
+        // les dossiers locaux parcourus directement, SMB et UPnP et permet de réafficher
+        // immédiatement les fichiers lorsque le réglage est désactivé.
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
         val out = ArrayList<LibraryTrack>()
         runCatching {
             context.contentResolver.query(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, projection, selection, null, "${MediaStore.Audio.Media.DATE_ADDED} DESC")?.use { c ->
@@ -340,6 +342,7 @@ class AudioLibraryRepository @Inject constructor(
 
     private fun scanWatchedLocalFolders(context: Context): List<LibraryTrack> {
         val watched = AudioProSettings.watchedFolders(context).filterNot { it.isNetwork }
+        val reuseCachedDurations = AudioProSettings.read(context).ignoreShort
         if (watched.isEmpty()) return emptyList()
         val out = ArrayList<LibraryTrack>()
         val seen = HashSet<String>()
@@ -356,12 +359,19 @@ class AudioLibraryRepository @Inject constructor(
                         // Passe 1 : squelette fichier uniquement, jamais l'ancien cache métadonnées
                         // (une suppression/renommage NAS/local ne doit pas réinjecter de vieux libellés).
                         val folderMeta = AudioLibraryHeuristics.folderMetadata(file.absolutePath, file.name)
+                        val cachedDurationMs = if (reuseCachedDurations) {
+                            AudioMetadataExtractor.getCached(context, file.absolutePath)
+                                ?.duration
+                                ?.takeIf { it > 0L }
+                                ?.times(1000L)
+                                ?: 0L
+                        } else 0L
                         out += LibraryTrack(
                             id = -abs(file.absolutePath.hashCode()).toLong(),
                             title = folderMeta.title,
                             artist = folderMeta.artist,
                             album = folderMeta.album,
-                            durationMs = 0L,
+                            durationMs = cachedDurationMs,
                             trackNo = AudioLibraryHeuristics.inferTrackNo(file.name),
                             path = file.absolutePath,
                             addedAt = file.lastModified() / 1000L,
@@ -395,7 +405,7 @@ class AudioLibraryRepository @Inject constructor(
         val watched = AudioProSettings.watchedFolders(context).filter { it.isNetwork }
         if (watched.isEmpty()) return NetworkFolderScanResult(emptyList(), emptyList())
         val shares = runCatching { networkRepository.getShares().first().associateBy { it.id } }.getOrDefault(emptyMap())
-        val settings = AudioProSettings.read(context)
+        val reuseCachedDurations = AudioProSettings.read(context).ignoreShort
         val allTracks = mutableListOf<LibraryTrack>()
         val confirmedFolders = mutableListOf<AudioProSettings.WatchedFolder>()
 
@@ -414,12 +424,11 @@ class AudioLibraryRepository @Inject constructor(
             val confirmed = scanNetworkFolder(
                 context,
                 share,
-                folder,
                 folder.path,
                 0,
                 result,
                 seen,
-                settings,
+                reuseCachedDurations = reuseCachedDurations,
                 inheritedCover = "",
                 manual = manual,
                 isPlaybackCritical = isPlaybackCritical,
@@ -439,12 +448,11 @@ class AudioLibraryRepository @Inject constructor(
     private suspend fun scanNetworkFolder(
         context: Context,
         share: NetworkShare,
-        watchedFolder: AudioProSettings.WatchedFolder,
         browsePath: String,
         depth: Int,
         result: MutableList<LibraryTrack>,
         seen: MutableSet<String>,
-        settings: AudioProSettings.Values,
+        reuseCachedDurations: Boolean,
         inheritedCover: String,
         manual: Boolean,
         isPlaybackCritical: () -> Boolean,
@@ -475,12 +483,20 @@ class AudioLibraryRepository @Inject constructor(
             // enrichie ensuite, jamais les libellés texte.
             val networkLabel = context.getString(R.string.tab_network)
             val folderMeta = AudioLibraryHeuristics.folderMetadata(item.path, name)
+            val listedDurationMs = item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L
+            val cachedDurationMs = if (listedDurationMs <= 0L && reuseCachedDurations) {
+                AudioMetadataExtractor.getCached(context, item.path)
+                    ?.duration
+                    ?.takeIf { it > 0L }
+                    ?.times(1000L)
+                    ?: 0L
+            } else 0L
             result += LibraryTrack(
                 id = -abs(item.path.hashCode()).toLong(),
                 title = folderMeta.title,
                 artist = folderMeta.artist,
                 album = folderMeta.album,
-                durationMs = 0L,
+                durationMs = listedDurationMs.takeIf { it > 0L } ?: cachedDurationMs,
                 trackNo = AudioLibraryHeuristics.inferTrackNo(name),
                 path = item.path,
                 addedAt = System.currentTimeMillis() / 1000L,
@@ -506,12 +522,11 @@ class AudioLibraryRepository @Inject constructor(
             if (!scanNetworkFolder(
                     context,
                     share,
-                    watchedFolder,
                     folder.path,
                     depth + 1,
                     result,
                     seen,
-                    settings,
+                    reuseCachedDurations,
                     folderCover,
                     manual,
                     isPlaybackCritical,

@@ -83,6 +83,7 @@ class HomeFragment : Fragment() {
     private var videoHistoryRefreshJob: kotlinx.coroutines.Job? = null
     private var videoHistoryRefreshGeneration: Long = 0L
     private var historyAdapter: HistoryAdapter? = null
+    private var resetVideoHistoryToTopPending: Boolean = false
     private var historySelectionTab: Int? = null
     private val selectedHistoryPaths = linkedSetOf<String>()
     private var pendingAudioTabAfterPermission = false
@@ -279,6 +280,9 @@ class HomeFragment : Fragment() {
         setupButtons()
         setupGalleryTab()
         setupHistoryRecycler()
+        // Neutralise aussi une éventuelle position RecyclerView restaurée par Android avant que
+        // les premiers éléments asynchrones de l'historique ne soient disponibles.
+        resetVideoHistoryScrollToTop()
         observeViewModel()
         updateVersionBadge()
         // Force la réapparition du mini player si nécessaire : recréer cette vue (retour de
@@ -516,6 +520,7 @@ class HomeFragment : Fragment() {
                 viewModel.onTabSelected(index)
                 if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
+                if (index == 1) resetVideoHistoryScrollToTop()
                 if (index == 2) showNetworkHelpOnce()
             }
         }
@@ -2214,6 +2219,7 @@ class HomeFragment : Fragment() {
                 hideAudioTab()
                 if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
+                if (index == 1) resetVideoHistoryScrollToTop()
                 if (index == 2) showNetworkHelpOnce()
             }
         }
@@ -2225,6 +2231,7 @@ class HomeFragment : Fragment() {
         hideAudioTab()
         viewModel.onTabSelected(1)
         updateSectionTitles(1)
+        resetVideoHistoryScrollToTop()
     }
 
     private fun hideAudioTab() {
@@ -2291,6 +2298,33 @@ class HomeFragment : Fragment() {
         childFragmentManager.beginTransaction()
             .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!, "blaze_audio")
             .commitAllowingStateLoss()
+    }
+
+    /** Replace toujours l'historique Blaze Video au début lorsqu'on revient depuis un autre
+     *  onglet. RecyclerView conserve normalement son ancienne position quand sa section passe de
+     *  GONE à VISIBLE ; selon le recalcul de hauteur du header, cette position pouvait commencer
+     *  visuellement à la deuxième ligne. Le second passage à l'animation suivante couvre le layout
+     *  différé après le changement de section sans provoquer d'animation de défilement. */
+    private fun resetVideoHistoryScrollToTop() {
+        if (_binding == null || !isAdded) return
+        resetVideoHistoryToTopPending = true
+        val recycler = binding.listLocal
+        recycler.stopScroll()
+        recycler.clearFocus()
+
+        fun applyTopPosition() {
+            if (_binding == null || currentTabIndex != 1) return
+            if ((recycler.adapter?.itemCount ?: 0) <= 0) return
+            (recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager)
+                ?.scrollToPositionWithOffset(0, 0)
+                ?: recycler.scrollToPosition(0)
+            resetVideoHistoryToTopPending = false
+        }
+
+        recycler.post {
+            applyTopPosition()
+            recycler.postOnAnimation { applyTopPosition() }
+        }
     }
 
     private fun updateSectionTitles(tabIndex: Int) {
@@ -2925,6 +2959,9 @@ class HomeFragment : Fragment() {
         historyAdapter?.submitHistory(items)
         recycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
         emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
+        if (resetVideoHistoryToTopPending && currentTabIndex == 1 && items.isNotEmpty()) {
+            resetVideoHistoryScrollToTop()
+        }
     }
 
     private class HistoryViewHolder(itemView: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(itemView) {

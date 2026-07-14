@@ -633,9 +633,7 @@ Token: %2$s</string>
     <string name="audio_crossfade_title">Fundido cruzado</string>
     <string name="audio_crossfade_subtitle">Transiciones suaves entre pistas</string>
     <string name="audio_crossfade_duration">Duración del fundido</string>
-    <string name="audio_normalize_volume">Normalizar volumen</string>
-    <string name="audio_normalize_volume_subtitle">Equilibrar volumen entre pistas</string>
-    <string name="audio_section_quality">Calidad de audio</string>
+<string name="audio_section_quality">Calidad de audio</string>
     <string name="audio_high_quality_output">Salida de alta calidad</string>
     <string name="audio_high_quality_subtitle">Desactiva los ajustes de sonido para priorizar la salida directa</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -652,7 +650,7 @@ Token: %2$s</string>
     <string name="audio_replaygain_subtitle">Iguala el volumen entre pistas sin depender de los efectos de sonido</string>
     <string name="audio_section_library">Biblioteca</string>
     <string name="audio_auto_scan">Escanear automáticamente</string>
-    <string name="audio_auto_scan_subtitle">Añadir nuevos archivos</string>
+    <string name="audio_auto_scan_subtitle">Detectar periódicamente nuevos archivos locales y de red</string>
     <string name="audio_watched_folders">Carpetas vigiladas</string>
     <string name="audio_watched_folders_subtitle">Seleccionar carpetas de audio</string>
 <string name="audio_sort_album_track">Ordenar por número de pista</string>

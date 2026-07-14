@@ -1,6 +1,7 @@
 package fr.retrospare.blazeplayer.player
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import kotlin.math.pow
 import java.io.File
@@ -18,7 +19,7 @@ object AudioProSettings {
     const val KEY_GAPLESS = "gapless"
     const val KEY_CROSSFADE = "crossfade"
     const val KEY_CROSSFADE_DURATION = "crossfade_duration"
-    const val KEY_NORMALIZE = "normalize"
+    private const val LEGACY_KEY_NORMALIZE = "normalize"
     const val KEY_HI_RES = "hi_res"
     const val KEY_REPLAYGAIN = "replaygain"
     const val KEY_OUTPUT_MODE = "output_mode"
@@ -34,6 +35,12 @@ object AudioProSettings {
     const val KEY_DOWNLOAD_COVERS = "download_covers"
     const val KEY_WATCHED_FOLDERS = "watched_folders"
     private const val KEY_LIBRARY_REFRESH_PENDING = "library_refresh_pending"
+    private const val KEY_LIBRARY_SETTING_CHANGES_PENDING = "library_setting_changes_pending"
+    private const val KEY_LAST_AUTO_SCAN_AT = "last_auto_scan_at"
+
+    const val ACTION_LIBRARY_SETTINGS_CHANGED = "fr.retrospare.blazeplayer.action.AUDIO_LIBRARY_SETTINGS_CHANGED"
+    const val EXTRA_CHANGED_KEY = "changed_key"
+    const val AUTO_SCAN_INTERVAL_MS = 10L * 60L * 1000L
 
     const val REPLAYGAIN_OFF = 0
     const val REPLAYGAIN_TRACK = 1
@@ -51,7 +58,6 @@ object AudioProSettings {
         val gapless: Boolean = true,
         val crossfade: Boolean = true,
         val crossfadeDurationSec: Int = 3,
-        val normalize: Boolean = true,
         val hiRes: Boolean = false,
         val replayGain: Int = REPLAYGAIN_TRACK,
         val outputMode: String = OUTPUT_MODE_AUTO,
@@ -92,6 +98,13 @@ object AudioProSettings {
         }
         if (audioPrefs.contains(LEGACY_KEY_BIT_DEPTH)) {
             edit.remove(LEGACY_KEY_BIT_DEPTH)
+            changed = true
+        }
+        // L'ancien interrupteur « Normaliser le volume » appliquait un gain fixe qui faisait
+        // doublon avec ReplayGain. La clé est retirée une fois pour éviter qu'un ancien profil
+        // conserve une correction cachée après la suppression du réglage dans l'interface.
+        if (audioPrefs.contains(LEGACY_KEY_NORMALIZE)) {
+            edit.remove(LEGACY_KEY_NORMALIZE)
             changed = true
         }
         if (changed) edit.apply()
@@ -166,7 +179,6 @@ object AudioProSettings {
             gapless = p.getBoolean(KEY_GAPLESS, true),
             crossfade = p.getBoolean(KEY_CROSSFADE, true),
             crossfadeDurationSec = p.getInt(KEY_CROSSFADE_DURATION, 3).coerceIn(0, 12),
-            normalize = p.getBoolean(KEY_NORMALIZE, true),
             hiRes = p.getBoolean(KEY_HI_RES, false),
             replayGain = p.getInt(KEY_REPLAYGAIN, REPLAYGAIN_TRACK).coerceIn(REPLAYGAIN_OFF, REPLAYGAIN_ALBUM),
             outputMode = normalizeOutputMode(p.getString(KEY_OUTPUT_MODE, OUTPUT_MODE_AUTO)),
@@ -246,6 +258,50 @@ object AudioProSettings {
         return preferences.edit().remove(KEY_LIBRARY_REFRESH_PENDING).commit()
     }
 
+    /** Écrit un réglage de bibliothèque et notifie immédiatement les écrans déjà ouverts.
+     *  Les clés modifiées restent aussi persistées jusqu'au prochain retour dans la bibliothèque,
+     *  ce qui couvre le cas où Android détruit l'Activity pendant l'ouverture des réglages. */
+    fun setLibraryBoolean(context: Context, key: String, enabled: Boolean) {
+        require(key == KEY_AUTO_SCAN || key == KEY_TRACK_ORDER || key == KEY_IGNORE_SHORT)
+        val preferences = prefs(context)
+        val pending = preferences.getStringSet(KEY_LIBRARY_SETTING_CHANGES_PENDING, emptySet())
+            .orEmpty()
+            .toMutableSet()
+            .apply { add(key) }
+        preferences.edit()
+            .putBoolean(key, enabled)
+            .putStringSet(KEY_LIBRARY_SETTING_CHANGES_PENDING, pending)
+            .apply()
+        context.applicationContext.sendBroadcast(
+            Intent(ACTION_LIBRARY_SETTINGS_CHANGED)
+                .setPackage(context.packageName)
+                .putExtra(EXTRA_CHANGED_KEY, key)
+        )
+    }
+
+    fun consumePendingLibrarySettingChanges(context: Context): Set<String> {
+        val preferences = prefs(context)
+        val pending = preferences.getStringSet(KEY_LIBRARY_SETTING_CHANGES_PENDING, emptySet())
+            .orEmpty()
+            .toSet()
+        if (pending.isEmpty()) return emptySet()
+        preferences.edit().remove(KEY_LIBRARY_SETTING_CHANGES_PENDING).commit()
+        return pending
+    }
+
+    fun isAutomaticScanDue(context: Context, force: Boolean = false): Boolean {
+        val preferences = prefs(context)
+        if (!preferences.getBoolean(KEY_AUTO_SCAN, true)) return false
+        if (watchedFolderCount(context) == 0) return false
+        if (force) return true
+        val last = preferences.getLong(KEY_LAST_AUTO_SCAN_AT, 0L)
+        return System.currentTimeMillis() - last >= AUTO_SCAN_INTERVAL_MS
+    }
+
+    fun markAutomaticScanStarted(context: Context) {
+        prefs(context).edit().putLong(KEY_LAST_AUTO_SCAN_AT, System.currentTimeMillis()).apply()
+    }
+
     fun removeWatchedFolder(context: Context, folder: WatchedFolder) {
         val clean = normalizeFolder(folder)
         saveWatchedFolders(context, watchedFolders(context).filterNot { sameFolder(it, clean) })
@@ -292,25 +348,20 @@ object AudioProSettings {
         prefs(context).edit().putString(KEY_WATCHED_FOLDERS, array.toString()).apply()
     }
 
-    /** Volume logiciel anti-clipping. Le préampli est exclusivement géré par EqualizerManager ;
-     *  ici on applique seulement les corrections globales sûres au niveau Player. */
+    /** ReplayGain est désormais l'unique mécanisme d'égalisation de niveau. Les corrections
+     *  négatives passent par le volume logiciel ; les corrections positives sont confiées au
+     *  LoudnessEnhancer. Aucun gain fixe caché n'est ajouté. */
     fun playerVolume(values: Values): Float = playerVolume(values, 0f)
 
+    @Suppress("UNUSED_PARAMETER")
     fun playerVolume(values: Values, replayGainDb: Float): Float {
-        var db = replayGainDb.toDouble()
-        // Petit headroom quand la normalisation est active : cela laisse de la marge au limiteur
-        // Android/LoudnessEnhancer et évite que les corrections ReplayGain positives saturent.
-        if (values.normalize) db -= 1.0
-        return (10.0.pow(db / 20.0)).toFloat().coerceIn(0.18f, 1.0f)
+        val attenuationDb = replayGainDb.coerceIn(-24f, 0f).toDouble()
+        return (10.0.pow(attenuationDb / 20.0)).toFloat().coerceIn(0.06f, 1.0f)
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun loudnessTargetMillibels(values: Values, replayGainDb: Float): Int {
-        var gain = 0
-        if (values.normalize) gain += 180
-        if (replayGainDb > 0f) gain += (replayGainDb * 100f).toInt()
-        // La précision de sortie est désormais gérée par le véritable AudioSink Media3. Elle ne
-        // doit plus modifier artificiellement le LoudnessEnhancer.
-        return gain.coerceIn(0, 1200)
+        return (replayGainDb.coerceIn(0f, 12f) * 100f).toInt()
     }
 
 }

@@ -268,6 +268,26 @@ object AudioLibraryHeuristics {
         return raw.takeIf { it > 0 } ?: Int.MAX_VALUE
     }
 
+    /** Ordre partagé entre le détail d'album, la file créée par « Lire l'album » et les listes.
+     *  Désactiver le tri par numéro produit un ordre alphabétique stable au lieu de laisser
+     *  l'ordre SQL ou réseau décider de façon imprévisible. */
+    fun sortAlbumTracks(input: List<LibraryTrack>, byTrackNumber: Boolean): List<LibraryTrack> {
+        val unique = input.distinctBy { canonicalPathKey(it.path) }
+        return if (byTrackNumber) {
+            unique.sortedWith(
+                compareBy<LibraryTrack> { discNumberFromPath(it.path) }
+                    .thenBy { normalizedTrackNo(it.trackNo) }
+                    .thenBy { normalize(it.title) }
+                    .thenBy { normalize(fileNameFromPath(it.path)) }
+            )
+        } else {
+            unique.sortedWith(
+                compareBy<LibraryTrack> { normalize(it.title) }
+                    .thenBy { normalize(fileNameFromPath(it.path)) }
+            )
+        }
+    }
+
     fun discNumberFromPath(path: String): Int = pathSegments(path).firstNotNullOfOrNull { segment -> Regex("(?:cd|disc|disk|disque)\\s*(\\d+)", RegexOption.IGNORE_CASE).find(segment)?.groupValues?.getOrNull(1)?.toIntOrNull() } ?: 0
 
     fun isDiscFolderName(value: String): Boolean = Regex("^(?:cd|disc|disk|disque|vol(?:ume)?)\\s*\\d+", RegexOption.IGNORE_CASE).containsMatchIn(value.trim())

@@ -646,9 +646,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_crossfade_title">Плавний перехід</string>
     <string name="audio_crossfade_subtitle">Плавні переходи між доріжками</string>
     <string name="audio_crossfade_duration">Тривалість переходу</string>
-    <string name="audio_normalize_volume">Нормалізація гучності</string>
-    <string name="audio_normalize_volume_subtitle">Вирівнювати гучність між доріжками</string>
-    <string name="audio_section_quality">Якість аудіо</string>
+<string name="audio_section_quality">Якість аудіо</string>
     <string name="audio_high_quality_output">Високоякісний вихід</string>
     <string name="audio_high_quality_subtitle">Вимикає налаштування звуку, щоб надати пріоритет прямому аудіовиходу</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -665,7 +663,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_replaygain_subtitle">Вирівнює гучність між доріжками незалежно від звукових ефектів</string>
     <string name="audio_section_library">Бібліотека</string>
     <string name="audio_auto_scan">Сканувати автоматично</string>
-    <string name="audio_auto_scan_subtitle">Додавати нові файли</string>
+    <string name="audio_auto_scan_subtitle">Регулярно знаходити нові локальні й мережеві файли</string>
     <string name="audio_watched_folders">Відстежувані папки</string>
     <string name="audio_watched_folders_subtitle">Виберіть аудіопапки</string>
 <string name="audio_sort_album_track">Сортувати за номером доріжки</string>

@@ -2,9 +2,11 @@ package fr.retrospare.blazeplayer.player
 
 import android.animation.ObjectAnimator
 import android.app.AlertDialog
+import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
@@ -12,6 +14,7 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -59,6 +62,7 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -117,6 +121,18 @@ class AudioLibraryActivity : AppCompatActivity() {
     private var currentState: LibraryUiState = LibraryUiState()
     private var miniArtworkJob: Job? = null
     private var watchedFolderAutoRefreshJob: Job? = null
+    private var automaticScanLoopJob: Job? = null
+    private var librarySettingsReceiverRegistered = false
+
+    private val librarySettingsReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != AudioProSettings.ACTION_LIBRARY_SETTINGS_CHANGED) return
+            val changes = AudioProSettings.consumePendingLibrarySettingChanges(this@AudioLibraryActivity)
+            handleLibrarySettingChanges(changes.ifEmpty {
+                intent.getStringExtra(AudioProSettings.EXTRA_CHANGED_KEY)?.let { setOf(it) } ?: emptySet()
+            })
+        }
+    }
 
     /** Ancre visuelle de la grille avant l'ouverture d'un album. La restauration est effectuée
      * seulement après que la liste d'albums et le GridLayoutManager sont tous deux prêts. */
@@ -215,6 +231,14 @@ class AudioLibraryActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         setupActions()
         updateWatchedSummary()
+        val settingsFilter = IntentFilter(AudioProSettings.ACTION_LIBRARY_SETTINGS_CHANGED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(librarySettingsReceiver, settingsFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            registerReceiver(librarySettingsReceiver, settingsFilter)
+        }
+        librarySettingsReceiverRegistered = true
         // First frame first : la connexion Media3 et l'observation du ViewModel démarrent après
         // que la coquille visuelle soit déjà à l'écran, pour éviter un ANR si le player/NAS est occupé.
         root.post {
@@ -228,10 +252,14 @@ class AudioLibraryActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refreshMiniPlayer()
+        handleLibrarySettingChanges(AudioProSettings.consumePendingLibrarySettingChanges(this))
         synchronizeWatchedFoldersAndRefreshIfNeeded()
+        startAutomaticScanLoop()
     }
 
     override fun onPause() {
+        automaticScanLoopJob?.cancel()
+        automaticScanLoopJob = null
         stopMiniSpin(keepVisible = false)
         super.onPause()
     }
@@ -239,6 +267,11 @@ class AudioLibraryActivity : AppCompatActivity() {
     override fun onDestroy() {
         miniArtworkJob?.cancel()
         watchedFolderAutoRefreshJob?.cancel()
+        automaticScanLoopJob?.cancel()
+        if (librarySettingsReceiverRegistered) {
+            runCatching { unregisterReceiver(librarySettingsReceiver) }
+            librarySettingsReceiverRegistered = false
+        }
         miniTicker.removeCallbacksAndMessages(null)
         stopMiniSpin(keepVisible = false)
         controllerFuture?.let { MediaController.releaseFuture(it) }
@@ -461,6 +494,8 @@ class AudioLibraryActivity : AppCompatActivity() {
     private fun manualRefresh() {
         val started = viewModel.refresh(manual = true, isPlaybackCritical = ::isPlaybackCritical)
         if (!started) return
+        AudioProSettings.consumeLibraryRefreshPending(this)
+        AudioProSettings.markAutomaticScanStarted(this)
         Toast.makeText(this, getString(R.string.audio_library_refresh_started), Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
             viewModel.refreshState.first { refreshing -> !refreshing }
@@ -602,7 +637,10 @@ class AudioLibraryActivity : AppCompatActivity() {
         val current = currentWatchedFolderMap()
         val removed = knownWatchedFolders.filterKeys { it !in current }.values.toList()
         val added = current.filterKeys { it !in knownWatchedFolders }.values.toList()
-        val pendingRefresh = AudioProSettings.consumeLibraryRefreshPending(this)
+        val autoScanEnabled = AudioProSettings.read(this).autoScan
+        // Si le scan automatique est coupé, le drapeau reste en attente : il sera consommé lors
+        // de la réactivation ou d'un prochain retour avec l'option active.
+        val pendingRefresh = if (autoScanEnabled) AudioProSettings.consumeLibraryRefreshPending(this) else false
         knownWatchedFolders = current
 
         if (removed.isNotEmpty()) {
@@ -610,27 +648,47 @@ class AudioLibraryActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.audio_watched_folder_removed), Toast.LENGTH_SHORT).show()
         }
         if (removed.isNotEmpty() || added.isNotEmpty() || pendingRefresh) updateWatchedSummary()
-        if ((added.isNotEmpty() || pendingRefresh) && current.isNotEmpty()) {
-            requestAutomaticWatchedFolderRefresh()
+        if (autoScanEnabled && (added.isNotEmpty() || pendingRefresh) && current.isNotEmpty()) {
+            requestAutomaticLibraryRefresh(force = true)
         }
     }
 
-    private fun requestAutomaticWatchedFolderRefresh() {
+    private fun handleLibrarySettingChanges(changedKeys: Set<String>) {
+        viewModel.reloadLibrarySettings()
+        if (AudioProSettings.KEY_AUTO_SCAN in changedKeys) {
+            if (AudioProSettings.read(this).autoScan) {
+                startAutomaticScanLoop()
+                requestAutomaticLibraryRefresh(force = true)
+            } else {
+                automaticScanLoopJob?.cancel()
+                automaticScanLoopJob = null
+            }
+        }
+    }
+
+    private fun startAutomaticScanLoop() {
+        automaticScanLoopJob?.cancel()
+        if (!AudioProSettings.read(this).autoScan) return
+        automaticScanLoopJob = lifecycleScope.launch {
+            requestAutomaticLibraryRefresh(force = false)
+            while (isActive) {
+                delay(AudioProSettings.AUTO_SCAN_INTERVAL_MS)
+                requestAutomaticLibraryRefresh(force = false)
+            }
+        }
+    }
+
+    private fun requestAutomaticLibraryRefresh(force: Boolean) {
+        if (!AudioProSettings.isAutomaticScanDue(this, force)) return
+        if (force) AudioProSettings.consumeLibraryRefreshPending(this)
         if (watchedFolderAutoRefreshJob?.isActive == true) return
         watchedFolderAutoRefreshJob = lifecycleScope.launch {
-            // Si un scan est déjà actif, la demande consommée ne doit pas être perdue : retenter
-            // après sa fin afin que le nouveau dossier, éventuellement ajouté en plein scan, soit
-            // forcément inclus dans une passe complète.
             var started = false
-            while (!started) {
-                // Le premier remplissage automatique doit privilégier un résultat rapide et
-                // progressif. Le bouton Actualiser conserve, lui, le scan manuel exhaustif.
+            while (!started && isActive) {
                 started = viewModel.refresh(manual = false, isPlaybackCritical = ::isPlaybackCritical)
-                if (!started) delay(200L)
+                if (!started) delay(250L)
             }
-            if (!isFinishing && !isDestroyed) {
-                Toast.makeText(this@AudioLibraryActivity, getString(R.string.audio_library_refresh_started), Toast.LENGTH_SHORT).show()
-            }
+            if (started) AudioProSettings.markAutomaticScanStarted(this@AudioLibraryActivity)
         }
     }
 
@@ -1219,9 +1277,11 @@ class AudioLibraryActivity : AppCompatActivity() {
         hero.y = 0f
     }
 
-    private fun albumPlaybackTracks(album: LibraryAlbum): List<LibraryTrack> = album.tracks
-        .distinctBy { it.path }
-        .sortedWith(compareBy<LibraryTrack> { AudioLibraryHeuristics.discNumberFromPath(it.path) }.thenBy { AudioLibraryHeuristics.normalizedTrackNo(it.trackNo) }.thenBy { AudioLibraryHeuristics.normalize(it.title) })
+    private fun albumPlaybackTracks(album: LibraryAlbum): List<LibraryTrack> =
+        AudioLibraryHeuristics.sortAlbumTracks(
+            album.tracks,
+            AudioProSettings.read(this).trackOrder
+        )
 
     private fun albumMetaLine(tracks: List<LibraryTrack>): String {
         val uniqueTracks = tracks.distinctBy { it.path }

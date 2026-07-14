@@ -658,9 +658,7 @@ Code : %2$s</string>
     <string name="audio_crossfade_title">Fondu enchaîné</string>
     <string name="audio_crossfade_subtitle">Transitions douces entre les titres</string>
     <string name="audio_crossfade_duration">Durée du fondu</string>
-    <string name="audio_normalize_volume">Normaliser le volume</string>
-    <string name="audio_normalize_volume_subtitle">Équilibrer le volume entre les pistes</string>
-    <string name="audio_section_quality">Qualité audio</string>
+<string name="audio_section_quality">Qualité audio</string>
     <string name="audio_high_quality_output">Sortie haute qualité</string>
     <string name="audio_high_quality_subtitle">Désactive les réglages son pour privilégier la sortie directe</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -677,7 +675,7 @@ Code : %2$s</string>
     <string name="audio_replaygain_subtitle">Uniformise le volume entre les pistes sans dépendre des effets sonores</string>
     <string name="audio_section_library">Bibliothèque</string>
     <string name="audio_auto_scan">Scanner automatiquement</string>
-    <string name="audio_auto_scan_subtitle">Ajouter les nouveaux fichiers</string>
+    <string name="audio_auto_scan_subtitle">Détecter régulièrement les nouveaux fichiers locaux et réseau</string>
     <string name="audio_watched_folders">Dossiers surveillés</string>
     <string name="audio_watched_folders_subtitle">Sélectionner les dossiers audio</string>
 <string name="audio_sort_album_track">Trier par numéro de piste</string>

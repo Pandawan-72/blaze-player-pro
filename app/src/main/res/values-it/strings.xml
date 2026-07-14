@@ -633,9 +633,7 @@ Token: %2$s</string>
     <string name="audio_crossfade_title">Dissolvenza incrociata</string>
     <string name="audio_crossfade_subtitle">Transizioni morbide tra i brani</string>
     <string name="audio_crossfade_duration">Durata dissolvenza</string>
-    <string name="audio_normalize_volume">Normalizza volume</string>
-    <string name="audio_normalize_volume_subtitle">Bilancia il volume tra i brani</string>
-    <string name="audio_section_quality">Qualità audio</string>
+<string name="audio_section_quality">Qualità audio</string>
     <string name="audio_high_quality_output">Uscita alta qualità</string>
     <string name="audio_high_quality_subtitle">Disattiva le impostazioni audio per privilegiare l’uscita diretta</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -652,7 +650,7 @@ Token: %2$s</string>
     <string name="audio_replaygain_subtitle">Uniforma il volume tra i brani indipendentemente dagli effetti audio</string>
     <string name="audio_section_library">Libreria</string>
     <string name="audio_auto_scan">Scansione automatica</string>
-    <string name="audio_auto_scan_subtitle">Aggiungi nuovi file</string>
+    <string name="audio_auto_scan_subtitle">Rilevare periodicamente nuovi file locali e di rete</string>
     <string name="audio_watched_folders">Cartelle monitorate</string>
     <string name="audio_watched_folders_subtitle">Seleziona cartelle audio</string>
 <string name="audio_sort_album_track">Ordina per numero traccia</string>

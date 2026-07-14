@@ -1518,7 +1518,7 @@ class BlazePlayerService : MediaSessionService() {
 
         // Quand Réglages son est coupé, ne pas attacher d'Equalizer/BassBoost/Virtualizer à
         // l'AudioTrack. Même désactivés, ces AudioEffect peuvent empêcher certains appareils de
-        // conserver une sortie directe/offload. ReplayGain et la normalisation restent appliqués
+        // conserver une sortie directe/offload. ReplayGain reste appliqué
         // séparément via le volume du Player et, si nécessaire, LoudnessEnhancer.
         if (!eqPrefs.getBoolean(EqualizerManager.KEY_EQ_ENABLED, true)) {
             try { eqManager?.release() } catch (_: Exception) {}

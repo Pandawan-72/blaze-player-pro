@@ -646,9 +646,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_crossfade_title">تداخل تدريجي</string>
     <string name="audio_crossfade_subtitle">انتقالات سلسة بين المسارات</string>
     <string name="audio_crossfade_duration">مدة التلاشي</string>
-    <string name="audio_normalize_volume">تسوية مستوى الصوت</string>
-    <string name="audio_normalize_volume_subtitle">موازنة مستوى الصوت بين المسارات</string>
-    <string name="audio_section_quality">جودة الصوت</string>
+<string name="audio_section_quality">جودة الصوت</string>
     <string name="audio_high_quality_output">إخراج عالي الجودة</string>
     <string name="audio_high_quality_subtitle">يعطّل إعدادات الصوت لإعطاء الأولوية للإخراج الصوتي المباشر</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -665,7 +663,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_replaygain_subtitle">يوازن مستوى الصوت بين المسارات بشكل مستقل عن المؤثرات الصوتية</string>
     <string name="audio_section_library">المكتبة</string>
     <string name="audio_auto_scan">المسح تلقائيًا</string>
-    <string name="audio_auto_scan_subtitle">إضافة الملفات الجديدة</string>
+    <string name="audio_auto_scan_subtitle">اكتشاف الملفات المحلية وملفات الشبكة الجديدة بانتظام</string>
     <string name="audio_watched_folders">المجلدات المراقبة</string>
     <string name="audio_watched_folders_subtitle">اختر مجلدات الصوت</string>
 <string name="audio_sort_album_track">الفرز حسب رقم المسار</string>

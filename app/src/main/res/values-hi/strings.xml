@@ -646,9 +646,7 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_crossfade_title">क्रॉसफ़ेड</string>
     <string name="audio_crossfade_subtitle">ट्रैक के बीच सहज बदलाव</string>
     <string name="audio_crossfade_duration">फ़ेड अवधि</string>
-    <string name="audio_normalize_volume">वॉल्यूम सामान्य करें</string>
-    <string name="audio_normalize_volume_subtitle">ट्रैक के बीच वॉल्यूम संतुलित करें</string>
-    <string name="audio_section_quality">ऑडियो गुणवत्ता</string>
+<string name="audio_section_quality">ऑडियो गुणवत्ता</string>
     <string name="audio_high_quality_output">उच्च गुणवत्ता आउटपुट</string>
     <string name="audio_high_quality_subtitle">सीधे ऑडियो आउटपुट को प्राथमिकता देने के लिए ध्वनि सेटिंग्स बंद करता है</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -665,7 +663,7 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_replaygain_subtitle">ध्वनि प्रभावों से स्वतंत्र रूप से ट्रैक के बीच वॉल्यूम संतुलित करता है</string>
     <string name="audio_section_library">लाइब्रेरी</string>
     <string name="audio_auto_scan">अपने-आप स्कैन करें</string>
-    <string name="audio_auto_scan_subtitle">नई फ़ाइलें जोड़ें</string>
+    <string name="audio_auto_scan_subtitle">नई स्थानीय और नेटवर्क फ़ाइलों का नियमित रूप से पता लगाएँ</string>
     <string name="audio_watched_folders">निगरानी वाले फ़ोल्डर</string>
     <string name="audio_watched_folders_subtitle">ऑडियो फ़ोल्डर चुनें</string>
 <string name="audio_sort_album_track">ट्रैक नंबर के अनुसार क्रमबद्ध करें</string>

@@ -75,8 +75,6 @@ class AudioProSettingsActivity : AppCompatActivity() {
             addView(switchRow(AudioProSettings.KEY_CROSSFADE, R.drawable.ic_equalizer, R.string.audio_crossfade_title, R.string.audio_crossfade_subtitle, true))
             addView(separator())
             addView(sliderRow(AudioProSettings.KEY_CROSSFADE_DURATION, R.drawable.ic_timer, R.string.audio_crossfade_duration, null, 0, 12, 3, " s"))
-            addView(separator())
-            addView(switchRow(AudioProSettings.KEY_NORMALIZE, R.drawable.ic_volume, R.string.audio_normalize_volume, R.string.audio_normalize_volume_subtitle, true))
         })
         container.addView(section(R.string.audio_section_quality).apply {
             addView(switchRow(AudioProSettings.KEY_HI_RES, R.drawable.ic_equalizer, R.string.audio_high_quality_output, R.string.audio_high_quality_subtitle, false))
@@ -144,14 +142,22 @@ class AudioProSettingsActivity : AppCompatActivity() {
             applyAudioStyleToggle(this)
             isChecked = prefs.getBoolean(key, defaultValue)
             setOnCheckedChangeListener { _, checked ->
-                if (key == AudioProSettings.KEY_HI_RES) {
-                    AudioProSettings.setHighQualityEnabled(this@AudioProSettingsActivity, checked)
-                } else {
-                    val edit = prefs.edit().putBoolean(key, checked)
-                    if (key == AudioProSettings.KEY_SYNCED_LYRICS) {
-                        edit.putBoolean(AudioProSettings.KEY_LYRICS_PLAYER, checked)
+                when (key) {
+                    AudioProSettings.KEY_HI_RES -> {
+                        AudioProSettings.setHighQualityEnabled(this@AudioProSettingsActivity, checked)
                     }
-                    edit.apply()
+                    AudioProSettings.KEY_AUTO_SCAN,
+                    AudioProSettings.KEY_TRACK_ORDER,
+                    AudioProSettings.KEY_IGNORE_SHORT -> {
+                        AudioProSettings.setLibraryBoolean(this@AudioProSettingsActivity, key, checked)
+                    }
+                    else -> {
+                        val edit = prefs.edit().putBoolean(key, checked)
+                        if (key == AudioProSettings.KEY_SYNCED_LYRICS) {
+                            edit.putBoolean(AudioProSettings.KEY_LYRICS_PLAYER, checked)
+                        }
+                        edit.apply()
+                    }
                 }
                 if (key == AudioProSettings.KEY_DYNAMIC_THEME) recreate()
             }

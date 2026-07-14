@@ -84,6 +84,7 @@ class AudioLibraryViewModel @Inject constructor(
     private val _openedAlbumTrackPaths = MutableStateFlow<Set<String>>(emptySet())
     private val _isRefreshing = MutableStateFlow(false)
     private val _playlists = MutableStateFlow<List<LibraryPlaylist>>(emptyList())
+    private val _librarySettings = MutableStateFlow(readLibrarySettings())
     val refreshState: StateFlow<Boolean> get() = _isRefreshing
     private val hasObservedTracksOnce = AtomicBoolean(false)
 
@@ -112,6 +113,31 @@ class AudioLibraryViewModel @Inject constructor(
         }
     }
 
+    private data class LibraryBehaviorSettings(
+        val trackOrder: Boolean,
+        val ignoreShort: Boolean
+    )
+
+    private fun readLibrarySettings(): LibraryBehaviorSettings {
+        val values = AudioProSettings.read(appContext)
+        return LibraryBehaviorSettings(
+            trackOrder = values.trackOrder,
+            ignoreShort = values.ignoreShort
+        )
+    }
+
+    fun reloadLibrarySettings() {
+        val next = readLibrarySettings()
+        if (next == _librarySettings.value) return
+        _librarySettings.value = next
+        if (next.ignoreShort) {
+            durationEnrichmentJob?.cancel()
+            durationEnrichmentJob = null
+            durationAttemptedThisSession.clear()
+            scheduleDurationEnrichment(libraryTracksFlow.value)
+        }
+    }
+
     private data class Selection(
         val tab: LibraryTab,
         val query: String,
@@ -123,7 +149,8 @@ class AudioLibraryViewModel @Inject constructor(
         val tracks: List<LibraryTrack>,
         val selection: Selection,
         val playlists: List<LibraryPlaylist>,
-        val refreshing: Boolean
+        val refreshing: Boolean,
+        val settings: LibraryBehaviorSettings
     )
 
     private val selectionFlow = combine(_tab, _searchQuery, _openedAlbumKey, _openedAlbumTrackPaths) { tab, query, key, paths ->
@@ -131,15 +158,15 @@ class AudioLibraryViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<LibraryUiState> = combine(
-        libraryTracksFlow, selectionFlow, _playlists, _isRefreshing
-    ) { tracks, selection, playlists, refreshing ->
-        UiInputs(tracks, selection, playlists, refreshing)
+        libraryTracksFlow, selectionFlow, _playlists, _isRefreshing, _librarySettings
+    ) { tracks, selection, playlists, refreshing, settings ->
+        UiInputs(tracks, selection, playlists, refreshing, settings)
     }
         // Les regroupements albums/artistes et les tris peuvent traiter plusieurs milliers de
         // titres. Ils ne doivent jamais monopoliser le thread UI (cause principale de l'ANR).
         .mapLatest { input ->
             if (input.tracks.isNotEmpty()) hasObservedTracksOnce.set(true)
-            buildUiState(input.tracks, input.selection, input.playlists, input.refreshing)
+            buildUiState(input.tracks, input.selection, input.playlists, input.refreshing, input.settings)
         }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
@@ -362,9 +389,22 @@ class AudioLibraryViewModel @Inject constructor(
     // Construction de l'état d'écran à partir des titres bruts.
     // -----------------------------------------------------------------
 
-    private fun buildUiState(tracks: List<LibraryTrack>, selection: Selection, playlists: List<LibraryPlaylist>, refreshing: Boolean): LibraryUiState {
+    private fun buildUiState(
+        tracks: List<LibraryTrack>,
+        selection: Selection,
+        playlists: List<LibraryPlaylist>,
+        refreshing: Boolean,
+        settings: LibraryBehaviorSettings
+    ): LibraryUiState {
+        val visibleTracks = if (settings.ignoreShort) {
+            // Une durée inconnue reste visible le temps de l'analyse asynchrone. Dès que Room reçoit
+            // la durée réelle, les fichiers de moins de 30 secondes disparaissent aussi bien en
+            // local que via SMB/UPnP. Les fichiers restent indexés pour réapparaître instantanément
+            // quand l'option est désactivée.
+            tracks.filter { it.durationMs <= 0L || it.durationMs >= 30_000L }
+        } else tracks
         val stillInitialLoad = !hasObservedTracksOnce.get() && tracks.isEmpty()
-        if (tracks.isEmpty()) {
+        if (visibleTracks.isEmpty()) {
             return LibraryUiState(
                 tab = selection.tab,
                 searchQuery = selection.query,
@@ -373,8 +413,8 @@ class AudioLibraryViewModel @Inject constructor(
                 isInitialLoad = stillInitialLoad
             )
         }
-        val filtered = filteredTracks(tracks, selection.query)
-        val albums = buildAlbums(filtered)
+        val filtered = filteredTracks(visibleTracks, selection.query, settings.trackOrder)
+        val albums = buildAlbums(filtered, settings.trackOrder)
         // La carte album connaît parfois une cover commune alors que certaines lignes de titres
         // n'ont encore qu'un artworkPath vide / égal au chemin audio. Réinjecter ici la cover
         // d'album dans toutes les représentations UI garantit que le clic depuis Titres, Artistes
@@ -384,21 +424,21 @@ class AudioLibraryViewModel @Inject constructor(
             .associateBy { it.path }
         val filteredWithArtwork = filtered.map { albumTrackByPath[it.path] ?: it }
         val artists = buildArtists(filteredWithArtwork)
-        val openedAlbum = resolveOpenedAlbumForDetail(selection, albums, tracks)
+        val openedAlbum = resolveOpenedAlbumForDetail(selection, albums, visibleTracks, settings.trackOrder)
 
-        val fullTrackCount = tracks.distinctBy { it.path }.size
+        val fullTrackCount = visibleTracks.distinctBy { it.path }.size
         // Sans recherche, albums/artistes viennent déjà de la liste complète : ne pas refaire
         // les deux regroupements coûteux à chaque émission Room.
         val hasQuery = selection.query.isNotBlank()
-        val fullAlbumCount = if (hasQuery) buildAlbums(tracks).size else albums.size
-        val fullArtistCount = if (hasQuery) buildArtists(tracks).size else artists.size
+        val fullAlbumCount = if (hasQuery) buildAlbums(visibleTracks, settings.trackOrder).size else albums.size
+        val fullArtistCount = if (hasQuery) buildArtists(visibleTracks).size else artists.size
 
         val rows: List<LibraryRow> = when {
             filtered.isEmpty() -> listOf(LibraryRow.Status(appContext.getString(R.string.audio_no_music), "Essaie une autre recherche ou lance un scan."))
             selection.tab == LibraryTab.ALBUMS && openedAlbum != null -> {
                 // Le héros d'album et ses actions sont déjà affichés dans le header fixe de
                 // l'Activity. Le RecyclerView ne contient donc plus une seconde carte identique.
-                albumPlaybackTracks(openedAlbum)
+                albumPlaybackTracks(openedAlbum, settings.trackOrder)
                     .mapIndexed { index, track -> LibraryRow.AlbumTrackItem(track, index + 1) }
             }
             selection.tab == LibraryTab.ALBUMS -> albums.map { LibraryRow.AlbumTile(it) }
@@ -421,7 +461,12 @@ class AudioLibraryViewModel @Inject constructor(
         )
     }
 
-    private fun resolveOpenedAlbumForDetail(selection: Selection, candidateAlbums: List<LibraryAlbum>, sourceTracks: List<LibraryTrack>): LibraryAlbum? {
+    private fun resolveOpenedAlbumForDetail(
+        selection: Selection,
+        candidateAlbums: List<LibraryAlbum>,
+        sourceTracks: List<LibraryTrack>,
+        trackOrder: Boolean
+    ): LibraryAlbum? {
         val key = selection.openedAlbumKey ?: return null
         candidateAlbums.firstOrNull { album -> album.key == key || albumDetailKey(album) == key }?.let { return it }
         if (selection.openedAlbumTrackPaths.isNotEmpty()) {
@@ -431,7 +476,7 @@ class AudioLibraryViewModel @Inject constructor(
                 .filter { it.path in selection.openedAlbumTrackPaths }
                 .distinctBy { it.path }
                 .toList()
-            if (selectedTracks.isNotEmpty()) return buildAlbumFromTracks("selected:$key", selectedTracks)
+            if (selectedTracks.isNotEmpty()) return buildAlbumFromTracks("selected:$key", selectedTracks, trackOrder)
         }
         return null
     }
@@ -440,11 +485,10 @@ class AudioLibraryViewModel @Inject constructor(
         "${AudioLibraryHeuristics.normalize(album.artist)}|${AudioLibraryHeuristics.normalize(album.title)}"
     }
 
-    private fun albumPlaybackTracks(album: LibraryAlbum): List<LibraryTrack> = album.tracks
-        .distinctBy { it.path }
-        .sortedWith(compareBy<LibraryTrack> { AudioLibraryHeuristics.discNumberFromPath(it.path) }.thenBy { AudioLibraryHeuristics.normalizedTrackNo(it.trackNo) }.thenBy { AudioLibraryHeuristics.normalize(it.title) })
+    private fun albumPlaybackTracks(album: LibraryAlbum, trackOrder: Boolean): List<LibraryTrack> =
+        AudioLibraryHeuristics.sortAlbumTracks(album.tracks, trackOrder)
 
-    private fun filteredTracks(input: List<LibraryTrack>, query: String): List<LibraryTrack> {
+    private fun filteredTracks(input: List<LibraryTrack>, query: String, trackOrder: Boolean): List<LibraryTrack> {
         val q = AudioLibraryHeuristics.normalize(query)
         val base = if (q.isBlank()) input else input.filter { track ->
             listOf(
@@ -456,24 +500,31 @@ class AudioLibraryViewModel @Inject constructor(
                 AudioLibraryHeuristics.fileNameFromPath(track.path)
             ).any { AudioLibraryHeuristics.normalize(it).contains(q) }
         }
-        return sortTracksByArtist(base)
+        return sortTracksByArtist(base, trackOrder)
     }
 
-    /** Tri fixe : artiste alphabétique. Plus de toggle Album/Artiste, comme demandé. */
-    private fun sortTracksByArtist(input: List<LibraryTrack>): List<LibraryTrack> = input.sortedWith(
-        compareBy<LibraryTrack> {
+    private fun sortTracksByArtist(input: List<LibraryTrack>, trackOrder: Boolean): List<LibraryTrack> {
+        val base = compareBy<LibraryTrack> {
             AudioLibraryHeuristics.normalizeArtistSort(AudioLibraryHeuristics.artistFolderNameFromPath(it.path))
+        }.thenBy {
+            AudioLibraryHeuristics.normalize(AudioLibraryHeuristics.albumFolderNameFromPath(it.path))
         }
-            .thenBy { AudioLibraryHeuristics.normalize(AudioLibraryHeuristics.albumFolderNameFromPath(it.path)) }
-            .thenBy { AudioLibraryHeuristics.normalizedTrackNo(it.trackNo) }
-            .thenBy { AudioLibraryHeuristics.normalize(it.title) }
-    )
+        return if (trackOrder) {
+            input.sortedWith(
+                base.thenBy { AudioLibraryHeuristics.discNumberFromPath(it.path) }
+                    .thenBy { AudioLibraryHeuristics.normalizedTrackNo(it.trackNo) }
+                    .thenBy { AudioLibraryHeuristics.normalize(it.title) }
+            )
+        } else {
+            input.sortedWith(base.thenBy { AudioLibraryHeuristics.normalize(it.title) })
+        }
+    }
 
-    private fun buildAlbums(tracks: List<LibraryTrack>): List<LibraryAlbum> {
+    private fun buildAlbums(tracks: List<LibraryTrack>, trackOrder: Boolean): List<LibraryAlbum> {
         val albums = AudioLibraryHeuristics.canonicalLibraryTracks(appContext, tracks)
             .asSequence()
             .groupBy { AudioLibraryHeuristics.albumKey(it) }
-            .map { (key, albumTracks) -> buildAlbumFromTracks(key, albumTracks) }
+            .map { (key, albumTracks) -> buildAlbumFromTracks(key, albumTracks, trackOrder) }
 
         // Ordre unique de la grille : dossier artiste A→Z, puis dossier album A→Z.
         return albums.sortedWith(
@@ -483,9 +534,8 @@ class AudioLibraryViewModel @Inject constructor(
         )
     }
 
-    private fun buildAlbumFromTracks(key: String, albumTracks: List<LibraryTrack>): LibraryAlbum {
-        val sorted = albumTracks.distinctBy { it.path }
-            .sortedWith(compareBy<LibraryTrack> { AudioLibraryHeuristics.discNumberFromPath(it.path) }.thenBy { AudioLibraryHeuristics.normalizedTrackNo(it.trackNo) }.thenBy { AudioLibraryHeuristics.normalize(it.title) })
+    private fun buildAlbumFromTracks(key: String, albumTracks: List<LibraryTrack>, trackOrder: Boolean): LibraryAlbum {
+        val sorted = AudioLibraryHeuristics.sortAlbumTracks(albumTracks, trackOrder)
         val albumArtwork = AudioLibraryHeuristics.bestArtworkPath(sorted)
         val tracksWithAlbumArtwork = if (AudioLibraryHeuristics.isImagePath(albumArtwork)) {
             sorted.map { track ->

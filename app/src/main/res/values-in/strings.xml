@@ -646,9 +646,7 @@ Token: %2$s</string>
     <string name="audio_crossfade_title">Crossfade</string>
     <string name="audio_crossfade_subtitle">Transisi halus antar trek</string>
     <string name="audio_crossfade_duration">Durasi fade</string>
-    <string name="audio_normalize_volume">Normalkan volume</string>
-    <string name="audio_normalize_volume_subtitle">Seimbangkan volume antar trek</string>
-    <string name="audio_section_quality">Kualitas audio</string>
+<string name="audio_section_quality">Kualitas audio</string>
     <string name="audio_high_quality_output">Keluaran kualitas tinggi</string>
     <string name="audio_high_quality_subtitle">Menonaktifkan pengaturan suara untuk memprioritaskan keluaran audio langsung</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -665,7 +663,7 @@ Token: %2$s</string>
     <string name="audio_replaygain_subtitle">Menyeimbangkan volume antar trek secara terpisah dari efek suara</string>
     <string name="audio_section_library">Pustaka</string>
     <string name="audio_auto_scan">Pindai otomatis</string>
-    <string name="audio_auto_scan_subtitle">Tambahkan file baru</string>
+    <string name="audio_auto_scan_subtitle">Deteksi file lokal dan jaringan baru secara berkala</string>
     <string name="audio_watched_folders">Folder yang dipantau</string>
     <string name="audio_watched_folders_subtitle">Pilih folder audio</string>
 <string name="audio_sort_album_track">Urutkan berdasarkan nomor trek</string>

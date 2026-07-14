@@ -635,9 +635,7 @@ Token: %2$s</string>
     <string name="audio_crossfade_title">Crossfade</string>
     <string name="audio_crossfade_subtitle">Smooth transitions between tracks</string>
     <string name="audio_crossfade_duration">Fade duration</string>
-    <string name="audio_normalize_volume">Normalize volume</string>
-    <string name="audio_normalize_volume_subtitle">Balance volume between tracks</string>
-    <string name="audio_section_quality">Audio quality</string>
+<string name="audio_section_quality">Audio quality</string>
     <string name="audio_high_quality_output">High quality output</string>
     <string name="audio_high_quality_subtitle">Disables sound settings to prioritize direct audio output</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -654,7 +652,7 @@ Token: %2$s</string>
     <string name="audio_replaygain_subtitle">Balances volume between tracks independently of sound effects</string>
     <string name="audio_section_library">Library</string>
     <string name="audio_auto_scan">Scan automatically</string>
-    <string name="audio_auto_scan_subtitle">Add new files</string>
+    <string name="audio_auto_scan_subtitle">Regularly detect new local and network files</string>
     <string name="audio_watched_folders">Watched folders</string>
     <string name="audio_watched_folders_subtitle">Select audio folders</string>
 <string name="audio_sort_album_track">Sort by track number</string>
