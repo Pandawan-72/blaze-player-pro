@@ -839,4 +839,32 @@ Token: %2$s</string>
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Respuesta háptica</string>
     <string name="settings_haptic_feedback_desc">Activa una vibración suave cada vez que pulses un elemento de la aplicación.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Tu biblioteca de música</string>
+    <string name="android_auto_premium_required">Se requiere Blaze Audio Premium</string>
+    <string name="android_auto_premium_required_subtitle">Activa Pro+ desde tu teléfono</string>
+    <string name="android_auto_albums">Álbumes</string>
+    <string name="android_auto_artists">Artistas</string>
+    <string name="android_auto_tracks">Canciones</string>
+    <string name="android_auto_favorites">Favoritos</string>
+    <string name="android_auto_recent">Escuchado recientemente</string>
+    <string name="android_auto_playlists">Listas de reproducción</string>
+    <string name="android_auto_unknown_album">Álbum desconocido</string>
+    <string name="android_auto_artist_subtitle">%1$d álbumes • %2$d canciones</string>
+    <string name="android_auto_track_count">%1$d canciones</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">Abrir duplicación de pantalla de karaoke</string>
+    <string name="karaoke_cast_requires_lrc">Se necesita un archivo .lrc sincronizado para enviar el karaoke.</string>
+    <string name="audio_local_output_title">Salida de audio local</string>
+    <string name="audio_local_output_subtitle">Elegir el teléfono, auriculares o un altavoz Bluetooth</string>
+    <string name="audio_output_picker_unavailable">El selector de salida de audio no está disponible en este dispositivo.</string>
+    <string name="audio_output_automatic">Automático (sistema)</string>
+    <string name="audio_output_changed">Salida de audio local cambiada</string>
+    <string name="audio_output_change_failed">No se pudo cambiar la salida de audio</string>
+    <string name="karaoke_mirror_opened">Selecciona tu Chromecast en el panel de Android. Mantén pulsado el botón para elegir la salida de audio local.</string>
+    <string name="karaoke_mirror_unavailable">La configuración de duplicación de pantalla no está disponible. Usa el acceso rápido para transmitir la pantalla.</string>
 </resources>

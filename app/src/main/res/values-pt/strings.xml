@@ -713,7 +713,7 @@ Token: %2$s</string>
     <string name="audio_tag_network_not_supported">A escrita direta está disponível para ficheiros locais e ficheiros de rede SMB/NAS. Esta origem não permite edição remota.</string>
     <string name="action_scan">Analisar</string>
     <string name="action_done">Concluído</string>
-<string name="audio_play_album">Reproduzir álbum completo</string>
+<string name="audio_play_album">Reproduzir o álbum inteiro</string>
     <string name="audio_add_album_queue">Adicionar à fila</string>
     <string name="audio_select_tracks">Selecionar faixas</string>
     <string name="audio_add_playlist_blaze_party">Adicionar playlist ao Blaze Party</string>
@@ -839,4 +839,32 @@ Token: %2$s</string>
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Feedback tátil</string>
     <string name="settings_haptic_feedback_desc">Ative uma vibração suave sempre que tocar num elemento clicável da aplicação.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Sua biblioteca de música</string>
+    <string name="android_auto_premium_required">Blaze Audio Premium necessário</string>
+    <string name="android_auto_premium_required_subtitle">Ative o Pro+ no seu telefone</string>
+    <string name="android_auto_albums">Álbuns</string>
+    <string name="android_auto_artists">Artistas</string>
+    <string name="android_auto_tracks">Faixas</string>
+    <string name="android_auto_favorites">Favoritos</string>
+    <string name="android_auto_recent">Ouvidos recentemente</string>
+    <string name="android_auto_playlists">Playlists</string>
+    <string name="android_auto_unknown_album">Álbum desconhecido</string>
+    <string name="android_auto_artist_subtitle">%1$d álbuns • %2$d faixas</string>
+    <string name="android_auto_track_count">%1$d faixas</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">Abrir espelhamento de ecrã do karaoke</string>
+    <string name="karaoke_cast_requires_lrc">É necessário um arquivo .lrc sincronizado para transmitir o karaokê.</string>
+    <string name="audio_local_output_title">Saída de áudio local</string>
+    <string name="audio_local_output_subtitle">Escolher o telefone, fones ou uma caixa Bluetooth</string>
+    <string name="audio_output_picker_unavailable">O seletor de saída de áudio não está disponível neste dispositivo.</string>
+    <string name="audio_output_automatic">Automático (sistema)</string>
+    <string name="audio_output_changed">Saída de áudio local alterada</string>
+    <string name="audio_output_change_failed">Não foi possível alterar a saída de áudio</string>
+    <string name="karaoke_mirror_opened">Selecione o Chromecast no painel Android. Mantenha o botão premido para escolher a saída de áudio local.</string>
+    <string name="karaoke_mirror_unavailable">As definições de transmissão do ecrã não estão disponíveis. Use o atalho rápido Transmitir ecrã.</string>
 </resources>

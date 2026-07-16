@@ -859,4 +859,32 @@
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Тактильная отдача</string>
     <string name="settings_haptic_feedback_desc">Включить лёгкую вибрацию при каждом нажатии на интерактивный элемент приложения.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Ваша музыкальная библиотека</string>
+    <string name="android_auto_premium_required">Требуется Blaze Audio Premium</string>
+    <string name="android_auto_premium_required_subtitle">Активируйте Pro+ на телефоне</string>
+    <string name="android_auto_albums">Альбомы</string>
+    <string name="android_auto_artists">Исполнители</string>
+    <string name="android_auto_tracks">Треки</string>
+    <string name="android_auto_favorites">Избранное</string>
+    <string name="android_auto_recent">Недавно прослушанные</string>
+    <string name="android_auto_playlists">Плейлисты</string>
+    <string name="android_auto_unknown_album">Неизвестный альбом</string>
+    <string name="android_auto_artist_subtitle">%1$d альб. • %2$d треков</string>
+    <string name="android_auto_track_count">%1$d треков</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">Открыть трансляцию экрана караоке</string>
+    <string name="karaoke_cast_requires_lrc">Для трансляции караоке требуется синхронизированный файл .lrc.</string>
+    <string name="audio_local_output_title">Локальный аудиовыход</string>
+    <string name="audio_local_output_subtitle">Выберите телефон, наушники или Bluetooth-колонку</string>
+    <string name="audio_output_picker_unavailable">Выбор аудиовыхода недоступен на этом устройстве.</string>
+    <string name="audio_output_automatic">Автоматически (система)</string>
+    <string name="audio_output_changed">Локальный аудиовыход изменён</string>
+    <string name="audio_output_change_failed">Не удалось изменить аудиовыход</string>
+    <string name="karaoke_mirror_opened">Выберите Chromecast в панели Android. Удерживайте кнопку, чтобы выбрать локальный аудиовыход.</string>
+    <string name="karaoke_mirror_unavailable">Настройки трансляции экрана недоступны. Используйте плитку «Трансляция экрана» в быстрых настройках.</string>
 </resources>

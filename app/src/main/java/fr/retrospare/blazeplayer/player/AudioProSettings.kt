@@ -33,6 +33,11 @@ object AudioProSettings {
     const val KEY_ARTWORK_SIZE = "artwork_size"
     const val KEY_SYNCED_LYRICS = "synced_lyrics"
     const val KEY_DOWNLOAD_COVERS = "download_covers"
+    const val KEY_KARAOKAST_SYNC_OFFSET_MS = "karaokast_sync_offset_ms"
+    const val DEFAULT_KARAOKAST_SYNC_OFFSET_MS = 300
+    const val MIN_KARAOKAST_SYNC_OFFSET_MS = -500
+    const val MAX_KARAOKAST_SYNC_OFFSET_MS = 1500
+    const val KARAOKAST_SYNC_STEP_MS = 50
     const val KEY_WATCHED_FOLDERS = "watched_folders"
     private const val KEY_LIBRARY_REFRESH_PENDING = "library_refresh_pending"
     private const val KEY_LIBRARY_SETTING_CHANGES_PENDING = "library_setting_changes_pending"
@@ -74,6 +79,21 @@ object AudioProSettings {
 
     fun prefs(context: Context): SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    /** Avance visuelle appliquée uniquement aux paroles affichées via KaraoKast. */
+    fun karaoKastSyncOffsetMs(context: Context): Long =
+        prefs(context)
+            .getInt(KEY_KARAOKAST_SYNC_OFFSET_MS, DEFAULT_KARAOKAST_SYNC_OFFSET_MS)
+            .coerceIn(MIN_KARAOKAST_SYNC_OFFSET_MS, MAX_KARAOKAST_SYNC_OFFSET_MS)
+            .toLong()
+
+    fun setKaraoKastSyncOffsetMs(context: Context, valueMs: Long): Long {
+        val clamped = valueMs
+            .coerceIn(MIN_KARAOKAST_SYNC_OFFSET_MS.toLong(), MAX_KARAOKAST_SYNC_OFFSET_MS.toLong())
+            .toInt()
+        prefs(context).edit().putInt(KEY_KARAOKAST_SYNC_OFFSET_MS, clamped).apply()
+        return clamped.toLong()
+    }
 
 
     /** Migre l'ancien sélecteur 16/24/32 bits vers des modes qui correspondent réellement à la
@@ -291,9 +311,12 @@ object AudioProSettings {
 
     fun isAutomaticScanDue(context: Context, force: Boolean = false): Boolean {
         val preferences = prefs(context)
-        if (!preferences.getBoolean(KEY_AUTO_SCAN, true)) return false
         if (watchedFolderCount(context) == 0) return false
+        // Un ajout de dossier doit toujours être indexé une première fois, même lorsque les
+        // rescans périodiques sont désactivés. Le toggle « Scanner automatiquement » ne contrôle
+        // que les vérifications récurrentes de la bibliothèque déjà indexée.
         if (force) return true
+        if (!preferences.getBoolean(KEY_AUTO_SCAN, true)) return false
         val last = preferences.getLong(KEY_LAST_AUTO_SCAN_AT, 0L)
         return System.currentTimeMillis() - last >= AUTO_SCAN_INTERVAL_MS
     }

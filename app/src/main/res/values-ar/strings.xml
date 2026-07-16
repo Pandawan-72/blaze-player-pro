@@ -726,7 +726,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_tag_network_not_supported">الكتابة المباشرة متاحة للملفات المحلية وملفات شبكة SMB/NAS. هذا المصدر لا يسمح بالتعديل عن بُعد.</string>
     <string name="action_scan">مسح</string>
     <string name="action_done">تم</string>
-<string name="audio_play_album">تشغيل الألبوم كاملًا</string>
+<string name="audio_play_album">تشغيل الألبوم بالكامل</string>
     <string name="audio_add_album_queue">إضافة إلى قائمة الانتظار</string>
     <string name="audio_select_tracks">اختيار المسارات</string>
     <string name="audio_add_playlist_blaze_party">إضافة قائمة التشغيل إلى Blaze Party</string>
@@ -853,4 +853,32 @@ Retro-Spare Dev / Anthony Gentil
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">الاستجابة اللمسية</string>
     <string name="settings_haptic_feedback_desc">تفعيل اهتزاز خفيف عند الضغط على أي عنصر قابل للنقر داخل التطبيق.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">مكتبتك الموسيقية</string>
+    <string name="android_auto_premium_required">يتطلب Blaze Audio Premium</string>
+    <string name="android_auto_premium_required_subtitle">فعّل Pro+ من هاتفك</string>
+    <string name="android_auto_albums">الألبومات</string>
+    <string name="android_auto_artists">الفنانون</string>
+    <string name="android_auto_tracks">المقاطع</string>
+    <string name="android_auto_favorites">المفضلة</string>
+    <string name="android_auto_recent">تم تشغيله مؤخرًا</string>
+    <string name="android_auto_playlists">قوائم التشغيل</string>
+    <string name="android_auto_unknown_album">ألبوم غير معروف</string>
+    <string name="android_auto_artist_subtitle">%1$d ألبوم • %2$d مقطع</string>
+    <string name="android_auto_track_count">%1$d مقطع</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">فتح انعكاس شاشة الكاريوكي</string>
+    <string name="karaoke_cast_requires_lrc">يلزم ملف .lrc متزامن لبث الكاريوكي.</string>
+    <string name="audio_local_output_title">مخرج الصوت المحلي</string>
+    <string name="audio_local_output_subtitle">اختر الهاتف أو سماعات الرأس أو مكبر صوت Bluetooth</string>
+    <string name="audio_output_picker_unavailable">محدد مخرج الصوت غير متاح على هذا الجهاز.</string>
+    <string name="audio_output_automatic">تلقائي (النظام)</string>
+    <string name="audio_output_changed">تم تغيير مخرج الصوت المحلي</string>
+    <string name="audio_output_change_failed">تعذر تغيير مخرج الصوت</string>
+    <string name="karaoke_mirror_opened">اختر Chromecast من لوحة Android. اضغط مطولاً على الزر لاختيار مخرج الصوت المحلي.</string>
+    <string name="karaoke_mirror_unavailable">إعدادات بث الشاشة غير متاحة على هذا الجهاز. استخدم مربع بث الشاشة في الإعدادات السريعة.</string>
 </resources>

@@ -2201,6 +2201,14 @@ class HomeFragment : Fragment() {
         switchToTab(4)
     }
 
+    /** Masque la barre d'onglets pendant le mode karaoké paysage afin que le lecteur occupe
+     *  réellement toute la surface disponible. La barre est restaurée dès le retour portrait. */
+    fun setKaraokeLandscapeActive(active: Boolean) {
+        val b = _binding ?: return
+        b.bottomNavBar.visibility = if (active) View.GONE else View.VISIBLE
+        if (active) b.audioContainer.bringToFront() else b.bottomNavBar.bringToFront()
+    }
+
     fun switchToTab(index: Int) {
         // Garde-fou : si la vue n'existe pas (fragment présent dans le back stack mais pas
         // affiché, ex. Réglages/Réseau au premier plan), viewLifecycleOwner planterait.

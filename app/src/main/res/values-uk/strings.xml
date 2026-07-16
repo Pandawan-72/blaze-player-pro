@@ -853,4 +853,32 @@ Retro-Spare Dev / Anthony Gentil
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Тактильний відгук</string>
     <string name="settings_haptic_feedback_desc">Увімкнути легку вібрацію під час кожного натискання на інтерактивний елемент застосунку.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Ваша музична бібліотека</string>
+    <string name="android_auto_premium_required">Потрібен Blaze Audio Premium</string>
+    <string name="android_auto_premium_required_subtitle">Активуйте Pro+ на телефоні</string>
+    <string name="android_auto_albums">Альбоми</string>
+    <string name="android_auto_artists">Виконавці</string>
+    <string name="android_auto_tracks">Треки</string>
+    <string name="android_auto_favorites">Обране</string>
+    <string name="android_auto_recent">Нещодавно прослухані</string>
+    <string name="android_auto_playlists">Плейлисти</string>
+    <string name="android_auto_unknown_album">Невідомий альбом</string>
+    <string name="android_auto_artist_subtitle">%1$d альб. • %2$d треків</string>
+    <string name="android_auto_track_count">%1$d треків</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">Відкрити трансляцію екрана караоке</string>
+    <string name="karaoke_cast_requires_lrc">Для трансляції караоке потрібен синхронізований файл .lrc.</string>
+    <string name="audio_local_output_title">Локальний аудіовихід</string>
+    <string name="audio_local_output_subtitle">Виберіть телефон, навушники або Bluetooth-колонку</string>
+    <string name="audio_output_picker_unavailable">Вибір аудіовиходу недоступний на цьому пристрої.</string>
+    <string name="audio_output_automatic">Автоматично (система)</string>
+    <string name="audio_output_changed">Локальний аудіовихід змінено</string>
+    <string name="audio_output_change_failed">Не вдалося змінити аудіовихід</string>
+    <string name="karaoke_mirror_opened">Виберіть Chromecast на панелі Android. Утримуйте кнопку, щоб вибрати локальний аудіовихід.</string>
+    <string name="karaoke_mirror_unavailable">Налаштування трансляції екрана недоступні. Скористайтеся плиткою «Трансляція екрана» у швидких налаштуваннях.</string>
 </resources>

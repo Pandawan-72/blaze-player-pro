@@ -80,6 +80,15 @@ class AudioProSettingsActivity : AppCompatActivity() {
             addView(switchRow(AudioProSettings.KEY_HI_RES, R.drawable.ic_equalizer, R.string.audio_high_quality_output, R.string.audio_high_quality_subtitle, false))
             addView(separator())
             addView(outputPrecisionRow())
+            addView(separator())
+            addView(
+                infoRow(
+                    R.drawable.ic_volume,
+                    R.string.audio_local_output_title,
+                    R.string.audio_local_output_subtitle,
+                    ""
+                ) { LocalAudioOutputDialog.show(this@AudioProSettingsActivity) }
+            )
         })
         container.addView(section(R.string.audio_section_library).apply {
             addView(switchRow(AudioProSettings.KEY_AUTO_SCAN, R.drawable.ic_refresh, R.string.audio_auto_scan, R.string.audio_auto_scan_subtitle, true))

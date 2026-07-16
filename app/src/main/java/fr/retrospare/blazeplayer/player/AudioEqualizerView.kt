@@ -31,10 +31,25 @@ class AudioEqualizerView @JvmOverloads constructor(
     private var bottomColor: Int = 0xFF087E80.toInt()
     private var middleColor: Int = 0xFF14C8C4.toInt()
     private var topColor: Int = 0xFF76FFF6.toInt()
+    private var karaoKastPerformanceMode: Boolean = false
+    private var karaoKastFrameScheduled: Boolean = false
+    private val karaoKastFrameRunnable = Runnable {
+        karaoKastFrameScheduled = false
+        if (isShown) invalidate()
+    }
 
     init {
         alpha = 1f
         setWillNotDraw(false)
+    }
+
+    fun setKaraoKastPerformanceMode(enabled: Boolean) {
+        if (karaoKastPerformanceMode == enabled) return
+        karaoKastPerformanceMode = enabled
+        removeCallbacks(karaoKastFrameRunnable)
+        karaoKastFrameScheduled = false
+        setLayerType(LAYER_TYPE_HARDWARE, null)
+        invalidate()
     }
 
     fun setAccentColor(accentColor: Int) {
@@ -42,7 +57,7 @@ class AudioEqualizerView @JvmOverloads constructor(
         middleColor = accentColor
         topColor = mix(accentColor, Color.WHITE, 0.28f)
         rebuildGradient()
-        invalidate()
+        requestRender()
     }
 
     fun updateFft(fft: ByteArray?) {
@@ -93,7 +108,7 @@ class AudioEqualizerView @JvmOverloads constructor(
             // Compression douce : les petits sons restent visibles sans écraser les pics.
             targetValues[i] = min(1f, max(0.07f, kotlin.math.sqrt(normalized) * 0.92f))
         }
-        invalidate()
+        requestRender()
     }
 
     private fun logBin(minBin: Float, maxBin: Float, ratio: Float): Int {
@@ -107,7 +122,7 @@ class AudioEqualizerView @JvmOverloads constructor(
             val wave = 0.08f + ((i % 5) * 0.018f)
             targetValues[i] = wave
         }
-        invalidate()
+        requestRender()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -152,7 +167,35 @@ class AudioEqualizerView @JvmOverloads constructor(
             val top = h - barH
             canvas.drawRoundRect(left, top, left + barW, h, radius, radius, paint)
         }
-        // Continue le lissage entre deux callbacks Visualizer.
-        if (isShown) postInvalidateOnAnimation()
+        // Pendant KaraoKast, 30 i/s correspondent mieux au pipeline de mirroring et réduisent
+        // la charge GPU/encodeur. Hors mirroring, on conserve la fréquence native de l'écran.
+        if (isShown) {
+            if (karaoKastPerformanceMode) scheduleKaraoKastFrame()
+            else postInvalidateOnAnimation()
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(karaoKastFrameRunnable)
+        karaoKastFrameScheduled = false
+        super.onDetachedFromWindow()
+    }
+
+    /**
+     * En mode KaraoKast, plusieurs callbacks FFT peuvent arriver entre deux images. Ils sont
+     * regroupés en une seule invalidation pour respecter réellement le plafond de 30 i/s.
+     */
+    private fun requestRender() {
+        if (karaoKastPerformanceMode) scheduleKaraoKastFrame() else invalidate()
+    }
+
+    private fun scheduleKaraoKastFrame() {
+        if (karaoKastFrameScheduled) return
+        karaoKastFrameScheduled = true
+        postDelayed(karaoKastFrameRunnable, KARAO_KAST_FRAME_DELAY_MS)
+    }
+
+    private companion object {
+        const val KARAO_KAST_FRAME_DELAY_MS = 33L
     }
 }

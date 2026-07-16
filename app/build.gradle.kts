@@ -152,11 +152,6 @@ dependencies {
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.androidx.navigation.ui)
 
-    // REMOVED: // Firebase
-    // REMOVED: implementation(platform(libs.firebase.bom))
-    // REMOVED: implementation(libs.firebase.auth)
-    // REMOVED: implementation(libs.firebase.firestore)
-
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)

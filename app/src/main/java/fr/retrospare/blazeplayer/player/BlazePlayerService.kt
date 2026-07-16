@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.content.SharedPreferences
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.media.audiofx.LoudnessEnhancer
 import android.os.Handler
 import android.os.Looper
@@ -18,6 +21,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionParameters
+import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -26,16 +30,21 @@ import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.session.LibraryResult
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.LibraryParams
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import dagger.hilt.android.AndroidEntryPoint
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import fi.iki.elonen.NanoHTTPD
 import fr.retrospare.blazeplayer.settings.SettingsViewModel
+import fr.retrospare.blazeplayer.playlist.PlaylistManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
@@ -46,12 +55,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Service de lecture AUDIO basé sur [MediaSessionService] : c'est l'unique source de vérité pour
+ * Service de lecture AUDIO basé sur [MediaLibraryService] : c'est l'unique source de vérité pour
  * la lecture audio de l'application. Toute UI (AudioPlayerFragment, MiniPlayer, notification
  * système, Android Auto...) doit communiquer avec le player exclusivement via un
  * [androidx.media3.session.MediaController] connecté à ce service.
@@ -63,12 +73,12 @@ import java.util.concurrent.atomic.AtomicLong
  * nécessaire pour brancher l'égaliseur système) est exposé via une commande de session personnalisée.
  *
  * La notification média (lockscreen, barre de notif, contrôles Bluetooth/casque) est entièrement
- * gérée automatiquement par [MediaSessionService] via son [androidx.media3.session.MediaNotification.Provider]
+ * gérée automatiquement par [MediaLibraryService] via son [androidx.media3.session.MediaNotification.Provider]
  * par défaut — il ne faut surtout pas la dupliquer manuellement avec une notification "maison".
  */
 @AndroidEntryPoint
 @UnstableApi
-class BlazePlayerService : MediaSessionService() {
+class BlazePlayerService : MediaLibraryService() {
 
     companion object {
         /** Commande de session permettant à un [androidx.media3.session.MediaController] de
@@ -77,6 +87,7 @@ class BlazePlayerService : MediaSessionService() {
         const val COMMAND_GET_AUDIO_SESSION_ID = "fr.retrospare.blazeplayer.GET_AUDIO_SESSION_ID"
         const val COMMAND_PLAY_EXTERNAL_AUDIO = "fr.retrospare.blazeplayer.PLAY_EXTERNAL_AUDIO"
         const val COMMAND_PLAY_QUEUE_INDEX_FROM_START = "fr.retrospare.blazeplayer.PLAY_QUEUE_INDEX_FROM_START"
+        const val COMMAND_SET_PREFERRED_AUDIO_DEVICE = "fr.retrospare.blazeplayer.SET_PREFERRED_AUDIO_DEVICE"
         const val ACTION_PLAY_EXTERNAL_AUDIO = "fr.retrospare.blazeplayer.action.PLAY_EXTERNAL_AUDIO"
         const val ACTION_PLAY_AUDIO_QUEUE = "fr.retrospare.blazeplayer.action.PLAY_AUDIO_QUEUE"
         const val ACTION_APPEND_AUDIO_QUEUE = "fr.retrospare.blazeplayer.action.APPEND_AUDIO_QUEUE"
@@ -89,6 +100,7 @@ class BlazePlayerService : MediaSessionService() {
         const val EXTRA_AUDIO_QUEUE_ARTWORK_PATHS = "artworkPaths"
         const val EXTRA_AUDIO_QUEUE_INDEX = "index"
         const val EXTRA_QUEUE_INDEX = "queueIndex"
+        const val EXTRA_PREFERRED_AUDIO_DEVICE_ID = "preferredAudioDeviceId"
 
         /** Commandes de session pour piloter le serveur réseau Blaze Party hébergé par CE service
          *  (et non par AudioPlayerFragment), afin qu'une session hôte survive à la fermeture de
@@ -109,6 +121,8 @@ class BlazePlayerService : MediaSessionService() {
         private const val MAX_SMB_PLAYBACK_RECOVERY_ATTEMPTS = 2
         private const val SMB_PLAYBACK_RECOVERY_DELAY_MS = 650L
         private const val SMB_STALL_WATCHDOG_MS = 10_000L
+        private const val ANDROID_AUTO_QUEUE_ITEM_PREFIX = "blaze:auto:queue:item:"
+        private const val ANDROID_AUTO_QUEUE_INDEX_EXTRA = "blaze_android_auto_queue_index"
 
         /** Signal léger lu par la bibliothèque audio : quand une piste joue, les scans
          *  métadonnées/covers doivent rester strictement non prioritaires pour éviter
@@ -124,8 +138,10 @@ class BlazePlayerService : MediaSessionService() {
 
     @Inject lateinit var settingsDataStore: DataStore<Preferences>
     @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
+    @Inject lateinit var audioLibraryRepository: AudioLibraryRepository
 
-    private var mediaSession: MediaSession? = null
+    private var mediaSession: MediaLibrarySession? = null
+    private lateinit var androidAutoLibrary: AndroidAutoLibrary
     private var player: ExoPlayer? = null
     private var sessionPlayer: Player? = null
     private var eqManager: EqualizerManager? = null
@@ -147,6 +163,18 @@ class BlazePlayerService : MediaSessionService() {
     private val smbRecoveryHandler = Handler(Looper.getMainLooper())
     private val smbStallHandler = Handler(Looper.getMainLooper())
     private val autoAdvanceHandler = Handler(Looper.getMainLooper())
+    private val androidAutoQueueRefreshHandler = Handler(Looper.getMainLooper())
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+            applyPreferredAudioDevice()
+        }
+
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+            applyPreferredAudioDevice()
+        }
+    }
+    private val androidAutoQueueLock = Any()
+    @Volatile private var androidAutoQueueSnapshot: List<MediaItem> = emptyList()
     @Volatile private var autoPlayNextEnabled = true
     @Volatile private var autoAdvanceGeneration = 0L
     private var smbRecoveryPath = ""
@@ -230,6 +258,10 @@ class BlazePlayerService : MediaSessionService() {
         audioProPrefs.registerOnSharedPreferenceChangeListener(audioProListener)
         eqPrefs = getSharedPreferences(EqualizerManager.PREFS_NAME, Context.MODE_PRIVATE)
         eqPrefs.registerOnSharedPreferenceChangeListener(eqPreferenceListener)
+        getSystemService(AudioManager::class.java)?.registerAudioDeviceCallback(
+            audioDeviceCallback,
+            Handler(Looper.getMainLooper())
+        )
 
         // Media3 recommande de garder le Player et la MediaSession dans le MediaSessionService.
         // On ne détruit/recrée plus le service pour chaque fichier externe : on remplace simplement
@@ -251,6 +283,7 @@ class BlazePlayerService : MediaSessionService() {
         pcmAudioProcessor = initialBundle.processor
         player = exoPlayer
         sessionPlayer = exoPlayer
+        applyPreferredAudioDevice(exoPlayer)
         attachCorePlayerListener(exoPlayer)
         attachSessionStateListener(exoPlayer)
         restoreEqualizerForPlayer(exoPlayer)
@@ -268,13 +301,175 @@ class BlazePlayerService : MediaSessionService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        mediaSession = MediaSession.Builder(this, exoPlayer)
+        androidAutoLibrary = AndroidAutoLibrary(applicationContext, audioLibraryRepository)
+        mediaSession = MediaLibrarySession.Builder(this, exoPlayer, SessionCallback())
             .setId("BlazeAudio")
             .setSessionActivity(openIntent)
-            .setCallback(SessionCallback())
             .build()
 
+        observeAndroidAutoState()
         resolveInitialAccessAsync()
+    }
+
+    /**
+     * Construit une copie stable de la timeline pour le navigateur Android Auto. L'index fait
+     * partie du mediaId afin que deux occurrences du même morceau restent deux lignes distinctes.
+     */
+    private fun captureLiveQueueItems(): List<MediaItem> {
+        val currentPlayer = sessionPlayer ?: player ?: return emptyList()
+        return (0 until currentPlayer.mediaItemCount).map { index ->
+            currentPlayer.getMediaItemAt(index)
+        }
+    }
+
+    private fun captureAndroidAutoQueueSnapshot(): List<MediaItem> {
+        return captureLiveQueueItems().mapIndexed { index, source ->
+            val originalPath = originalPathFromItem(source)
+            val identity = buildString {
+                append(index)
+                append(':')
+                append(originalPath.ifBlank { source.mediaId })
+            }
+            val queueExtras = Bundle(source.mediaMetadata.extras ?: Bundle()).apply {
+                putInt(ANDROID_AUTO_QUEUE_INDEX_EXTRA, index)
+            }
+            val metadata = source.mediaMetadata.buildUpon()
+                // Les jaquettes binaires de toute une longue file peuvent dépasser la limite
+                // Binder. Le morceau joué récupérera sa cover via le pipeline normal du player.
+                .setArtworkData(null, null)
+                .setExtras(queueExtras)
+                .setIsBrowsable(false)
+                .setIsPlayable(true)
+                .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+                .build()
+            source.buildUpon()
+                .setMediaId(ANDROID_AUTO_QUEUE_ITEM_PREFIX + identity.hashCode().toUInt().toString(16))
+                .setMediaMetadata(metadata)
+                .build()
+        }
+    }
+
+    /** À appeler sur le thread principal. */
+    private fun refreshAndroidAutoQueueSnapshot(notify: Boolean) {
+        val updated = captureAndroidAutoQueueSnapshot()
+        val changed = synchronized(androidAutoQueueLock) {
+            val oldSignature = androidAutoQueueSnapshot.map { item ->
+                item.mediaId to originalPathFromItem(item)
+            }
+            val newSignature = updated.map { item ->
+                item.mediaId to originalPathFromItem(item)
+            }
+            androidAutoQueueSnapshot = updated
+            oldSignature != newSignature
+        }
+        if (notify && changed && !AndroidAutoConnectionState.isQueueVisible) {
+            mediaSession?.notifyChildrenChanged(AndroidAutoLibrary.QUEUE_ID, updated.size, null)
+        }
+    }
+
+    private fun scheduleAndroidAutoQueueRefresh(delayMs: Long = 180L) {
+        if (AndroidAutoConnectionState.isQueueVisible) return
+        androidAutoQueueRefreshHandler.removeCallbacksAndMessages(null)
+        androidAutoQueueRefreshHandler.postDelayed({
+            if (!AndroidAutoConnectionState.isQueueVisible) {
+                refreshAndroidAutoQueueSnapshot(notify = true)
+            }
+        }, delayMs.coerceAtLeast(0L))
+    }
+
+    /**
+     * Capture la dernière file du téléphone avant de figer son affichage dans Android Auto.
+     */
+    private fun showAndroidAutoQueue(browser: MediaSession.ControllerInfo) {
+        if (!AndroidAutoConnectionState.isCarControllerPackage(browser.packageName)) return
+        if (!AndroidAutoConnectionState.isQueueVisible) {
+            androidAutoQueueRefreshHandler.removeCallbacksAndMessages(null)
+            refreshAndroidAutoQueueSnapshot(notify = false)
+        }
+        AndroidAutoConnectionState.onQueueShown(browser.packageName, browser.uid)
+    }
+
+    /**
+     * Dès que la file quitte l'écran, applique les changements accumulés sur le téléphone et
+     * prépare l'instantané qui sera utilisé lors de la prochaine ouverture.
+     */
+    private fun hideAndroidAutoQueue(browser: MediaSession.ControllerInfo) {
+        if (AndroidAutoConnectionState.onQueueHidden(browser.packageName, browser.uid)) {
+            scheduleAndroidAutoQueueRefresh(delayMs = 0L)
+        }
+    }
+
+    private fun androidAutoQueueItems(): List<MediaItem> = synchronized(androidAutoQueueLock) {
+        androidAutoQueueSnapshot.toList()
+    }
+
+    private fun androidAutoQueueItem(mediaId: String): MediaItem? = synchronized(androidAutoQueueLock) {
+        androidAutoQueueSnapshot.firstOrNull { it.mediaId == mediaId }
+    }
+
+    private fun observeAndroidAutoState() {
+        // Une activation Pro+ faite sur le téléphone pendant qu'Android Auto est connecté doit
+        // rafraîchir immédiatement la racine, sans redémarrage ni réouverture du paywall.
+        serviceScope.launch {
+            userRepository.accessStateFlow
+                .distinctUntilChanged { old, new ->
+                    old.hasProPlusAccess == new.hasProPlusAccess &&
+                        old.isTrialActive == new.isTrialActive &&
+                        old.isProPlusPurchased == new.isProPlusPurchased &&
+                        old.trialEndMillis == new.trialEndMillis
+                }
+                .collect { state ->
+                    withContext(Dispatchers.Main.immediate) {
+                        val accessChanged = accessResolved && hasAudioAccess != state.hasProPlusAccess
+                        applyResolvedAccessState(state)
+                        if (accessChanged) {
+                            androidAutoLibrary.invalidate()
+                            mediaSession?.notifyChildrenChanged(
+                                AndroidAutoLibrary.ROOT_ID,
+                                if (state.hasProPlusAccess) 7 else 1,
+                                null
+                            )
+                            if (!state.hasProPlusAccess) {
+                                isAudioPlaybackActive = false
+                                isAudioSessionActive = false
+                                cancelPendingAudioLoad("Android Auto access revoked")
+                                runCatching { sessionPlayer?.pause() }
+                                runCatching { sessionPlayer?.clearMediaItems() }
+                                stopPartyHostServer()
+                            }
+                        }
+                    }
+                }
+        }
+
+        // La voiture consulte uniquement l'index Room déjà construit. Quand un scan téléphone
+        // met cet index à jour, les catégories abonnées sont invalidées sans rescanner le NAS.
+        serviceScope.launch {
+            audioLibraryRepository.observeLibrary(applicationContext)
+                .map { tracks ->
+                    tracks.size to tracks.maxOfOrNull { maxOf(it.modifiedAt, it.addedAt) }
+                }
+                .distinctUntilChanged()
+                // Un scan progressif peut écrire des dizaines de lots Room. Une notification par
+                // lot force certains hôtes Android Auto à reconstruire la liste pendant le scroll.
+                .debounce(2_500L)
+                .collect { (trackCount, _) ->
+                    androidAutoLibrary.invalidate()
+                    // Pendant une connexion automobile, l'instantané courant reste volontairement
+                    // figé. Le nouvel index sera visible au prochain raccordement, sans déplacement
+                    // intempestif de la liste ou de la file actuellement affichée.
+                    if (AndroidAutoConnectionState.isConnected) return@collect
+                    withContext(Dispatchers.Main.immediate) {
+                        val session = mediaSession ?: return@withContext
+                        session.notifyChildrenChanged(AndroidAutoLibrary.TRACKS_ID, trackCount, null)
+                        session.notifyChildrenChanged(AndroidAutoLibrary.ALBUMS_ID, Int.MAX_VALUE, null)
+                        session.notifyChildrenChanged(AndroidAutoLibrary.ARTISTS_ID, Int.MAX_VALUE, null)
+                        session.notifyChildrenChanged(AndroidAutoLibrary.FAVORITES_ID, Int.MAX_VALUE, null)
+                        session.notifyChildrenChanged(AndroidAutoLibrary.RECENT_ID, Int.MAX_VALUE, null)
+                        session.notifyChildrenChanged(AndroidAutoLibrary.PLAYLISTS_ID, PlaylistManager.SLOT_COUNT, null)
+                    }
+                }
+        }
     }
 
     private fun resolveInitialAccessAsync() {
@@ -290,12 +485,23 @@ class BlazePlayerService : MediaSessionService() {
                 .getOrNull()
             withContext(Dispatchers.Main.immediate) {
                 if (state == null || !state.hasProPlusAccess) {
+                    // Un navigateur Android Auto doit pouvoir rester connecté et afficher le
+                    // message Pro+ sans démarrer de lecture. Les commandes de lecture restent
+                    // refusées et toute file résiduelle est nettoyée, mais le service de
+                    // bibliothèque n'est pas tué pendant la phase de navigation.
                     accessResolved = true
                     hasAudioAccess = false
-                    stopForMissingAudioAccess("initial access denied")
+                    isAudioPlaybackActive = false
+                    isAudioSessionActive = false
+                    cancelPendingAudioLoad("initial access denied")
+                    runCatching { sessionPlayer?.pause() }
+                    runCatching { sessionPlayer?.clearMediaItems() }
                     return@withContext
                 }
                 applyResolvedAccessState(state)
+                if (::androidAutoLibrary.isInitialized) {
+                    serviceScope.launch { runCatching { androidAutoLibrary.prime() } }
+                }
 
                 // Si une party était hébergée avant que le service ne soit recréé, on ne la
                 // redémarre qu'après confirmation asynchrone du droit Pro+.
@@ -811,11 +1017,28 @@ class BlazePlayerService : MediaSessionService() {
 
     private fun attachSessionStateListener(exoPlayer: ExoPlayer) {
         exoPlayer.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                isAudioSessionActive = exoPlayer.mediaItemCount > 0
+                // Les vraies modifications de file venant du téléphone sont mémorisées tout de
+                // suite. Elles ne sont publiées à Android Auto qu'une fois l'écran de file quitté.
+                scheduleAndroidAutoQueueRefresh()
+            }
+
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 isAudioSessionActive = exoPlayer.mediaItemCount > 0
                 autoAdvanceGeneration++
                 autoAdvanceHandler.removeCallbacksAndMessages(null)
                 val transitionedPath = mediaItem?.let { originalPathFromItem(it) }.orEmpty()
+                // Une lecture lancée depuis Android Auto fournit d'abord une MediaItem légère pour
+                // garder la navigation rapide. Dès que le titre devient courant, on récupère sa
+                // pochette déjà mise en cache par la bibliothèque, hors du thread principal.
+                if (mediaItem != null && transitionedPath.isNotBlank() && mediaItem.mediaMetadata.artworkData == null) {
+                    enrichExternalAudioMetadataAsync(
+                        transitionedPath,
+                        AudioLibraryHeuristics.fileNameFromPath(transitionedPath),
+                        artworkPathFromItem(mediaItem)
+                    )
+                }
                 if (transitionedPath != smbRecoveryPath) {
                     smbRecoveryPath = transitionedPath
                     smbRecoveryAttempts = 0
@@ -1011,6 +1234,7 @@ class BlazePlayerService : MediaSessionService() {
             newPlayer.repeatMode = oldRepeatMode
             newPlayer.shuffleModeEnabled = oldShuffle
             newPlayer.playbackParameters = oldPlaybackParameters
+            applyPreferredAudioDevice(newPlayer)
             if (mediaItems.isNotEmpty()) {
                 newPlayer.setMediaItems(
                     mediaItems,
@@ -1498,13 +1722,43 @@ class BlazePlayerService : MediaSessionService() {
                 try {
                     val p = sessionPlayer ?: player ?: return@post
                     val current = p.currentMediaItem ?: return@post
-                    if (current.mediaId != path) return@post
-                    p.replaceMediaItem(p.currentMediaItemIndex, enriched)
+                    if (originalPathFromItem(current) != path) return@post
+                    // Android Auto utilise un mediaId stable encodé, différent du chemin réel.
+                    // On conserve cet ID lors de l'enrichissement pour que le navigateur et la
+                    // file Media3 continuent de référencer exactement le même élément.
+                    val replacement = enriched.buildUpon().setMediaId(current.mediaId).build()
+                    // Une timeline Media3 est aussi la file affichée par Android Auto. Ne pas la
+                    // republier si l'enrichissement n'apporte aucun changement réel, sinon le DHU
+                    // reconstruit sa liste et revient au premier élément pendant le défilement.
+                    if (!hasMeaningfulMediaMetadataChange(current, replacement)) return@post
+                    // La catégorie de file Android Auto doit rester stable pendant son affichage.
+                    // Même un simple remplacement de pochette republie la timeline et pourrait
+                    // remettre la liste au premier élément. Hors de cet écran, l'enrichissement
+                    // redevient autorisé et sera visible à la prochaine ouverture.
+                    if (AndroidAutoConnectionState.isQueueVisible) return@post
+                    p.replaceMediaItem(p.currentMediaItemIndex, replacement)
                     persistAudioQueue()
                 } catch (e: Exception) {
                     fr.retrospare.blazeplayer.debug.CrashReporter.log(applicationContext, "Apply audio notification metadata failed for $path", e)
                 }
             }
+        }
+    }
+
+    private fun hasMeaningfulMediaMetadataChange(current: MediaItem, enriched: MediaItem): Boolean {
+        val currentMeta = current.mediaMetadata
+        val enrichedMeta = enriched.mediaMetadata
+        if (currentMeta.title?.toString() != enrichedMeta.title?.toString()) return true
+        if (currentMeta.artist?.toString() != enrichedMeta.artist?.toString()) return true
+        if (currentMeta.albumTitle?.toString() != enrichedMeta.albumTitle?.toString()) return true
+        if (currentMeta.artworkUri != enrichedMeta.artworkUri) return true
+
+        val currentArtwork = currentMeta.artworkData
+        val enrichedArtwork = enrichedMeta.artworkData
+        return when {
+            currentArtwork == null && enrichedArtwork == null -> false
+            currentArtwork == null || enrichedArtwork == null -> true
+            else -> !currentArtwork.contentEquals(enrichedArtwork)
         }
     }
 
@@ -1548,6 +1802,19 @@ class BlazePlayerService : MediaSessionService() {
     }
 
 
+
+    private fun applyPreferredAudioDevice(target: ExoPlayer? = player) {
+        val exoPlayer = target ?: return
+        val preferred = AudioOutputDevicePreferences.preferredDevice(applicationContext)
+        runCatching { exoPlayer.setPreferredAudioDevice(preferred) }
+            .onFailure { error ->
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                    applicationContext,
+                    "Preferred local audio device could not be applied",
+                    error
+                )
+            }
+    }
 
     private fun applyAudioProSettings(target: ExoPlayer? = player) {
         val p = target ?: return
@@ -1795,7 +2062,32 @@ class BlazePlayerService : MediaSessionService() {
         }
     }
 
-    private inner class SessionCallback : MediaSession.Callback {
+    private suspend fun resolveAndroidAutoAccess(): Boolean {
+        if (accessResolved) {
+            refreshAccessWithoutBlocking()
+            return hasAudioAccess
+        }
+        val state = runCatching { userRepository.ensureTrialStarted() }
+            .onFailure { error ->
+                fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                    applicationContext,
+                    "Android Auto Pro+ access check failed",
+                    error
+                )
+            }
+            .getOrNull()
+        withContext(Dispatchers.Main.immediate) {
+            if (state == null) {
+                accessResolved = true
+                hasAudioAccess = false
+            } else {
+                applyResolvedAccessState(state)
+            }
+        }
+        return state?.hasProPlusAccess == true
+    }
+
+    private inner class SessionCallback : MediaLibrarySession.Callback {
 
         // Balayer la notification déclenche automatiquement COMMAND_STOP côté Media3 (géré en
         // interne par DefaultMediaNotificationProvider), mais ça n'arrête PAS le service lui-même
@@ -1809,6 +2101,10 @@ class BlazePlayerService : MediaSessionService() {
             controller: MediaSession.ControllerInfo,
             playerCommand: Int
         ): Int {
+            // Ne jamais déduire que l'écran de file a été quitté à partir d'une commande Player.
+            // Android Auto peut envoyer des commandes de lecture ou d'état pendant que la liste
+            // reste affichée. La masquer ici autorisait un notifyChildrenChanged en arrière-plan,
+            // ce qui reconstruisait la liste et ramenait immédiatement le focus en haut.
             if (playerCommand == androidx.media3.common.Player.COMMAND_STOP) {
                 android.os.Handler(android.os.Looper.getMainLooper()).post { stopSelf() }
                 return SessionResult.RESULT_SUCCESS
@@ -1827,18 +2123,425 @@ class BlazePlayerService : MediaSessionService() {
             session: MediaSession,
             controller: MediaSession.ControllerInfo
         ): MediaSession.ConnectionResult {
-            val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+            val commandsBuilder = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
                 .buildUpon()
-                .add(SessionCommand(COMMAND_GET_AUDIO_SESSION_ID, Bundle.EMPTY))
-                .add(SessionCommand(COMMAND_PLAY_EXTERNAL_AUDIO, Bundle.EMPTY))
-                .add(SessionCommand(COMMAND_PLAY_QUEUE_INDEX_FROM_START, Bundle.EMPTY))
-                .add(SessionCommand(COMMAND_PARTY_START_HOST, Bundle.EMPTY))
-                .add(SessionCommand(COMMAND_PARTY_STOP_HOST, Bundle.EMPTY))
-                .build()
+            val playerCommandsBuilder = MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+                .buildUpon()
+            val isCarController = AndroidAutoConnectionState.isCarControllerPackage(controller.packageName)
+            if (isCarController) {
+                // La file native du DHU est directement adossée à la timeline et remonte en haut à
+                // chaque mutation. On la remplace par la catégorie QUEUE_ID, paginée et figée
+                // uniquement pendant son affichage, tout en gardant suivant/précédent disponibles.
+                playerCommandsBuilder.remove(Player.COMMAND_GET_TIMELINE)
+            }
+            // Les commandes internes (égaliseur, Blaze Party, lecture par chemin brut) ne sont
+            // jamais exposées aux contrôleurs externes. Android Auto reçoit uniquement les
+            // commandes standard de navigation et de transport Media3.
+            if (controller.packageName == packageName) {
+                commandsBuilder
+                    .add(SessionCommand(COMMAND_GET_AUDIO_SESSION_ID, Bundle.EMPTY))
+                    .add(SessionCommand(COMMAND_PLAY_EXTERNAL_AUDIO, Bundle.EMPTY))
+                    .add(SessionCommand(COMMAND_PLAY_QUEUE_INDEX_FROM_START, Bundle.EMPTY))
+                    .add(SessionCommand(COMMAND_SET_PREFERRED_AUDIO_DEVICE, Bundle.EMPTY))
+                    .add(SessionCommand(COMMAND_PARTY_START_HOST, Bundle.EMPTY))
+                    .add(SessionCommand(COMMAND_PARTY_STOP_HOST, Bundle.EMPTY))
+            }
             return MediaSession.ConnectionResult.accept(
-                sessionCommands,
-                MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS
+                commandsBuilder.build(),
+                playerCommandsBuilder.build()
             )
+        }
+
+        override fun onPostConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ) {
+            super.onPostConnect(session, controller)
+            if (AndroidAutoConnectionState.onConnected(controller.packageName, controller.uid)) {
+                androidAutoLibrary.setCarSessionActive(true)
+                android.util.Log.i(
+                    "BlazePlayerService",
+                    "Android Auto connected; library snapshot frozen, queue refreshed only outside its screen"
+                )
+            }
+        }
+
+        override fun onDisconnected(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ) {
+            hideAndroidAutoQueue(controller)
+            if (AndroidAutoConnectionState.onDisconnected(controller.packageName, controller.uid)) {
+                androidAutoLibrary.setCarSessionActive(false)
+                android.util.Log.i(
+                    "BlazePlayerService",
+                    "Android Auto disconnected; library refreshes enabled"
+                )
+            }
+            super.onDisconnected(session, controller)
+        }
+
+        override fun onGetLibraryRoot(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            // Android Auto peut relire la racine en arrière-plan alors qu'une sous-liste est
+            // toujours visible. Ce callback n'est donc pas un signal fiable de fermeture.
+            return Futures.immediateFuture(
+                LibraryResult.ofItem(androidAutoLibrary.rootItem(), params)
+            )
+        }
+
+        override fun onGetChildren(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            // Le DHU précharge souvent d'autres branches de la bibliothèque pendant que la file
+            // est affichée. Seuls subscribe/unsubscribe décrivent la durée de vie de cette liste ;
+            // une requête onGetChildren sur un autre parent ne doit jamais la défiger.
+            val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
+            serviceScope.launch {
+                try {
+                    val allowed = resolveAndroidAutoAccess()
+                    val items = when {
+                        !allowed && parentId == AndroidAutoLibrary.ROOT_ID -> listOf(androidAutoLibrary.lockedItem())
+                        !allowed -> {
+                            future.set(
+                                LibraryResult.ofError<ImmutableList<MediaItem>>(
+                                    LibraryResult.RESULT_ERROR_SESSION_PREMIUM_ACCOUNT_REQUIRED,
+                                    params
+                                )
+                            )
+                            return@launch
+                        }
+                        parentId == AndroidAutoLibrary.QUEUE_ID -> withContext(Dispatchers.Main.immediate) {
+                            showAndroidAutoQueue(browser)
+                            androidAutoQueueItems()
+                        }
+                        else -> androidAutoLibrary.children(parentId)
+                    }
+                    future.set(LibraryResult.ofItemList(items.androidAutoPage(page, pageSize), params))
+                } catch (error: Throwable) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Android Auto getChildren failed for $parentId",
+                        error
+                    )
+                    future.set(LibraryResult.ofError<ImmutableList<MediaItem>>(LibraryResult.RESULT_ERROR_IO, params))
+                }
+            }
+            return future
+        }
+
+        override fun onSubscribe(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<Void>> {
+            if (parentId == AndroidAutoLibrary.QUEUE_ID) {
+                showAndroidAutoQueue(browser)
+            }
+            // Accepter uniquement l'abonnement. notifyChildrenChanged est réservé à une vraie
+            // modification ultérieure du contenu. L'appeler ici force Android Auto à recharger la
+            // liste juste après son ouverture (et parfois à chaque réabonnement/pagination), ce qui
+            // remet le focus et la position de défilement au premier élément.
+            return Futures.immediateFuture(LibraryResult.ofVoid(params))
+        }
+
+        override fun onUnsubscribe(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String
+        ): ListenableFuture<LibraryResult<Void>> {
+            if (parentId == AndroidAutoLibrary.QUEUE_ID) {
+                hideAndroidAutoQueue(browser)
+            }
+            return Futures.immediateFuture(LibraryResult.ofVoid())
+        }
+
+        override fun onGetItem(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            mediaId: String
+        ): ListenableFuture<LibraryResult<MediaItem>> {
+            val future = SettableFuture.create<LibraryResult<MediaItem>>()
+            serviceScope.launch {
+                try {
+                    val allowed = resolveAndroidAutoAccess()
+                    if (!allowed && mediaId != AndroidAutoLibrary.LOCKED_ID && mediaId != AndroidAutoLibrary.ROOT_ID) {
+                        future.set(LibraryResult.ofError<MediaItem>(LibraryResult.RESULT_ERROR_SESSION_PREMIUM_ACCOUNT_REQUIRED))
+                        return@launch
+                    }
+                    val item = if (mediaId.startsWith(ANDROID_AUTO_QUEUE_ITEM_PREFIX)) {
+                        withContext(Dispatchers.Main.immediate) { androidAutoQueueItem(mediaId) }
+                    } else {
+                        androidAutoLibrary.item(mediaId)
+                    }
+                    future.set(
+                        if (item != null) LibraryResult.ofItem(item, null)
+                        else LibraryResult.ofError<MediaItem>(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                    )
+                } catch (error: Throwable) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Android Auto getItem failed for $mediaId",
+                        error
+                    )
+                    future.set(LibraryResult.ofError<MediaItem>(LibraryResult.RESULT_ERROR_IO))
+                }
+            }
+            return future
+        }
+
+        override fun onSearch(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            query: String,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<Void>> {
+            // Une recherche peut être préchargée par Android Auto sans changement d'écran.
+            val future = SettableFuture.create<LibraryResult<Void>>()
+            serviceScope.launch {
+                try {
+                    if (!resolveAndroidAutoAccess()) {
+                        future.set(
+                            LibraryResult.ofError<Void>(
+                                LibraryResult.RESULT_ERROR_SESSION_PREMIUM_ACCOUNT_REQUIRED,
+                                params
+                            )
+                        )
+                        return@launch
+                    }
+                    val count = androidAutoLibrary.searchCount(query)
+                    session.notifySearchResultChanged(browser, query, count, params)
+                    future.set(LibraryResult.ofVoid(params))
+                } catch (error: Throwable) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Android Auto search failed for $query",
+                        error
+                    )
+                    future.set(LibraryResult.ofError<Void>(LibraryResult.RESULT_ERROR_IO, params))
+                }
+            }
+            return future
+        }
+
+        override fun onGetSearchResult(
+            session: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            query: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+            // Même principe que onSearch : ne pas utiliser une requête de fond comme signal UI.
+            val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
+            serviceScope.launch {
+                try {
+                    if (!resolveAndroidAutoAccess()) {
+                        future.set(
+                            LibraryResult.ofError<ImmutableList<MediaItem>>(
+                                LibraryResult.RESULT_ERROR_SESSION_PREMIUM_ACCOUNT_REQUIRED,
+                                params
+                            )
+                        )
+                        return@launch
+                    }
+                    val items = androidAutoLibrary.search(query).androidAutoPage(page, pageSize)
+                    future.set(LibraryResult.ofItemList(items, params))
+                } catch (error: Throwable) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Android Auto search results failed for $query",
+                        error
+                    )
+                    future.set(LibraryResult.ofError<ImmutableList<MediaItem>>(LibraryResult.RESULT_ERROR_IO, params))
+                }
+            }
+            return future
+        }
+
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            isForPlayback: Boolean
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            // La reprise peut être demandée en arrière-plan pendant que le navigateur est ouvert.
+            val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+            serviceScope.launch {
+                try {
+                    if (!resolveAndroidAutoAccess()) {
+                        future.setException(SecurityException("Blaze Audio Premium requires Pro+"))
+                        return@launch
+                    }
+                    val saved = AudioRepository.loadState(applicationContext)
+                    if (saved.items.isEmpty()) {
+                        future.setException(IllegalStateException("No saved Blaze Audio queue"))
+                        return@launch
+                    }
+
+                    val allItems = saved.items.map { item ->
+                        // Retrouve en priorité la MediaItem indexée afin de fournir à Android Auto
+                        // titre, artiste, album et pochette. Une ancienne entrée de file reste tout
+                        // de même rejouable si elle n'est plus présente dans l'index Room.
+                        androidAutoLibrary.resolvePlayable(
+                            MediaItem.Builder().setMediaId(item.path).build()
+                        ) ?: AudioRepository.buildSimpleMediaItem(
+                            applicationContext,
+                            item.path,
+                            item.name,
+                            item.artworkPath
+                        )
+                    }
+                    val savedIndex = saved.index.coerceIn(0, allItems.lastIndex)
+                    val resumeItems = if (isForPlayback) allItems else listOf(allItems[savedIndex])
+                    val resumeIndex = if (isForPlayback) savedIndex else 0
+                    val resumePosition = saved.positionMs.coerceAtLeast(0L)
+
+                    if (isForPlayback) {
+                        withContext(Dispatchers.Main.immediate) {
+                            sessionPlayer?.repeatMode = saved.repeatMode
+                            sessionPlayer?.shuffleModeEnabled = saved.shuffle
+                        }
+                    }
+                    future.set(
+                        MediaSession.MediaItemsWithStartPosition(
+                            resumeItems,
+                            resumeIndex,
+                            resumePosition
+                        )
+                    )
+                } catch (error: Throwable) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Android Auto playback resumption failed",
+                        error
+                    )
+                    future.setException(error)
+                }
+            }
+            return future
+        }
+
+        override fun onSetMediaItems(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: List<MediaItem>,
+            startIndex: Int,
+            startPositionMs: Long
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            if (AndroidAutoConnectionState.isCarControllerPackage(controller.packageName)) {
+                hideAndroidAutoQueue(controller)
+            }
+            val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+            serviceScope.launch {
+                try {
+                    if (!resolveAndroidAutoAccess()) {
+                        future.setException(SecurityException("Blaze Audio Premium requires Pro+"))
+                        return@launch
+                    }
+                    val requestedQueueItem = mediaItems.firstOrNull {
+                        it.mediaId.startsWith(ANDROID_AUTO_QUEUE_ITEM_PREFIX)
+                    }
+                    if (requestedQueueItem != null) {
+                        val requestedPath = originalPathFromItem(requestedQueueItem)
+                        val requestedIndex = requestedQueueItem.mediaMetadata.extras
+                            ?.getInt(ANDROID_AUTO_QUEUE_INDEX_EXTRA, C.INDEX_UNSET)
+                            ?: C.INDEX_UNSET
+                        val liveQueue = withContext(Dispatchers.Main.immediate) {
+                            captureLiveQueueItems()
+                        }
+                        val liveIndex = when {
+                            requestedIndex in liveQueue.indices &&
+                                originalPathFromItem(liveQueue[requestedIndex]) == requestedPath -> requestedIndex
+                            requestedPath.isNotBlank() -> liveQueue.indexOfFirst {
+                                originalPathFromItem(it) == requestedPath
+                            }
+                            else -> C.INDEX_UNSET
+                        }
+                        if (liveQueue.isEmpty() || liveIndex == C.INDEX_UNSET) {
+                            future.setException(IllegalArgumentException("Queue item is no longer available"))
+                        } else {
+                            future.set(
+                                MediaSession.MediaItemsWithStartPosition(
+                                    liveQueue,
+                                    liveIndex,
+                                    0L
+                                )
+                            )
+                        }
+                        return@launch
+                    }
+
+                    val isVoiceSearch = mediaItems.any {
+                        !it.requestMetadata.searchQuery?.toString().isNullOrBlank()
+                    }
+                    val resolved = androidAutoLibrary.resolveRequestedItems(mediaItems)
+                    if (resolved.isEmpty()) {
+                        future.setException(IllegalArgumentException("No playable audio item matched the request"))
+                        return@launch
+                    }
+                    val resolvedStartIndex = when {
+                        isVoiceSearch -> 0
+                        startIndex == C.INDEX_UNSET -> C.INDEX_UNSET
+                        else -> startIndex.coerceIn(0, resolved.lastIndex)
+                    }
+                    val resolvedStartPosition = when {
+                        isVoiceSearch -> 0L
+                        resolvedStartIndex == C.INDEX_UNSET -> C.TIME_UNSET
+                        startPositionMs == C.TIME_UNSET -> C.TIME_UNSET
+                        else -> startPositionMs.coerceAtLeast(0L)
+                    }
+                    future.set(
+                        MediaSession.MediaItemsWithStartPosition(
+                            resolved,
+                            resolvedStartIndex,
+                            resolvedStartPosition
+                        )
+                    )
+                } catch (error: Throwable) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Android Auto setMediaItems resolution failed",
+                        error
+                    )
+                    future.setException(error)
+                }
+            }
+            return future
+        }
+
+        override fun onAddMediaItems(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: List<MediaItem>
+        ): ListenableFuture<List<MediaItem>> {
+            val future = SettableFuture.create<List<MediaItem>>()
+            serviceScope.launch {
+                try {
+                    if (!resolveAndroidAutoAccess()) {
+                        future.set(emptyList())
+                        return@launch
+                    }
+                    val resolved = androidAutoLibrary.resolveRequestedItems(mediaItems)
+                    future.set(resolved)
+                } catch (error: Throwable) {
+                    fr.retrospare.blazeplayer.debug.CrashReporter.log(
+                        applicationContext,
+                        "Android Auto media item resolution failed",
+                        error
+                    )
+                    future.set(emptyList())
+                }
+            }
+            return future
         }
 
         override fun onCustomCommand(
@@ -1853,6 +2556,23 @@ class BlazePlayerService : MediaSessionService() {
                         putInt(EXTRA_AUDIO_SESSION_ID, player?.audioSessionId ?: 0)
                     }
                     SessionResult(SessionResult.RESULT_SUCCESS, resultExtras)
+                }
+            }
+            if (customCommand.customAction == COMMAND_SET_PREFERRED_AUDIO_DEVICE) {
+                val deviceId = args.getInt(EXTRA_PREFERRED_AUDIO_DEVICE_ID, -1)
+                val selectedDevice = if (deviceId < 0) {
+                    null
+                } else {
+                    AudioOutputDevicePreferences.availableDevices(applicationContext)
+                        .firstOrNull { it.id == deviceId }
+                        ?: return Futures.immediateFuture(
+                            SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE)
+                        )
+                }
+                return runSessionActionWhenAllowed(COMMAND_SET_PREFERRED_AUDIO_DEVICE) {
+                    AudioOutputDevicePreferences.save(applicationContext, selectedDevice)
+                    applyPreferredAudioDevice()
+                    SessionResult(SessionResult.RESULT_SUCCESS)
                 }
             }
             if (customCommand.customAction == COMMAND_PLAY_EXTERNAL_AUDIO) {
@@ -1896,7 +2616,7 @@ class BlazePlayerService : MediaSessionService() {
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     /**
      * Comportement attendu : bouton Home = lecture audio en arrière-plan avec notification ;
@@ -1932,6 +2652,7 @@ class BlazePlayerService : MediaSessionService() {
         try { playerVolumeAnimator?.cancel() } catch (_: Exception) {}
         try { if (::audioProPrefs.isInitialized) audioProPrefs.unregisterOnSharedPreferenceChangeListener(audioProListener) } catch (_: Exception) {}
         try { if (::eqPrefs.isInitialized) eqPrefs.unregisterOnSharedPreferenceChangeListener(eqPreferenceListener) } catch (_: Exception) {}
+        try { getSystemService(AudioManager::class.java)?.unregisterAudioDeviceCallback(audioDeviceCallback) } catch (_: Exception) {}
         try { pcmAudioProcessor?.releaseSettings() } catch (_: Exception) {}
         pcmAudioProcessor = null
         try { loudnessEnhancer?.release() } catch (_: Exception) {}
@@ -1939,6 +2660,9 @@ class BlazePlayerService : MediaSessionService() {
         loudnessEnhancerSessionId = 0
         try { serviceScope.cancel() } catch (_: Exception) {}
         stopPartyHostServer()
+        androidAutoQueueRefreshHandler.removeCallbacksAndMessages(null)
+        AndroidAutoConnectionState.reset()
+        if (::androidAutoLibrary.isInitialized) androidAutoLibrary.setCarSessionActive(false)
         val sessionToRelease = mediaSession
         val eqToRelease = eqManager
         val playerToRelease = player

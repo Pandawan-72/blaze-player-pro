@@ -712,7 +712,7 @@ Token: %2$s</string>
     <string name="audio_tag_network_not_supported">Direct schrijven is beschikbaar voor lokale bestanden en SMB/NAS-netwerkbestanden. Deze bron staat bewerken op afstand niet toe.</string>
     <string name="action_scan">Scannen</string>
     <string name="action_done">Klaar</string>
-<string name="audio_play_album">Volledig album afspelen</string>
+<string name="audio_play_album">Hele album afspelen</string>
     <string name="audio_add_album_queue">Aan wachtrij toevoegen</string>
     <string name="audio_select_tracks">Nummers selecteren</string>
     <string name="audio_add_playlist_blaze_party">Playlist aan Blaze Party toevoegen</string>
@@ -838,4 +838,32 @@ Token: %2$s</string>
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Haptische feedback</string>
     <string name="settings_haptic_feedback_desc">Schakel een subtiele trilling in wanneer je op een aanklikbaar onderdeel in de app tikt.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Je muziekbibliotheek</string>
+    <string name="android_auto_premium_required">Blaze Audio Premium vereist</string>
+    <string name="android_auto_premium_required_subtitle">Activeer Pro+ op je telefoon</string>
+    <string name="android_auto_albums">Albums</string>
+    <string name="android_auto_artists">Artiesten</string>
+    <string name="android_auto_tracks">Nummers</string>
+    <string name="android_auto_favorites">Favorieten</string>
+    <string name="android_auto_recent">Recent afgespeeld</string>
+    <string name="android_auto_playlists">Afspeellijsten</string>
+    <string name="android_auto_unknown_album">Onbekend album</string>
+    <string name="android_auto_artist_subtitle">%1$d albums • %2$d nummers</string>
+    <string name="android_auto_track_count">%1$d nummers</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">Karaoke-schermspiegeling openen</string>
+    <string name="karaoke_cast_requires_lrc">Voor karaoke-cast is een gesynchroniseerd .lrc-bestand vereist.</string>
+    <string name="audio_local_output_title">Lokale audio-uitgang</string>
+    <string name="audio_local_output_subtitle">Kies de telefoon, hoofdtelefoon of een Bluetooth-luidspreker</string>
+    <string name="audio_output_picker_unavailable">De audio-uitvoerkiezer is niet beschikbaar op dit apparaat.</string>
+    <string name="audio_output_automatic">Automatisch (systeem)</string>
+    <string name="audio_output_changed">Lokale audio-uitgang gewijzigd</string>
+    <string name="audio_output_change_failed">Kan de audio-uitgang niet wijzigen</string>
+    <string name="karaoke_mirror_opened">Selecteer je Chromecast in het Android-paneel. Houd de knop ingedrukt om de lokale audio-uitgang te kiezen.</string>
+    <string name="karaoke_mirror_unavailable">Instellingen voor schermcasting zijn niet beschikbaar. Gebruik de tegel Scherm casten in Snelle instellingen.</string>
 </resources>

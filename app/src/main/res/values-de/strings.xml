@@ -839,4 +839,32 @@ Token: %2$s</string>
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Haptisches Feedback</string>
     <string name="settings_haptic_feedback_desc">Aktiviert eine leichte Vibration bei jedem Antippen eines bedienbaren Elements in der App.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Ihre Musikbibliothek</string>
+    <string name="android_auto_premium_required">Blaze Audio Premium erforderlich</string>
+    <string name="android_auto_premium_required_subtitle">Aktivieren Sie Pro+ auf Ihrem Smartphone</string>
+    <string name="android_auto_albums">Alben</string>
+    <string name="android_auto_artists">Künstler</string>
+    <string name="android_auto_tracks">Titel</string>
+    <string name="android_auto_favorites">Favoriten</string>
+    <string name="android_auto_recent">Kürzlich gehört</string>
+    <string name="android_auto_playlists">Wiedergabelisten</string>
+    <string name="android_auto_unknown_album">Unbekanntes Album</string>
+    <string name="android_auto_artist_subtitle">%1$d Alben • %2$d Titel</string>
+    <string name="android_auto_track_count">%1$d Titel</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">Karaoke-Bildschirmspiegelung öffnen</string>
+    <string name="karaoke_cast_requires_lrc">Für Karaoke-Cast ist eine synchronisierte .lrc-Datei erforderlich.</string>
+    <string name="audio_local_output_title">Lokale Audioausgabe</string>
+    <string name="audio_local_output_subtitle">Telefon, Kopfhörer oder Bluetooth-Lautsprecher auswählen</string>
+    <string name="audio_output_picker_unavailable">Die Audioauswahl ist auf diesem Gerät nicht verfügbar.</string>
+    <string name="audio_output_automatic">Automatisch (System)</string>
+    <string name="audio_output_changed">Lokale Audioausgabe geändert</string>
+    <string name="audio_output_change_failed">Audioausgabe konnte nicht geändert werden</string>
+    <string name="karaoke_mirror_opened">Wähle deinen Chromecast im Android-Menü. Halte die Taste gedrückt, um die lokale Audioausgabe auszuwählen.</string>
+    <string name="karaoke_mirror_unavailable">Die Einstellungen zur Bildschirmübertragung sind auf diesem Gerät nicht verfügbar. Verwende die Schnelleinstellung „Bildschirm übertragen“.</string>
 </resources>

@@ -39,7 +39,17 @@ object AudioLocalEnhancements {
         val album: String = ""
     )
 
-    data class LyricLine(val timeMs: Long, val text: String)
+    data class LyricSegment(
+        val timeMs: Long,
+        val start: Int,
+        val endExclusive: Int
+    )
+
+    data class LyricLine(
+        val timeMs: Long,
+        val text: String,
+        val segments: List<LyricSegment> = emptyList()
+    )
 
     data class LocalLyrics(
         val fileName: String,
@@ -521,9 +531,10 @@ object AudioLocalEnhancements {
         .joinToString("\n")
 
     private fun lrcToPlainText(text: String): String {
-        val regex = Regex("\\[(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?\\]")
+        val lineTimeRegex = Regex("\\[(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?\\]")
+        val enhancedTimeRegex = Regex("<(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?>")
         return text.lineSequence()
-            .map { it.replace(regex, "").trim() }
+            .map { it.replace(lineTimeRegex, "").replace(enhancedTimeRegex, "").trim() }
             .filter { it.isNotBlank() && !it.startsWith("[") }
             .take(600)
             .joinToString("\n")
@@ -539,22 +550,138 @@ object AudioLocalEnhancements {
     }
 
     private fun parseLrc(text: String): List<LyricLine> {
-        val regex = Regex("\\[(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?\\]")
+        val lineTimeRegex = Regex("\\[(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?\\]")
+        val enhancedTimeRegex = Regex("<(\\d{1,2}):(\\d{2})(?:[.:](\\d{1,3}))?>")
         val result = mutableListOf<LyricLine>()
+
         text.lineSequence().forEach { raw ->
-            val matches = regex.findAll(raw).toList()
-            if (matches.isEmpty()) return@forEach
-            val lyric = raw.replace(regex, "").trim()
-            if (lyric.isBlank()) return@forEach
-            matches.forEach { m ->
-                val min = m.groupValues.getOrNull(1)?.toLongOrNull() ?: 0L
-                val sec = m.groupValues.getOrNull(2)?.toLongOrNull() ?: 0L
-                val fracRaw = m.groupValues.getOrNull(3).orEmpty()
-                val ms = when (fracRaw.length) { 1 -> fracRaw.toLongOrNull()?.times(100) ?: 0L; 2 -> fracRaw.toLongOrNull()?.times(10) ?: 0L; else -> fracRaw.take(3).toLongOrNull() ?: 0L }
-                result += LyricLine((min * 60_000L) + (sec * 1000L) + ms, lyric)
+            val lineMatches = lineTimeRegex.findAll(raw).toList()
+            if (lineMatches.isEmpty()) return@forEach
+
+            val payload = raw.replace(lineTimeRegex, "").trim()
+            if (payload.isBlank()) return@forEach
+            val firstLineTime = timeTagToMs(lineMatches.first())
+            val parsedPayload = parseEnhancedLrcPayload(
+                payload = payload,
+                enhancedTimeRegex = enhancedTimeRegex,
+                lineTimeMs = firstLineTime
+            )
+            if (parsedPayload.text.isBlank()) return@forEach
+
+            lineMatches.forEach { match ->
+                val lineTime = timeTagToMs(match)
+                val offset = lineTime - firstLineTime
+                result += LyricLine(
+                    timeMs = lineTime,
+                    text = parsedPayload.text,
+                    segments = parsedPayload.segments.map { segment ->
+                        segment.copy(timeMs = (segment.timeMs + offset).coerceAtLeast(lineTime))
+                    }
+                )
             }
         }
         return result.sortedBy { it.timeMs }.take(10_000)
+    }
+
+    private data class ParsedEnhancedPayload(
+        val text: String,
+        val segments: List<LyricSegment>
+    )
+
+    /**
+     * Enhanced LRC utilise des balises <mm:ss.xx> devant chaque mot ou syllabe. On conserve les
+     * espaces réels du texte afin de supporter aussi bien les mots séparés que les syllabes accolées.
+     */
+    private fun parseEnhancedLrcPayload(
+        payload: String,
+        enhancedTimeRegex: Regex,
+        lineTimeMs: Long
+    ): ParsedEnhancedPayload {
+        val matches = enhancedTimeRegex.findAll(payload).toList()
+        if (matches.isEmpty()) {
+            return ParsedEnhancedPayload(payload.trim(), emptyList())
+        }
+
+        val textBuilder = StringBuilder()
+        val rawSegments = mutableListOf<LyricSegment>()
+
+        fun appendTimedChunk(rawChunk: String, rawTimeMs: Long, trimStart: Boolean) {
+            var chunk = rawChunk.replace(Regex("[\\r\\n\\t]+"), " ")
+            if (trimStart) chunk = chunk.trimStart()
+            if (chunk.isBlank()) return
+            if (textBuilder.isNotEmpty() && textBuilder.last().isWhitespace() && chunk.first().isWhitespace()) {
+                chunk = chunk.trimStart()
+            }
+            val start = textBuilder.length
+            textBuilder.append(chunk)
+            val end = textBuilder.length
+            if (end > start) {
+                rawSegments += LyricSegment(
+                    timeMs = rawTimeMs,
+                    start = start,
+                    endExclusive = end
+                )
+            }
+        }
+
+        // Dans les Enhanced LRC courants, le texte situé avant la première balise <...>
+        // commence au time code de ligne [mm:ss.xx]. Exemple :
+        // [00:05.44]Your <00:05.82>blades ...
+        appendTimedChunk(
+            rawChunk = payload.substring(0, matches.first().range.first),
+            rawTimeMs = lineTimeMs,
+            trimStart = true
+        )
+
+        matches.forEachIndexed { index, match ->
+            val chunkStart = match.range.last + 1
+            val chunkEndExclusive = matches.getOrNull(index + 1)?.range?.first ?: payload.length
+            if (chunkStart >= chunkEndExclusive) return@forEachIndexed
+            appendTimedChunk(
+                rawChunk = payload.substring(chunkStart, chunkEndExclusive),
+                rawTimeMs = timeTagToMs(match),
+                trimStart = textBuilder.isEmpty()
+            )
+        }
+
+        while (textBuilder.isNotEmpty() && textBuilder.last().isWhitespace()) {
+            textBuilder.deleteCharAt(textBuilder.lastIndex)
+        }
+        val finalLength = textBuilder.length
+
+        // Certains fichiers trouvés en ligne contiennent quelques time codes internes inversés.
+        // Le rendu suit l'ordre du texte : on rend donc les temps monotones pour éviter qu'une
+        // recherche binaire saute directement à la fin de la phrase.
+        var previousTimeMs = lineTimeMs
+        val normalizedSegments = rawSegments.mapNotNull { segment ->
+            val start = segment.start.coerceAtMost(finalLength)
+            val end = segment.endExclusive.coerceAtMost(finalLength)
+            if (end <= start) return@mapNotNull null
+            val normalizedTime = segment.timeMs.coerceAtLeast(previousTimeMs)
+            previousTimeMs = normalizedTime
+            segment.copy(
+                timeMs = normalizedTime,
+                start = start,
+                endExclusive = end
+            )
+        }
+
+        return ParsedEnhancedPayload(
+            text = textBuilder.toString(),
+            segments = normalizedSegments
+        )
+    }
+
+    private fun timeTagToMs(match: MatchResult): Long {
+        val min = match.groupValues.getOrNull(1)?.toLongOrNull() ?: 0L
+        val sec = match.groupValues.getOrNull(2)?.toLongOrNull() ?: 0L
+        val fracRaw = match.groupValues.getOrNull(3).orEmpty()
+        val ms = when (fracRaw.length) {
+            1 -> fracRaw.toLongOrNull()?.times(100) ?: 0L
+            2 -> fracRaw.toLongOrNull()?.times(10) ?: 0L
+            else -> fracRaw.take(3).toLongOrNull() ?: 0L
+        }
+        return (min * 60_000L) + (sec * 1000L) + ms
     }
 
     fun lineForPosition(lines: List<LyricLine>, positionMs: Long): String? {

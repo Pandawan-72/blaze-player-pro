@@ -853,4 +853,32 @@ Token: %2$s</string>
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Umpan balik haptik</string>
     <string name="settings_haptic_feedback_desc">Aktifkan getaran ringan setiap kali mengetuk elemen yang dapat diklik di aplikasi.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Perpustakaan musik Anda</string>
+    <string name="android_auto_premium_required">Blaze Audio Premium diperlukan</string>
+    <string name="android_auto_premium_required_subtitle">Aktifkan Pro+ dari ponsel Anda</string>
+    <string name="android_auto_albums">Album</string>
+    <string name="android_auto_artists">Artis</string>
+    <string name="android_auto_tracks">Lagu</string>
+    <string name="android_auto_favorites">Favorit</string>
+    <string name="android_auto_recent">Baru diputar</string>
+    <string name="android_auto_playlists">Daftar putar</string>
+    <string name="android_auto_unknown_album">Album tidak dikenal</string>
+    <string name="android_auto_artist_subtitle">%1$d album • %2$d lagu</string>
+    <string name="android_auto_track_count">%1$d lagu</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">Buka pencerminan layar karaoke</string>
+    <string name="karaoke_cast_requires_lrc">File .lrc tersinkron diperlukan untuk Cast karaoke.</string>
+    <string name="audio_local_output_title">Keluaran audio lokal</string>
+    <string name="audio_local_output_subtitle">Pilih ponsel, headphone, atau speaker Bluetooth</string>
+    <string name="audio_output_picker_unavailable">Pemilih keluaran audio tidak tersedia di perangkat ini.</string>
+    <string name="audio_output_automatic">Otomatis (sistem)</string>
+    <string name="audio_output_changed">Keluaran audio lokal diubah</string>
+    <string name="audio_output_change_failed">Tidak dapat mengubah keluaran audio</string>
+    <string name="karaoke_mirror_opened">Pilih Chromecast di panel Android. Tekan lama tombol untuk memilih keluaran audio lokal.</string>
+    <string name="karaoke_mirror_unavailable">Pengaturan transmisi layar tidak tersedia. Gunakan ubin Cast layar di Setelan Cepat.</string>
 </resources>

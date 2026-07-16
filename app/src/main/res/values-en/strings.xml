@@ -715,7 +715,7 @@ Token: %2$s</string>
     <string name="audio_tag_network_not_supported">Direct writing is available for local files and SMB/NAS network files. This source does not allow remote editing.</string>
     <string name="action_scan">Scan</string>
     <string name="action_done">Done</string>
-<string name="audio_play_album">Play full album</string>
+<string name="audio_play_album">Play entire album</string>
     <string name="audio_add_album_queue">Add to queue</string>
     <string name="audio_select_tracks">Select tracks</string>
     <string name="audio_add_playlist_blaze_party">Add playlist to Blaze Party</string>
@@ -842,4 +842,32 @@ Token: %2$s</string>
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Haptic feedback</string>
     <string name="settings_haptic_feedback_desc">Enable a subtle vibration whenever you tap a clickable item in the app.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Your music library</string>
+    <string name="android_auto_premium_required">Blaze Audio Premium required</string>
+    <string name="android_auto_premium_required_subtitle">Activate Pro+ on your phone</string>
+    <string name="android_auto_albums">Albums</string>
+    <string name="android_auto_artists">Artists</string>
+    <string name="android_auto_tracks">Tracks</string>
+    <string name="android_auto_favorites">Favorites</string>
+    <string name="android_auto_recent">Recently played</string>
+    <string name="android_auto_playlists">Playlists</string>
+    <string name="android_auto_unknown_album">Unknown album</string>
+    <string name="android_auto_artist_subtitle">%1$d albums • %2$d tracks</string>
+    <string name="android_auto_track_count">%1$d tracks</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">Open karaoke screen mirroring</string>
+    <string name="karaoke_cast_requires_lrc">A synchronized .lrc file is required for karaoke casting.</string>
+    <string name="audio_local_output_title">Local audio output</string>
+    <string name="audio_local_output_subtitle">Choose the phone, headphones, or a Bluetooth speaker</string>
+    <string name="audio_output_picker_unavailable">The audio output picker is not available on this device.</string>
+    <string name="audio_output_automatic">Automatic (system)</string>
+    <string name="audio_output_changed">Local audio output changed</string>
+    <string name="audio_output_change_failed">Unable to change the audio output</string>
+    <string name="karaoke_mirror_opened">Select your Chromecast in the Android panel. Long-press the button to choose the local audio output.</string>
+    <string name="karaoke_mirror_unavailable">Screen casting settings are unavailable on this device. Use the Cast screen Quick Settings tile.</string>
 </resources>

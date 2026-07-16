@@ -746,7 +746,7 @@ Code : %2$s</string>
     <string name="audio_back_to_albums">Retour aux albums</string>
     <string name="audio_back_to_albums_hint">Revenir à la vue complète de la bibliothèque</string>
     <string name="audio_play_album">Jouer tout l’album</string>
-    <string name="audio_add_album_queue">Ajouter file d’attente</string>
+    <string name="audio_add_album_queue">Ajouter à la file d’attente</string>
     <string name="audio_select_tracks">Sélectionner des pistes</string>
     <string name="audio_add_playlist_blaze_party">Ajouter la playlist à Blaze Party</string>
     <string name="audio_add_playlist_queue">Ajouter la playlist à la file d’attente</string>
@@ -865,4 +865,36 @@ Code : %2$s</string>
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Retour haptique</string>
     <string name="settings_haptic_feedback_desc">Activer une légère vibration lors de chaque clic dans l’application.</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">Votre bibliothèque musicale</string>
+    <string name="android_auto_premium_required">Blaze Audio Premium requis</string>
+    <string name="android_auto_premium_required_subtitle">Activez Pro+ depuis votre téléphone</string>
+    <string name="android_auto_albums">Albums</string>
+    <string name="android_auto_artists">Artistes</string>
+    <string name="android_auto_tracks">Titres</string>
+    <string name="android_auto_favorites">Favoris</string>
+    <string name="android_auto_recent">Récemment écoutés</string>
+    <string name="android_auto_playlists">Playlists</string>
+    <string name="android_auto_unknown_album">Album inconnu</string>
+    <string name="android_auto_artist_subtitle">%1$d albums • %2$d titres</string>
+    <string name="android_auto_track_count">%1$d titres</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="karaoke_sync_offset_value">Sync %1$s%2$d ms</string>
+    <string name="karaoke_sync_offset_default">Sync +300 ms</string>
+    <string name="content_desc_karaoke_sync_minus">Retarder les paroles de 50 millisecondes</string>
+    <string name="content_desc_karaoke_sync_plus">Avancer les paroles de 50 millisecondes</string>
+    <string name="content_desc_karaoke_cast">Ouvrir le partage d’écran karaoké</string>
+    <string name="karaoke_cast_requires_lrc">Un fichier .lrc synchronisé est nécessaire pour le Cast karaoké.</string>
+    <string name="audio_local_output_title">Sortie audio locale</string>
+    <string name="audio_local_output_subtitle">Choisir le téléphone, un casque ou une enceinte Bluetooth</string>
+    <string name="audio_output_picker_unavailable">Le sélecteur de sortie audio n’est pas disponible sur cet appareil.</string>
+    <string name="audio_output_automatic">Automatique (système)</string>
+    <string name="audio_output_changed">Sortie audio locale modifiée</string>
+    <string name="audio_output_change_failed">Impossible de modifier la sortie audio</string>
+    <string name="karaoke_mirror_opened">Sélectionnez votre Chromecast dans le panneau Android. Appui long sur le bouton pour choisir la sortie audio locale.</string>
+    <string name="karaoke_mirror_unavailable">Le panneau de partage d’écran n’est pas disponible sur cet appareil. Utilisez la tuile Caster l’écran dans les réglages rapides.</string>
 </resources>

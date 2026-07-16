@@ -114,6 +114,11 @@ class AudioPlayerFragment : Fragment() {
     private var lyricsJob: Job? = null
     private var currentLyricsPath: String = ""
     private var completedLyricsLookupPath: String = ""
+    private var karaokeAvailable: Boolean = false
+    private var karaokeLandscapeActive: Boolean = false
+    private var karaokeMirroringActive: Boolean = false
+    private var karaoKastSyncOffsetMs: Long = AudioProSettings.DEFAULT_KARAOKAST_SYNC_OFFSET_MS.toLong()
+    private var screenMirrorStateMonitor: fr.retrospare.blazeplayer.cast.SystemScreenMirrorStateMonitor? = null
     private var artworkLoadJob: Job? = null
     private var currentArtworkPath: String = ""
     private val mediaItemReplacementMutex = Mutex()
@@ -135,6 +140,7 @@ class AudioPlayerFragment : Fragment() {
                     currentLyrics = emptyList()
                     lastLyricsLine = null
                     lastLyricsOverlayKey = null
+                    updateKaraokeAvailability()
                 } else {
                     completedLyricsLookupPath = ""
                 }
@@ -145,6 +151,7 @@ class AudioPlayerFragment : Fragment() {
                     val path = controller?.currentMediaItem?.let { originalPathOf(it) }.orEmpty()
                     if (path.isNotBlank()) loadLyricsForCurrentTrack(path, force = true)
                 }
+                updateKaraokeAvailability()
                 applyAudioProInterfaceSettings()
                 updateLyricsLine(controller?.currentPosition ?: 0L)
             }
@@ -206,7 +213,7 @@ class AudioPlayerFragment : Fragment() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) startAudioVisualizer(pendingVisualizerSessionId)
-        else _binding?.audioEqualizerView?.setIdle()
+        else setAudioSpectrumIdle()
     }
 
     private val dancerFrames = listOf(
@@ -319,14 +326,30 @@ class AudioPlayerFragment : Fragment() {
         binding.artworkMetadataOverlay.radiusDp = 23f
         binding.ivArtwork.radiusDp = 23f
         binding.ivArtwork.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        binding.karaokeArtworkFrame.radiusDp = 23f
+        binding.karaokeArtworkOverlay.radiusDp = 23f
+        binding.ivKaraokeArtwork.radiusDp = 23f
+        binding.ivKaraokeArtwork.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        binding.karaokeLyricsView.setAccentColor(currentAccentColor)
         setupSquareArtwork()
         restoreStaticAudioControlColors()
         restorePersistedDynamicAudioColors()
         AudioProSettings.prefs(requireContext()).registerOnSharedPreferenceChangeListener(audioProPrefsListener)
+        refreshKaraoKastSyncOffset()
         applyAudioProInterfaceSettings()
+        updateKaraokeAvailability()
 
         initPlaylistUi()
         setupControls()
+        setupKaraokeCastControls()
+        binding.karaokeLyricsView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        binding.karaokeEqualizerView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        screenMirrorStateMonitor = fr.retrospare.blazeplayer.cast.SystemScreenMirrorStateMonitor(requireContext()) { active ->
+            if (_binding == null) return@SystemScreenMirrorStateMonitor
+            karaokeMirroringActive = active
+            applyKaraoKastRenderingMode()
+            updateKaraokeCastButtonState()
+        }
         binding.root.post { ButtonTextFitter.fitRecursively(binding.root, minSp = 9, maxSp = 13) }
         setupSeekBar()
         startProgressUpdate()
@@ -343,10 +366,21 @@ class AudioPlayerFragment : Fragment() {
         maybeResumeGuestPartySync()
         maybeOpenPendingBlazePartySheet()
         setupSavedPlaylistDrawers()
+        refreshKaraoKastSyncOffset()
         applyAudioProInterfaceSettings()
         syncSelection()
         syncMetadata()
         syncButtons()
+        updateKaraokeOrientationPolicy()
+        applyKaraokeLayoutForCurrentOrientation()
+        screenMirrorStateMonitor?.start()
+        screenMirrorStateMonitor?.refresh()
+        updateKaraokeCastButtonState()
+    }
+
+    override fun onPause() {
+        screenMirrorStateMonitor?.stop()
+        super.onPause()
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
@@ -360,15 +394,31 @@ class AudioPlayerFragment : Fragment() {
             syncSelection()
             syncMetadata()
             syncButtons()
+            updateKaraokeOrientationPolicy()
+            applyKaraokeLayoutForCurrentOrientation()
+            screenMirrorStateMonitor?.start()
+            screenMirrorStateMonitor?.refresh()
+            updateKaraokeCastButtonState()
         } else {
+            screenMirrorStateMonitor?.stop()
             (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(false)
+            setKaraokeLandscapeUi(false)
+            lockAudioPlayerToPortrait()
             updateLyricsKeepScreenOn(false)
         }
     }
 
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        _binding?.root?.post { applyKaraokeLayoutForCurrentOrientation() }
+    }
+
     override fun onDestroyView() {
+        screenMirrorStateMonitor?.stop()
+        screenMirrorStateMonitor = null
         artworkLoadJob?.cancel()
-        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        setKaraokeLandscapeUi(false)
+        lockAudioPlayerToPortrait()
         handler.removeCallbacksAndMessages(null)
         stopGuestPartyPolling()
         stopHostPartyRefresh()
@@ -391,6 +441,98 @@ class AudioPlayerFragment : Fragment() {
     }
 
 
+    // ── Mode karaoké paysage ──────────────────────────────────────────────────
+
+    /** Le paysage n'est autorisé que pour un vrai fichier LRC avec des time codes exploitables. */
+    private fun hasUsableKaraokeLyrics(data: AudioLocalEnhancements.LocalLyrics?): Boolean =
+        data?.isLrc == true && data.isSynced && data.lines.any { it.text.isNotBlank() }
+
+    private fun updateKaraokeAvailability() {
+        val b = _binding ?: return
+        val settings = AudioProSettings.read(requireContext())
+        karaokeAvailable = settings.syncedLyrics && settings.lyricsPlayer && hasUsableKaraokeLyrics(currentLyricsData)
+        b.karaokeLyricsView.setLyrics(if (karaokeAvailable) currentLyrics else emptyList())
+        b.karaokeLyricsView.setAccentColor(currentAccentColor)
+        b.standardLyricsView.setLyrics(currentLyrics)
+        b.standardLyricsView.setAccentColor(currentAccentColor)
+        updateKaraokeOrientationPolicy()
+        applyKaraokeLayoutForCurrentOrientation()
+        updateKaraokeCastButtonState()
+    }
+
+    private fun updateKaraokeOrientationPolicy() {
+        if (!isAdded) return
+        val canRotate = karaokeAvailable && !isHidden
+        val requested = if (canRotate) {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        } else {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+        val activity = requireActivity()
+        if (activity.requestedOrientation != requested) activity.requestedOrientation = requested
+    }
+
+    private fun lockAudioPlayerToPortrait() {
+        if (!isAdded) return
+        val activity = requireActivity()
+        if (activity.requestedOrientation != android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
+            activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
+
+    private fun applyKaraokeLayoutForCurrentOrientation() {
+        val landscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        setKaraokeLandscapeUi(karaokeAvailable && landscape && !isHidden)
+    }
+
+    private fun setKaraokeLandscapeUi(active: Boolean) {
+        val b = _binding ?: return
+        val expectedVisibility = if (active) View.VISIBLE else View.GONE
+        if (karaokeLandscapeActive == active && b.karaokeLandscapeRoot.visibility == expectedVisibility) {
+            if (active) {
+                b.karaokeLyricsView.updatePlaybackPosition(
+                    karaoKastLyricsPosition(controller?.currentPosition ?: 0L),
+                    controller?.isPlaying == true,
+                    controller?.playbackParameters?.speed ?: 1f
+                )
+            }
+            return
+        }
+        karaokeLandscapeActive = active
+        b.karaokeLandscapeRoot.visibility = if (active) View.VISIBLE else View.GONE
+        b.playerPanel.visibility = if (active) View.GONE else View.VISIBLE
+        if (active) {
+            b.playlistSheet.visibility = View.GONE
+            b.partyPlaylistSheet.visibility = View.GONE
+            b.karaokeLandscapeRoot.bringToFront()
+            b.karaokeLyricsView.setLyrics(currentLyrics)
+            b.karaokeLyricsView.setAccentColor(currentAccentColor)
+            b.karaokeLyricsView.updatePlaybackPosition(
+                    karaoKastLyricsPosition(controller?.currentPosition ?: 0L),
+                    controller?.isPlaying == true,
+                    controller?.playbackParameters?.speed ?: 1f
+                )
+            if (audioSpectrumEnabled) ensureAudioVisualizer() else setAudioSpectrumIdle()
+        }
+        // Recalcule immédiatement les vues actives. Cela coupe la boucle d'animation du moteur
+        // de paroles couvert et évite qu'il continue à invalider son canvas sous KaraoKast.
+        updateLyricsLine(controller?.currentPosition ?: 0L)
+        (parentFragment as? fr.retrospare.blazeplayer.home.HomeFragment)?.setKaraokeLandscapeActive(active)
+        val insetsController = androidx.core.view.WindowInsetsControllerCompat(requireActivity().window, requireActivity().window.decorView)
+        insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (active) {
+            insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        } else {
+            insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    private fun setAudioSpectrumIdle() {
+        _binding?.audioEqualizerView?.setIdle()
+        _binding?.karaokeEqualizerView?.setIdle()
+    }
+
+
     // ── MediaController ────────────────────────────────────────────────────────
 
 
@@ -403,10 +545,10 @@ class AudioPlayerFragment : Fragment() {
                     audioSpectrumEnabled = enabled
                     setAudioSpectrumOverlayVisible(enabled)
                     if (enabled) {
-                        if (controller?.isPlaying == true) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
+                        if (controller?.isPlaying == true) ensureAudioVisualizer() else setAudioSpectrumIdle()
                     } else {
                         stopAudioVisualizer()
-                        binding.audioEqualizerView.setIdle()
+                        setAudioSpectrumIdle()
                     }
                 }
         }
@@ -418,6 +560,7 @@ class AudioPlayerFragment : Fragment() {
         val hasVisibleLyrics = settings.syncedLyrics && settings.lyricsPlayer && currentLyrics.isNotEmpty()
         b.artworkMetadataOverlay.visibility = if (enabled || hasVisibleLyrics) View.VISIBLE else View.GONE
         b.audioEqualizerView.visibility = if (enabled) View.VISIBLE else View.GONE
+        b.karaokeEqualizerView.visibility = if (enabled) View.VISIBLE else View.GONE
         b.lyricsOverlay.visibility = if (hasVisibleLyrics) View.VISIBLE else View.GONE
         if (hasVisibleLyrics) b.lyricsOverlay.bringToFront()
     }
@@ -577,10 +720,11 @@ class AudioPlayerFragment : Fragment() {
                 else if (isPlaying) playlistAdapter.setPlayingIndex(idx)
                 else playlistAdapter.setPlayingIndex(-1)
                 partyPlaylistAdapter.setCurrentPath(if (isPlaying && idx in 0 until ctrl.mediaItemCount) originalPathOf(ctrl.getMediaItemAt(idx)) else null)
+                updateLyricsLine(ctrl.currentPosition)
                 if (!audioSpectrumEnabled) {
                     stopAudioVisualizer()
-                    binding.audioEqualizerView.setIdle()
-                } else if (isPlaying) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
+                    setAudioSpectrumIdle()
+                } else if (isPlaying) ensureAudioVisualizer() else setAudioSpectrumIdle()
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -607,7 +751,7 @@ class AudioPlayerFragment : Fragment() {
                     playlistAdapter.setPlayingIndex(if (ctrl.isPlaying) idx else -1)
                 }
                 partyPlaylistAdapter.setCurrentPath(if (ctrl.isPlaying) newPartyPath else null)
-                if (audioSpectrumEnabled) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
+                if (audioSpectrumEnabled) ensureAudioVisualizer() else setAudioSpectrumIdle()
             }
 
             override fun onEvents(player: Player, events: Player.Events) {
@@ -626,13 +770,13 @@ class AudioPlayerFragment : Fragment() {
             }
         })
 
-        if (audioSpectrumEnabled) ensureAudioVisualizer() else binding.audioEqualizerView.setIdle()
+        if (audioSpectrumEnabled) ensureAudioVisualizer() else setAudioSpectrumIdle()
     }
 
     private fun ensureAudioVisualizer() {
         if (!audioSpectrumEnabled || _binding == null) {
             stopAudioVisualizer()
-            _binding?.audioEqualizerView?.setIdle()
+            setAudioSpectrumIdle()
             return
         }
         val ctrl = controller ?: return
@@ -645,7 +789,7 @@ class AudioPlayerFragment : Fragment() {
                 future.get().extras.getInt(BlazePlayerService.EXTRA_AUDIO_SESSION_ID, 0)
             } catch (_: Exception) { 0 }
             if (sessionId != 0) startAudioVisualizer(sessionId)
-            else binding.audioEqualizerView.setIdle()
+            else setAudioSpectrumIdle()
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
@@ -657,7 +801,7 @@ class AudioPlayerFragment : Fragment() {
         ) {
             val prefs = requireContext().getSharedPreferences("blaze_runtime_permissions", android.content.Context.MODE_PRIVATE)
             if (prefs.getBoolean("audio_permissions_prompted", false)) {
-                _binding?.audioEqualizerView?.setIdle()
+                setAudioSpectrumIdle()
                 return
             }
             prefs.edit().putBoolean("audio_permissions_prompted", true).apply()
@@ -668,11 +812,19 @@ class AudioPlayerFragment : Fragment() {
         currentVisualizerSessionId = sessionId
         try {
             AudioFftStream.attach("audio-player-fullscreen", sessionId) { fft ->
-                _binding?.audioEqualizerView?.takeIf { it.isShown }?.updateFft(fft)
+                _binding?.let { b ->
+                    // Un seul visualiseur reçoit la FFT. Envoyer chaque trame aux deux vues
+                    // doublait les calculs et les invalidations pendant le screen mirroring.
+                    if (karaokeLandscapeActive) {
+                        b.karaokeEqualizerView.takeIf { it.isShown }?.updateFft(fft)
+                    } else {
+                        b.audioEqualizerView.takeIf { it.isShown }?.updateFft(fft)
+                    }
+                }
             }
         } catch (e: Exception) {
             CrashReporter.log(requireContext(), "Audio visualizer failed", e)
-            _binding?.audioEqualizerView?.setIdle()
+            setAudioSpectrumIdle()
             stopAudioVisualizer()
         }
     }
@@ -684,25 +836,70 @@ class AudioPlayerFragment : Fragment() {
 
     // ── Sync UI depuis MediaController (source unique) ─────────────────────────
 
-    /** Les enrichissements de queue pouvaient remplacer plusieurs MediaItem à la même milliseconde,
-     * ce qui forçait Media3 à republier la notification plus de six fois par seconde. Android
-     * finissait alors par jeter des mises à jour (`NotificationService: shedding`). */
+    /**
+     * Ne modifie jamais les éléments non courants de la timeline uniquement pour y ajouter une
+     * pochette. Android Auto expose directement cette timeline comme file d'attente : chaque
+     * replaceMediaItem() oblige le DHU à reconstruire la liste et lui fait perdre sa position de
+     * défilement. Les titres non courants conservent donc leur MediaItem stable ; leurs pochettes
+     * restent chargées directement par les adapters/caches de l'application.
+     *
+     * Le morceau courant peut encore recevoir une mise à jour visuelle, mais uniquement si les
+     * métadonnées ont réellement changé. Le service audio applique déjà la même pochette à la
+     * notification et à Android Auto lors de la transition du morceau.
+     */
     private suspend fun replaceMediaItemRateLimited(
         ctrl: MediaController,
         index: Int,
         enriched: MediaItem
     ): Boolean = mediaItemReplacementMutex.withLock {
+        // Toute mutation de MediaItem republie la timeline Media3. Tant que la file Android Auto
+        // est réellement affichée, les pochettes du player téléphone restent chargées directement
+        // dans les vues et ne doivent pas reconstruire la liste automobile.
+        if (AndroidAutoConnectionState.isQueueVisible) return@withLock false
+        if (index !in 0 until ctrl.mediaItemCount) return@withLock false
+        if (index != ctrl.currentMediaItemIndex) return@withLock false
+
+        val current = ctrl.getMediaItemAt(index)
+        val expectedPath = originalPathOf(enriched)
+        if (expectedPath.isNotBlank() && originalPathOf(current) != expectedPath) {
+            return@withLock false
+        }
+        if (!hasMeaningfulMediaMetadataChange(current, enriched)) return@withLock false
+
         val elapsed = SystemClock.elapsedRealtime() - lastMediaItemReplacementAtMs
         val waitMs = (220L - elapsed).coerceAtLeast(0L)
         if (waitMs > 0L) delay(waitMs)
-        if (index !in 0 until ctrl.mediaItemCount) return@withLock false
-        val expectedPath = originalPathOf(enriched)
+        if (AndroidAutoConnectionState.isQueueVisible) return@withLock false
+        if (index !in 0 until ctrl.mediaItemCount || index != ctrl.currentMediaItemIndex) {
+            return@withLock false
+        }
         if (expectedPath.isNotBlank() && originalPathOf(ctrl.getMediaItemAt(index)) != expectedPath) {
             return@withLock false
         }
+        if (!hasMeaningfulMediaMetadataChange(ctrl.getMediaItemAt(index), enriched)) {
+            return@withLock false
+        }
+
         ctrl.replaceMediaItem(index, enriched)
         lastMediaItemReplacementAtMs = SystemClock.elapsedRealtime()
         true
+    }
+
+    private fun hasMeaningfulMediaMetadataChange(current: MediaItem, enriched: MediaItem): Boolean {
+        val currentMeta = current.mediaMetadata
+        val enrichedMeta = enriched.mediaMetadata
+        if (currentMeta.title?.toString() != enrichedMeta.title?.toString()) return true
+        if (currentMeta.artist?.toString() != enrichedMeta.artist?.toString()) return true
+        if (currentMeta.albumTitle?.toString() != enrichedMeta.albumTitle?.toString()) return true
+        if (currentMeta.artworkUri != enrichedMeta.artworkUri) return true
+
+        val currentArtwork = currentMeta.artworkData
+        val enrichedArtwork = enrichedMeta.artworkData
+        return when {
+            currentArtwork == null && enrichedArtwork == null -> false
+            currentArtwork == null || enrichedArtwork == null -> true
+            else -> !currentArtwork.contentEquals(enrichedArtwork)
+        }
     }
 
     private fun syncSelection() {
@@ -779,9 +976,11 @@ class AudioPlayerFragment : Fragment() {
             ?: AudioArtworkResolver.cachedBitmap(requireContext(), path, preferredArtworkPath)
         if (immediateBitmap != null) {
             _binding?.ivArtwork?.setImageBitmap(immediateBitmap)
+            _binding?.ivKaraokeArtwork?.setImageBitmap(immediateBitmap)
             applyDynamicBackgroundFromBitmap(immediateBitmap)
         } else if (pathChanged) {
             _binding?.ivArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_thumbnail)
+            _binding?.ivKaraokeArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_thumbnail)
             resetDynamicBackground()
         }
 
@@ -795,6 +994,7 @@ class AudioPlayerFragment : Fragment() {
                         if (originalPathOf(current) != path || currentArtworkPath != artworkKey) return@launch
                         val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@launch
                         _binding?.ivArtwork?.setImageBitmap(bitmap)
+                        _binding?.ivKaraokeArtwork?.setImageBitmap(bitmap)
                         applyDynamicBackgroundFromBitmap(bitmap)
                         val enrichedMeta = current.mediaMetadata.buildUpon()
                             .setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
@@ -842,6 +1042,16 @@ class AudioPlayerFragment : Fragment() {
         }
         b.tvTitleArtist.setTextColor(primary)
         b.tvTitleArtist.text = line
+
+        // Le mode karaoké reprend exactement les métadonnées déjà normalisées par
+        // AudioLibraryHeuristics pour le player portrait : morceau d'abord, artiste ensuite.
+        // Elles sont affichées séparément sur la cover afin de ne plus occuper la colonne paroles.
+        b.tvKaraokeTitle.text = title
+        b.tvKaraokeTitle.setTextColor(Color.WHITE)
+        b.tvKaraokeArtist.text = artist
+        b.tvKaraokeArtist.setTextColor(currentAccentColor)
+        b.tvKaraokeArtist.visibility = if (artist.isBlank()) View.GONE else View.VISIBLE
+
         b.tvAlbum.setTextColor(secondary)
         b.tvAlbum.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
     }
@@ -887,6 +1097,7 @@ class AudioPlayerFragment : Fragment() {
         // marges restent noires et donnent deux bandes de chaque côté du lecteur.
         b.root.background = buildAudioPlayerBackground(color)
         b.playerPanel.background = buildAudioPlayerBackground(color)
+        b.karaokeLandscapeRoot.background = buildAudioPlayerBackground(color)
     }
 
     private fun animateDynamicBackground(targetColor: Int, accentColor: Int = currentAccentColor) {
@@ -911,6 +1122,7 @@ class AudioPlayerFragment : Fragment() {
             applyAudioPlayerBackground(targetColor)
         }
         currentAccentColor = accentColor
+        updateKaraokeCastButtonState()
         val tint = ColorStateList.valueOf(accentColor)
         _binding?.seekBar?.progressTintList = tint
         _binding?.seekBar?.thumbTintList = tint
@@ -919,7 +1131,9 @@ class AudioPlayerFragment : Fragment() {
         _binding?.btnPlayPause?.elevation = dp(10f)
         _binding?.btnPlayPause?.translationZ = dp(6f)
         _binding?.audioEqualizerView?.setAccentColor(accentColor)
-        _binding?.tvLyricsCurrent?.setTextColor(accentColor)
+        _binding?.karaokeEqualizerView?.setAccentColor(accentColor)
+        _binding?.karaokeLyricsView?.setAccentColor(accentColor)
+        _binding?.standardLyricsView?.setAccentColor(accentColor)
         applyArtworkAccentBorder(accentColor)
         restoreStaticAudioControlColors()
         persistDynamicAudioColors(targetColor, accentColor)
@@ -940,6 +1154,7 @@ class AudioPlayerFragment : Fragment() {
         val bg = AudioDynamicColor.backgroundFromAccent(accent)
         currentDynamicBgColor = bg
         currentAccentColor = accent
+        updateKaraokeCastButtonState()
         applyAudioPlayerBackground(bg)
         val tint = ColorStateList.valueOf(accent)
         _binding?.seekBar?.progressTintList = tint
@@ -949,7 +1164,9 @@ class AudioPlayerFragment : Fragment() {
         _binding?.btnPlayPause?.elevation = dp(10f)
         _binding?.btnPlayPause?.translationZ = dp(6f)
         _binding?.audioEqualizerView?.setAccentColor(accent)
-        _binding?.tvLyricsCurrent?.setTextColor(accent)
+        _binding?.karaokeEqualizerView?.setAccentColor(accent)
+        _binding?.karaokeLyricsView?.setAccentColor(accent)
+        _binding?.standardLyricsView?.setAccentColor(accent)
         applyArtworkAccentBorder(accent)
         restoreStaticAudioControlColors()
         updateCombinedTitleArtist()
@@ -969,10 +1186,13 @@ class AudioPlayerFragment : Fragment() {
         val b = _binding ?: return
         if (!AudioProSettings.read(requireContext()).coverBorder) {
             b.artworkFrame.foreground = null
+            b.karaokeArtworkFrame.foreground = null
             return
         }
         b.artworkFrame.foreground = buildArtworkAccentBorder(accentColor)
         b.artworkFrame.foregroundGravity = Gravity.FILL
+        b.karaokeArtworkFrame.foreground = buildArtworkAccentBorder(accentColor)
+        b.karaokeArtworkFrame.foregroundGravity = Gravity.FILL
     }
 
     private fun buildArtworkAccentBorder(accentColor: Int): LayerDrawable {
@@ -2177,6 +2397,148 @@ class AudioPlayerFragment : Fragment() {
         }
     }
 
+    // ── Mirroring karaoké natif ─────────────────────────────────────────────
+
+    private fun setupKaraokeCastControls() {
+        binding.btnKaraokeCast.setOnClickListener { openSystemKaraokeMirror() }
+        binding.btnKaraokeCastLandscape.setOnClickListener { openSystemKaraokeMirror() }
+        binding.btnKaraokeSyncMinus.setOnClickListener { adjustKaraoKastSyncOffset(-AudioProSettings.KARAOKAST_SYNC_STEP_MS) }
+        binding.btnKaraokeSyncPlus.setOnClickListener { adjustKaraoKastSyncOffset(AudioProSettings.KARAOKAST_SYNC_STEP_MS) }
+        binding.tvKaraokeSyncOffset.setOnLongClickListener {
+            setKaraoKastSyncOffset(AudioProSettings.DEFAULT_KARAOKAST_SYNC_OFFSET_MS.toLong())
+            true
+        }
+        updateKaraoKastSyncOffsetUi()
+
+        // Raccourci pratique : un appui long permet de choisir la sortie locale sans quitter
+        // le lecteur. Le mirroring reste géré par Android, la musique par l'ExoPlayer local.
+        binding.btnKaraokeCast.setOnLongClickListener {
+            LocalAudioOutputDialog.show(requireActivity())
+            true
+        }
+        binding.btnKaraokeCastLandscape.setOnLongClickListener {
+            LocalAudioOutputDialog.show(requireActivity())
+            true
+        }
+    }
+
+    private fun refreshKaraoKastSyncOffset() {
+        if (!isAdded) return
+        karaoKastSyncOffsetMs = AudioProSettings.karaoKastSyncOffsetMs(requireContext())
+        updateKaraoKastSyncOffsetUi()
+    }
+
+    private fun adjustKaraoKastSyncOffset(deltaMs: Int) {
+        setKaraoKastSyncOffset(karaoKastSyncOffsetMs + deltaMs)
+    }
+
+    private fun setKaraoKastSyncOffset(valueMs: Long) {
+        if (!isAdded) return
+        karaoKastSyncOffsetMs = AudioProSettings.setKaraoKastSyncOffsetMs(requireContext(), valueMs)
+        updateKaraoKastSyncOffsetUi()
+        updateLyricsLine(controller?.currentPosition ?: 0L)
+    }
+
+    private fun updateKaraoKastSyncOffsetUi() {
+        val b = _binding ?: return
+        val sign = if (karaoKastSyncOffsetMs >= 0L) "+" else ""
+        b.tvKaraokeSyncOffset.text = getString(
+            R.string.karaoke_sync_offset_value,
+            sign,
+            karaoKastSyncOffsetMs
+        )
+        b.btnKaraokeSyncMinus.isEnabled =
+            karaoKastSyncOffsetMs > AudioProSettings.MIN_KARAOKAST_SYNC_OFFSET_MS.toLong()
+        b.btnKaraokeSyncPlus.isEnabled =
+            karaoKastSyncOffsetMs < AudioProSettings.MAX_KARAOKAST_SYNC_OFFSET_MS.toLong()
+    }
+
+    /**
+     * Le mirroring affiche les images après un délai d'encodage, de transport et de mise en
+     * mémoire tampon. On avance uniquement l'horloge visuelle des paroles pour compenser ce délai
+     * sans dégrader la réactivité ni la qualité de la sortie audio locale.
+     */
+    private fun karaoKastLyricsPosition(positionMs: Long): Long =
+        if (karaokeMirroringActive) (positionMs + karaoKastSyncOffsetMs).coerceAtLeast(0L)
+        else positionMs
+
+    /**
+     * Le bouton reste gris lorsque le mirroring est inactif et adopte la couleur dynamique de la
+     * pochette uniquement lorsqu'une route vidéo distante est réellement détectée.
+     */
+    private fun updateKaraokeCastButtonState() {
+        val b = _binding ?: return
+        val inactiveColor = ContextCompat.getColor(requireContext(), R.color.on_surface_variant)
+        val color = if (karaokeMirroringActive) currentAccentColor else inactiveColor
+        val alpha = when {
+            karaokeMirroringActive -> 1f
+            karaokeAvailable -> 0.86f
+            else -> 0.58f
+        }
+
+        b.ivKaraokeCast.setColorFilter(color)
+        b.tvKaraokeCast.setTextColor(color)
+        b.btnKaraokeCast.alpha = alpha
+        b.btnKaraokeCast.isSelected = karaokeMirroringActive
+        b.btnKaraokeCast.isActivated = karaokeMirroringActive
+
+        b.btnKaraokeCastLandscape.setColorFilter(color)
+        b.btnKaraokeCastLandscape.alpha = alpha
+        b.btnKaraokeCastLandscape.isSelected = karaokeMirroringActive
+        b.btnKaraokeCastLandscape.isActivated = karaokeMirroringActive
+    }
+
+    /**
+     * Le mirroring natif compresse toute la surface de l'écran en temps réel. Pendant KaraoKast,
+     * on aligne les animations sur 30 i/s et on retire les effets de texte les plus coûteux afin de
+     * réduire les images perdues et la chauffe. La compensation LRC KaraoKast reste indépendante.
+     */
+    private fun applyKaraoKastRenderingMode() {
+        val b = _binding ?: return
+        b.karaokeLyricsView.setKaraoKastPerformanceMode(karaokeMirroringActive)
+        b.standardLyricsView.setKaraoKastPerformanceMode(karaokeMirroringActive)
+        b.karaokeEqualizerView.setKaraoKastPerformanceMode(karaokeMirroringActive)
+        b.audioEqualizerView.setKaraoKastPerformanceMode(karaokeMirroringActive)
+    }
+
+    private fun openSystemKaraokeMirror() {
+        if (!karaokeAvailable) {
+            android.widget.Toast.makeText(
+                requireContext(),
+                getString(R.string.karaoke_cast_requires_lrc),
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        // Active immédiatement le profil de rendu léger. Le détecteur système confirmera ou
+        // annulera cet état au retour dans l'application, mais on évite ainsi plusieurs secondes
+        // de rendu à fréquence native pendant l'établissement de la projection.
+        karaokeMirroringActive = true
+        applyKaraoKastRenderingMode()
+        updateKaraokeCastButtonState()
+
+        when (fr.retrospare.blazeplayer.cast.SystemScreenMirrorLauncher.open(requireActivity())) {
+            fr.retrospare.blazeplayer.cast.SystemScreenMirrorLauncher.Result.OPENED -> {
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    getString(R.string.karaoke_mirror_opened),
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+            fr.retrospare.blazeplayer.cast.SystemScreenMirrorLauncher.Result.UNAVAILABLE -> {
+                karaokeMirroringActive = false
+                applyKaraoKastRenderingMode()
+                updateKaraokeCastButtonState()
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    getString(R.string.karaoke_mirror_unavailable),
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
     // ── Contrôles ─────────────────────────────────────────────────────────────
 
     private fun setupControls() {
@@ -2321,14 +2683,17 @@ class AudioPlayerFragment : Fragment() {
         val hasLyrics = lyricsEnabled && currentLyrics.isNotEmpty()
         b.artworkMetadataOverlay.visibility = if (audioSpectrumEnabled || hasLyrics) View.VISIBLE else View.GONE
         b.audioEqualizerView.visibility = if (audioSpectrumEnabled) View.VISIBLE else View.GONE
-        if (!settings.coverBorder) b.artworkFrame.foreground = null else applyArtworkAccentBorder(currentAccentColor)
+        b.karaokeEqualizerView.visibility = if (audioSpectrumEnabled) View.VISIBLE else View.GONE
+        if (!settings.coverBorder) {
+            b.artworkFrame.foreground = null
+            b.karaokeArtworkFrame.foreground = null
+        } else applyArtworkAccentBorder(currentAccentColor)
         b.lyricsOverlay.visibility = if (hasLyrics) View.VISIBLE else View.GONE
         if (hasLyrics) b.lyricsOverlay.bringToFront()
         if (!lyricsEnabled) {
             lastLyricsLine = null
             lastLyricsOverlayKey = null
-            b.tvLyricsCurrent.visibility = View.GONE
-            b.tvLyricsNext.visibility = View.GONE
+            b.standardLyricsView.visibility = View.GONE
             updateLyricsKeepScreenOn(false)
         } else if (hasLyrics) {
             updateLyricsLine(controller?.currentPosition ?: 0L)
@@ -2417,6 +2782,7 @@ class AudioPlayerFragment : Fragment() {
             currentLyrics = emptyList()
             lastLyricsLine = null
             lastLyricsOverlayKey = null
+            updateKaraokeAvailability()
             updateLyricsLine(controller?.currentPosition ?: 0L)
             applyAudioProInterfaceSettings()
             return
@@ -2435,6 +2801,7 @@ class AudioPlayerFragment : Fragment() {
         currentLyrics = emptyList()
         lastLyricsLine = null
         lastLyricsOverlayKey = null
+        updateKaraokeAvailability()
         updateLyricsLine(controller?.currentPosition ?: 0L)
 
         val appContext = requireContext().applicationContext
@@ -2449,6 +2816,7 @@ class AudioPlayerFragment : Fragment() {
                 currentLyrics = loaded?.lines.orEmpty()
                 lastLyricsLine = null
                 lastLyricsOverlayKey = null
+                updateKaraokeAvailability()
                 updateLyricsLine(controller?.currentPosition ?: 0L)
                 applyAudioProInterfaceSettings()
             }
@@ -2457,43 +2825,37 @@ class AudioPlayerFragment : Fragment() {
 
     private fun updateLyricsLine(positionMs: Long) {
         val b = _binding ?: return
+        val isPlaying = controller?.isPlaying == true
+        val speed = controller?.playbackParameters?.speed ?: 1f
+        if (karaokeLandscapeActive) {
+            b.karaokeLyricsView.updatePlaybackPosition(karaoKastLyricsPosition(positionMs), isPlaying, speed)
+            // Stoppe explicitement l'animation de la vue portrait cachée.
+            b.standardLyricsView.updatePlaybackPosition(positionMs, false, speed)
+        } else {
+            b.standardLyricsView.updatePlaybackPosition(positionMs, isPlaying, speed)
+            // Stoppe explicitement l'animation de la vue karaoké cachée.
+            b.karaokeLyricsView.updatePlaybackPosition(positionMs, false, speed)
+        }
+
         val settings = AudioProSettings.read(requireContext())
         if (!settings.syncedLyrics || !settings.lyricsPlayer || currentLyrics.isEmpty()) {
             if (b.lyricsOverlay.visibility != View.GONE) b.lyricsOverlay.visibility = View.GONE
-            b.tvLyricsCurrent.visibility = View.GONE
-            b.tvLyricsNext.visibility = View.GONE
+            b.standardLyricsView.visibility = View.GONE
             lastLyricsLine = null
             lastLyricsOverlayKey = null
             updateLyricsKeepScreenOn(false)
             return
         }
 
-        val pair = lyricsOverlayPairForPosition(positionMs)
-        val current = pair.first.trim()
-        val next = pair.second.trim()
-        if (current.isBlank()) {
+        if (karaokeLandscapeActive) {
+            b.standardLyricsView.visibility = View.GONE
             b.lyricsOverlay.visibility = View.GONE
-            b.tvLyricsCurrent.visibility = View.GONE
-            b.tvLyricsNext.visibility = View.GONE
-            lastLyricsLine = null
-            lastLyricsOverlayKey = null
-            updateLyricsKeepScreenOn(false)
-            return
+        } else {
+            b.standardLyricsView.visibility = View.VISIBLE
+            b.standardLyricsView.setAccentColor(currentAccentColor)
+            b.lyricsOverlay.visibility = View.VISIBLE
+            b.lyricsOverlay.bringToFront()
         }
-
-        val key = current + "\u0001" + next
-        if (key != lastLyricsOverlayKey) {
-            b.tvLyricsCurrent.text = current
-            b.tvLyricsNext.text = next
-            b.tvLyricsCurrent.visibility = View.VISIBLE
-            b.tvLyricsNext.visibility = if (next.isBlank()) View.GONE else View.VISIBLE
-            lastLyricsLine = current
-            lastLyricsOverlayKey = key
-        }
-        b.tvLyricsCurrent.setTextColor(currentAccentColor)
-        b.tvLyricsNext.setTextColor(Color.argb(220, 255, 255, 255))
-        b.lyricsOverlay.visibility = View.VISIBLE
-        b.lyricsOverlay.bringToFront()
         updateLyricsKeepScreenOn(true)
     }
 

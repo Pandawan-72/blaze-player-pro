@@ -637,10 +637,10 @@ class AudioLibraryActivity : AppCompatActivity() {
         val current = currentWatchedFolderMap()
         val removed = knownWatchedFolders.filterKeys { it !in current }.values.toList()
         val added = current.filterKeys { it !in knownWatchedFolders }.values.toList()
-        val autoScanEnabled = AudioProSettings.read(this).autoScan
-        // Si le scan automatique est coupé, le drapeau reste en attente : il sera consommé lors
-        // de la réactivation ou d'un prochain retour avec l'option active.
-        val pendingRefresh = if (autoScanEnabled) AudioProSettings.consumeLibraryRefreshPending(this) else false
+        // L'ajout d'un dossier déclenche toujours son indexage initial. Le réglage
+        // « Scanner automatiquement » ne doit désactiver que les rescans périodiques, sinon une
+        // bibliothèque nouvellement ajoutée reste vide jusqu'à un clic manuel sur Actualiser.
+        val pendingRefresh = AudioProSettings.consumeLibraryRefreshPending(this)
         knownWatchedFolders = current
 
         if (removed.isNotEmpty()) {
@@ -648,7 +648,7 @@ class AudioLibraryActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.audio_watched_folder_removed), Toast.LENGTH_SHORT).show()
         }
         if (removed.isNotEmpty() || added.isNotEmpty() || pendingRefresh) updateWatchedSummary()
-        if (autoScanEnabled && (added.isNotEmpty() || pendingRefresh) && current.isNotEmpty()) {
+        if ((added.isNotEmpty() || pendingRefresh) && current.isNotEmpty()) {
             requestAutomaticLibraryRefresh(force = true)
         }
     }
@@ -758,24 +758,22 @@ class AudioLibraryActivity : AppCompatActivity() {
             .also { DialogButtonStyler.style(it) }
     }
 
-    private fun showAlbumOverflowActions(album: LibraryAlbum, tracks: List<LibraryTrack>) {
+    private fun showAlbumCoverActions(album: LibraryAlbum, tracks: List<LibraryTrack>) {
         val ordered = tracks.distinctBy { it.path }
         if (ordered.isEmpty()) {
             Toast.makeText(this, R.string.audio_no_music, Toast.LENGTH_SHORT).show()
             return
         }
         val options = arrayOf(
-            getString(R.string.audio_add_album_queue),
-            getString(R.string.audio_add_track_playlist),
-            getString(R.string.audio_add_track_blaze_party)
+            getString(R.string.audio_play_album),
+            getString(R.string.audio_add_album_queue)
         )
         AlertDialog.Builder(this)
             .setTitle(album.title)
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> appendTracksToAudioQueue(ordered)
-                    1 -> showAlbumPlaylistChoiceDialog(album, ordered)
-                    else -> addTracksToBlazeParty(ordered)
+                    0 -> playAlbumNow(ordered)
+                    1 -> appendTracksToAudioQueue(ordered)
                 }
             }
             .setNegativeButton(getString(R.string.action_cancel), null)
@@ -1712,6 +1710,11 @@ class AudioLibraryActivity : AppCompatActivity() {
                 sub.visibility = if (sub.text.isBlank()) View.GONE else View.VISIBLE
                 meta.text = albumTrackCountText(album)
                 itemView.setOnClickListener { openAlbumDetailView(album) }
+                cover.setOnClickListener { openAlbumDetailView(album) }
+                cover.setOnLongClickListener {
+                    showAlbumCoverActions(album, albumPlaybackTracks(album))
+                    true
+                }
                 bindArtwork(cover, album.tracks.firstOrNull()?.copy(artworkPath = album.artworkPath) ?: return)
             }
         }

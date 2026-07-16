@@ -184,7 +184,7 @@
                     android:clipChildren="true"
                     android:clipToPadding="true">
 
-                    <LinearLayout
+                    <FrameLayout
                         android:id="@+id/lyricsOverlay"
                         android:layout_width="match_parent"
                         android:layout_height="142dp"
@@ -192,50 +192,18 @@
                         android:background="@drawable/bg_audio_lyrics_top_overlay"
                         android:clipChildren="true"
                         android:clipToPadding="true"
-                        android:gravity="top|center_horizontal"
-                        android:orientation="vertical"
                         android:paddingHorizontal="18dp"
                         android:paddingTop="12dp"
                         android:paddingBottom="16dp"
                         android:visibility="gone">
 
-                        <TextView
-                            android:id="@+id/tvLyricsCurrent"
+                        <fr.retrospare.blazeplayer.player.StandardLyricsOverlayView
+                            android:id="@+id/standardLyricsView"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-condensed"
-                            android:gravity="center"
-                            android:includeFontPadding="false"
-                            android:lineSpacingExtra="1dp"
-                            android:maxLines="2"
-                            android:shadowColor="#CC000000"
-                            android:shadowDx="0"
-                            android:shadowDy="1"
-                            android:shadowRadius="4"
-                            android:textColor="@color/on_surface"
-                            android:textSize="15sp"
-                            android:textStyle="bold"
-                            android:visibility="gone" />
+                            android:layout_height="match_parent"
+                            android:importantForAccessibility="yes" />
 
-                        <TextView
-                            android:id="@+id/tvLyricsNext"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="7dp"
-                            android:fontFamily="sans-serif-condensed"
-                            android:gravity="center"
-                            android:includeFontPadding="false"
-                            android:lineSpacingExtra="1dp"
-                            android:maxLines="2"
-                            android:shadowColor="#BB000000"
-                            android:shadowDx="0"
-                            android:shadowDy="1"
-                            android:shadowRadius="4"
-                            android:textColor="@color/on_surface_variant"
-                            android:textSize="13sp"
-                            android:visibility="gone" />
-
-                    </LinearLayout>
+                    </FrameLayout>
 
                     <FrameLayout
                         android:layout_width="match_parent"
@@ -483,7 +451,7 @@
 
         </LinearLayout>
 
-        <!-- BOUTONS SECONDAIRES : EQ / SLEEP / INFOS -->
+        <!-- BOUTONS SECONDAIRES : EQ / SLEEP / PAROLES / CAST KARAOKÉ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="72dp"
@@ -591,6 +559,50 @@
 
             </LinearLayout>
 
+            <!-- Separateur vertical -->
+            <View
+                android:layout_width="1dp"
+                android:layout_height="32dp"
+                android:background="#22FFFFFF" />
+
+            <LinearLayout
+                android:id="@+id/btnKaraokeCast"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground">
+
+                <FrameLayout
+                    android:layout_width="24dp"
+                    android:layout_height="24dp">
+
+                    <ImageView
+                        android:id="@+id/ivKaraokeCast"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_cast"
+                        android:tint="@color/on_surface_variant"
+                        android:contentDescription="@string/content_desc_karaoke_cast" />
+
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/tvKaraokeCast"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/audio_karaoke_cast"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-condensed"
+                    android:layout_marginTop="3dp" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
 
@@ -599,6 +611,222 @@
         <View android:id="@+id/ivPixelCharLeft" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
 
     </LinearLayout>
+
+    <!-- MODE KARAOKÉ PAYSAGE : rendu uniquement lorsqu'un fichier LRC synchronisé est trouvé. -->
+    <FrameLayout
+        android:id="@+id/karaokeLandscapeRoot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_audio_glass_panel"
+        android:paddingStart="24dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="18dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layoutDirection="ltr"
+            android:baselineAligned="false">
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="0.92"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:padding="12dp">
+
+                <fr.retrospare.blazeplayer.player.KaraokeArtworkFrameLayout
+                    android:id="@+id/karaokeArtworkFrame"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_audio_artwork_elevation"
+                    android:clipChildren="true"
+                    android:clipToPadding="true"
+                    android:elevation="18dp"
+                    android:outlineProvider="background"
+                    android:translationZ="12dp">
+
+                    <fr.retrospare.blazeplayer.ui.RoundedImageView
+                        android:id="@+id/ivKaraokeArtwork"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:adjustViewBounds="false"
+                        android:contentDescription="@null"
+                        android:scaleType="centerCrop" />
+
+                    <fr.retrospare.blazeplayer.ui.ArtworkMetadataOverlayLayout
+                        android:id="@+id/karaokeArtworkOverlay"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:clipChildren="true"
+                        android:clipToPadding="true">
+
+                        <LinearLayout
+                            android:id="@+id/karaokeMetadataOverlay"
+                            android:layout_width="match_parent"
+                            android:layout_height="132dp"
+                            android:layout_gravity="top"
+                            android:background="@drawable/bg_audio_lyrics_top_overlay"
+                            android:gravity="top|center_horizontal"
+                            android:orientation="vertical"
+                            android:paddingStart="22dp"
+                            android:paddingTop="18dp"
+                            android:paddingEnd="22dp"
+                            android:paddingBottom="18dp">
+
+                            <TextView
+                                android:id="@+id/tvKaraokeTitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-condensed"
+                                android:gravity="center"
+                                android:textAlignment="center"
+                                android:includeFontPadding="false"
+                                android:maxLines="2"
+                                android:shadowColor="#E6000000"
+                                android:shadowDx="0"
+                                android:shadowDy="1"
+                                android:shadowRadius="5"
+                                android:textColor="@android:color/white"
+                                android:textSize="25sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvKaraokeArtist"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="7dp"
+                                android:ellipsize="end"
+                                android:fontFamily="sans-serif-condensed"
+                                android:gravity="center"
+                                android:textAlignment="center"
+                                android:includeFontPadding="false"
+                                android:maxLines="1"
+                                android:shadowColor="#E6000000"
+                                android:shadowDx="0"
+                                android:shadowDy="1"
+                                android:shadowRadius="5"
+                                android:textColor="@color/on_surface_variant"
+                                android:textSize="18sp"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+
+                        <FrameLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="112dp"
+                            android:layout_gravity="bottom"
+                            android:clipChildren="true"
+                            android:clipToPadding="true"
+                            android:paddingStart="18dp"
+                            android:paddingTop="14dp"
+                            android:paddingEnd="18dp"
+                            android:paddingBottom="14dp">
+
+                            <fr.retrospare.blazeplayer.player.AudioEqualizerView
+                                android:id="@+id/karaokeEqualizerView"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:importantForAccessibility="no" />
+
+                        </FrameLayout>
+
+                    </fr.retrospare.blazeplayer.ui.ArtworkMetadataOverlayLayout>
+
+                </fr.retrospare.blazeplayer.player.KaraokeArtworkFrameLayout>
+
+                <!-- Calque frère de la cover : visuellement centré, mais hors du conteneur animé
+                     afin que l’égaliseur ne force pas sa recomposition à chaque frame. -->
+                <LinearLayout
+                    android:id="@+id/karaokeSyncControls"
+                    android:layout_width="wrap_content"
+                    android:layout_height="42dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_header_action_button"
+                    android:elevation="36dp"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp">
+
+                    <TextView
+                        android:id="@+id/btnKaraokeSyncMinus"
+                        android:layout_width="38dp"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@string/content_desc_karaoke_sync_minus"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center"
+                        android:text="−"
+                        android:textColor="@color/on_surface"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvKaraokeSyncOffset"
+                        android:layout_width="92dp"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:includeFontPadding="false"
+                        android:text="@string/karaoke_sync_offset_default"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btnKaraokeSyncPlus"
+                        android:layout_width="38dp"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@string/content_desc_karaoke_sync_plus"
+                        android:fontFamily="sans-serif"
+                        android:gravity="center"
+                        android:text="+"
+                        android:textColor="@color/on_surface"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </FrameLayout>
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1.08"
+                android:paddingStart="20dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="4dp"
+                android:paddingBottom="4dp">
+
+                <fr.retrospare.blazeplayer.player.KaraokeLyricsView
+                    android:id="@+id/karaokeLyricsView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:importantForAccessibility="yes" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnKaraokeCastLandscape"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_gravity="top|end"
+            android:background="@drawable/bg_header_action_button"
+            android:contentDescription="@string/content_desc_karaoke_cast"
+            android:elevation="24dp"
+            android:padding="11dp"
+            android:src="@drawable/ic_cast"
+            android:tint="@color/on_surface_variant" />
+
+    </FrameLayout>
 
     <!-- PLAYLIST PLEIN ECRAN - simple overlay, pas de BottomSheet pour eviter conflits de scroll -->
     <LinearLayout

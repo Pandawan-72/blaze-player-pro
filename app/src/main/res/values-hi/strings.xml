@@ -853,4 +853,32 @@ Android के लिए आपका मीडिया प्लेयर</str
     <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">हैप्टिक फ़ीडबैक</string>
     <string name="settings_haptic_feedback_desc">ऐप में किसी भी क्लिक करने योग्य आइटम पर टैप करते समय हल्का कंपन चालू करें।</string>
+
+
+    <!-- Bibliothèque Blaze Audio pour Android Auto -->
+    <string name="android_auto_root_title">Blaze Audio</string>
+    <string name="android_auto_root_subtitle">आपकी संगीत लाइब्रेरी</string>
+    <string name="android_auto_premium_required">Blaze Audio Premium आवश्यक है</string>
+    <string name="android_auto_premium_required_subtitle">अपने फ़ोन से Pro+ सक्रिय करें</string>
+    <string name="android_auto_albums">एल्बम</string>
+    <string name="android_auto_artists">कलाकार</string>
+    <string name="android_auto_tracks">ट्रैक</string>
+    <string name="android_auto_favorites">पसंदीदा</string>
+    <string name="android_auto_recent">हाल ही में चलाए गए</string>
+    <string name="android_auto_playlists">प्लेलिस्ट</string>
+    <string name="android_auto_unknown_album">अज्ञात एल्बम</string>
+    <string name="android_auto_artist_subtitle">%1$d एल्बम • %2$d ट्रैक</string>
+    <string name="android_auto_track_count">%1$d ट्रैक</string>
+
+    <string name="audio_karaoke_cast">KaraoKast</string>
+    <string name="content_desc_karaoke_cast">कराओके स्क्रीन मिररिंग खोलें</string>
+    <string name="karaoke_cast_requires_lrc">कराओके कास्ट के लिए सिंक्रनाइज़ की गई .lrc फ़ाइल आवश्यक है।</string>
+    <string name="audio_local_output_title">स्थानीय ऑडियो आउटपुट</string>
+    <string name="audio_local_output_subtitle">फ़ोन, हेडफ़ोन या Bluetooth स्पीकर चुनें</string>
+    <string name="audio_output_picker_unavailable">इस डिवाइस पर ऑडियो आउटपुट चयन उपलब्ध नहीं है।</string>
+    <string name="audio_output_automatic">स्वचालित (सिस्टम)</string>
+    <string name="audio_output_changed">स्थानीय ऑडियो आउटपुट बदल दिया गया</string>
+    <string name="audio_output_change_failed">ऑडियो आउटपुट बदला नहीं जा सका</string>
+    <string name="karaoke_mirror_opened">Android पैनल में अपना Chromecast चुनें। स्थानीय ऑडियो आउटपुट चुनने के लिए बटन को देर तक दबाएँ।</string>
+    <string name="karaoke_mirror_unavailable">इस डिवाइस पर स्क्रीन कास्ट सेटिंग उपलब्ध नहीं है। त्वरित सेटिंग में Cast screen टाइल का उपयोग करें।</string>
 </resources>
