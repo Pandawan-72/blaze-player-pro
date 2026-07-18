@@ -352,7 +352,12 @@
                         android:text="@string/action_refresh"
                         android:textColor="@color/audio_library_accent"
                         android:textSize="13sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                     <TextView
                         android:id="@+id/btnManageWatched"
@@ -366,7 +371,12 @@
                         android:text="@string/action_manage"
                         android:textColor="@color/audio_library_accent"
                         android:textSize="13sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                 </LinearLayout>
 
@@ -559,7 +569,12 @@
                             android:text="@string/audio_album_view_grid_3"
                             android:textColor="@color/audio_library_accent"
                             android:textSize="13sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                         <TextView
                             android:id="@+id/tvAlbumViewGrid4"
@@ -574,7 +589,12 @@
                             android:text="@string/audio_album_view_grid_4"
                             android:textColor="@color/audio_library_accent"
                             android:textSize="13sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                         <TextView
                             android:id="@+id/tvAlbumViewList"
@@ -588,7 +608,12 @@
                             android:text="@string/audio_album_view_list"
                             android:textColor="@color/audio_library_accent"
                             android:textSize="13sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                     </LinearLayout>
 
@@ -650,7 +675,12 @@
                         android:text="@string/sort_album_order"
                         android:textColor="@color/audio_library_accent"
                         android:textSize="13sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                 </LinearLayout>
 

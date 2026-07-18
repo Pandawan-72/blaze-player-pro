@@ -19,8 +19,7 @@
     <string name="available_devices">Perangkat tersedia</string>
     <string name="no_path_configured">Tidak ada jalur yang dikonfigurasi.
 Ketuk Pindai untuk mendeteksi perangkat.</string>
-    <string name="default_path">Jalur default</string>
-    <string name="test_network_path">Uji jalur</string>
+<string name="test_network_path">Uji jalur</string>
     <string name="network_path_test_title">Uji jalur jaringan</string>
     <string name="network_path_test_success_message">Jalur “%1$s” dapat diakses.</string>
     <string name="network_path_test_failure_message">Tidak dapat mengakses “%1$s”. Periksa jaringan, kredensial, atau izin berbagi.</string>
@@ -106,8 +105,6 @@ Ketuk Pindai untuk mendeteksi perangkat.</string>
     <string name="lang_russian">Rusia</string>
     <string name="lang_chinese">Tionghoa</string>
     <string name="settings_preferred_audio_lang">Bahasa audio pilihan</string>
-    <string name="settings_remember_volume">Ingat volume</string>
-    <string name="settings_remember_volume_desc">Pertahankan tingkat volume antar pemutaran</string>
 
     <string name="settings_mini_player">Pemutar mini</string>
     <string name="settings_mini_player_desc">Tampilkan pemutar mini di aplikasi</string>
@@ -242,8 +239,8 @@ Di browser, buka menu (⋮) di samping folder untuk menambahkannya ke favorit.</
     <string name="dialog_which_playlist">Tambahkan ke daftar putar mana?</string>
     <string name="playlist_slot_name">Daftar putar %1$d</string>
     <string name="playlist_empty">(kosong)</string>
-    <string name="action_to_playlist">Ke daftar putar</string>
-    <string name="content_desc_queue_to_playlist">Simpan antrean ke daftar putar</string>
+    <string name="action_to_playlist">Salin antrean ke playlist</string>
+    <string name="content_desc_queue_to_playlist">Salin antrean ke playlist</string>
     <string name="playlist_existing_with_count">(sudah ada — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">Daftar putar sudah ada</string>
     <string name="dialog_playlist_not_empty_message">Daftar putar %1$d sudah berisi %2$s. Tetap tambahkan item yang dipilih ke daftar putar ini?</string>
@@ -371,8 +368,7 @@ Ukuran: %5$s</string>
 <string name="settings_section_playback">PEMUTARAN</string>
     <string name="settings_section_audio">AUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">Default</string>
-    <string name="eq_preamp_compressor_section">PREAMP &amp; KOMPRESOR</string>
+<string name="eq_preamp_compressor_section">PREAMP &amp; KOMPRESOR</string>
     <string name="eq_preamp_label">Preamp</string>
     <string name="eq_compressor_label">Kompresor</string>
     <string name="player_casting_in_progress">Transmisi sedang berlangsung</string>
@@ -881,4 +877,57 @@ Token: %2$s</string>
     <string name="audio_output_change_failed">Tidak dapat mengubah keluaran audio</string>
     <string name="karaoke_mirror_opened">Pilih Chromecast di panel Android. Tekan lama tombol untuk memilih keluaran audio lokal.</string>
     <string name="karaoke_mirror_unavailable">Pengaturan transmisi layar tidak tersedia. Gunakan ubin Cast layar di Setelan Cepat.</string>
+
+    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
+    <string name="audio_lyrics_search_online">Unduh lirik (.LRC)</string>
+    <string name="audio_lyrics_download_hint">Cari dengan LRCLIB. Ketuk hasil untuk otomatis mengunduh file .LRC di samping lagu.</string>
+    <string name="audio_lyrics_button_description">Kelola lirik dan unduh file .LRC. Tekan lama untuk menampilkan atau menyembunyikan lirik.</string>
+    <string name="lrclib_search_title">Pencarian lirik LRCLIB</string>
+    <string name="lrclib_search_subtitle">Pencarian otomatis mencoba beberapa variasi judul dan artis. Ketuk hasil untuk menyimpan file .LRC di samping lagu.</string>
+    <string name="lrclib_track_hint">Judul lagu</string>
+    <string name="lrclib_artist_hint">Artis</string>
+    <string name="lrclib_album_hint">Album (opsional)</string>
+    <string name="lrclib_search_action">Cari di LRCLIB</string>
+    <string name="lrclib_searching">Mencari…</string>
+    <string name="lrclib_downloading">Menyimpan file LRC…</string>
+    <string name="lrclib_no_synced_results">Lirik tidak ditemukan. Periksa judul atau artis, lalu cari lagi.</string>
+    <string name="lrclib_search_failed">Pencarian gagal: %1$s</string>
+    <string name="lrclib_save_failed">File tidak dapat disimpan di samping lagu: %1$s</string>
+    <string name="lrclib_saved">%1$s disimpan di samping lagu.</string>
+    <string name="lrclib_track_required">Judul lagu wajib diisi.</string>
+    <string name="lrclib_download_result">Unduh lirik %1$s oleh %2$s</string>
+    <string name="lrclib_download_action">↓ Unduh file .LRC</string>
+    <string name="sleep_timer_instruction">Masukkan langsung durasi sebelum musik berhenti.</string>
+    <string name="sleep_timer_hours">Jam</string>
+    <string name="sleep_timer_minutes">Menit</string>
+    <string name="sleep_timer_start">Mulai</string>
+    <string name="sleep_timer_active_remaining">Aktif · berhenti dalam %1$s</string>
+    <string name="sleep_timer_minutes_error">Menit harus berada antara 00 dan 59.</string>
+    <string name="sleep_timer_zero_error">Masukkan durasi lebih dari nol.</string>
+    <string name="sleep_timer_started">Musik akan berhenti dalam %1$s.</string>
+    <string name="sleep_timer_cancelled">Pengatur waktu tidur dibatalkan.</string>
+    <string name="eq_surround">Suara surround</string>
+    <string name="eq_surround_summary">Spasialisasi dua kanal imersif, dioptimalkan untuk headphone dan speaker stereo.</string>
+    <string name="eq_surround_strength">Imersi</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d hasil tersinkron</item>
+        <item quantity="other">%d hasil tersinkron</item>
+    </plurals>
+    <string name="action_compare_slider">Geser untuk membandingkan sebelum dan sesudah</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">Hapus playlist</string>
+    <string name="confirm_delete_named_playlist_message">Hapus playlist “%1$s”? Semua isinya akan dihapus.</string>
+    <string name="toast_named_playlist_deleted">Playlist “%1$s” dihapus.</string>
+    <string name="action_new_playlist">Playlist baru</string>
+    <string name="action_choose_playlist">Pilih playlist</string>
+    <string name="hint_playlist_name">Nama playlist</string>
+    <string name="toast_playlist_name_required">Masukkan nama playlist.</string>
+    <string name="toast_playlist_name_exists">Playlist dengan nama ini sudah ada.</string>
+    <string name="toast_playlist_created">Playlist “%1$s” dibuat.</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">%1$s ditambahkan ke “%2$s”</string>
+    <string name="playlist_added_partial_named">%1$s ditambahkan, %2$s sudah ada di “%3$s”</string>
+    <string name="toast_named_playlist_emptied">Playlist “%1$s” dikosongkan.</string>
+    <string name="toast_named_playlist_sent_to_queue">“%1$s” ditambahkan ke antrean.</string>
 </resources>

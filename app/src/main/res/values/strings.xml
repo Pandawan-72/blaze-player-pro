@@ -22,8 +22,7 @@
     <string name="detected_devices">APPAREILS DÉTECTÉS</string>
     <string name="available_devices">Appareils disponibles</string>
     <string name="no_path_configured">Aucun chemin configuré.\nCliquez sur Scanner pour détecter les appareils.</string>
-    <string name="default_path">Chemin par défaut</string>
-    <string name="test_network_path">Tester le chemin</string>
+<string name="test_network_path">Tester le chemin</string>
     <string name="network_path_test_title">Test du chemin réseau</string>
     <string name="network_path_test_success_message">Le chemin « %1$s » est accessible.</string>
     <string name="network_path_test_failure_message">Impossible de joindre le chemin « %1$s ». Vérifie le réseau, les identifiants ou les droits du partage.</string>
@@ -58,6 +57,28 @@
     <string name="audio_lyrics_source">Source : %1$s</string>
     <string name="audio_lyrics_synced">Paroles synchronisées</string>
     <string name="audio_lyrics_static">Paroles statiques</string>
+    <string name="audio_lyrics_search_online">Télécharger des paroles (.LRC)</string>
+    <string name="audio_lyrics_download_hint">Recherche via LRCLIB. Touchez un résultat pour télécharger automatiquement le fichier .LRC à côté du morceau.</string>
+    <string name="audio_lyrics_button_description">Gérer les paroles et télécharger des fichiers .LRC. Appui long pour afficher ou masquer les paroles.</string>
+    <string name="lrclib_search_title">Recherche de paroles LRCLIB</string>
+    <string name="lrclib_search_subtitle">La recherche teste automatiquement plusieurs variantes du titre et de l’artiste. Touchez un résultat pour enregistrer le fichier .LRC à côté du morceau.</string>
+    <string name="lrclib_track_hint">Titre du morceau</string>
+    <string name="lrclib_artist_hint">Artiste</string>
+    <string name="lrclib_album_hint">Album (facultatif)</string>
+    <string name="lrclib_search_action">Rechercher sur LRCLIB</string>
+    <string name="lrclib_searching">Recherche en cours…</string>
+    <string name="lrclib_downloading">Enregistrement du fichier LRC…</string>
+    <string name="lrclib_no_synced_results">Aucune parole trouvée. Vérifiez le titre ou l’artiste puis relancez la recherche.</string>
+    <string name="lrclib_search_failed">Recherche impossible : %1$s</string>
+    <string name="lrclib_save_failed">Impossible d’enregistrer le fichier à côté du morceau : %1$s</string>
+    <string name="lrclib_saved">%1$s a été enregistré à côté du morceau.</string>
+    <string name="lrclib_track_required">Le titre est obligatoire.</string>
+    <string name="lrclib_download_result">Télécharger les paroles de %1$s par %2$s</string>
+    <string name="lrclib_download_action">↓ Télécharger le fichier .LRC</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d résultat synchronisé</item>
+        <item quantity="other">%d résultats synchronisés</item>
+    </plurals>
     <string name="folder">Dossier</string>
     <string name="movies">Films</string>
 
@@ -115,8 +136,6 @@
     <string name="lang_russian">Russe</string>
     <string name="lang_chinese">Chinois</string>
     <string name="settings_preferred_audio_lang">Langue audio préférée</string>
-    <string name="settings_remember_volume">Mémoriser le volume</string>
-    <string name="settings_remember_volume_desc">Retenir le niveau de volume entre les lectures</string>
 
     
     <string name="settings_mini_player">Mini player</string>
@@ -241,6 +260,15 @@
     
     <string name="unknown_generic">Inconnu</string>
 <string name="sleep_timer_title">Minuteur de veille</string>
+    <string name="sleep_timer_instruction">Saisissez directement la durée avant l’arrêt de la musique.</string>
+    <string name="sleep_timer_hours">Heures</string>
+    <string name="sleep_timer_minutes">Minutes</string>
+    <string name="sleep_timer_start">Démarrer</string>
+    <string name="sleep_timer_active_remaining">Actif · arrêt dans %1$s</string>
+    <string name="sleep_timer_minutes_error">Les minutes doivent être comprises entre 00 et 59.</string>
+    <string name="sleep_timer_zero_error">Saisissez une durée supérieure à zéro.</string>
+    <string name="sleep_timer_started">La musique s’arrêtera dans %1$s.</string>
+    <string name="sleep_timer_cancelled">Minuteur de veille annulé.</string>
     <string name="minutes_5">5 minutes</string>
     <string name="minutes_15">15 minutes</string>
     <string name="minutes_30">30 minutes</string>
@@ -255,8 +283,8 @@
     <string name="dialog_which_playlist">Ajouter à quelle playlist ?</string>
     <string name="playlist_slot_name">Playlist %1$d</string>
     <string name="playlist_empty">(vide)</string>
-    <string name="action_to_playlist">Vers playlist</string>
-    <string name="content_desc_queue_to_playlist">Sauvegarder la file dans une playlist</string>
+    <string name="action_to_playlist">Copier la file dans playlist</string>
+    <string name="content_desc_queue_to_playlist">Copier la file dans playlist</string>
     <string name="playlist_existing_with_count">(existante — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">Playlist existante</string>
     <string name="dialog_playlist_not_empty_message">La playlist %1$d contient déjà %2$s. Ajouter quand même les éléments sélectionnés à cette playlist ?</string>
@@ -378,8 +406,7 @@
 <string name="settings_section_playback">LECTURE</string>
     <string name="settings_section_audio">AUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">Par défaut</string>
-    <string name="eq_preamp_compressor_section">PRÉAMPLI &amp; COMPRESSEUR</string>
+<string name="eq_preamp_compressor_section">PRÉAMPLI &amp; COMPRESSEUR</string>
     <string name="eq_preamp_label">Préampli</string>
     <string name="eq_compressor_label">Compresseur</string>
     <string name="player_casting_in_progress">Diffusion en cours</string>
@@ -786,6 +813,9 @@ Code : %2$s</string>
     <string name="eq_limiter">Limiteur</string>
     <string name="eq_limiter_summary">Contient les crêtes numériques avant la sortie audio.</string>
     <string name="eq_loudness">Loudness</string>
+    <string name="eq_surround">Surround sound</string>
+    <string name="eq_surround_summary">Spatialisation immersive en deux canaux, optimisée pour les casques et les enceintes stéréo.</string>
+    <string name="eq_surround_strength">Immersion</string>
     <string name="eq_reverb">Réverbération</string>
     <string name="eq_room_type">Type de salle</string>
     <string name="eq_reverb_mix">Mix</string>
@@ -897,4 +927,21 @@ Code : %2$s</string>
     <string name="audio_output_change_failed">Impossible de modifier la sortie audio</string>
     <string name="karaoke_mirror_opened">Sélectionnez votre Chromecast dans le panneau Android. Appui long sur le bouton pour choisir la sortie audio locale.</string>
     <string name="karaoke_mirror_unavailable">Le panneau de partage d’écran n’est pas disponible sur cet appareil. Utilisez la tuile Caster l’écran dans les réglages rapides.</string>
+    <string name="action_compare_slider">Faire glisser pour comparer avant et après</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">Supprimer une playlist</string>
+    <string name="confirm_delete_named_playlist_message">Supprimer la playlist « %1$s » ? Tout son contenu sera effacé.</string>
+    <string name="toast_named_playlist_deleted">Playlist « %1$s » supprimée.</string>
+    <string name="action_new_playlist">Nouvelle playlist</string>
+    <string name="action_choose_playlist">Choisir playlist</string>
+    <string name="hint_playlist_name">Nom de la playlist</string>
+    <string name="toast_playlist_name_required">Saisissez un nom de playlist.</string>
+    <string name="toast_playlist_name_exists">Une playlist portant ce nom existe déjà.</string>
+    <string name="toast_playlist_created">Playlist « %1$s » créée.</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">%1$s ajouté à « %2$s »</string>
+    <string name="playlist_added_partial_named">%1$s ajouté, %2$s déjà présent dans « %3$s »</string>
+    <string name="toast_named_playlist_emptied">Playlist « %1$s » vidée.</string>
+    <string name="toast_named_playlist_sent_to_queue">« %1$s » ajoutée à la file d’attente.</string>
 </resources>

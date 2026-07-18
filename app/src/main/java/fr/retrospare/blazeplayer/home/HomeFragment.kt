@@ -84,6 +84,7 @@ class HomeFragment : Fragment() {
     private var videoHistoryRefreshGeneration: Long = 0L
     private var historyAdapter: HistoryAdapter? = null
     private var resetVideoHistoryToTopPending: Boolean = false
+    private var videoHistoryTopResetJob: kotlinx.coroutines.Job? = null
     private var historySelectionTab: Int? = null
     private val selectedHistoryPaths = linkedSetOf<String>()
     private var pendingAudioTabAfterPermission = false
@@ -333,6 +334,12 @@ class HomeFragment : Fragment() {
         super.onResume()
         enforceCurrentTabAccess()
         refreshAccessibleVideoHistory()
+        // Au retour du lecteur vidéo, l'historique est réordonné de façon asynchrone pour placer
+        // le média qui vient d'être lu en tête. RecyclerView essaie alors de conserver l'ancienne
+        // tuile visible comme ancre, ce qui peut faire commencer la grille à la deuxième ligne.
+        // Maintenir brièvement l'ancre sur la position 0 couvre aussi les émissions successives
+        // de l'historique (snapshot immédiat, droits Pro, enrichissement des métadonnées).
+        if (currentTabIndex == 1) resetVideoHistoryScrollToTop()
         updateVersionBadge()
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
@@ -2308,14 +2315,18 @@ class HomeFragment : Fragment() {
             .commitAllowingStateLoss()
     }
 
-    /** Replace toujours l'historique Blaze Video au début lorsqu'on revient depuis un autre
-     *  onglet. RecyclerView conserve normalement son ancienne position quand sa section passe de
-     *  GONE à VISIBLE ; selon le recalcul de hauteur du header, cette position pouvait commencer
-     *  visuellement à la deuxième ligne. Le second passage à l'animation suivante couvre le layout
-     *  différé après le changement de section sans provoquer d'animation de défilement. */
+    /** Replace toujours l'historique Blaze Video sur sa toute première ligne.
+     *
+     *  Le retour de PlayerActivity provoque plusieurs mises à jour rapprochées : l'ancien snapshot,
+     *  puis le média qui vient d'être lu remonté en position 0, puis parfois les métadonnées. Un
+     *  unique scroll avant DiffUtil ne suffit pas, car RecyclerView conserve l'ancienne tuile comme
+     *  ancre et la nouvelle première ligne se retrouve hors écran. On verrouille donc brièvement la
+     *  position 0 pendant cette fenêtre de stabilisation, sans animation. */
     private fun resetVideoHistoryScrollToTop() {
         if (_binding == null || !isAdded) return
         resetVideoHistoryToTopPending = true
+        videoHistoryTopResetJob?.cancel()
+
         val recycler = binding.listLocal
         recycler.stopScroll()
         recycler.clearFocus()
@@ -2326,12 +2337,27 @@ class HomeFragment : Fragment() {
             (recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager)
                 ?.scrollToPositionWithOffset(0, 0)
                 ?: recycler.scrollToPosition(0)
-            resetVideoHistoryToTopPending = false
         }
 
+        // Premier repositionnement dès que le layout courant est prêt.
         recycler.post {
             applyTopPosition()
             recycler.postOnAnimation { applyTopPosition() }
+        }
+
+        // Les mises à jour de l'historique peuvent arriver sur plusieurs frames au retour du
+        // lecteur. Ces passages couvrent DiffUtil et l'enrichissement immédiat sans laisser la
+        // grille s'ancrer sur l'ancienne première tuile.
+        videoHistoryTopResetJob = viewLifecycleOwner.lifecycleScope.launch {
+            val passesMs = longArrayOf(80L, 180L, 360L, 700L, 1100L)
+            var previous = 0L
+            for (target in passesMs) {
+                kotlinx.coroutines.delay(target - previous)
+                previous = target
+                if (_binding == null || currentTabIndex != 1) break
+                applyTopPosition()
+            }
+            resetVideoHistoryToTopPending = false
         }
     }
 
@@ -2510,62 +2536,46 @@ class HomeFragment : Fragment() {
         }
     }
 
-    /** Câble une puce de playlist numérotée : état visuel "non vide" indépendant de "dernière
-     *  lue" (auparavant confondus : seule la dernière lue avait l'air "remplie", les autres
-     *  playlists non vides étaient visuellement identiques à des slots vides), tap pour ouvrir,
-     *  appui long pour un accès rapide à "Vider" sans repasser par le dialogue complet. */
-    private fun bindPlaylistChip(btn: android.widget.TextView?, category: fr.retrospare.blazeplayer.playlist.PlaylistCategory, slot: Int, lastPlayed: Int) {
-        btn ?: return
-        val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager.getPlaylist(requireContext(), category, slot).isNotEmpty()
-        btn.isSelected = hasItems
-        btn.isActivated = hasItems && lastPlayed == slot
-        btn.setTextColor(
-            ContextCompat.getColor(
-                requireContext(),
-                when {
-                    hasItems -> R.color.black
-                    else -> R.color.on_surface_variant
-                }
-            )
+    /** Boutons de playlists vidéo nommées. L'espace vidéo accepte les fichiers locaux,
+     *  SMB et UPnP, mais reste complètement séparé des playlists audio. */
+    private fun setupPlaylistButtons() {
+        val ctx = context ?: return
+        val category = fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO
+        val btnNew = binding.root.findViewById<com.google.android.material.button.MaterialButton>(
+            fr.retrospare.blazeplayer.R.id.btnNewVideoPlaylist
         )
-        btn.setOnClickListener {
-            if (category == fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO) {
-                runWithProAccess { openSavedPlaylist(category, slot) }
-            } else {
-                openSavedPlaylist(category, slot)
-            }
-        }
-        btn.setOnLongClickListener {
-            if (category == fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO) {
-                runWithProAccess { showPlaylistQuickMenu(category, slot, btn) }
-            } else {
-                showPlaylistQuickMenu(category, slot, btn)
-            }
-            true
-        }
-    }
+        val btnChoose = binding.root.findViewById<com.google.android.material.button.MaterialButton>(
+            fr.retrospare.blazeplayer.R.id.btnChooseVideoPlaylist
+        )
+        val playlists = fr.retrospare.blazeplayer.playlist.PlaylistManager.getNamedPlaylists(ctx, category)
+        btnChoose?.visibility = if (playlists.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
 
-    /** Menu rapide d'une puce de playlist (appui long) : évite d'ouvrir le dialogue complet rien
-     *  que pour vider une playlist, et donne un accès direct à "Ouvrir" même sur un slot vide. */
-    private fun showPlaylistQuickMenu(category: fr.retrospare.blazeplayer.playlist.PlaylistCategory, slot: Int, anchor: View) {
-        val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager.getPlaylist(requireContext(), category, slot).isNotEmpty()
-        val popup = android.widget.PopupMenu(requireContext(), anchor)
-        popup.menu.add(0, 1, 0, getString(R.string.action_open))
-        if (hasItems) popup.menu.add(0, 2, 1, getString(R.string.action_empty_playlist))
-        popup.setOnMenuItemClickListener { mi ->
-            fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(anchor)
-            when (mi.itemId) {
-                1 -> { openSavedPlaylist(category, slot); true }
-                2 -> {
-                    fr.retrospare.blazeplayer.playlist.PlaylistManager.clearPlaylist(requireContext(), category, slot)
-                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_playlist_emptied, slot), android.widget.Toast.LENGTH_SHORT).show()
-                    setupPlaylistButtons()
-                    true
-                }
-                else -> false
+        btnNew?.setOnClickListener {
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showCreatePlaylistDialog(requireContext(), category) {
+                setupPlaylistButtons()
             }
         }
-        popup.show()
+        btnChoose?.setOnClickListener {
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showChoosePlaylistForQueue(
+                requireContext(),
+                category,
+                onPlaylistsChanged = { setupPlaylistButtons() }
+            ) { playlist, tracks ->
+                val ordered = fr.retrospare.blazeplayer.playlist.PlaylistPlayOrder.sortedForPlayback(category, tracks)
+                val added = fr.retrospare.blazeplayer.player.VideoQueueManager.addToQueue(requireContext(), category, ordered)
+                val already = (ordered.size - added).coerceAtLeast(0)
+                val message = if (already == 0) {
+                    getString(fr.retrospare.blazeplayer.R.string.toast_named_playlist_sent_to_queue, playlist.name)
+                } else {
+                    getString(fr.retrospare.blazeplayer.R.string.toast_video_queue_added_partial, added, already)
+                }
+                android.widget.Toast.makeText(requireContext(), message, android.widget.Toast.LENGTH_SHORT).show()
+                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayedNamed(requireContext(), category, playlist.id)
+                setupPlaylistButtons()
+                setupVideoQueueButtons()
+                fr.retrospare.blazeplayer.player.VideoQueueSheet.show(requireContext(), category)
+            }
+        }
     }
 
     private fun setupVideoQueueButtons() {
@@ -2579,68 +2589,6 @@ class HomeFragment : Fragment() {
         networkBtn?.isSelected = networkHasItems
         localBtn?.alpha = 1f
         networkBtn?.alpha = 1f
-    }
-
-    private fun setupPlaylistButtons() {
-        val localButtons = listOf(
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal1),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal2),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal3),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal4),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistLocal5)
-        )
-        val networkButtons = listOf(
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork1),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork2),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork3),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork4),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnPlaylistNetwork5)
-        )
-        val lastPlayedLocal = fr.retrospare.blazeplayer.playlist.PlaylistManager
-            .getLastPlayed(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO)
-        val lastPlayedNetwork = fr.retrospare.blazeplayer.playlist.PlaylistManager
-            .getLastPlayed(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO)
-        localButtons.forEachIndexed { i, btn ->
-            bindPlaylistChip(btn, fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO, i + 1, lastPlayedLocal)
-        }
-        networkButtons.forEachIndexed { i, btn ->
-            bindPlaylistChip(btn, fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO, i + 1, lastPlayedNetwork)
-        }
-    }
-
-    private fun openSavedPlaylist(category: fr.retrospare.blazeplayer.playlist.PlaylistCategory, slot: Int) {
-        if (category == fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO &&
-            !kotlinx.coroutines.runBlocking {
-                fr.retrospare.blazeplayer.paywall.FeatureAccess.isPro(userRepository)
-            }
-        ) {
-            findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
-            return
-        }
-        fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showPlaylistViewer(
-            requireContext(), category, slot,
-            onPlayAll = { tracks ->
-                val ctx = requireContext()
-                val orderedTracks = fr.retrospare.blazeplayer.playlist.PlaylistPlayOrder.sortedForPlayback(category, tracks)
-                val added = fr.retrospare.blazeplayer.player.VideoQueueManager.addToQueue(ctx, category, orderedTracks)
-                val already = (orderedTracks.size - added).coerceAtLeast(0)
-                val msg = if (already == 0) {
-                    getString(fr.retrospare.blazeplayer.R.string.toast_video_queue_added, added)
-                } else {
-                    getString(fr.retrospare.blazeplayer.R.string.toast_video_queue_added_partial, added, already)
-                }
-                android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
-                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayed(ctx, category, slot)
-                setupPlaylistButtons()
-                setupVideoQueueButtons()
-                fr.retrospare.blazeplayer.player.VideoQueueSheet.show(ctx, category)
-            },
-            onPlayOne = { track -> fr.retrospare.blazeplayer.player.PlayerRouter.open(requireContext(), track.path, track.name) },
-            onChanged = {
-                setupPlaylistButtons()
-                setupVideoQueueButtons()
-            }
-        )
     }
 
 
@@ -2968,7 +2916,13 @@ class HomeFragment : Fragment() {
         recycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
         emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
         if (resetVideoHistoryToTopPending && currentTabIndex == 1 && items.isNotEmpty()) {
-            resetVideoHistoryScrollToTop()
+            // DiffUtil peut préserver l'ancienne ancre après l'insertion du dernier média en tête.
+            // Réappliquer directement la position 0, sans relancer la fenêtre de temporisation.
+            recycler.post {
+                (recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager)
+                    ?.scrollToPositionWithOffset(0, 0)
+                    ?: recycler.scrollToPosition(0)
+            }
         }
     }
 
@@ -3214,6 +3168,8 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        videoHistoryTopResetJob?.cancel()
+        videoHistoryTopResetJob = null
         videoHistoryRefreshJob?.cancel()
         videoHistoryRefreshJob = null
         if (_binding != null) binding.listLocal.adapter = null

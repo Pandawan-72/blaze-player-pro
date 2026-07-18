@@ -11,7 +11,6 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
 import android.os.Bundle
-import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
 import android.widget.SeekBar
@@ -50,7 +49,7 @@ class PhotoEditorActivity : AppCompatActivity() {
         const val EXTRA_PHOTO_NAME = "photo_name"
     }
 
-    private lateinit var ivPhoto: ImageView
+    private lateinit var ivPhoto: BeforeAfterImageView
     private lateinit var cropOverlay: CropOverlayView
     private lateinit var blurOverlay: BlurSelectionView
     private lateinit var filterStrip: android.widget.LinearLayout
@@ -59,7 +58,6 @@ class PhotoEditorActivity : AppCompatActivity() {
     private lateinit var rotatePanel: View
     private lateinit var blurPanel: View
     private lateinit var editorProgress: View
-    private lateinit var btnCompareHold: View
     private lateinit var seekStraighten: SeekBar
     private lateinit var btnEffectBlur: com.google.android.material.button.MaterialButton
     private lateinit var btnEffectMosaic: com.google.android.material.button.MaterialButton
@@ -110,7 +108,6 @@ class PhotoEditorActivity : AppCompatActivity() {
         rotatePanel = findViewById(R.id.rotatePanel)
         blurPanel = findViewById(R.id.blurPanel)
         editorProgress = findViewById(R.id.editorProgress)
-        btnCompareHold = findViewById(R.id.btnCompareHold)
         seekStraighten = findViewById(R.id.seekStraighten)
         btnEffectBlur = findViewById(R.id.btnEffectBlur)
         btnEffectMosaic = findViewById(R.id.btnEffectMosaic)
@@ -126,7 +123,7 @@ class PhotoEditorActivity : AppCompatActivity() {
         setupRotateControls()
         setupBlurControls()
         setupToolTabs()
-        setupCompareHold()
+        setupBeforeAfterComparison()
         showPanel(filterPanel)
 
         loadPreview()
@@ -200,28 +197,19 @@ class PhotoEditorActivity : AppCompatActivity() {
                 selectedFilter = filter
                 filterThumbViews.forEach { v -> v.isSelected = false }
                 item.isSelected = true
-                ivPhoto.colorFilter = ColorMatrixColorFilter(filter.matrix)
+                ivPhoto.setAfterFilter(ColorMatrixColorFilter(filter.matrix))
+                ivPhoto.setComparisonEnabled(filter.id != "normal" && filterPanel.visibility == View.VISIBLE)
+                if (filter.id != "normal") ivPhoto.resetComparisonPosition()
             }
             filterThumbViews.add(item)
             filterStrip.addView(item)
         }
     }
 
-    private fun setupCompareHold() {
-        btnCompareHold.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    // Montre l'original (aucun filtre) tant que le doigt reste appuyé.
-                    ivPhoto.colorFilter = null
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    ivPhoto.colorFilter = ColorMatrixColorFilter(selectedFilter.matrix)
-                    true
-                }
-                else -> false
-            }
-        }
+    private fun setupBeforeAfterComparison() {
+        ivPhoto.setAfterFilter(ColorMatrixColorFilter(selectedFilter.matrix))
+        ivPhoto.setComparisonEnabled(false)
+        ivPhoto.resetComparisonPosition()
     }
 
     // ── Recadrage ────────────────────────────────────────────────────────────
@@ -427,7 +415,9 @@ class PhotoEditorActivity : AppCompatActivity() {
             selectDefaultBlurControls()
         }
         blurOverlay.visibility = if (panel === blurPanel) View.VISIBLE else View.GONE
-        btnCompareHold.visibility = if (panel === filterPanel) View.VISIBLE else View.GONE
+        ivPhoto.setComparisonEnabled(
+            panel === filterPanel && selectedFilter.id != "normal"
+        )
         updateTabTint(panel)
         // Les panneaux n'ont pas tous la même hauteur (celui du flou est plus grand, pour loger
         // interrupteur + 2 rangées de boutons + intensité) : la zone image, qui partage l'espace

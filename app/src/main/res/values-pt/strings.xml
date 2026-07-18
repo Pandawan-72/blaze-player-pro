@@ -18,8 +18,7 @@
     <string name="detected_devices">DISPOSITIVOS DETECTADOS</string>
     <string name="available_devices">Dispositivos disponíveis</string>
     <string name="no_path_configured">Nenhum caminho configurado.\nToque em Procurar para detectar dispositivos.</string>
-    <string name="default_path">Caminho padrão</string>
-    <string name="test_network_path">Testar caminho</string>
+<string name="test_network_path">Testar caminho</string>
     <string name="network_path_test_title">Teste do caminho de rede</string>
     <string name="network_path_test_success_message">O caminho « %1$s » está acessível.</string>
     <string name="network_path_test_failure_message">Não foi possível acessar « %1$s ». Verifique a rede, credenciais ou permissões do compartilhamento.</string>
@@ -105,8 +104,6 @@
     <string name="lang_russian">Russo</string>
     <string name="lang_chinese">Chinês</string>
     <string name="settings_preferred_audio_lang">Idioma de áudio preferido</string>
-    <string name="settings_remember_volume">Lembrar volume</string>
-    <string name="settings_remember_volume_desc">Manter o nível de volume entre reproduções</string>
 
     <string name="settings_mini_player">Mini player</string>
     <string name="settings_mini_player_desc">Mostrar o mini player no app</string>
@@ -235,8 +232,8 @@
     <string name="dialog_which_playlist">Adicionar a qual lista?</string>
     <string name="playlist_slot_name">Lista %1$d</string>
     <string name="playlist_empty">(vazia)</string>
-    <string name="action_to_playlist">Para playlist</string>
-    <string name="content_desc_queue_to_playlist">Guardar a fila numa playlist</string>
+    <string name="action_to_playlist">Copiar fila para playlist</string>
+    <string name="content_desc_queue_to_playlist">Copiar fila para playlist</string>
     <string name="playlist_existing_with_count">(existente — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">Playlist existente</string>
     <string name="dialog_playlist_not_empty_message">A playlist %1$d já contém %2$s. Adicionar mesmo assim os itens selecionados a esta playlist?</string>
@@ -352,8 +349,7 @@
 <string name="settings_section_playback">REPRODUÇÃO</string>
     <string name="settings_section_audio">ÁUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">Padrão</string>
-    <string name="eq_preamp_compressor_section">PRÉ-AMPLIFICADOR E COMPRESSOR</string>
+<string name="eq_preamp_compressor_section">PRÉ-AMPLIFICADOR E COMPRESSOR</string>
     <string name="eq_preamp_label">Pré-amplificador</string>
     <string name="eq_compressor_label">Compressor</string>
     <string name="player_casting_in_progress">Transmissão em andamento</string>
@@ -867,4 +863,57 @@ Token: %2$s</string>
     <string name="audio_output_change_failed">Não foi possível alterar a saída de áudio</string>
     <string name="karaoke_mirror_opened">Selecione o Chromecast no painel Android. Mantenha o botão premido para escolher a saída de áudio local.</string>
     <string name="karaoke_mirror_unavailable">As definições de transmissão do ecrã não estão disponíveis. Use o atalho rápido Transmitir ecrã.</string>
+
+    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
+    <string name="audio_lyrics_search_online">Baixar letras (.LRC)</string>
+    <string name="audio_lyrics_download_hint">Pesquise com o LRCLIB. Toque em um resultado para baixar automaticamente o arquivo .LRC ao lado da faixa.</string>
+    <string name="audio_lyrics_button_description">Gerencie letras e baixe arquivos .LRC. Mantenha pressionado para mostrar ou ocultar as letras.</string>
+    <string name="lrclib_search_title">Pesquisa de letras no LRCLIB</string>
+    <string name="lrclib_search_subtitle">A pesquisa testa automaticamente várias variantes do título e do artista. Toque em um resultado para salvar o arquivo .LRC ao lado da faixa.</string>
+    <string name="lrclib_track_hint">Título da faixa</string>
+    <string name="lrclib_artist_hint">Artista</string>
+    <string name="lrclib_album_hint">Álbum (opcional)</string>
+    <string name="lrclib_search_action">Pesquisar no LRCLIB</string>
+    <string name="lrclib_searching">Pesquisando…</string>
+    <string name="lrclib_downloading">Salvando arquivo LRC…</string>
+    <string name="lrclib_no_synced_results">Nenhuma letra encontrada. Verifique o título ou o artista e pesquise novamente.</string>
+    <string name="lrclib_search_failed">Falha na pesquisa: %1$s</string>
+    <string name="lrclib_save_failed">Não foi possível salvar o arquivo ao lado da faixa: %1$s</string>
+    <string name="lrclib_saved">%1$s foi salvo ao lado da faixa.</string>
+    <string name="lrclib_track_required">O título da faixa é obrigatório.</string>
+    <string name="lrclib_download_result">Baixar a letra de %1$s por %2$s</string>
+    <string name="lrclib_download_action">↓ Baixar arquivo .LRC</string>
+    <string name="sleep_timer_instruction">Digite diretamente a duração antes de a música parar.</string>
+    <string name="sleep_timer_hours">Horas</string>
+    <string name="sleep_timer_minutes">Minutos</string>
+    <string name="sleep_timer_start">Iniciar</string>
+    <string name="sleep_timer_active_remaining">Ativo · para em %1$s</string>
+    <string name="sleep_timer_minutes_error">Os minutos devem estar entre 00 e 59.</string>
+    <string name="sleep_timer_zero_error">Digite uma duração maior que zero.</string>
+    <string name="sleep_timer_started">A música vai parar em %1$s.</string>
+    <string name="sleep_timer_cancelled">Temporizador de desligamento cancelado.</string>
+    <string name="eq_surround">Som surround</string>
+    <string name="eq_surround_summary">Espacialização imersiva em dois canais, otimizada para fones de ouvido e alto-falantes estéreo.</string>
+    <string name="eq_surround_strength">Imersão</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d resultado sincronizado</item>
+        <item quantity="other">%d resultados sincronizados</item>
+    </plurals>
+    <string name="action_compare_slider">Arraste para comparar antes e depois</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">Excluir playlist</string>
+    <string name="confirm_delete_named_playlist_message">Excluir a playlist “%1$s”? Todo o conteúdo será removido.</string>
+    <string name="toast_named_playlist_deleted">Playlist “%1$s” excluída.</string>
+    <string name="action_new_playlist">Nova playlist</string>
+    <string name="action_choose_playlist">Escolher playlist</string>
+    <string name="hint_playlist_name">Nome da playlist</string>
+    <string name="toast_playlist_name_required">Introduza um nome para a playlist.</string>
+    <string name="toast_playlist_name_exists">Já existe uma playlist com este nome.</string>
+    <string name="toast_playlist_created">Playlist “%1$s” criada.</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">%1$s adicionado a “%2$s”</string>
+    <string name="playlist_added_partial_named">%1$s adicionado, %2$s já estava em “%3$s”</string>
+    <string name="toast_named_playlist_emptied">Playlist “%1$s” esvaziada.</string>
+    <string name="toast_named_playlist_sent_to_queue">“%1$s” adicionada à fila.</string>
 </resources>

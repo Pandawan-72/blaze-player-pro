@@ -18,8 +18,7 @@
     <string name="detected_devices">GEDETECTEERDE APPARATEN</string>
     <string name="available_devices">Beschikbare apparaten</string>
     <string name="no_path_configured">Geen pad geconfigureerd.\nTik op Scannen om apparaten te detecteren.</string>
-    <string name="default_path">Standaardpad</string>
-    <string name="test_network_path">Pad testen</string>
+<string name="test_network_path">Pad testen</string>
     <string name="network_path_test_title">Netwerkpad testen</string>
     <string name="network_path_test_success_message">Het pad “%1$s” is bereikbaar.</string>
     <string name="network_path_test_failure_message">Kan “%1$s” niet bereiken. Controleer netwerk, aanmeldgegevens of sharemachtigingen.</string>
@@ -105,8 +104,6 @@
     <string name="lang_russian">Russisch</string>
     <string name="lang_chinese">Chinees</string>
     <string name="settings_preferred_audio_lang">Voorkeurstaal audio</string>
-    <string name="settings_remember_volume">Volume onthouden</string>
-    <string name="settings_remember_volume_desc">Volumeniveau onthouden tussen afspeelsessies</string>
 
     <string name="settings_mini_player">Mini-player</string>
     <string name="settings_mini_player_desc">Mini-player weergeven in de app</string>
@@ -235,8 +232,8 @@
     <string name="dialog_which_playlist">Aan welke afspeellijst toevoegen?</string>
     <string name="playlist_slot_name">Afspeellijst %1$d</string>
     <string name="playlist_empty">(leeg)</string>
-    <string name="action_to_playlist">Naar playlist</string>
-    <string name="content_desc_queue_to_playlist">Wachtrij opslaan in een afspeellijst</string>
+    <string name="action_to_playlist">Wachtrij naar afspeellijst kopiëren</string>
+    <string name="content_desc_queue_to_playlist">Wachtrij naar afspeellijst kopiëren</string>
     <string name="playlist_existing_with_count">(bestaand — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">Bestaande afspeellijst</string>
     <string name="dialog_playlist_not_empty_message">Afspeellijst %1$d bevat al %2$s. Geselecteerde items toch aan deze afspeellijst toevoegen?</string>
@@ -352,8 +349,7 @@
 <string name="settings_section_playback">AFSPELEN</string>
     <string name="settings_section_audio">AUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">Standaard</string>
-    <string name="eq_preamp_compressor_section">VOORVERSTERKER EN COMPRESSOR</string>
+<string name="eq_preamp_compressor_section">VOORVERSTERKER EN COMPRESSOR</string>
     <string name="eq_preamp_label">Voorversterker</string>
     <string name="eq_compressor_label">Compressor</string>
     <string name="player_casting_in_progress">Streaming bezig</string>
@@ -866,4 +862,57 @@ Token: %2$s</string>
     <string name="audio_output_change_failed">Kan de audio-uitgang niet wijzigen</string>
     <string name="karaoke_mirror_opened">Selecteer je Chromecast in het Android-paneel. Houd de knop ingedrukt om de lokale audio-uitgang te kiezen.</string>
     <string name="karaoke_mirror_unavailable">Instellingen voor schermcasting zijn niet beschikbaar. Gebruik de tegel Scherm casten in Snelle instellingen.</string>
+
+    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
+    <string name="audio_lyrics_search_online">Songtekst downloaden (.LRC)</string>
+    <string name="audio_lyrics_download_hint">Zoek met LRCLIB. Tik op een resultaat om het .LRC-bestand automatisch naast het nummer te downloaden.</string>
+    <string name="audio_lyrics_button_description">Songteksten beheren en .LRC-bestanden downloaden. Houd ingedrukt om songteksten te tonen of te verbergen.</string>
+    <string name="lrclib_search_title">LRCLIB-songteksten zoeken</string>
+    <string name="lrclib_search_subtitle">De zoekfunctie probeert automatisch meerdere varianten van titel en artiest. Tik op een resultaat om het .LRC-bestand naast het nummer op te slaan.</string>
+    <string name="lrclib_track_hint">Titel van nummer</string>
+    <string name="lrclib_artist_hint">Artiest</string>
+    <string name="lrclib_album_hint">Album (optioneel)</string>
+    <string name="lrclib_search_action">Zoeken op LRCLIB</string>
+    <string name="lrclib_searching">Zoeken…</string>
+    <string name="lrclib_downloading">LRC-bestand opslaan…</string>
+    <string name="lrclib_no_synced_results">Geen songtekst gevonden. Controleer de titel of artiest en zoek opnieuw.</string>
+    <string name="lrclib_search_failed">Zoeken mislukt: %1$s</string>
+    <string name="lrclib_save_failed">Kan het bestand niet naast het nummer opslaan: %1$s</string>
+    <string name="lrclib_saved">%1$s is naast het nummer opgeslagen.</string>
+    <string name="lrclib_track_required">De titel van het nummer is verplicht.</string>
+    <string name="lrclib_download_result">Songtekst van %1$s door %2$s downloaden</string>
+    <string name="lrclib_download_action">↓ .LRC-bestand downloaden</string>
+    <string name="sleep_timer_instruction">Voer direct de duur in waarna de muziek stopt.</string>
+    <string name="sleep_timer_hours">Uren</string>
+    <string name="sleep_timer_minutes">Minuten</string>
+    <string name="sleep_timer_start">Starten</string>
+    <string name="sleep_timer_active_remaining">Actief · stopt over %1$s</string>
+    <string name="sleep_timer_minutes_error">De minuten moeten tussen 00 en 59 liggen.</string>
+    <string name="sleep_timer_zero_error">Voer een duur groter dan nul in.</string>
+    <string name="sleep_timer_started">De muziek stopt over %1$s.</string>
+    <string name="sleep_timer_cancelled">Slaaptimer geannuleerd.</string>
+    <string name="eq_surround">Surroundgeluid</string>
+    <string name="eq_surround_summary">Meeslepende tweekanaals ruimtelijke audio, geoptimaliseerd voor hoofdtelefoons en stereoluidsprekers.</string>
+    <string name="eq_surround_strength">Immersie</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d gesynchroniseerd resultaat</item>
+        <item quantity="other">%d gesynchroniseerde resultaten</item>
+    </plurals>
+    <string name="action_compare_slider">Sleep om voor en na te vergelijken</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">Afspeellijst verwijderen</string>
+    <string name="confirm_delete_named_playlist_message">Afspeellijst ‘%1$s’ verwijderen? De volledige inhoud wordt gewist.</string>
+    <string name="toast_named_playlist_deleted">Afspeellijst ‘%1$s’ verwijderd.</string>
+    <string name="action_new_playlist">Nieuwe afspeellijst</string>
+    <string name="action_choose_playlist">Afspeellijst kiezen</string>
+    <string name="hint_playlist_name">Naam van afspeellijst</string>
+    <string name="toast_playlist_name_required">Voer een naam voor de afspeellijst in.</string>
+    <string name="toast_playlist_name_exists">Er bestaat al een afspeellijst met deze naam.</string>
+    <string name="toast_playlist_created">Afspeellijst ‘%1$s’ gemaakt.</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">%1$s toegevoegd aan ‘%2$s’</string>
+    <string name="playlist_added_partial_named">%1$s toegevoegd, %2$s stond al in ‘%3$s’</string>
+    <string name="toast_named_playlist_emptied">Afspeellijst ‘%1$s’ geleegd.</string>
+    <string name="toast_named_playlist_sent_to_queue">‘%1$s’ toegevoegd aan de wachtrij.</string>
 </resources>

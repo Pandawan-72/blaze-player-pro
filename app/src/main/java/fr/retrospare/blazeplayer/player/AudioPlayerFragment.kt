@@ -98,7 +98,7 @@ class AudioPlayerFragment : Fragment() {
     private lateinit var partyPlaylistAdapter: PartyPlaylistAdapter
     private val handler = Handler(Looper.getMainLooper())
     private var isSeekBarTracking = false
-    private var sleepTimerJob: Job? = null
+    private var sleepTimerIndicatorJob: Job? = null
     private var eqManager: EqualizerManager? = null
     private var dancerFrame = 0
     private var currentDynamicBgColor: Int = Color.rgb(10, 12, 14)
@@ -107,6 +107,51 @@ class AudioPlayerFragment : Fragment() {
     private var currentVisualizerSessionId: Int = 0
     private var pendingVisualizerSessionId: Int = 0
     private var audioSpectrumEnabled: Boolean = true
+    private var visualizerRequestGeneration: Int = 0
+    private var visualizerRequestInFlight: Boolean = false
+    private var visualizerAttachedAtMs: Long = 0L
+    private var lastVisualizerFrameAtMs: Long = 0L
+    private var lastVisualizerRestartAtMs: Long = 0L
+    private val visualizerWatchdogRunnable = object : Runnable {
+        override fun run() {
+            val ctrl = controller
+            if (!audioSpectrumEnabled || _binding == null || isHidden || !isResumed || ctrl?.isPlaying != true) {
+                return
+            }
+
+            // Ne jamais libérer/recréer android.media.audiofx.Visualizer pendant KaraoKast.
+            // Sur certains appareils, cette opération touche brièvement l'AudioTrack et produit
+            // une coupure audible, surtout pendant la rotation ou le mirroring.
+            if (karaokeLandscapeActive || karaokeMirroringActive) {
+                return
+            }
+
+            val now = SystemClock.elapsedRealtime()
+            val sessionId = currentVisualizerSessionId
+            val attachedLongEnough = visualizerAttachedAtMs > 0L &&
+                now - visualizerAttachedAtMs > VISUALIZER_STALE_AFTER_MS
+            // Timestamp mis à jour directement depuis le thread de capture du Visualizer : il ne
+            // dépend pas de la fluidité du thread UI et évite les faux blocages pendant un rendu lourd.
+            val callbacksStale = attachedLongEnough &&
+                AudioFftStream.millisSinceLastCapture(now) > VISUALIZER_STALE_AFTER_MS
+            val streamUnavailable = sessionId == 0 || !AudioFftStream.isRunning(sessionId)
+
+            if ((streamUnavailable || callbacksStale) &&
+                now - lastVisualizerRestartAtMs >= VISUALIZER_RESTART_COOLDOWN_MS
+            ) {
+                lastVisualizerRestartAtMs = now
+                ensureAudioVisualizer(forceRestart = true)
+            }
+            handler.postDelayed(this, VISUALIZER_WATCHDOG_INTERVAL_MS)
+        }
+    }
+    private val visualizerTrackRestartRunnable = Runnable {
+        if (audioSpectrumEnabled && _binding != null && controller?.isPlaying == true) {
+            // Une transition de morceau redemande la session, mais ne recrée jamais le Visualizer
+            // si Android a conservé la même session et que la capture fonctionne encore.
+            ensureAudioVisualizer(forceRestart = false)
+        }
+    }
     private var currentLyrics: List<AudioLocalEnhancements.LyricLine> = emptyList()
     private var currentLyricsData: AudioLocalEnhancements.LocalLyrics? = null
     private var lastLyricsLine: String? = null
@@ -212,7 +257,7 @@ class AudioPlayerFragment : Fragment() {
     private val requestAudioVisualizerPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) startAudioVisualizer(pendingVisualizerSessionId)
+        if (granted) startAudioVisualizer(pendingVisualizerSessionId, forceRestart = true)
         else setAudioSpectrumIdle()
     }
 
@@ -349,6 +394,11 @@ class AudioPlayerFragment : Fragment() {
             karaokeMirroringActive = active
             applyKaraoKastRenderingMode()
             updateKaraokeCastButtonState()
+            if (active) {
+                stopVisualizerWatchdog()
+            } else if (audioSpectrumEnabled && controller?.isPlaying == true) {
+                startVisualizerWatchdog()
+            }
         }
         binding.root.post { ButtonTextFitter.fitRecursively(binding.root, minSp = 9, maxSp = 13) }
         setupSeekBar()
@@ -376,10 +426,17 @@ class AudioPlayerFragment : Fragment() {
         screenMirrorStateMonitor?.start()
         screenMirrorStateMonitor?.refresh()
         updateKaraokeCastButtonState()
+        if (audioSpectrumEnabled && controller?.isPlaying == true) {
+            ensureAudioVisualizer()
+            startVisualizerWatchdog()
+        }
     }
 
     override fun onPause() {
         screenMirrorStateMonitor?.stop()
+        // Une rotation déclenche onPause()/onResume(). Conserver le Visualizer attaché évite de
+        // libérer puis recréer l'effet sur la session audio, ce qui coupait le son sur certains appareils.
+        stopVisualizerWatchdog()
         super.onPause()
     }
 
@@ -399,8 +456,15 @@ class AudioPlayerFragment : Fragment() {
             screenMirrorStateMonitor?.start()
             screenMirrorStateMonitor?.refresh()
             updateKaraokeCastButtonState()
+            if (audioSpectrumEnabled && controller?.isPlaying == true) {
+                ensureAudioVisualizer()
+                startVisualizerWatchdog()
+            }
         } else {
             screenMirrorStateMonitor?.stop()
+            stopVisualizerWatchdog()
+            stopAudioVisualizer()
+            setAudioSpectrumIdle()
             (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(false)
             setKaraokeLandscapeUi(false)
             lockAudioPlayerToPortrait()
@@ -419,10 +483,11 @@ class AudioPlayerFragment : Fragment() {
         artworkLoadJob?.cancel()
         setKaraokeLandscapeUi(false)
         lockAudioPlayerToPortrait()
+        stopVisualizerWatchdog()
         handler.removeCallbacksAndMessages(null)
         stopGuestPartyPolling()
         stopHostPartyRefresh()
-        sleepTimerJob?.cancel()
+        sleepTimerIndicatorJob?.cancel()
         lyricsJob?.cancel()
         updateLyricsKeepScreenOn(false)
         runCatching { AudioProSettings.prefs(requireContext()).unregisterOnSharedPreferenceChangeListener(audioProPrefsListener) }
@@ -521,9 +586,13 @@ class AudioPlayerFragment : Fragment() {
         val insetsController = androidx.core.view.WindowInsetsControllerCompat(requireActivity().window, requireActivity().window.decorView)
         insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (active) {
+            // Le flux FFT existant reste attaché, mais aucun watchdog ne peut le recréer pendant
+            // KaraoKast. Le changement de disposition devient ainsi purement visuel.
+            stopVisualizerWatchdog()
             insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
         } else {
             insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            if (audioSpectrumEnabled && controller?.isPlaying == true) startVisualizerWatchdog()
         }
     }
 
@@ -545,8 +614,14 @@ class AudioPlayerFragment : Fragment() {
                     audioSpectrumEnabled = enabled
                     setAudioSpectrumOverlayVisible(enabled)
                     if (enabled) {
-                        if (controller?.isPlaying == true) ensureAudioVisualizer() else setAudioSpectrumIdle()
+                        if (controller?.isPlaying == true) {
+                            ensureAudioVisualizer(forceRestart = true)
+                            startVisualizerWatchdog()
+                        } else {
+                            setAudioSpectrumIdle()
+                        }
                     } else {
+                        stopVisualizerWatchdog()
                         stopAudioVisualizer()
                         setAudioSpectrumIdle()
                     }
@@ -722,9 +797,17 @@ class AudioPlayerFragment : Fragment() {
                 partyPlaylistAdapter.setCurrentPath(if (isPlaying && idx in 0 until ctrl.mediaItemCount) originalPathOf(ctrl.getMediaItemAt(idx)) else null)
                 updateLyricsLine(ctrl.currentPosition)
                 if (!audioSpectrumEnabled) {
+                    stopVisualizerWatchdog()
                     stopAudioVisualizer()
                     setAudioSpectrumIdle()
-                } else if (isPlaying) ensureAudioVisualizer() else setAudioSpectrumIdle()
+                } else if (isPlaying) {
+                    ensureAudioVisualizer()
+                    startVisualizerWatchdog()
+                } else {
+                    stopVisualizerWatchdog()
+                    stopAudioVisualizer()
+                    setAudioSpectrumIdle()
+                }
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -751,7 +834,24 @@ class AudioPlayerFragment : Fragment() {
                     playlistAdapter.setPlayingIndex(if (ctrl.isPlaying) idx else -1)
                 }
                 partyPlaylistAdapter.setCurrentPath(if (ctrl.isPlaying) newPartyPath else null)
-                if (audioSpectrumEnabled) ensureAudioVisualizer() else setAudioSpectrumIdle()
+                if (audioSpectrumEnabled && ctrl.isPlaying) {
+                    scheduleVisualizerRestartForTrack()
+                } else {
+                    setAudioSpectrumIdle()
+                }
+            }
+
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                if (audioSpectrumEnabled && ctrl.isPlaying && audioSessionId > 0) {
+                    // Ne recrée l'effet que si Media3 fournit réellement une nouvelle session.
+                    // Un rappel avec le même identifiant peut arriver pendant une rotation.
+                    visualizerRequestGeneration++
+                    visualizerRequestInFlight = false
+                    handler.removeCallbacks(visualizerTrackRestartRunnable)
+                    val sessionChanged = audioSessionId != currentVisualizerSessionId
+                    startAudioVisualizer(audioSessionId, forceRestart = sessionChanged)
+                    startVisualizerWatchdog()
+                }
             }
 
             override fun onEvents(player: Player, events: Player.Events) {
@@ -766,35 +866,77 @@ class AudioPlayerFragment : Fragment() {
                     // La durée et les informations techniques sont maintenant disponibles : le
                     // badge bitrate peut être recalculé depuis Room sans rouvrir le flux NAS.
                     syncMetadata()
+                    if (audioSpectrumEnabled && player.isPlaying) {
+                        ensureAudioVisualizer()
+                        startVisualizerWatchdog()
+                    }
                 }
             }
         })
 
-        if (audioSpectrumEnabled) ensureAudioVisualizer() else setAudioSpectrumIdle()
+        if (audioSpectrumEnabled && ctrl.isPlaying) {
+            ensureAudioVisualizer()
+            startVisualizerWatchdog()
+        } else {
+            setAudioSpectrumIdle()
+        }
     }
 
-    private fun ensureAudioVisualizer() {
+    private fun ensureAudioVisualizer(forceRestart: Boolean = false) {
         if (!audioSpectrumEnabled || _binding == null) {
+            stopVisualizerWatchdog()
             stopAudioVisualizer()
             setAudioSpectrumIdle()
             return
         }
         val ctrl = controller ?: return
+        if (!ctrl.isPlaying) {
+            stopVisualizerWatchdog()
+            stopAudioVisualizer()
+            setAudioSpectrumIdle()
+            return
+        }
+
+        val existingSessionId = currentVisualizerSessionId
+        if (!forceRestart && existingSessionId > 0 && AudioFftStream.isRunning(existingSessionId)) {
+            startVisualizerWatchdog()
+            return
+        }
+        if (visualizerRequestInFlight && !forceRestart) return
+
+        val requestGeneration = ++visualizerRequestGeneration
+        visualizerRequestInFlight = true
         val future = ctrl.sendCustomCommand(
             androidx.media3.session.SessionCommand(BlazePlayerService.COMMAND_GET_AUDIO_SESSION_ID, android.os.Bundle.EMPTY),
             android.os.Bundle.EMPTY
         )
+        val executor = ContextCompat.getMainExecutor(requireContext())
         future.addListener({
+            if (requestGeneration != visualizerRequestGeneration) return@addListener
+            visualizerRequestInFlight = false
+            if (_binding == null || !isAdded || controller?.isPlaying != true || !audioSpectrumEnabled) {
+                return@addListener
+            }
+
             val sessionId = try {
                 future.get().extras.getInt(BlazePlayerService.EXTRA_AUDIO_SESSION_ID, 0)
-            } catch (_: Exception) { 0 }
-            if (sessionId != 0) startAudioVisualizer(sessionId)
-            else setAudioSpectrumIdle()
-        }, ContextCompat.getMainExecutor(requireContext()))
+            } catch (_: Exception) {
+                0
+            }
+            if (sessionId != 0) {
+                startAudioVisualizer(sessionId, forceRestart)
+                startVisualizerWatchdog()
+            } else {
+                setAudioSpectrumIdle()
+                // L'AudioTrack peut ne pas encore être créé juste après une transition. Le
+                // watchdog redemandera la session sans nécessiter de basculer le réglage.
+                startVisualizerWatchdog()
+            }
+        }, executor)
     }
 
-    private fun startAudioVisualizer(sessionId: Int) {
-        if (sessionId == 0 || _binding == null) return
+    private fun startAudioVisualizer(sessionId: Int, forceRestart: Boolean = false) {
+        if (sessionId == 0 || _binding == null || !audioSpectrumEnabled) return
         pendingVisualizerSessionId = sessionId
         if (android.os.Build.VERSION.SDK_INT >= 23 &&
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
@@ -808,30 +950,80 @@ class AudioPlayerFragment : Fragment() {
             requestAudioVisualizerPermission.launch(Manifest.permission.RECORD_AUDIO)
             return
         }
-        if (currentVisualizerSessionId == sessionId) return
-        currentVisualizerSessionId = sessionId
+
+        if (!forceRestart && currentVisualizerSessionId == sessionId && AudioFftStream.isRunning(sessionId)) {
+            startVisualizerWatchdog()
+            return
+        }
+
         try {
-            AudioFftStream.attach("audio-player-fullscreen", sessionId) { fft ->
-                _binding?.let { b ->
-                    // Un seul visualiseur reçoit la FFT. Envoyer chaque trame aux deux vues
-                    // doublait les calculs et les invalidations pendant le screen mirroring.
-                    if (karaokeLandscapeActive) {
-                        b.karaokeEqualizerView.takeIf { it.isShown }?.updateFft(fft)
-                    } else {
-                        b.audioEqualizerView.takeIf { it.isShown }?.updateFft(fft)
+            val attachedAt = SystemClock.elapsedRealtime()
+            if (forceRestart) lastVisualizerRestartAtMs = attachedAt
+            AudioFftStream.attach(
+                tag = "audio-player-fullscreen",
+                sessionId = sessionId,
+                onFft = { fft ->
+                    if (fft != null) lastVisualizerFrameAtMs = SystemClock.elapsedRealtime()
+                    _binding?.let { b ->
+                        // Un seul visualiseur reçoit la FFT. Envoyer chaque trame aux deux vues
+                        // doublerait les calculs et les invalidations pendant le screen mirroring.
+                        if (karaokeLandscapeActive) {
+                            b.karaokeEqualizerView.takeIf { it.isShown }?.updateFft(fft)
+                        } else {
+                            b.audioEqualizerView.takeIf { it.isShown }?.updateFft(fft)
+                        }
                     }
-                }
-            }
+                },
+                forceRestart = forceRestart
+            )
+            currentVisualizerSessionId = sessionId
+            visualizerAttachedAtMs = attachedAt
+            lastVisualizerFrameAtMs = 0L
+            startVisualizerWatchdog()
         } catch (e: Exception) {
+            currentVisualizerSessionId = 0
+            visualizerAttachedAtMs = 0L
+            lastVisualizerFrameAtMs = 0L
             CrashReporter.log(requireContext(), "Audio visualizer failed", e)
+            AudioFftStream.detach("audio-player-fullscreen")
             setAudioSpectrumIdle()
-            stopAudioVisualizer()
+            startVisualizerWatchdog()
         }
     }
 
+    private fun scheduleVisualizerRestartForTrack() {
+        handler.removeCallbacks(visualizerTrackRestartRunnable)
+        handler.postDelayed(visualizerTrackRestartRunnable, VISUALIZER_TRACK_RESTART_DELAY_MS)
+        startVisualizerWatchdog()
+    }
+
+    private fun startVisualizerWatchdog() {
+        handler.removeCallbacks(visualizerWatchdogRunnable)
+        if (audioSpectrumEnabled &&
+            _binding != null &&
+            !isHidden &&
+            isResumed &&
+            controller?.isPlaying == true &&
+            !karaokeLandscapeActive &&
+            !karaokeMirroringActive
+        ) {
+            handler.postDelayed(visualizerWatchdogRunnable, VISUALIZER_WATCHDOG_INTERVAL_MS)
+        }
+    }
+
+    private fun stopVisualizerWatchdog() {
+        handler.removeCallbacks(visualizerWatchdogRunnable)
+        handler.removeCallbacks(visualizerTrackRestartRunnable)
+    }
+
     private fun stopAudioVisualizer() {
+        visualizerRequestGeneration++
+        visualizerRequestInFlight = false
         AudioFftStream.detach("audio-player-fullscreen")
         currentVisualizerSessionId = 0
+        pendingVisualizerSessionId = 0
+        visualizerAttachedAtMs = 0L
+        lastVisualizerFrameAtMs = 0L
     }
 
     // ── Sync UI depuis MediaController (source unique) ─────────────────────────
@@ -1743,47 +1935,50 @@ class AudioPlayerFragment : Fragment() {
         setupSavedPlaylistDrawers()
     }
 
-    /** Les 3 tiroirs (1/2/3) sur le bord droit de l'écran, pour les playlists audio sauvegardées
-     *  (différentes de la file d'attente en cours, ouverte via btnPlaylistSheet). */
+    /** Gestion des playlists audio nommées, totalement indépendante des playlists vidéo. */
     private fun setupSavedPlaylistDrawers() {
-        val buttons = listOf(
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist1),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist2),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist3),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist4),
-            binding.root.findViewById<android.widget.TextView>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylist5)
+        val ctx = context ?: return
+        val category = fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO
+        val btnNew = binding.root.findViewById<com.google.android.material.button.MaterialButton>(
+            fr.retrospare.blazeplayer.R.id.btnNewAudioPlaylist
         )
-        val ctx = context
-        val lastPlayed = if (ctx != null) fr.retrospare.blazeplayer.playlist.PlaylistManager
-            .getLastPlayed(ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO) else 0
-        buttons.forEachIndexed { i, btn ->
-            if (ctx != null) {
-                val hasItems = fr.retrospare.blazeplayer.playlist.PlaylistManager
-                    .getPlaylist(ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, i + 1).isNotEmpty()
-                btn?.isSelected = hasItems
-                btn?.isActivated = hasItems && (lastPlayed == i + 1)
-                btn?.setTextColor(
-                    ContextCompat.getColor(
-                        ctx,
-                        when {
-                            hasItems -> fr.retrospare.blazeplayer.R.color.black
-                            else -> fr.retrospare.blazeplayer.R.color.on_surface_variant
-                        }
-                    )
-                )
-            } else {
-                btn?.isSelected = false
-                btn?.isActivated = false
+        val btnChoose = binding.root.findViewById<com.google.android.material.button.MaterialButton>(
+            fr.retrospare.blazeplayer.R.id.btnChooseAudioPlaylist
+        )
+        val playlists = fr.retrospare.blazeplayer.playlist.PlaylistManager.getNamedPlaylists(ctx, category)
+        btnChoose?.visibility = if (playlists.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+
+        btnNew?.setOnClickListener {
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showCreatePlaylistDialog(ctx, category) {
+                setupSavedPlaylistDrawers()
             }
-            btn?.setOnClickListener { openSavedAudioPlaylist(i + 1) }
         }
+        btnChoose?.setOnClickListener {
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showChoosePlaylistForQueue(
+                ctx,
+                category,
+                onPlaylistsChanged = { setupSavedPlaylistDrawers() }
+            ) { playlist, tracks ->
+                val added = appendNamedAudioPlaylistToQueue(tracks)
+                val already = (tracks.distinctBy { it.path }.size - added).coerceAtLeast(0)
+                val message = if (already == 0) {
+                    getString(fr.retrospare.blazeplayer.R.string.toast_named_playlist_sent_to_queue, playlist.name)
+                } else {
+                    val addedText = resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.playlist_items_added, added, added)
+                    val existingText = resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.playlist_items_already_present, already, already)
+                    getString(fr.retrospare.blazeplayer.R.string.playlist_added_partial_named, addedText, existingText, playlist.name)
+                }
+                android.widget.Toast.makeText(ctx, message, android.widget.Toast.LENGTH_SHORT).show()
+                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayedNamed(ctx, category, playlist.id)
+                setupSavedPlaylistDrawers()
+            }
+        }
+
         val partyBtn = binding.root.findViewById<android.widget.ImageButton>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylistParty)
-        if (ctx != null) {
-            partyBtn?.isSelected = fr.retrospare.blazeplayer.playlist.PlaylistManager
-                .getBlazePartyPlaylist(ctx).isNotEmpty()
-        }
+        partyBtn?.isSelected = fr.retrospare.blazeplayer.playlist.PlaylistManager.getBlazePartyPlaylist(ctx).isNotEmpty()
         partyBtn?.setOnClickListener { openBlazePartyAudioPlaylist() }
     }
+
 
     private fun openBlazePartyAudioPlaylist() {
         openPartyPlaylistSheet()
@@ -2121,73 +2316,32 @@ class AudioPlayerFragment : Fragment() {
         }
     }
 
-    private fun openSavedAudioPlaylist(slot: Int) {
-        val ctx = context ?: return
-        fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showPlaylistViewer(
-            ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, slot,
-            onPlayAll = { tracks ->
-                playSavedAudioPlaylistFromStart(tracks)
-                fr.retrospare.blazeplayer.playlist.PlaylistManager.setLastPlayed(ctx, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, slot)
-                setupSavedPlaylistDrawers()
-            },
-            onPlayOne = { track -> addTrack(track.path, track.name) },
-            onAddToParty = { tracks ->
-                val added = fr.retrospare.blazeplayer.playlist.PlaylistManager.addToBlazePartyPlaylist(ctx, tracks)
-                refreshBlazePartyUiAfterPlaylistChange(openSheet = true)
-                val msg = if (added > 0) resources.getQuantityString(fr.retrospare.blazeplayer.R.plurals.blaze_party_items_added, added, added) else getString(fr.retrospare.blazeplayer.R.string.blaze_party_items_already_present)
-                android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
-            },
-            onChanged = { setupSavedPlaylistDrawers() }
-        )
-    }
-
-    private fun playSavedAudioPlaylistFromStart(tracks: List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef>) {
-        val ctx = context ?: return
+    private fun appendNamedAudioPlaylistToQueue(
+        tracks: List<fr.retrospare.blazeplayer.playlist.PlaylistTrackRef>
+    ): Int {
+        val ctx = context ?: return 0
         val ordered = fr.retrospare.blazeplayer.playlist.PlaylistPlayOrder
             .sortedForPlayback(fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO, tracks)
-        if (ordered.isEmpty()) return
-
+            .distinctBy { it.path }
+        if (ordered.isEmpty()) return 0
         val ctrl = controller
         if (ctrl == null) {
-            // Fallback rare : contrôleur pas encore connecté. On garde l'ordre trié dans la file
-            // partagée, sans utiliser addTrack() qui lancerait successivement chaque morceau.
             ordered.forEach { sharedVm.addToPlaylist(it.path, it.name) }
-            return
+            return ordered.size
         }
-
-        ctrl.clearMediaItems()
-        ordered.forEach { track ->
-            ctrl.addMediaItem(AudioRepository.buildSimpleMediaItem(ctx, track.path, track.name))
+        val existing = (0 until ctrl.mediaItemCount).mapTo(HashSet(ctrl.mediaItemCount + ordered.size)) { index ->
+            originalPathOf(ctrl.getMediaItemAt(index))
         }
-
-        // Important : addTrack() lance chaque ajout immédiatement. Pour "Jouer la playlist",
-        // on reconstruit donc la file puis on force explicitement le départ au premier élément.
-        ctrl.seekTo(0, 0L)
-        ctrl.prepare()
-        ctrl.play()
-
-        playlistAdapter.refresh()
+        val additions = ordered.filter { it.path.isNotBlank() && existing.add(it.path) }
+        if (additions.isEmpty()) return 0
+        ctrl.addMediaItems(additions.map { track -> AudioRepository.buildSimpleMediaItem(ctx, track.path, track.name) })
+        if (ctrl.playbackState == Player.STATE_IDLE) ctrl.prepare()
+        if (::playlistAdapter.isInitialized) playlistAdapter.refresh()
         syncSelection()
         syncMetadata()
         syncButtons()
         savePlaylistFromController()
-
-        ordered.forEach { track ->
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    val enriched = AudioRepository.buildMediaItemWithMetadata(ctx, track.path, track.name)
-                    launch(Dispatchers.Main) {
-                        val c = controller ?: return@launch
-                        val idx = (0 until c.mediaItemCount).firstOrNull {
-                            originalPathOf(c.getMediaItemAt(it)) == track.path
-                        } ?: return@launch
-                        if (replaceMediaItemRateLimited(c, idx, enriched)) {
-                            playlistAdapter.notifyItemChanged(idx)
-                        }
-                    }
-                } catch (_: Exception) { }
-            }
-        }
+        return additions.size
     }
 
 
@@ -2601,29 +2755,99 @@ class AudioPlayerFragment : Fragment() {
             EqualizerDialog(manager).show(parentFragmentManager, "eq")
         }
 
-        binding.btnInfos?.setOnClickListener { toggleLyricsOverlayFromPlayer() }
-        binding.btnSleepTimer.setOnClickListener {
-            val options = arrayOf(getString(fr.retrospare.blazeplayer.R.string.minutes_5), getString(fr.retrospare.blazeplayer.R.string.minutes_15), getString(fr.retrospare.blazeplayer.R.string.minutes_30), getString(fr.retrospare.blazeplayer.R.string.hour_1), getString(fr.retrospare.blazeplayer.R.string.action_cancel))
-            android.app.AlertDialog.Builder(requireContext())
-                .setTitle(getString(fr.retrospare.blazeplayer.R.string.sleep_timer_title))
-                .setItems(options) { _, which ->
-                    sleepTimerJob?.cancel()
-                    val minutes = when (which) { 0->5L; 1->15L; 2->30L; 3->60L; else->0L }
-                    if (minutes > 0) {
-                        (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)
-                            ?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent))
-                        sleepTimerJob = viewLifecycleOwner.lifecycleScope.launch {
-                            delay(minutes * 60 * 1000)
-                            controller?.pause()
-                            (_binding?.btnSleepTimer?.getChildAt(0) as? android.widget.ImageView)
-                                ?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
-                        }
-                    } else {
-                        (binding.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)
-                            ?.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant))
-                    }
-                }.showPremium()
+        binding.btnInfos?.setOnClickListener { showLyricsDialog() }
+        binding.btnInfos?.setOnLongClickListener {
+            toggleLyricsOverlayFromPlayer()
+            true
         }
+        binding.btnSleepTimer.setOnClickListener { showSleepTimerEditor() }
+        refreshSleepTimerIndicator()
+    }
+
+    private fun showSleepTimerEditor() {
+        val ctrl = controller ?: return
+        val future = ctrl.sendCustomCommand(
+            SessionCommand(BlazePlayerService.COMMAND_GET_SLEEP_TIMER, Bundle.EMPTY),
+            Bundle.EMPTY
+        )
+        future.addListener({
+            val remaining = runCatching {
+                future.get().extras.getLong(BlazePlayerService.EXTRA_SLEEP_TIMER_REMAINING_MS, 0L)
+            }.getOrDefault(0L)
+            _binding?.root?.post {
+                val ctx = context ?: return@post
+                SleepTimerDialog.show(
+                    context = ctx,
+                    initialRemainingMs = remaining,
+                    onStart = { durationMs -> setSleepTimer(durationMs) },
+                    onCancelTimer = { setSleepTimer(0L) }
+                )
+            }
+        }, MoreExecutors.directExecutor())
+    }
+
+    private fun setSleepTimer(durationMs: Long) {
+        val ctrl = controller ?: return
+        val args = Bundle().apply {
+            putLong(BlazePlayerService.EXTRA_SLEEP_TIMER_DURATION_MS, durationMs)
+        }
+        val future = ctrl.sendCustomCommand(
+            SessionCommand(BlazePlayerService.COMMAND_SET_SLEEP_TIMER, Bundle.EMPTY),
+            args
+        )
+        future.addListener({
+            val result = runCatching { future.get() }.getOrNull()
+            val remaining = result?.extras?.getLong(BlazePlayerService.EXTRA_SLEEP_TIMER_REMAINING_MS, 0L) ?: 0L
+            _binding?.root?.post {
+                if (result?.resultCode == androidx.media3.session.SessionResult.RESULT_SUCCESS) {
+                    updateSleepTimerIndicator(remaining)
+                    val message = if (remaining > 0L) {
+                        getString(R.string.sleep_timer_started, formatSleepTimerDuration(remaining))
+                    } else {
+                        getString(R.string.sleep_timer_cancelled)
+                    }
+                    android.widget.Toast.makeText(requireContext(), message, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }, MoreExecutors.directExecutor())
+    }
+
+    private fun refreshSleepTimerIndicator() {
+        val ctrl = controller ?: return
+        val future = ctrl.sendCustomCommand(
+            SessionCommand(BlazePlayerService.COMMAND_GET_SLEEP_TIMER, Bundle.EMPTY),
+            Bundle.EMPTY
+        )
+        future.addListener({
+            val remaining = runCatching {
+                future.get().extras.getLong(BlazePlayerService.EXTRA_SLEEP_TIMER_REMAINING_MS, 0L)
+            }.getOrDefault(0L)
+            _binding?.root?.post { updateSleepTimerIndicator(remaining) }
+        }, MoreExecutors.directExecutor())
+    }
+
+    private fun updateSleepTimerIndicator(remainingMs: Long) {
+        val b = _binding ?: return
+        val active = remainingMs > 0L
+        (b.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(
+            requireContext().getColor(if (active) R.color.green_accent else R.color.on_surface_variant)
+        )
+        sleepTimerIndicatorJob?.cancel()
+        if (active) {
+            sleepTimerIndicatorJob = viewLifecycleOwner.lifecycleScope.launch {
+                delay(remainingMs)
+                (_binding?.btnSleepTimer?.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(
+                    requireContext().getColor(R.color.on_surface_variant)
+                )
+            }
+        }
+    }
+
+    private fun formatSleepTimerDuration(durationMs: Long): String {
+        val totalMinutes = ((durationMs + 59_999L) / 60_000L).coerceAtLeast(1L)
+        val hours = totalMinutes / 60L
+        val minutes = totalMinutes % 60L
+        return if (hours > 0L) "%dh %02d".format(hours, minutes) else "%d min".format(minutes)
     }
 
     // ── SeekBar ────────────────────────────────────────────────────────────────
@@ -2713,11 +2937,7 @@ class AudioPlayerFragment : Fragment() {
         val lyricsButtonEnabled = lyricsMasterEnabled && settings.lyricsPlayer
         b.btnInfos?.isSelected = lyricsButtonEnabled
         b.btnInfos?.isActivated = lyricsButtonEnabled
-        b.btnInfos?.contentDescription = if (lyricsButtonEnabled) {
-            "${getString(R.string.lyrics)} — activées"
-        } else {
-            "${getString(R.string.lyrics)} — désactivées"
-        }
+        b.btnInfos?.contentDescription = getString(R.string.audio_lyrics_button_description)
         b.btnInfos?.alpha = if (lyricsButtonEnabled) 1f else 0.58f
         (b.btnInfos?.getChildAt(0) as? ImageView)?.setColorFilter(lyricsAccent)
         (b.btnInfos?.getChildAt(1) as? TextView)?.setTextColor(lyricsAccent)
@@ -2906,7 +3126,17 @@ class AudioPlayerFragment : Fragment() {
         val ctx = context ?: return
         val settings = AudioProSettings.read(ctx)
         val ctrl = controller
-        val path = ctrl?.currentMediaItem?.let { originalPathOf(it) }.orEmpty()
+        val mediaItem = ctrl?.currentMediaItem
+        val path = mediaItem?.let { originalPathOf(it) }.orEmpty()
+        val metadata = mediaItem?.mediaMetadata
+        val fallbackTrackName = Uri.parse(path).lastPathSegment
+            ?.substringAfterLast('/')
+            ?.substringBeforeLast('.')
+            .orEmpty()
+        val trackName = metadata?.title?.toString().orEmpty().ifBlank { fallbackTrackName }
+        val artistName = metadata?.artist?.toString().orEmpty()
+        val albumName = metadata?.albumTitle?.toString().orEmpty()
+        val trackDurationMs = ctrl?.duration?.takeIf { it > 0L } ?: 0L
         val lyrics = if (settings.lyricsPlayer) currentLyricsData else null
 
         val dialog = Dialog(ctx)
@@ -2985,17 +3215,68 @@ class AudioPlayerFragment : Fragment() {
         }
         root.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
 
-        if (lyrics != null) {
-            root.addView(TextView(ctx).apply {
-                text = getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_source, lyrics.fileName)
-                setTextColor(ContextCompat.getColor(ctx, fr.retrospare.blazeplayer.R.color.on_surface_variant))
-                textSize = 12f
-                gravity = Gravity.CENTER
-                maxLines = 1
-                ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
-                setPadding(0, dp(10), 0, 0)
-            })
+        val sourceView = TextView(ctx).apply {
+            text = lyrics?.let { getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_source, it.fileName) }.orEmpty()
+            setTextColor(ContextCompat.getColor(ctx, fr.retrospare.blazeplayer.R.color.on_surface_variant))
+            textSize = 12f
+            gravity = Gravity.CENTER
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
+            setPadding(0, dp(8), 0, 0)
+            visibility = if (lyrics != null) View.VISIBLE else View.GONE
         }
+
+        val searchOnlineButton = MaterialButton(ctx, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            setText(fr.retrospare.blazeplayer.R.string.audio_lyrics_search_online)
+            isAllCaps = false
+            isEnabled = path.isNotBlank()
+            setOnClickListener {
+                LrclibLyricsDialog.show(
+                    fragment = this@AudioPlayerFragment,
+                    audioPath = path,
+                    trackName = trackName,
+                    artistName = artistName,
+                    albumName = albumName,
+                    durationMs = trackDurationMs,
+                    accentColor = currentAccentColor
+                ) {
+                    AudioLocalEnhancements.invalidateLyrics(path)
+                    completedLyricsLookupPath = ""
+                    loadLyricsForCurrentTrack(path, force = true)
+                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                        val fresh = AudioLocalEnhancements.findLocalLyricsData(ctx.applicationContext, path)
+                        launch(Dispatchers.Main) {
+                            if (!dialog.isShowing) return@launch
+                            currentLyricsData = fresh
+                            currentLyrics = fresh?.lines.orEmpty()
+                            lastLyricsLine = null
+                            updateLyricsLine(controller?.currentPosition ?: 0L)
+                            applyAudioProInterfaceSettings()
+                            status.text = when {
+                                fresh == null -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_none)
+                                fresh.isSynced -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_synced)
+                                else -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_static)
+                            }
+                            status.setTextColor(if (fresh != null) currentAccentColor else ContextCompat.getColor(ctx, fr.retrospare.blazeplayer.R.color.on_surface_variant))
+                            bodyView.text = fresh?.displayText?.takeIf { it.isNotBlank() } ?: getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_hint)
+                            bodyView.gravity = if (fresh == null) Gravity.CENTER else Gravity.CENTER_HORIZONTAL
+                            sourceView.text = fresh?.let { getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_source, it.fileName) }.orEmpty()
+                            sourceView.visibility = if (fresh != null) View.VISIBLE else View.GONE
+                        }
+                    }
+                }
+            }
+        }
+        root.addView(searchOnlineButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)).apply { topMargin = dp(10) })
+        root.addView(TextView(ctx).apply {
+            setText(fr.retrospare.blazeplayer.R.string.audio_lyrics_download_hint)
+            setTextColor(ContextCompat.getColor(ctx, fr.retrospare.blazeplayer.R.color.on_surface_variant))
+            textSize = 12f
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(7), dp(8), 0)
+        })
+
+        root.addView(sourceView)
 
         dialog.setContentView(root)
         dialog.setOnShowListener {
@@ -3029,6 +3310,8 @@ class AudioPlayerFragment : Fragment() {
                     status.setTextColor(if (fresh != null) currentAccentColor else ContextCompat.getColor(ctx, fr.retrospare.blazeplayer.R.color.on_surface_variant))
                     bodyView.text = fresh?.displayText?.takeIf { it.isNotBlank() } ?: getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_hint)
                     bodyView.gravity = if (fresh == null) Gravity.CENTER else Gravity.CENTER_HORIZONTAL
+                    sourceView.text = fresh?.let { getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_source, it.fileName) }.orEmpty()
+                    sourceView.visibility = if (fresh != null) View.VISIBLE else View.GONE
                 }
             }
         }
@@ -3738,6 +4021,10 @@ class AudioPlayerFragment : Fragment() {
 
 
     companion object {
+        private const val VISUALIZER_WATCHDOG_INTERVAL_MS = 2_000L
+        private const val VISUALIZER_STALE_AFTER_MS = 8_000L
+        private const val VISUALIZER_RESTART_COOLDOWN_MS = 10_000L
+        private const val VISUALIZER_TRACK_RESTART_DELAY_MS = 350L
         private const val DYNAMIC_AUDIO_PREFS = "blaze_audio_dynamic_colors"
         private const val KEY_DYNAMIC_BG = "dynamic_bg"
         private const val KEY_DYNAMIC_ACCENT = "dynamic_accent"

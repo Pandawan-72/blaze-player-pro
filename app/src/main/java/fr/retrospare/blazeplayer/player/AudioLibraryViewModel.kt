@@ -350,12 +350,12 @@ class AudioLibraryViewModel @Inject constructor(
     }
 
     private fun buildPlaylistSummaries(): List<LibraryPlaylist> {
-        val regular = (1..PlaylistManager.SLOT_COUNT).map { slot ->
-            val refs = PlaylistManager.getPlaylist(appContext, PlaylistCategory.AUDIO, slot)
+        val regular = PlaylistManager.getNamedPlaylists(appContext, PlaylistCategory.AUDIO).map { playlist ->
+            val refs = PlaylistManager.getNamedPlaylistTracks(appContext, PlaylistCategory.AUDIO, playlist.id)
             val tracks = refs.mapIndexed { index, ref -> playlistRefToTrack(ref, index) }
-            val count = "${tracks.size} titres"
+            val count = appContext.resources.getQuantityString(R.plurals.playlist_item_count, tracks.size, tracks.size)
             val first = tracks.firstOrNull()?.title.orEmpty()
-            LibraryPlaylist(appContext.getString(R.string.playlist_slot_name, slot), listOf(count, first).filter { it.isNotBlank() }.joinToString(" • "), tracks)
+            LibraryPlaylist(playlist.name, listOf(count, first).filter { it.isNotBlank() }.joinToString(" • "), tracks)
         }
         val partyRefs = PlaylistManager.getBlazePartyPlaylist(appContext)
         val partyTracks = partyRefs.mapIndexed { index, ref -> playlistRefToTrack(ref, index) }

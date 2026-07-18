@@ -18,8 +18,7 @@
     <string name="detected_devices">ОБНАРУЖЕННЫЕ УСТРОЙСТВА</string>
     <string name="available_devices">Доступные устройства</string>
     <string name="no_path_configured">Путь не настроен.\nНажмите Сканировать, чтобы найти устройства.</string>
-    <string name="default_path">Путь по умолчанию</string>
-    <string name="test_network_path">Проверить путь</string>
+<string name="test_network_path">Проверить путь</string>
     <string name="network_path_test_title">Проверка сетевого пути</string>
     <string name="network_path_test_success_message">Путь «%1$s» доступен.</string>
     <string name="network_path_test_failure_message">Не удалось открыть «%1$s». Проверьте сеть, учетные данные или права доступа к общему ресурсу.</string>
@@ -105,8 +104,6 @@
     <string name="lang_russian">Русский</string>
     <string name="lang_chinese">Китайский</string>
     <string name="settings_preferred_audio_lang">Предпочитаемый язык звука</string>
-    <string name="settings_remember_volume">Запоминать громкость</string>
-    <string name="settings_remember_volume_desc">Сохранять уровень громкости между сеансами</string>
 
     <string name="settings_mini_player">Мини-плеер</string>
     <string name="settings_mini_player_desc">Показывать мини-плеер в приложении</string>
@@ -241,8 +238,8 @@
     <string name="dialog_which_playlist">В какой плейлист добавить?</string>
     <string name="playlist_slot_name">Плейлист %1$d</string>
     <string name="playlist_empty">(пусто)</string>
-    <string name="action_to_playlist">В плейлист</string>
-    <string name="content_desc_queue_to_playlist">Сохранить очередь в плейлист</string>
+    <string name="action_to_playlist">Копировать очередь в плейлист</string>
+    <string name="content_desc_queue_to_playlist">Копировать очередь в плейлист</string>
     <string name="playlist_existing_with_count">(существующий — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">Существующий плейлист</string>
     <string name="dialog_playlist_not_empty_message">Плейлист %1$d уже содержит %2$s. Всё равно добавить выбранные элементы в этот плейлист?</string>
@@ -372,8 +369,7 @@
 <string name="settings_section_playback">ВОСПРОИЗВЕДЕНИЕ</string>
     <string name="settings_section_audio">АУДИО</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">По умолчанию</string>
-    <string name="eq_preamp_compressor_section">ПРЕДУСИЛИТЕЛЬ И КОМПРЕССОР</string>
+<string name="eq_preamp_compressor_section">ПРЕДУСИЛИТЕЛЬ И КОМПРЕССОР</string>
     <string name="eq_preamp_label">Предусилитель</string>
     <string name="eq_compressor_label">Компрессор</string>
     <string name="player_casting_in_progress">Идёт трансляция</string>
@@ -887,4 +883,59 @@
     <string name="audio_output_change_failed">Не удалось изменить аудиовыход</string>
     <string name="karaoke_mirror_opened">Выберите Chromecast в панели Android. Удерживайте кнопку, чтобы выбрать локальный аудиовыход.</string>
     <string name="karaoke_mirror_unavailable">Настройки трансляции экрана недоступны. Используйте плитку «Трансляция экрана» в быстрых настройках.</string>
+
+    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
+    <string name="audio_lyrics_search_online">Скачать текст песни (.LRC)</string>
+    <string name="audio_lyrics_download_hint">Выполните поиск в LRCLIB. Нажмите результат, чтобы автоматически скачать файл .LRC рядом с треком.</string>
+    <string name="audio_lyrics_button_description">Управление текстами и загрузка файлов .LRC. Удерживайте, чтобы показать или скрыть текст.</string>
+    <string name="lrclib_search_title">Поиск текстов в LRCLIB</string>
+    <string name="lrclib_search_subtitle">Поиск автоматически пробует несколько вариантов названия и исполнителя. Нажмите результат, чтобы сохранить файл .LRC рядом с треком.</string>
+    <string name="lrclib_track_hint">Название трека</string>
+    <string name="lrclib_artist_hint">Исполнитель</string>
+    <string name="lrclib_album_hint">Альбом (необязательно)</string>
+    <string name="lrclib_search_action">Искать в LRCLIB</string>
+    <string name="lrclib_searching">Поиск…</string>
+    <string name="lrclib_downloading">Сохранение файла LRC…</string>
+    <string name="lrclib_no_synced_results">Текст не найден. Проверьте название или исполнителя и повторите поиск.</string>
+    <string name="lrclib_search_failed">Ошибка поиска: %1$s</string>
+    <string name="lrclib_save_failed">Не удалось сохранить файл рядом с треком: %1$s</string>
+    <string name="lrclib_saved">Файл %1$s сохранён рядом с треком.</string>
+    <string name="lrclib_track_required">Название трека обязательно.</string>
+    <string name="lrclib_download_result">Скачать текст %1$s — %2$s</string>
+    <string name="lrclib_download_action">↓ Скачать файл .LRC</string>
+    <string name="sleep_timer_instruction">Введите время, через которое музыка должна остановиться.</string>
+    <string name="sleep_timer_hours">Часы</string>
+    <string name="sleep_timer_minutes">Минуты</string>
+    <string name="sleep_timer_start">Запустить</string>
+    <string name="sleep_timer_active_remaining">Активен · остановка через %1$s</string>
+    <string name="sleep_timer_minutes_error">Минуты должны быть от 00 до 59.</string>
+    <string name="sleep_timer_zero_error">Введите длительность больше нуля.</string>
+    <string name="sleep_timer_started">Музыка остановится через %1$s.</string>
+    <string name="sleep_timer_cancelled">Таймер сна отменён.</string>
+    <string name="eq_surround">Объёмный звук</string>
+    <string name="eq_surround_summary">Иммерсивное двухканальное пространственное звучание, оптимизированное для наушников и стереодинамиков.</string>
+    <string name="eq_surround_strength">Погружение</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d синхронизированный результат</item>
+        <item quantity="few">%d синхронизированных результата</item>
+        <item quantity="many">%d синхронизированных результатов</item>
+        <item quantity="other">%d синхронизированного результата</item>
+    </plurals>
+    <string name="action_compare_slider">Перетащите, чтобы сравнить до и после</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">Удалить плейлист</string>
+    <string name="confirm_delete_named_playlist_message">Удалить плейлист «%1$s»? Всё его содержимое будет удалено.</string>
+    <string name="toast_named_playlist_deleted">Плейлист «%1$s» удалён.</string>
+    <string name="action_new_playlist">Новый плейлист</string>
+    <string name="action_choose_playlist">Выбрать плейлист</string>
+    <string name="hint_playlist_name">Название плейлиста</string>
+    <string name="toast_playlist_name_required">Введите название плейлиста.</string>
+    <string name="toast_playlist_name_exists">Плейлист с таким названием уже существует.</string>
+    <string name="toast_playlist_created">Плейлист «%1$s» создан.</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">%1$s добавлено в «%2$s»</string>
+    <string name="playlist_added_partial_named">%1$s добавлено, %2$s уже есть в «%3$s»</string>
+    <string name="toast_named_playlist_emptied">Плейлист «%1$s» очищен.</string>
+    <string name="toast_named_playlist_sent_to_queue">«%1$s» добавлен в очередь.</string>
 </resources>

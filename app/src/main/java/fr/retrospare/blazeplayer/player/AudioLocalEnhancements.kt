@@ -103,6 +103,11 @@ object AudioLocalEnhancements {
     fun findLocalLyrics(context: Context, path: String): List<LyricLine> =
         findLocalLyricsData(context, path)?.lines.orEmpty()
 
+    /** Invalide le cache positif après création ou remplacement d’un fichier de paroles. */
+    fun invalidateLyrics(path: String) {
+        if (path.isNotBlank()) lyricsCache.remove(path)
+    }
+
     fun findLocalLyricsData(context: Context, path: String): LocalLyrics? {
         if (path.isBlank()) return null
         val settings = AudioProSettings.read(context)

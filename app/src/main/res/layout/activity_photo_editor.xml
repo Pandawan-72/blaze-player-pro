@@ -52,12 +52,12 @@
         android:layout_weight="1"
         android:background="#000000">
 
-        <ImageView
+        <fr.retrospare.blazeplayer.gallery.edit.BeforeAfterImageView
             android:id="@+id/ivPhoto"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitCenter"
-            android:contentDescription="@null" />
+            android:contentDescription="@string/action_compare_slider" />
 
         <fr.retrospare.blazeplayer.gallery.edit.CropOverlayView
             android:id="@+id/cropOverlay"
@@ -79,22 +79,6 @@
             android:indeterminateTint="@color/green_accent"
             android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCompareHold"
-            android:layout_width="wrap_content"
-            android:layout_height="44dp"
-            android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="12dp"
-            android:includeFontPadding="false"
-            android:text="@string/action_compare_hold"
-            android:textAllCaps="false"
-            android:textSize="11sp"
-            android:textColor="#FFFFFF"
-            android:paddingHorizontal="14dp"
-            app:backgroundTint="#66000000"
-            app:cornerRadius="22dp"
-            app:strokeColor="#33FFFFFF"
-            app:strokeWidth="1dp" />
     </FrameLayout>
 
     <!-- Panneau Filtres -->

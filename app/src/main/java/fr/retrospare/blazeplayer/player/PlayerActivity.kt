@@ -84,8 +84,8 @@ import javax.inject.Inject
  * [MediaItem], dont l'URI pointe vers notre propre relais HTTP local ([VideoStreamServerManager]),
  * jamais directement vers smb:// ou content://. C'est ce qui permet à [androidx.media3.cast.CastPlayer]
  * (construit dans [VideoPlaybackService]) de basculer tout seul entre local et distant — position
- * et sous-titres compris — sans la moindre reconstruction manuelle ici : on ne fait JAMAIS de
- * `setMediaItem()` spécifique au cast, on laisse Media3 s'en charger.
+ * et sous-titres compris. Le chemin normal reste entièrement géré par Media3 ; un watchdog ne
+ * renvoie le même `MediaItem` que si le receiver est connecté mais n'a accepté aucun LOAD.
  */
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target {
@@ -115,7 +115,6 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
     private var prefSeekIndex = 1
     private var prefPip = false
     private var prefAudioLangIndex = 0
-    private var prefRememberVolume = false
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private val hideRunnable = Runnable { hideUI() }
@@ -132,6 +131,12 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
     private var mediaReplacementInProgress = false
     private var castReplacementRetryCount = 0
     private var pendingCastReplacementVerification: Runnable? = null
+    /** Vérifie aussi le PREMIER transfert local -> Chromecast. Le remplacement distant avait déjà
+     *  son watchdog, mais le transfert initial pouvait échouer silencieusement : CastPlayer passait
+     *  bien en sortie distante alors que le receiver n'avait accepté aucun média. */
+    private var castStartupVerificationGeneration = 0L
+    private var castStartupRetryCount = 0
+    private var pendingCastStartupVerification: Runnable? = null
     private var resumeChoiceDialog: android.app.AlertDialog? = null
     /** Tant que cette valeur est vraie, aucun callback du player ne doit prendre une décision de
      *  reprise à la place du modal lié au nouveau média. C'est indispensable quand une activité
@@ -406,7 +411,6 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
             prefSeekIndex = prefs[intPreferencesKey("seek_time_index")] ?: 1
             prefPip = prefs[booleanPreferencesKey("pip")] ?: false
             prefAudioLangIndex = prefs[intPreferencesKey("audio_lang")] ?: 0
-            prefRememberVolume = prefs[booleanPreferencesKey("remember_volume")] ?: false
             videoBrightness = (prefs[intPreferencesKey("video_brightness")] ?: -1).toFloat()
             videoContrast = (prefs[intPreferencesKey("video_contrast")] ?: 0).toFloat()
             videoHue = (prefs[intPreferencesKey("video_hue")] ?: 0).toFloat()
@@ -414,11 +418,6 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
             videoVolumeBoost = (prefs[intPreferencesKey("video_volume_boost")] ?: 0).toFloat()
             videoDialogueMode = (prefs[intPreferencesKey("video_dialogue_mode")] ?: 0).toFloat()
             applyVideoAdjustments()
-
-            if (prefRememberVolume) {
-                val savedVol = prefs[intPreferencesKey("saved_volume")] ?: -1
-                if (savedVol >= 0) audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, savedVol, 0)
-            }
 
             binding.tvRewindLabel.text = "−${SEEK_LABELS.getOrElse(prefSeekIndex) { "10s" }}"
             binding.tvForwardLabel.text = "+${SEEK_LABELS.getOrElse(prefSeekIndex) { "10s" }}"
@@ -609,7 +608,11 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
                 positionMs = positionMs,
                 autoPlay = effectiveAutoPlay
             )
-        } else if (!isRemote) {
+        } else if (isRemote) {
+            // Cas important : la session Cast est déjà connectée mais aucun média n'est encore
+            // chargé (ou le premier LOAD a été envoyé pendant l'initialisation du receiver).
+            beginCastStartupVerification(path, name, positionMs, effectiveAutoPlay)
+        } else {
             mediaReplacementInProgress = false
         }
     }
@@ -741,6 +744,176 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
                 if (!isFinishing && !isDestroyed) ensureRemotePlaybackStarted("$reason +${delayMs}ms")
             }, delayMs)
         }
+    }
+
+    /** Lance un watchdog pour le premier LOAD suivant une connexion Cast.
+     *
+     *  onDeviceInfoChanged(REMOTE) signifie que la route est sélectionnée, pas nécessairement que
+     *  le Default Media Receiver a déjà accepté le LOAD. Sur certains téléphones/récepteurs, la
+     *  commande envoyée pendant cette très courte fenêtre est perdue : l'icône reste connectée mais
+     *  l'écran TV ne démarre rien. On attend donc l'état réel du RemoteMediaClient et on ne renvoie
+     *  le MediaItem que si le receiver n'a pas accepté l'URL attendue. */
+    private fun beginCastStartupVerification(
+        path: String,
+        name: String,
+        positionMs: Long,
+        autoPlay: Boolean
+    ) {
+        if (path.isBlank() || resumeDecisionPending || !::player.isInitialized) return
+        pendingCastStartupVerification?.let(uiHandler::removeCallbacks)
+        castStartupVerificationGeneration++
+        castStartupRetryCount = 0
+        scheduleCastStartupVerification(
+            generation = castStartupVerificationGeneration,
+            path = path,
+            name = name,
+            positionMs = positionMs.coerceAtLeast(0L),
+            autoPlay = autoPlay,
+            delayMs = 3_200L
+        )
+    }
+
+    private fun scheduleCastStartupVerification(
+        generation: Long,
+        path: String,
+        name: String,
+        positionMs: Long,
+        autoPlay: Boolean,
+        delayMs: Long
+    ) {
+        pendingCastStartupVerification?.let(uiHandler::removeCallbacks)
+        val verification = Runnable {
+            if (generation != castStartupVerificationGeneration || mediaPath != path ||
+                !::player.isInitialized || isFinishing || isDestroyed
+            ) return@Runnable
+            if (player.deviceInfo.playbackType != DeviceInfo.PLAYBACK_TYPE_REMOTE) {
+                pendingCastStartupVerification = null
+                return@Runnable
+            }
+
+            val expectedUrl = expectedCastContentUrl(path)
+            val remoteSnapshot = runCatching {
+                val client = com.google.android.gms.cast.framework.CastContext
+                    .getSharedInstance(applicationContext)
+                    .sessionManager.currentCastSession?.remoteMediaClient
+                val info = client?.mediaInfo
+                val status = client?.mediaStatus
+                Triple(
+                    info?.contentUrl?.takeIf { it.isNotBlank() } ?: info?.contentId,
+                    status?.playerState ?: com.google.android.gms.cast.MediaStatus.PLAYER_STATE_UNKNOWN,
+                    status?.idleReason ?: com.google.android.gms.cast.MediaStatus.IDLE_REASON_NONE
+                )
+            }.getOrNull()
+
+            val actualUrl = remoteSnapshot?.first
+            val playerState = remoteSnapshot?.second ?: com.google.android.gms.cast.MediaStatus.PLAYER_STATE_UNKNOWN
+            val idleReason = remoteSnapshot?.third ?: com.google.android.gms.cast.MediaStatus.IDLE_REASON_NONE
+            val urlAccepted = expectedUrl != null && actualUrl != null && sameCastContentUrl(expectedUrl, actualUrl)
+            val activeState = playerState == com.google.android.gms.cast.MediaStatus.PLAYER_STATE_PLAYING ||
+                playerState == com.google.android.gms.cast.MediaStatus.PLAYER_STATE_BUFFERING ||
+                playerState == com.google.android.gms.cast.MediaStatus.PLAYER_STATE_LOADING ||
+                playerState == com.google.android.gms.cast.MediaStatus.PLAYER_STATE_PAUSED
+
+            if (urlAccepted && activeState) {
+                pendingCastStartupVerification = null
+                castStartupRetryCount = 0
+                if (autoPlay) scheduleRemoteAutoplayChecks("initial Cast LOAD confirmed")
+                android.util.Log.i(
+                    "CAST",
+                    "Initial Cast LOAD confirmed url=$actualUrl state=$playerState"
+                )
+                return@Runnable
+            }
+
+            if (castStartupRetryCount >= 3) {
+                pendingCastStartupVerification = null
+                CrashReporter.log(
+                    this@PlayerActivity,
+                    "Chromecast initial LOAD failed path=$path expected=$expectedUrl actual=$actualUrl state=$playerState idle=$idleReason"
+                )
+                if (!isFinishing && !isDestroyed) {
+                    InfoDialog.show(
+                        this@PlayerActivity,
+                        getString(R.string.info_dialog_title_chromecast),
+                        getString(R.string.error_loading_media),
+                        R.drawable.ic_cast
+                    )
+                }
+                return@Runnable
+            }
+
+            castStartupRetryCount++
+            android.util.Log.w(
+                "CAST",
+                "Initial Cast LOAD not accepted path=$path expected=$expectedUrl actual=$actualUrl " +
+                    "state=$playerState idle=$idleReason retry=$castStartupRetryCount/3"
+            )
+            retryInitialCastLoad(path, name, positionMs, autoPlay)
+            scheduleCastStartupVerification(
+                generation = generation,
+                path = path,
+                name = name,
+                positionMs = positionMs,
+                autoPlay = autoPlay,
+                delayMs = when (castStartupRetryCount) {
+                    1 -> 4_000L
+                    2 -> 5_500L
+                    else -> 7_000L
+                }
+            )
+        }
+        pendingCastStartupVerification = verification
+        uiHandler.postDelayed(verification, delayMs)
+    }
+
+    private fun retryInitialCastLoad(
+        path: String,
+        name: String,
+        positionMs: Long,
+        autoPlay: Boolean
+    ) {
+        if (mediaPath != path || player.deviceInfo.playbackType != DeviceInfo.PLAYBACK_TYPE_REMOTE) return
+        runCatching {
+            if (!path.startsWith("http://", true) && !path.startsWith("https://", true)) {
+                VideoStreamServerManager.startServer(applicationContext, path)
+            }
+        }.onFailure { CrashReporter.log(this, "Failed to refresh Cast relay before initial LOAD retry for $path", it) }
+
+        // La position capturée au moment du transfert est la seule valeur sûre ici. Une ancienne
+        // session Cast peut encore publier brièvement sa dernière position dans le contrôleur.
+        val retryPosition = positionMs.coerceAtLeast(0L)
+        val item = buildMediaItem(path, name)
+        markExpectedMediaLoad(path, retryPosition, autoPlay, graceMs = 20_000L)
+        runCatching {
+            player.setMediaItem(item, retryPosition)
+            player.playWhenReady = autoPlay
+            player.prepare()
+            applySubtitleTrackSelection()
+            if (autoPlay) scheduleRemoteAutoplayChecks("initial Cast LOAD retry") else player.pause()
+        }.onFailure { CrashReporter.log(this, "Failed to retry initial Cast LOAD for $path", it) }
+    }
+
+    private fun expectedCastContentUrl(path: String): String? {
+        return if (path.startsWith("http://", true) || path.startsWith("https://", true)) {
+            path
+        } else {
+            runCatching { VideoStreamServerManager.getLanStreamUrlFor(applicationContext, path) }
+                .onFailure { CrashReporter.log(this, "Failed to resolve expected Cast URL for $path", it) }
+                .getOrNull()
+        }
+    }
+
+    private fun sameCastContentUrl(expected: String, actual: String): Boolean {
+        if (expected == actual) return true
+        return runCatching {
+            val expectedUri = Uri.parse(expected)
+            val actualUri = Uri.parse(actual)
+            expectedUri.scheme.equals(actualUri.scheme, true) &&
+                expectedUri.host.equals(actualUri.host, true) &&
+                expectedUri.port == actualUri.port &&
+                expectedUri.encodedPath == actualUri.encodedPath &&
+                expectedUri.encodedQuery == actualUri.encodedQuery
+        }.getOrDefault(false)
     }
 
 
@@ -1232,10 +1405,6 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
         super.onStop()
         if (isInPictureInPictureMode) return
         if (!::player.isInitialized) return
-        if (prefRememberVolume) {
-            val vol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-            lifecycleScope.launch { dataStore.edit { it[intPreferencesKey("saved_volume")] = vol } }
-        }
         saveCurrentVideoPosition()
         if (closingPlayerExplicitly) {
             detachPlayerViews()
@@ -1253,6 +1422,9 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
         resumeChoiceDialog = null
         pendingCastReplacementVerification?.let(uiHandler::removeCallbacks)
         pendingCastReplacementVerification = null
+        pendingCastStartupVerification?.let(uiHandler::removeCallbacks)
+        pendingCastStartupVerification = null
+        castStartupVerificationGeneration++
         ChromecastRemoteCommandBridge.detach(this)
         detachPlayerViews()
         super.onDestroy()
@@ -1497,7 +1669,15 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
                     markExpectedMediaLoad(mediaPath, transferPosition, autoPlay = isRemote || player.playWhenReady, graceMs = 18_000L)
                     applyVideoAdjustments(applyVolumeBoost = false)
                     applySubtitleTrackSelection()
-                    if (isRemote) scheduleRemoteAutoplayChecks("device switched to Cast")
+                    if (isRemote) {
+                        scheduleRemoteAutoplayChecks("device switched to Cast")
+                        beginCastStartupVerification(mediaPath, mediaName, transferPosition, autoPlay = true)
+                    } else {
+                        pendingCastStartupVerification?.let(uiHandler::removeCallbacks)
+                        pendingCastStartupVerification = null
+                        castStartupVerificationGeneration++
+                        castStartupRetryCount = 0
+                    }
                 }
 
                 if (isRemote) {

@@ -280,10 +280,13 @@
                 android:focusable="true"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"
-                android:background="@drawable/bg_header_action_button"
+                android:background="@drawable/bg_premium_sort_pill"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="10dp">
+                android:paddingHorizontal="10dp"
+                android:elevation="3dp"
+                android:stateListAnimator="@animator/premium_pill_state_animator"
+                android:clipToOutline="true">
 
                 <ImageView
                     android:layout_width="14dp"

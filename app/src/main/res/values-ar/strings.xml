@@ -19,8 +19,7 @@
     <string name="available_devices">الأجهزة المتاحة</string>
     <string name="no_path_configured">لم يتم إعداد أي مسار.
 اضغط على «مسح» لاكتشاف الأجهزة.</string>
-    <string name="default_path">المسار الافتراضي</string>
-    <string name="test_network_path">اختبار المسار</string>
+<string name="test_network_path">اختبار المسار</string>
     <string name="network_path_test_title">اختبار مسار الشبكة</string>
     <string name="network_path_test_success_message">يمكن الوصول إلى المسار «%1$s».</string>
     <string name="network_path_test_failure_message">تعذّر الوصول إلى «%1$s». تحقّق من الشبكة أو بيانات الاعتماد أو أذونات المشاركة.</string>
@@ -106,8 +105,6 @@
     <string name="lang_russian">الروسية</string>
     <string name="lang_chinese">الصينية</string>
     <string name="settings_preferred_audio_lang">لغة الصوت المفضلة</string>
-    <string name="settings_remember_volume">تذكّر مستوى الصوت</string>
-    <string name="settings_remember_volume_desc">الاحتفاظ بمستوى الصوت بين مرات التشغيل</string>
 
     <string name="settings_mini_player">المشغّل المصغّر</string>
     <string name="settings_mini_player_desc">إظهار المشغّل المصغّر في التطبيق</string>
@@ -242,8 +239,8 @@ Retro-Spare Dev / Anthony Gentil
     <string name="dialog_which_playlist">إلى أي قائمة تشغيل تريد الإضافة؟</string>
     <string name="playlist_slot_name">قائمة التشغيل %1$d</string>
     <string name="playlist_empty">(فارغة)</string>
-    <string name="action_to_playlist">إلى قائمة التشغيل</string>
-    <string name="content_desc_queue_to_playlist">حفظ قائمة الانتظار في قائمة تشغيل</string>
+    <string name="action_to_playlist">نسخ قائمة الانتظار إلى قائمة تشغيل</string>
+    <string name="content_desc_queue_to_playlist">نسخ قائمة الانتظار إلى قائمة تشغيل</string>
     <string name="playlist_existing_with_count">(موجودة — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">قائمة تشغيل موجودة</string>
     <string name="dialog_playlist_not_empty_message">تحتوي قائمة التشغيل %1$d بالفعل على %2$s. هل تريد إضافة العناصر المحددة إليها رغم ذلك؟</string>
@@ -371,8 +368,7 @@ Retro-Spare Dev / Anthony Gentil
 <string name="settings_section_playback">التشغيل</string>
     <string name="settings_section_audio">الصوت</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">افتراضي</string>
-    <string name="eq_preamp_compressor_section">المضخم الأولي والضاغط</string>
+<string name="eq_preamp_compressor_section">المضخم الأولي والضاغط</string>
     <string name="eq_preamp_label">المضخم الأولي</string>
     <string name="eq_compressor_label">الضاغط</string>
     <string name="player_casting_in_progress">البث جارٍ</string>
@@ -881,4 +877,57 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_output_change_failed">تعذر تغيير مخرج الصوت</string>
     <string name="karaoke_mirror_opened">اختر Chromecast من لوحة Android. اضغط مطولاً على الزر لاختيار مخرج الصوت المحلي.</string>
     <string name="karaoke_mirror_unavailable">إعدادات بث الشاشة غير متاحة على هذا الجهاز. استخدم مربع بث الشاشة في الإعدادات السريعة.</string>
+
+    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
+    <string name="audio_lyrics_search_online">تنزيل كلمات الأغنية (.LRC)</string>
+    <string name="audio_lyrics_download_hint">ابحث عبر LRCLIB. اضغط على نتيجة لتنزيل ملف .LRC تلقائيًا بجانب المقطع.</string>
+    <string name="audio_lyrics_button_description">إدارة الكلمات وتنزيل ملفات .LRC. اضغط مطولًا لإظهار الكلمات أو إخفائها.</string>
+    <string name="lrclib_search_title">البحث عن كلمات عبر LRCLIB</string>
+    <string name="lrclib_search_subtitle">تجرّب عملية البحث تلقائيًا عدة صيغ للعنوان والفنان. اضغط على نتيجة لحفظ ملف .LRC بجانب المقطع.</string>
+    <string name="lrclib_track_hint">عنوان المقطع</string>
+    <string name="lrclib_artist_hint">الفنان</string>
+    <string name="lrclib_album_hint">الألبوم (اختياري)</string>
+    <string name="lrclib_search_action">البحث في LRCLIB</string>
+    <string name="lrclib_searching">جارٍ البحث…</string>
+    <string name="lrclib_downloading">جارٍ حفظ ملف LRC…</string>
+    <string name="lrclib_no_synced_results">لم يتم العثور على كلمات. تحقّق من العنوان أو الفنان ثم أعد البحث.</string>
+    <string name="lrclib_search_failed">تعذر البحث: %1$s</string>
+    <string name="lrclib_save_failed">تعذر حفظ الملف بجانب المقطع: %1$s</string>
+    <string name="lrclib_saved">تم حفظ %1$s بجانب المقطع.</string>
+    <string name="lrclib_track_required">عنوان المقطع مطلوب.</string>
+    <string name="lrclib_download_result">تنزيل كلمات %1$s للفنان %2$s</string>
+    <string name="lrclib_download_action">↓ تنزيل ملف .LRC</string>
+    <string name="sleep_timer_instruction">أدخل مباشرة المدة قبل توقف الموسيقى.</string>
+    <string name="sleep_timer_hours">ساعات</string>
+    <string name="sleep_timer_minutes">دقائق</string>
+    <string name="sleep_timer_start">بدء</string>
+    <string name="sleep_timer_active_remaining">نشط · سيتوقف خلال %1$s</string>
+    <string name="sleep_timer_minutes_error">يجب أن تكون الدقائق بين 00 و59.</string>
+    <string name="sleep_timer_zero_error">أدخل مدة أكبر من صفر.</string>
+    <string name="sleep_timer_started">ستتوقف الموسيقى خلال %1$s.</string>
+    <string name="sleep_timer_cancelled">تم إلغاء مؤقت النوم.</string>
+    <string name="eq_surround">الصوت المحيطي</string>
+    <string name="eq_surround_summary">توزيع صوتي غامر بقناتين، محسّن لسماعات الرأس ومكبرات الصوت الاستريو.</string>
+    <string name="eq_surround_strength">الانغماس</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d نتيجة متزامنة</item>
+        <item quantity="other">%d نتائج متزامنة</item>
+    </plurals>
+    <string name="action_compare_slider">اسحب للمقارنة بين قبل وبعد</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">حذف قائمة تشغيل</string>
+    <string name="confirm_delete_named_playlist_message">هل تريد حذف قائمة التشغيل «%1$s»؟ سيتم حذف كل محتواها.</string>
+    <string name="toast_named_playlist_deleted">تم حذف قائمة التشغيل «%1$s».</string>
+    <string name="action_new_playlist">قائمة تشغيل جديدة</string>
+    <string name="action_choose_playlist">اختيار قائمة تشغيل</string>
+    <string name="hint_playlist_name">اسم قائمة التشغيل</string>
+    <string name="toast_playlist_name_required">أدخل اسمًا لقائمة التشغيل.</string>
+    <string name="toast_playlist_name_exists">توجد قائمة تشغيل بهذا الاسم بالفعل.</string>
+    <string name="toast_playlist_created">تم إنشاء قائمة التشغيل «%1$s».</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">تمت إضافة %1$s إلى «%2$s»</string>
+    <string name="playlist_added_partial_named">تمت إضافة %1$s، و%2$s موجود مسبقًا في «%3$s»</string>
+    <string name="toast_named_playlist_emptied">تم إفراغ قائمة التشغيل «%1$s».</string>
+    <string name="toast_named_playlist_sent_to_queue">تمت إضافة «%1$s» إلى قائمة الانتظار.</string>
 </resources>

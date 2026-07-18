@@ -749,13 +749,13 @@ class AudioLibraryActivity : AppCompatActivity() {
     }
 
     private fun showTrackPlaylistChoiceDialog(track: LibraryTrack) {
-        val labels = (1..PlaylistManager.SLOT_COUNT).map { slot -> getString(R.string.playlist_slot_name, slot) }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(track.title)
-            .setItems(labels) { _, which -> addTracksToPlaylist(which + 1, listOf(track)) }
-            .setNegativeButton(getString(R.string.action_cancel), null)
-            .show()
-            .also { DialogButtonStyler.style(it) }
+        fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
+            this,
+            PlaylistCategory.AUDIO,
+            listOf(track.toPlaylistRef())
+        ) {
+            if (viewModel.uiState.value.tab == LibraryTab.PLAYLISTS) viewModel.setTab(LibraryTab.PLAYLISTS)
+        }
     }
 
     private fun showAlbumCoverActions(album: LibraryAlbum, tracks: List<LibraryTrack>) {
@@ -782,13 +782,13 @@ class AudioLibraryActivity : AppCompatActivity() {
     }
 
     private fun showAlbumPlaylistChoiceDialog(album: LibraryAlbum, tracks: List<LibraryTrack>) {
-        val labels = (1..PlaylistManager.SLOT_COUNT).map { slot -> getString(R.string.playlist_slot_name, slot) }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(album.title)
-            .setItems(labels) { _, which -> addTracksToPlaylist(which + 1, tracks) }
-            .setNegativeButton(getString(R.string.action_cancel), null)
-            .show()
-            .also { DialogButtonStyler.style(it) }
+        fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
+            this,
+            PlaylistCategory.AUDIO,
+            tracks.distinctBy { it.path }.map { it.toPlaylistRef() }
+        ) {
+            if (viewModel.uiState.value.tab == LibraryTab.PLAYLISTS) viewModel.setTab(LibraryTab.PLAYLISTS)
+        }
     }
 
     private fun showPlaylistActions(playlist: LibraryPlaylist) {
@@ -866,12 +866,6 @@ class AudioLibraryActivity : AppCompatActivity() {
                 putStringArrayListExtra(BlazePlayerService.EXTRA_AUDIO_QUEUE_ARTWORK_PATHS, ArrayList(items.map { it.artworkPath }))
             })
         }
-    }
-
-    private fun addTracksToPlaylist(slot: Int, tracks: List<LibraryTrack>) {
-        val refs = tracks.distinctBy { it.path }.map { it.toPlaylistRef() }
-        val added = PlaylistManager.addToPlaylist(this, PlaylistCategory.AUDIO, slot, refs)
-        Toast.makeText(this, resources.getQuantityString(R.plurals.playlist_items_added, added, added), Toast.LENGTH_SHORT).show()
     }
 
     private fun addTracksToBlazeParty(tracks: List<LibraryTrack>) {

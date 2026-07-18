@@ -43,8 +43,6 @@ class SettingsViewModel @Inject constructor(
         val KEY_PIP              = booleanPreferencesKey("pip")
         val KEY_GESTURES         = booleanPreferencesKey("gestures")
         val KEY_AUDIO_LANG       = intPreferencesKey("audio_lang")
-        val KEY_REMEMBER_VOLUME  = booleanPreferencesKey("remember_volume")
-        val KEY_SAVED_VOLUME     = intPreferencesKey("saved_volume")
         val KEY_SHOW_HIDDEN      = booleanPreferencesKey("show_hidden")
         val KEY_SHOW_AUDIO       = booleanPreferencesKey("show_audio")
         val KEY_AUDIO_SPECTRUM   = booleanPreferencesKey("audio_spectrum_enabled")
@@ -172,8 +170,6 @@ class SettingsViewModel @Inject constructor(
     fun getAudioLangIndex() = getInt(KEY_AUDIO_LANG, 0)
     suspend fun getAudioLangIndexAsync(): Int = dataStore.data.first()[KEY_AUDIO_LANG] ?: 0
     fun setAudioLangIndex(v: Int) = setInt(KEY_AUDIO_LANG, v)
-    fun getRememberVolume() = getBool(KEY_REMEMBER_VOLUME, false)
-    fun setRememberVolume(v: Boolean) = setBool(KEY_REMEMBER_VOLUME, v)
     fun getChromecast() = getBool(KEY_CHROMECAST, false)
     fun getShowHidden() = getBool(KEY_SHOW_HIDDEN, false)
     fun setShowHidden(v: Boolean) = setBool(KEY_SHOW_HIDDEN, v)

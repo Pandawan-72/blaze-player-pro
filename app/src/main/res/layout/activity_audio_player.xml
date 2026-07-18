@@ -927,7 +927,12 @@
                     android:textAlignment="center"
                     android:textColor="@color/black"
                     android:textSize="24sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                 <TextView
                     android:id="@+id/btnCleanPlaylist"
@@ -945,98 +950,84 @@
                     android:textAlignment="center"
                     android:textColor="@color/red_accent"
                     android:textSize="13sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
             </LinearLayout>
 
-            <!-- Playlists 1/2/3/4/5 + sauvegarde de file, alignées dans la même carte -->
+            <!-- Playlists nommées audio, indépendantes des playlists vidéo -->
             <LinearLayout
                 android:id="@+id/audioPlaylistStrip"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:orientation="horizontal"
-                android:gravity="center">
+                android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/btnAudioPlaylist1"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:layout_marginEnd="8dp"
-                    android:gravity="center"
-                    android:text="1"
-                    android:textColor="@color/on_surface"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-condensed"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_playlist_chip"
-                    android:clickable="true"
-                    android:focusable="true" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/btnAudioPlaylist2"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:layout_marginEnd="8dp"
-                    android:gravity="center"
-                    android:text="2"
-                    android:textColor="@color/on_surface"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-condensed"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_playlist_chip"
-                    android:clickable="true"
-                    android:focusable="true" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNewAudioPlaylist"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:includeFontPadding="false"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="10dp"
+                        android:text="@string/action_new_playlist"
+                        android:textColor="@color/black"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-condensed"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        app:icon="@drawable/ic_add_circle"
+                        app:iconSize="16dp"
+                        app:iconTint="@color/black"
+                        app:iconGravity="textStart"
+                        app:backgroundTint="@color/green_accent"
+                        app:cornerRadius="20dp" />
 
-                <TextView
-                    android:id="@+id/btnAudioPlaylist3"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:layout_marginEnd="8dp"
-                    android:gravity="center"
-                    android:text="3"
-                    android:textColor="@color/on_surface"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-condensed"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_playlist_chip"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <TextView
-                    android:id="@+id/btnAudioPlaylist4"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:layout_marginEnd="8dp"
-                    android:gravity="center"
-                    android:text="4"
-                    android:textColor="@color/on_surface"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-condensed"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_playlist_chip"
-                    android:clickable="true"
-                    android:focusable="true" />
-
-                <TextView
-                    android:id="@+id/btnAudioPlaylist5"
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
-                    android:layout_marginEnd="10dp"
-                    android:gravity="center"
-                    android:text="5"
-                    android:textColor="@color/on_surface"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif-condensed"
-                    android:textStyle="bold"
-                    android:background="@drawable/bg_playlist_chip"
-                    android:clickable="true"
-                    android:focusable="true" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnChooseAudioPlaylist"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:includeFontPadding="false"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="10dp"
+                        android:text="@string/action_choose_playlist"
+                        android:textColor="@color/on_surface"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-condensed"
+                        android:visibility="gone"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        app:icon="@drawable/ic_layout_list"
+                        app:iconSize="15dp"
+                        app:iconTint="@color/green_accent"
+                        app:iconGravity="textStart"
+                        app:backgroundTint="@color/surface_variant"
+                        app:strokeColor="@color/green_accent_stroke"
+                        app:strokeWidth="1dp"
+                        app:cornerRadius="20dp" />
+                </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnQueueToPlaylist"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
                     android:includeFontPadding="false"
                     android:minWidth="0dp"
                     android:minHeight="0dp"
@@ -1146,7 +1137,12 @@
                     android:includeFontPadding="false"
                     android:fontFamily="sans-serif-condensed"
                     android:textColor="@color/on_surface"
-                    android:background="@drawable/bg_party_playlist_chip" />
+                    android:background="@drawable/bg_party_playlist_chip"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                 <TextView
                     android:id="@+id/btnVotePartyPlaylist"
@@ -1164,7 +1160,12 @@
                     android:includeFontPadding="false"
                     android:fontFamily="sans-serif-condensed"
                     android:textColor="@color/yellow_accent"
-                    android:background="@drawable/bg_party_playlist_chip" />
+                    android:background="@drawable/bg_party_playlist_chip"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
                 <TextView
                     android:id="@+id/btnClearPartyPlaylist"
@@ -1182,7 +1183,12 @@
                     android:includeFontPadding="false"
                     android:fontFamily="sans-serif-condensed"
                     android:textColor="@color/red_accent"
-                    android:background="@drawable/bg_queue_action_remove_pill" />
+                    android:background="@drawable/bg_queue_action_remove_pill"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
             </LinearLayout>
         </LinearLayout>

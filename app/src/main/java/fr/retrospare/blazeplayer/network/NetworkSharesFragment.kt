@@ -119,7 +119,6 @@ class NetworkSharesFragment : Fragment() {
         // Adapteur des chemins sauvegardés
         savedAdapter = NetworkSharesAdapter(
             onTestConnection = { share -> testNetworkPath(share) },
-            onSetDefault = { share -> viewModel.setDefault(share) },
             onEdit = { share -> showAddEditDialog(share) },
             onDelete = { share -> confirmDelete(share) }
         )
@@ -336,67 +335,103 @@ class NetworkSharesFragment : Fragment() {
     }
 
     private fun showAddEditDialog(existing: NetworkShare?) {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_add_network_share, null)
+        val dialogView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.dialog_add_network_share, null)
         val dialogBinding = DialogAddNetworkShareBinding.bind(dialogView)
-        var selectedType = ShareType.SMB
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(
+            requireContext(),
+            R.style.ThemeOverlay_BlazePlayer_BottomSheet
+        )
 
-        dialogBinding.tvDialogTitle.text = if (existing == null) getString(R.string.add_network_path) else getString(R.string.dialog_edit_path)
+        dialogBinding.tvDialogTitle.text = if (existing == null) {
+            getString(R.string.add_network_path)
+        } else {
+            getString(R.string.dialog_edit_path)
+        }
 
         existing?.let {
             dialogBinding.etName.setText(it.name)
             dialogBinding.etHost.setText(it.host)
             dialogBinding.etPort.setText(it.port?.toString() ?: "")
             dialogBinding.etShareName.setText(it.shareName)
-            dialogBinding.etUsername.setText(it.username ?: "")
-            dialogBinding.etPassword.setText(it.password ?: "")
-            dialogBinding.switchDefault.isChecked = it.isDefault
-            selectedType = ShareType.SMB
+            dialogBinding.etUsername.setText(it.username.orEmpty())
+            dialogBinding.etPassword.setText(it.password.orEmpty())
         }
 
-        fun updateTypeButtons(type: ShareType) {
-            selectedType = ShareType.SMB
-            dialogBinding.btnTypeSmb.setTextColor(resources.getColor(R.color.blue_accent, null))
-            dialogBinding.btnTypeSmb.setBackgroundResource(R.drawable.bg_tab_selected)
-            dialogBinding.btnTypeDlna.visibility = View.GONE
-            dialogBinding.btnTypeFtp.visibility = View.GONE
-            dialogBinding.etPort.setText(dialogBinding.etPort.text?.toString()?.ifBlank { "445" } ?: "445")
-            dialogBinding.etShareName.hint = getString(R.string.hint_shared_folder_example)
-        }
-        updateTypeButtons(ShareType.SMB)
-        dialogBinding.btnTypeSmb.setOnClickListener { updateTypeButtons(ShareType.SMB) }
+        fun saveShare() {
+            val name = dialogBinding.etName.text?.toString()?.trim().orEmpty()
+            val host = dialogBinding.etHost.text?.toString()?.trim().orEmpty()
+            val shareName = dialogBinding.etShareName.text?.toString()?.trim().orEmpty()
 
-        AlertDialog.Builder(requireContext())
-            .setTitle(null)
-            .setView(dialogView)
-            .setPositiveButton(getString(R.string.action_save)) { _, _ ->
-                val name = dialogBinding.etName.text.toString().trim()
-                val host = dialogBinding.etHost.text.toString().trim()
-                val shareName = dialogBinding.etShareName.text.toString().trim()
-                if (name.isEmpty() || host.isEmpty()) {
-                    android.widget.Toast.makeText(requireContext(), getString(R.string.toast_name_host_required), android.widget.Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                val share = existing?.copy(
-                    name = name, host = host,
-                    port = dialogBinding.etPort.text.toString().toIntOrNull(),
+            dialogBinding.etName.error = null
+            dialogBinding.etHost.error = null
+            if (name.isEmpty()) dialogBinding.etName.error = getString(R.string.toast_name_host_required)
+            if (host.isEmpty()) dialogBinding.etHost.error = getString(R.string.toast_name_host_required)
+            if (name.isEmpty() || host.isEmpty()) {
+                val target = if (name.isEmpty()) dialogBinding.etName else dialogBinding.etHost
+                target.requestFocus()
+                dialogBinding.scrollContent.smoothScrollTo(0, target.top)
+                return
+            }
+
+            val username = dialogBinding.etUsername.text?.toString()?.trim().orEmpty()
+                .takeIf { it.isNotEmpty() }
+            val password = dialogBinding.etPassword.text?.toString().orEmpty()
+                .takeIf { it.isNotEmpty() }
+            val port = dialogBinding.etPort.text?.toString()?.toIntOrNull()
+
+            // Le champ historique isDefault reste dans le modèle pour la compatibilité des
+            // données existantes, mais il n'est plus présenté ni modifié par cette interface.
+            val share = if (existing != null) {
+                existing.copy(
+                    name = name,
+                    host = host,
+                    port = port,
                     shareName = shareName,
-                    username = dialogBinding.etUsername.text.toString().takeIf { it.isNotEmpty() },
-                    password = dialogBinding.etPassword.text.toString().takeIf { it.isNotEmpty() },
-                    type = selectedType,
-                    isDefault = dialogBinding.switchDefault.isChecked
-                ) ?: viewModel.createShare(name, host, dialogBinding.etPort.text.toString().toIntOrNull(), shareName,
-                    dialogBinding.etUsername.text.toString().takeIf { it.isNotEmpty() },
-                    dialogBinding.etPassword.text.toString().takeIf { it.isNotEmpty() },
-                    selectedType, dialogBinding.switchDefault.isChecked)
-                viewModel.saveShare(share)
+                    username = username,
+                    password = password,
+                    type = ShareType.SMB
+                )
+            } else {
+                viewModel.createShare(
+                    name = name,
+                    host = host,
+                    port = port,
+                    shareName = shareName,
+                    username = username,
+                    password = password,
+                    type = ShareType.SMB,
+                    isDefault = false
+                )
             }
-            .setNegativeButton(getString(R.string.action_cancel), null)
-            .create().also { d ->
-                d.show()
-                fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(d.window)
-                fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(d)
-                d.window?.setBackgroundDrawableResource(R.drawable.bg_dialog_rounded)
+            viewModel.saveShare(share)
+            dialog.dismiss()
+        }
+
+        dialogBinding.btnClose.setOnClickListener { dialog.dismiss() }
+        dialogBinding.btnCancel.setOnClickListener { dialog.dismiss() }
+        dialogBinding.btnSave.setOnClickListener { saveShare() }
+
+        dialog.setContentView(dialogView)
+        dialog.setOnShowListener {
+            val bottomSheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+                ?: return@setOnShowListener
+            val maxHeight = (resources.displayMetrics.heightPixels * 0.88f).toInt()
+            bottomSheet.layoutParams = bottomSheet.layoutParams.apply { height = maxHeight }
+            bottomSheet.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottomSheet).apply {
+                skipCollapsed = true
+                state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
             }
+            dialogBinding.etName.clearFocus()
+            dialogBinding.root.requestFocus()
+        }
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
+        dialog.show()
+        fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
     }
 
     private fun confirmDelete(share: NetworkShare) {

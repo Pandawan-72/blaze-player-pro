@@ -6,7 +6,9 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -19,57 +21,166 @@ import fr.retrospare.blazeplayer.R
 
 object PlaylistDialogs {
 
-    /** Affiche un choix parmi les playlists sauvegardées, avec le nombre d'éléments déjà présents,
-     *  et ajoute les éléments sélectionnés à la playlist choisie. */
+    fun showCreatePlaylistDialog(
+        context: Context,
+        category: PlaylistCategory,
+        onCreated: ((NamedPlaylist) -> Unit)? = null
+    ) {
+        val density = context.resources.displayMetrics.density
+        val input = EditText(context).apply {
+            hint = context.getString(R.string.hint_playlist_name)
+            setSingleLine(true)
+        }
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val horizontal = (22 * density).toInt()
+            val vertical = (8 * density).toInt()
+            setPadding(horizontal, vertical, horizontal, 0)
+            addView(input, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ))
+        }
+        val dialog = AlertDialog.Builder(context)
+            .setTitle(context.getString(R.string.action_new_playlist))
+            .setView(container)
+            .setPositiveButton(context.getString(R.string.action_save), null)
+            .setNegativeButton(context.getString(R.string.action_cancel), null)
+            .showPremium()
+        dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+            val name = input.text?.toString().orEmpty().trim()
+            if (name.isBlank()) {
+                input.error = context.getString(R.string.toast_playlist_name_required)
+                return@setOnClickListener
+            }
+            val created = PlaylistManager.createNamedPlaylist(context, category, name)
+            if (created == null) {
+                input.error = context.getString(R.string.toast_playlist_name_exists)
+                return@setOnClickListener
+            }
+            Toast.makeText(context, context.getString(R.string.toast_playlist_created, created.name), Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+            onCreated?.invoke(created)
+        }
+        input.requestFocus()
+    }
+
     fun showAddToPlaylistPicker(
         context: Context,
         category: PlaylistCategory,
         tracks: List<PlaylistTrackRef>,
-        onAdded: ((slot: Int) -> Unit)? = null
+        onAdded: ((playlistId: String) -> Unit)? = null
     ) {
         if (tracks.isEmpty()) {
             Toast.makeText(context, context.getString(R.string.toast_no_file_selected), Toast.LENGTH_SHORT).show()
             return
         }
-        val counts = PlaylistManager.getAllSlotCounts(context, category)
-        val labels = (1..PlaylistManager.SLOT_COUNT).map { slot ->
-            val count = counts[slot - 1]
-            val countText = context.resources.getQuantityString(R.plurals.playlist_item_count, count, count)
-            context.getString(R.string.playlist_slot_name, slot) + " " +
-                (if (count > 0) context.getString(R.string.playlist_existing_with_count, countText)
-                 else context.getString(R.string.playlist_empty))
-        }.toTypedArray()
-
-        fun addToSlot(slot: Int) {
-            val added = PlaylistManager.addToPlaylist(context, category, slot, tracks)
-            val addedText = context.resources.getQuantityString(R.plurals.playlist_items_added, added, added)
-            val msg = if (added == tracks.size) {
-                context.getString(R.string.playlist_added_to_slot, addedText, slot)
-            } else {
-                val remaining = tracks.size - added
-                val remainingText = context.resources.getQuantityString(R.plurals.playlist_items_already_present, remaining, remaining)
-                context.getString(R.string.playlist_added_partial, addedText, remainingText)
+        val playlists = PlaylistManager.getNamedPlaylists(context, category)
+        if (playlists.isEmpty()) {
+            showCreatePlaylistDialog(context, category) { created ->
+                val added = PlaylistManager.addToNamedPlaylist(context, category, created.id, tracks)
+                showNamedAddResult(context, created, tracks.size, added)
+                onAdded?.invoke(created.id)
             }
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-            onAdded?.invoke(slot)
+            return
         }
-
+        val labels = playlists.map { playlist ->
+            val count = PlaylistManager.getNamedPlaylistTracks(context, category, playlist.id).size
+            val countText = context.resources.getQuantityString(R.plurals.playlist_item_count, count, count)
+            context.getString(R.string.playlist_named_with_count, playlist.name, countText)
+        }.toTypedArray()
         AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.dialog_which_playlist))
             .setItems(labels) { _, which ->
-                val slot = which + 1
-                val existingCount = counts.getOrNull(which) ?: 0
-                if (existingCount > 0) {
-                    val countText = context.resources.getQuantityString(R.plurals.playlist_item_count, existingCount, existingCount)
-                    AlertDialog.Builder(context)
-                        .setTitle(context.getString(R.string.dialog_playlist_not_empty_title))
-                        .setMessage(context.getString(R.string.dialog_playlist_not_empty_message, slot, countText))
-                        .setPositiveButton(context.getString(R.string.action_confirm_add_to_existing_playlist)) { _, _ -> addToSlot(slot) }
-                        .setNegativeButton(context.getString(R.string.action_cancel), null)
-                        .showPremium()
-                } else {
-                    addToSlot(slot)
+                val playlist = playlists[which]
+                val added = PlaylistManager.addToNamedPlaylist(context, category, playlist.id, tracks)
+                showNamedAddResult(context, playlist, tracks.size, added)
+                onAdded?.invoke(playlist.id)
+            }
+            .setNeutralButton(context.getString(R.string.action_new_playlist)) { _, _ ->
+                showCreatePlaylistDialog(context, category) { created ->
+                    val added = PlaylistManager.addToNamedPlaylist(context, category, created.id, tracks)
+                    showNamedAddResult(context, created, tracks.size, added)
+                    onAdded?.invoke(created.id)
                 }
+            }
+            .setNegativeButton(context.getString(R.string.action_cancel), null)
+            .showPremium()
+    }
+
+    private fun showNamedAddResult(context: Context, playlist: NamedPlaylist, requested: Int, added: Int) {
+        val addedText = context.resources.getQuantityString(R.plurals.playlist_items_added, added, added)
+        val message = if (added == requested) {
+            context.getString(R.string.playlist_added_to_named, addedText, playlist.name)
+        } else {
+            val remaining = (requested - added).coerceAtLeast(0)
+            val remainingText = context.resources.getQuantityString(R.plurals.playlist_items_already_present, remaining, remaining)
+            context.getString(R.string.playlist_added_partial_named, addedText, remainingText, playlist.name)
+        }
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
+    fun showChoosePlaylistForQueue(
+        context: Context,
+        category: PlaylistCategory,
+        onPlaylistsChanged: (() -> Unit)? = null,
+        onChosen: (NamedPlaylist, List<PlaylistTrackRef>) -> Unit
+    ) {
+        val playlists = PlaylistManager.getNamedPlaylists(context, category)
+        if (playlists.isEmpty()) return
+        val labels = playlists.map { playlist ->
+            val count = PlaylistManager.getNamedPlaylistTracks(context, category, playlist.id).size
+            val countText = context.resources.getQuantityString(R.plurals.playlist_item_count, count, count)
+            context.getString(R.string.playlist_named_with_count, playlist.name, countText)
+        }.toTypedArray()
+        AlertDialog.Builder(context)
+            .setTitle(context.getString(R.string.action_choose_playlist))
+            .setItems(labels) { _, which ->
+                val playlist = playlists[which]
+                val tracks = PlaylistManager.getNamedPlaylistTracks(context, category, playlist.id)
+                if (tracks.isEmpty()) Toast.makeText(context, context.getString(R.string.playlist_empty), Toast.LENGTH_SHORT).show()
+                else onChosen(playlist, tracks)
+            }
+            .setNeutralButton(context.getString(R.string.action_delete_playlist)) { _, _ ->
+                showDeletePlaylistDialog(context, category) {
+                    onPlaylistsChanged?.invoke()
+                }
+            }
+            .setNegativeButton(context.getString(R.string.action_cancel), null)
+            .showPremium()
+    }
+
+    private fun showDeletePlaylistDialog(
+        context: Context,
+        category: PlaylistCategory,
+        onDeleted: (() -> Unit)? = null
+    ) {
+        val playlists = PlaylistManager.getNamedPlaylists(context, category)
+        if (playlists.isEmpty()) return
+        val labels = playlists.map { playlist ->
+            val count = PlaylistManager.getNamedPlaylistTracks(context, category, playlist.id).size
+            val countText = context.resources.getQuantityString(R.plurals.playlist_item_count, count, count)
+            context.getString(R.string.playlist_named_with_count, playlist.name, countText)
+        }.toTypedArray()
+
+        AlertDialog.Builder(context)
+            .setTitle(context.getString(R.string.action_delete_playlist))
+            .setItems(labels) { _, which ->
+                val playlist = playlists[which]
+                AlertDialog.Builder(context)
+                    .setTitle(context.getString(R.string.confirm_delete_title))
+                    .setMessage(context.getString(R.string.confirm_delete_named_playlist_message, playlist.name))
+                    .setPositiveButton(context.getString(R.string.action_delete)) { _, _ ->
+                        PlaylistManager.deleteNamedPlaylist(context, category, playlist.id)
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.toast_named_playlist_deleted, playlist.name),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        onDeleted?.invoke()
+                    }
+                    .setNegativeButton(context.getString(R.string.action_cancel), null)
+                    .showPremium()
             }
             .setNegativeButton(context.getString(R.string.action_cancel), null)
             .showPremium()
@@ -79,10 +190,10 @@ object PlaylistDialogs {
      *  (au lieu d'une AlertDialog.setItems générique) : lecture d'un morceau précis, lecture de
      *  toute la playlist, retrait individuel d'un morceau sans fermer la feuille, et un bouton
      *  secondaire "Vider" (ou "Ajouter à Blaze Party" si applicable). */
-    fun showPlaylistViewer(
+    fun showNamedPlaylistViewer(
         context: Context,
         category: PlaylistCategory,
-        slot: Int,
+        playlist: NamedPlaylist,
         onPlayAll: (List<PlaylistTrackRef>) -> Unit,
         onPlayOne: (PlaylistTrackRef) -> Unit,
         onAddToParty: ((List<PlaylistTrackRef>) -> Unit)? = null,
@@ -90,26 +201,24 @@ object PlaylistDialogs {
     ) {
         showTrackListSheet(
             context = context,
-            title = context.getString(R.string.playlist_slot_name, slot) + " — " + category.displayLabel(context),
+            title = playlist.name,
             category = category,
-            loadTracks = { PlaylistManager.getPlaylist(context, category, slot) },
+            loadTracks = { PlaylistManager.getNamedPlaylistTracks(context, category, playlist.id) },
             onPlayAll = onPlayAll,
             onPlayOne = onPlayOne,
             onRemoveTrack = { track ->
-                PlaylistManager.removeFromPlaylist(context, category, slot, track.path)
+                PlaylistManager.removeFromNamedPlaylist(context, category, playlist.id, track.path)
                 onChanged?.invoke()
             },
             clearLabel = context.getString(R.string.action_empty_playlist),
             onClear = {
-                PlaylistManager.clearPlaylist(context, category, slot)
-                Toast.makeText(context, context.getString(R.string.toast_playlist_emptied, slot), Toast.LENGTH_SHORT).show()
+                PlaylistManager.clearNamedPlaylist(context, category, playlist.id)
+                Toast.makeText(context, context.getString(R.string.toast_named_playlist_emptied, playlist.name), Toast.LENGTH_SHORT).show()
                 onChanged?.invoke()
             },
             secondaryLabel = onAddToParty?.let { context.getString(R.string.add_to_blaze_party) },
             onSecondary = onAddToParty?.let { addToParty ->
-                {
-                    addToParty.invoke(PlaylistManager.getPlaylist(context, category, slot))
-                }
+                { addToParty.invoke(PlaylistManager.getNamedPlaylistTracks(context, category, playlist.id)) }
             }
         )
     }

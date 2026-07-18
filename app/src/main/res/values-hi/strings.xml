@@ -19,8 +19,7 @@
     <string name="available_devices">उपलब्ध डिवाइस</string>
     <string name="no_path_configured">कोई पथ कॉन्फ़िगर नहीं है।
 डिवाइस खोजने के लिए स्कैन दबाएँ।</string>
-    <string name="default_path">डिफ़ॉल्ट पथ</string>
-    <string name="test_network_path">पथ जाँचें</string>
+<string name="test_network_path">पथ जाँचें</string>
     <string name="network_path_test_title">नेटवर्क पथ जाँच</string>
     <string name="network_path_test_success_message">पथ “%1$s” उपलब्ध है।</string>
     <string name="network_path_test_failure_message">“%1$s” तक पहुँचा नहीं जा सका। नेटवर्क, लॉगिन जानकारी या शेयर अनुमतियाँ जाँचें।</string>
@@ -106,8 +105,6 @@
     <string name="lang_russian">रूसी</string>
     <string name="lang_chinese">चीनी</string>
     <string name="settings_preferred_audio_lang">पसंदीदा ऑडियो भाषा</string>
-    <string name="settings_remember_volume">वॉल्यूम याद रखें</string>
-    <string name="settings_remember_volume_desc">प्लेबैक के बीच वॉल्यूम स्तर बनाए रखें</string>
 
     <string name="settings_mini_player">मिनी प्लेयर</string>
     <string name="settings_mini_player_desc">ऐप में मिनी प्लेयर दिखाएँ</string>
@@ -242,8 +239,8 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="dialog_which_playlist">किस प्लेलिस्ट में जोड़ें?</string>
     <string name="playlist_slot_name">प्लेलिस्ट %1$d</string>
     <string name="playlist_empty">(खाली)</string>
-    <string name="action_to_playlist">प्लेलिस्ट में</string>
-    <string name="content_desc_queue_to_playlist">कतार को प्लेलिस्ट में सहेजें</string>
+    <string name="action_to_playlist">कतार को प्लेलिस्ट में कॉपी करें</string>
+    <string name="content_desc_queue_to_playlist">कतार को प्लेलिस्ट में कॉपी करें</string>
     <string name="playlist_existing_with_count">(मौजूद — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">मौजूदा प्लेलिस्ट</string>
     <string name="dialog_playlist_not_empty_message">प्लेलिस्ट %1$d में पहले से %2$s हैं। फिर भी चयनित आइटम जोड़ें?</string>
@@ -371,8 +368,7 @@ Android के लिए आपका मीडिया प्लेयर</str
 <string name="settings_section_playback">प्लेबैक</string>
     <string name="settings_section_audio">ऑडियो</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">डिफ़ॉल्ट</string>
-    <string name="eq_preamp_compressor_section">प्रीऐम्प और कंप्रेसर</string>
+<string name="eq_preamp_compressor_section">प्रीऐम्प और कंप्रेसर</string>
     <string name="eq_preamp_label">प्रीऐम्प</string>
     <string name="eq_compressor_label">कंप्रेसर</string>
     <string name="player_casting_in_progress">कास्ट जारी है</string>
@@ -881,4 +877,57 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_output_change_failed">ऑडियो आउटपुट बदला नहीं जा सका</string>
     <string name="karaoke_mirror_opened">Android पैनल में अपना Chromecast चुनें। स्थानीय ऑडियो आउटपुट चुनने के लिए बटन को देर तक दबाएँ।</string>
     <string name="karaoke_mirror_unavailable">इस डिवाइस पर स्क्रीन कास्ट सेटिंग उपलब्ध नहीं है। त्वरित सेटिंग में Cast screen टाइल का उपयोग करें।</string>
+
+    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
+    <string name="audio_lyrics_search_online">लिरिक्स डाउनलोड करें (.LRC)</string>
+    <string name="audio_lyrics_download_hint">LRCLIB पर खोजें। किसी परिणाम पर टैप करके .LRC फ़ाइल को अपने-आप गाने के पास डाउनलोड करें।</string>
+    <string name="audio_lyrics_button_description">लिरिक्स प्रबंधित करें और .LRC फ़ाइलें डाउनलोड करें। लिरिक्स दिखाने या छिपाने के लिए देर तक दबाएँ।</string>
+    <string name="lrclib_search_title">LRCLIB लिरिक्स खोज</string>
+    <string name="lrclib_search_subtitle">खोज अपने-आप शीर्षक और कलाकार के कई रूप आज़माती है। .LRC फ़ाइल को गाने के पास सहेजने के लिए किसी परिणाम पर टैप करें।</string>
+    <string name="lrclib_track_hint">गाने का शीर्षक</string>
+    <string name="lrclib_artist_hint">कलाकार</string>
+    <string name="lrclib_album_hint">एल्बम (वैकल्पिक)</string>
+    <string name="lrclib_search_action">LRCLIB पर खोजें</string>
+    <string name="lrclib_searching">खोज जारी है…</string>
+    <string name="lrclib_downloading">LRC फ़ाइल सहेजी जा रही है…</string>
+    <string name="lrclib_no_synced_results">कोई लिरिक्स नहीं मिला। शीर्षक या कलाकार जाँचें, फिर दोबारा खोजें।</string>
+    <string name="lrclib_search_failed">खोज विफल: %1$s</string>
+    <string name="lrclib_save_failed">फ़ाइल को गाने के पास सहेजा नहीं जा सका: %1$s</string>
+    <string name="lrclib_saved">%1$s को गाने के पास सहेजा गया।</string>
+    <string name="lrclib_track_required">गाने का शीर्षक आवश्यक है।</string>
+    <string name="lrclib_download_result">%2$s के %1$s के लिरिक्स डाउनलोड करें</string>
+    <string name="lrclib_download_action">↓ .LRC फ़ाइल डाउनलोड करें</string>
+    <string name="sleep_timer_instruction">संगीत रुकने से पहले की अवधि सीधे दर्ज करें।</string>
+    <string name="sleep_timer_hours">घंटे</string>
+    <string name="sleep_timer_minutes">मिनट</string>
+    <string name="sleep_timer_start">शुरू करें</string>
+    <string name="sleep_timer_active_remaining">सक्रिय · %1$s में रुकेगा</string>
+    <string name="sleep_timer_minutes_error">मिनट 00 से 59 के बीच होने चाहिए।</string>
+    <string name="sleep_timer_zero_error">शून्य से अधिक अवधि दर्ज करें।</string>
+    <string name="sleep_timer_started">संगीत %1$s में रुक जाएगा।</string>
+    <string name="sleep_timer_cancelled">स्लीप टाइमर रद्द किया गया।</string>
+    <string name="eq_surround">सराउंड साउंड</string>
+    <string name="eq_surround_summary">हेडफ़ोन और स्टीरियो स्पीकर के लिए अनुकूलित इमर्सिव दो-चैनल स्पैटियल ऑडियो।</string>
+    <string name="eq_surround_strength">इमर्शन</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d सिंक किया हुआ परिणाम</item>
+        <item quantity="other">%d सिंक किए हुए परिणाम</item>
+    </plurals>
+    <string name="action_compare_slider">पहले और बाद की तुलना करने के लिए खींचें</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">प्लेलिस्ट हटाएँ</string>
+    <string name="confirm_delete_named_playlist_message">प्लेलिस्ट “%1$s” हटाएँ? इसकी पूरी सामग्री हटा दी जाएगी।</string>
+    <string name="toast_named_playlist_deleted">प्लेलिस्ट “%1$s” हटा दी गई।</string>
+    <string name="action_new_playlist">नई प्लेलिस्ट</string>
+    <string name="action_choose_playlist">प्लेलिस्ट चुनें</string>
+    <string name="hint_playlist_name">प्लेलिस्ट का नाम</string>
+    <string name="toast_playlist_name_required">प्लेलिस्ट का नाम दर्ज करें।</string>
+    <string name="toast_playlist_name_exists">इस नाम की प्लेलिस्ट पहले से मौजूद है।</string>
+    <string name="toast_playlist_created">प्लेलिस्ट “%1$s” बनाई गई।</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">%1$s को “%2$s” में जोड़ा गया</string>
+    <string name="playlist_added_partial_named">%1$s जोड़ा गया, %2$s पहले से “%3$s” में है</string>
+    <string name="toast_named_playlist_emptied">प्लेलिस्ट “%1$s” खाली की गई।</string>
+    <string name="toast_named_playlist_sent_to_queue">“%1$s” को कतार में जोड़ा गया।</string>
 </resources>

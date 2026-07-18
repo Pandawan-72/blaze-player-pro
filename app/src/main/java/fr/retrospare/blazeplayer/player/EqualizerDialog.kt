@@ -435,6 +435,28 @@ class EqualizerDialog(
         binding.tvLoudnessValue.text = "${eqManager.getSavedLoudness()}%"
         binding.knobLoudness.setAccentColor(ContextCompat.getColor(requireContext(), R.color.yellow_accent))
 
+        applyAudioStyleToggle(binding.switchSurround)
+        binding.switchSurround.isChecked = eqManager.isSurroundEnabled()
+        binding.switchSurround.setOnCheckedChangeListener { _, checked ->
+            eqManager.setSurroundEnabled(checked)
+            refreshSurroundEnabledState(checked)
+        }
+        configureKnob(
+            binding.knobSurroundStrength,
+            0,
+            EqualizerManager.SURROUND_STRENGTH_MAX,
+            1,
+            55,
+            eqManager.getSavedSurroundStrength(),
+            getString(R.string.eq_surround_strength)
+        ) { value ->
+            eqManager.setSurroundStrength(value)
+            binding.tvSurroundStrengthValue.text = "$value%"
+        }
+        binding.tvSurroundStrengthValue.text = "${eqManager.getSavedSurroundStrength()}%"
+        binding.knobSurroundStrength.setAccentColor(ContextCompat.getColor(requireContext(), R.color.blue_accent))
+        refreshSurroundEnabledState(eqManager.isSurroundEnabled())
+
         applyAudioStyleToggle(binding.switchAutoHeadroom)
         binding.switchAutoHeadroom.isChecked = eqManager.isAutoHeadroomEnabled()
         binding.switchAutoHeadroom.setOnCheckedChangeListener { _, checked ->
@@ -546,6 +568,12 @@ class EqualizerDialog(
 
         val loudnessAvailable = eqManager.isLoudnessAvailable()
         binding.loudnessContainer.visibility = if (loudnessAvailable) View.VISIBLE else View.GONE
+    }
+
+    private fun refreshSurroundEnabledState(enabled: Boolean) {
+        setControlEnabled(binding.knobSurroundStrength, enabled)
+        binding.tvSurroundStrengthValue.alpha = if (enabled) 1f else 0.38f
+        binding.tvSurroundSummary.alpha = if (enabled) 1f else 0.62f
     }
 
     private fun refreshReverbEnabledState(enabled: Boolean) {

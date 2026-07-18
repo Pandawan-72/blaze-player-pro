@@ -102,9 +102,22 @@ class StandardLyricsOverlayView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (lines.isEmpty() || width <= 0 || height <= 0) return
 
-        val positionMs = smoothRenderPosition(currentPositionMs())
-        val activeIndex = activeLineIndex(positionMs)
-        val segmentIndex = activeEnhancedSegmentIndex(activeIndex, positionMs)
+        val rawPositionMs = currentPositionMs()
+        val smoothedPositionMs = smoothRenderPosition(rawPositionMs)
+
+        // Les échantillons du MediaController peuvent légèrement osciller lors de leur
+        // resynchronisation périodique. L'extrapolation brute provoquait alors des sauts de
+        // plusieurs centaines de millisecondes. On conserve donc l'horloge lissée comme source
+        // principale, mais une ligne LRC standard est autorisée à rattraper une petite avance
+        // fiable de l'horloge du player. Le mode Enhanced reste strictement inchangé.
+        val smoothedActiveIndex = activeLineIndex(smoothedPositionMs)
+        val preciseStandardPositionMs = preciseStandardLinePosition(smoothedPositionMs, rawPositionMs)
+        val preciseCandidateIndex = activeLineIndex(preciseStandardPositionMs)
+        val touchesEnhancedLine =
+            lines.getOrNull(smoothedActiveIndex)?.segments?.isNotEmpty() == true ||
+                lines.getOrNull(preciseCandidateIndex)?.segments?.isNotEmpty() == true
+        val activeIndex = if (touchesEnhancedLine) smoothedActiveIndex else preciseCandidateIndex
+        val segmentIndex = activeEnhancedSegmentIndex(activeIndex, smoothedPositionMs)
         if (activeIndex != cachedActiveIndex || segmentIndex != cachedSegmentIndex || width != cachedWidth) {
             cachedActiveIndex = activeIndex
             cachedSegmentIndex = segmentIndex
@@ -258,6 +271,19 @@ class StandardLyricsOverlayView @JvmOverloads constructor(
         return renderedPositionMs.roundToLong()
     }
 
+    private fun preciseStandardLinePosition(smoothedPositionMs: Long, rawPositionMs: Long): Long {
+        val rawLeadMs = rawPositionMs - smoothedPositionMs
+        if (rawLeadMs <= MAX_STANDARD_LINE_LAG_MS) return smoothedPositionMs
+
+        // Une différence trop importante correspond généralement à un échantillon irrégulier,
+        // à un seek ou à une transition d'état : dans ce cas l'horloge stable reste prioritaire.
+        if (rawLeadMs > MAX_TRUSTED_CONTROLLER_LEAD_MS) return smoothedPositionMs
+
+        // La coloration d'une ligne standard ne peut ainsi jamais rester plus de quelques
+        // dizaines de millisecondes derrière une avance crédible du lecteur.
+        return rawPositionMs - MAX_STANDARD_LINE_LAG_MS
+    }
+
     private fun activeLineIndex(positionMs: Long): Int {
         var low = 0
         var high = lines.lastIndex
@@ -298,6 +324,8 @@ class StandardLyricsOverlayView @JvmOverloads constructor(
         const val LYRICS_LOOKAHEAD_MS = 180L
         const val SEEK_SNAP_THRESHOLD_MS = 700f
         const val POSITION_CORRECTION_TAU_MS = 115f
+        const val MAX_STANDARD_LINE_LAG_MS = 55L
+        const val MAX_TRUSTED_CONTROLLER_LEAD_MS = 240L
         const val KARAO_KAST_FRAME_DELAY_MS = 33L
     }
 }

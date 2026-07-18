@@ -5,12 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.switchmaterial.SwitchMaterial
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.ui.ButtonTextFitter
 import fr.retrospare.blazeplayer.data.model.NetworkShare
@@ -18,7 +16,6 @@ import fr.retrospare.blazeplayer.data.model.ShareType
 
 class NetworkSharesAdapter(
     private val onTestConnection: (NetworkShare) -> Unit,
-    private val onSetDefault: (NetworkShare) -> Unit,
     private val onEdit: (NetworkShare) -> Unit,
     private val onDelete: (NetworkShare) -> Unit
 ) : ListAdapter<NetworkShare, NetworkSharesAdapter.ViewHolder>(DiffCallback()) {
@@ -37,28 +34,16 @@ class NetworkSharesAdapter(
         private val tvName: TextView = view.findViewById(R.id.tvShareName)
         private val tvUrl: TextView = view.findViewById(R.id.tvShareUrl)
         private val tvBadgeType: TextView = view.findViewById(R.id.tvBadgeType)
-        private val tvBadgeDefault: TextView = view.findViewById(R.id.tvBadgeDefault)
         private val tvStatus: TextView = view.findViewById(R.id.tvStatus)
-        private val switchDefault: SwitchMaterial = view.findViewById(R.id.switchDefault)
         private val btnBrowse = view.findViewById<View>(R.id.btnBrowse)
         private val btnEdit: ImageButton = view.findViewById(R.id.btnEdit)
-        private val ivStar: ImageView = view.findViewById(R.id.ivStar)
 
         fun bind(share: NetworkShare) {
             tvName.text = share.name
             tvUrl.text = if (share.type == ShareType.UPNP) share.host else "${share.host}/${share.shareName}"
             tvBadgeType.text = if (share.type == ShareType.UPNP) "UPnP" else share.type.name
-            tvBadgeDefault.visibility = if (share.isDefault) View.VISIBLE else View.GONE
             tvStatus.text = ""
 
-            switchDefault.setOnCheckedChangeListener(null)
-            switchDefault.isChecked = share.isDefault
-            switchDefault.setOnCheckedChangeListener { _, checked ->
-                if (checked) onSetDefault(share)
-            }
-
-            val starColor = if (share.isDefault) R.color.yellow_accent else R.color.on_surface_variant
-            ivStar.setColorFilter(itemView.context.getColor(starColor))
 
             ButtonTextFitter.fit(btnBrowse as android.widget.TextView, minSp = 8, maxSp = 11)
             btnBrowse.setOnClickListener { onTestConnection(share) }

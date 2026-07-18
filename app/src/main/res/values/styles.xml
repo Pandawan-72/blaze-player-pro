@@ -27,7 +27,7 @@
         <item name="fontFamily">sans-serif-condensed</item>
     </style>
 
-    <style name="Widget.BlazePlayer.DialogButton" parent="Widget.Material3.Button.OutlinedButton">
+    <style name="Widget.BlazePlayer.DialogButton" parent="Widget.BlazePlayer.Button.Outlined">
         <item name="android:textColor">@color/green_accent</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>

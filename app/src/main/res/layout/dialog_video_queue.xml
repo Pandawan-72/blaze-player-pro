@@ -101,7 +101,12 @@
                 android:fontFamily="sans-serif"
                 android:textColor="@color/red_accent"
                 android:background="@drawable/bg_queue_action_remove_pill"
-                android:contentDescription="@string/content_desc_clean" />
+                android:contentDescription="@string/content_desc_clean"
+                    android:foreground="@drawable/bg_premium_pill_foreground"
+                    android:foregroundGravity="fill"
+                    android:clipToOutline="true"
+                    android:elevation="3dp"
+                    android:stateListAnimator="@animator/premium_pill_state_animator" />
 
         </LinearLayout>
     </LinearLayout>

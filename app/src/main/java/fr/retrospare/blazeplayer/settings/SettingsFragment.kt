@@ -145,14 +145,6 @@ class SettingsFragment : Fragment() {
             ) { viewModel.setAudioLangIndex(it) }
         }
 
-        setupToggle(
-            binding.settingRememberVolume.root,
-            R.drawable.ic_settings,
-            getString(R.string.settings_remember_volume),
-            getString(R.string.settings_remember_volume_desc),
-            viewModel.getRememberVolume()
-        ) { viewModel.setRememberVolume(it) }
-
         // RÉSEAU
 
 

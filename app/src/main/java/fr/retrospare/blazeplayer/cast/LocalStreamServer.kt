@@ -3,6 +3,8 @@ package fr.retrospare.blazeplayer.cast
 import android.content.Context
 import android.net.Uri
 import fi.iki.elonen.NanoHTTPD
+import java.io.FileInputStream
+import java.io.FilterInputStream
 import java.io.InputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -138,8 +140,25 @@ class LocalStreamServer(
             // du contenu sans le télécharger — sans réponse propre à HEAD (mêmes en-têtes que
             // GET, mais sans corps), certains récepteurs refusent ensuite le média.
             if (session.method == Method.HEAD) {
-                val response = newFixedLengthResponse(Response.Status.OK, mimeType, "")
-                response.addHeader("Content-Length", totalLength.coerceAtLeast(0).toString())
+                // Certains Chromecast sondent d'abord le début puis la fin d'un MP4 afin de
+                // localiser l'atome `moov`. Une requête HEAD contenant Range doit donc recevoir
+                // les mêmes informations de plage qu'un GET, sans corps. Ne jamais annoncer
+                // Content-Length: 0 lorsque la taille est inconnue : le récepteur interprète cela
+                // comme un fichier vide et abandonne avant même son premier GET.
+                val requestedRange = rangeHeader?.takeIf { totalLength > 0 }?.let {
+                    parseRange(it, totalLength)
+                }
+                val response = if (requestedRange != null) {
+                    newFixedLengthResponse(Response.Status.PARTIAL_CONTENT, mimeType, "").apply {
+                        val (start, end) = requestedRange
+                        addHeader("Content-Range", "bytes $start-$end/$totalLength")
+                        addHeader("Content-Length", (end - start + 1).toString())
+                    }
+                } else {
+                    newFixedLengthResponse(Response.Status.OK, mimeType, "").apply {
+                        if (totalLength > 0) addHeader("Content-Length", totalLength.toString())
+                    }
+                }
                 response.addHeader("Accept-Ranges", "bytes")
                 response.addHeader("Cache-Control", "no-store, no-transform")
                 response.addHeader("X-Content-Type-Options", "nosniff")
@@ -169,12 +188,15 @@ class LocalStreamServer(
                 // "DiskShare has already been closed" si un autre consommateur invalide la
                 // session au mauvais moment. Un court délai avant de retenter laisse la chance à
                 // l'autre consommateur de terminer son propre cycle ouverture/lecture.
-                repeat(3) { attempt ->
+                for (attempt in 0 until 3) {
                     try {
                         val smbSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
-                        result = smbSource.size
-                        try { smbSource.close() } catch (_: Exception) {}
-                        return@repeat
+                        try {
+                            result = smbSource.size
+                        } finally {
+                            try { smbSource.close() } catch (_: Exception) {}
+                        }
+                        if (result > 0L) break
                     } catch (e: Exception) {
                         android.util.Log.w("LocalStreamServer", "getOrComputeFileSize échec tentative ${attempt + 1}/3 pour $path", e)
                         if (attempt < 2) try { Thread.sleep(300L) } catch (_: InterruptedException) {}
@@ -182,8 +204,10 @@ class LocalStreamServer(
                 }
                 result
             }
-            path.startsWith("content://") -> {
-                context.contentResolver.openFileDescriptor(Uri.parse(path), "r")?.use { it.statSize } ?: -1L
+            path.startsWith("content://") -> contentLength(Uri.parse(path))
+            path.startsWith("file://") -> {
+                val file = Uri.parse(path).path?.let { java.io.File(it) }
+                if (file?.exists() == true) file.length() else -1L
             }
             else -> {
                 val file = java.io.File(path)
@@ -194,24 +218,100 @@ class LocalStreamServer(
         return size
     }
 
-    private fun openInputStreamAt(path: String, startPosition: Long): InputStream {
+    private fun openInputStreamAt(path: String, startPosition: Long, maxLength: Long? = null): InputStream {
+        val safeStart = startPosition.coerceAtLeast(0L)
         return when {
             path.startsWith("smb://") -> {
                 val smbSource = fr.retrospare.blazeplayer.player.SmbMediaDataSource(path)
-                SmbMediaDataSourceInputStream(smbSource, startPosition)
+                SmbMediaDataSourceInputStream(smbSource, safeStart, maxLength)
             }
-            path.startsWith("content://") -> {
-                val stream = context.contentResolver.openInputStream(Uri.parse(path))
-                    ?: throw java.io.IOException("Cannot open content://")
-                if (startPosition > 0) stream.skip(startPosition)
-                stream
-            }
+            path.startsWith("content://") -> openContentInputStreamAt(Uri.parse(path), safeStart)
             else -> {
-                val file = java.io.File(path)
-                if (!file.exists()) throw java.io.IOException("File not found")
-                val stream = file.inputStream()
-                if (startPosition > 0) stream.skip(startPosition)
-                stream
+                val file = if (path.startsWith("file://")) {
+                    Uri.parse(path).path?.let { java.io.File(it) }
+                } else java.io.File(path)
+                val existingFile = file?.takeIf { it.exists() }
+                    ?: throw java.io.IOException("File not found: $path")
+                FileInputStream(existingFile).also { stream ->
+                    // FileChannel.position() est un seek exact. InputStream.skip(), utilisé avant,
+                    // peut avancer de moins d'octets que demandé ; sur un MP4 dont `moov` est en
+                    // fin de fichier, le Chromecast recevait alors les mauvais octets pour sa
+                    // requête Range et refusait le média.
+                    stream.channel.position(safeStart)
+                }
+            }
+        }
+    }
+
+    private fun openContentInputStreamAt(uri: Uri, startPosition: Long): InputStream {
+        // MediaStore et la majorité des DocumentsProvider exposent un descripteur seekable. On
+        // utilise AssetFileDescriptor afin de respecter également un éventuel startOffset.
+        val descriptor = context.contentResolver.openAssetFileDescriptor(uri, "r")
+        if (descriptor != null) {
+            try {
+                val stream = FileInputStream(descriptor.fileDescriptor)
+                stream.channel.position(descriptor.startOffset + startPosition)
+                return DescriptorInputStream(stream) { descriptor.close() }
+            } catch (e: Exception) {
+                try { descriptor.close() } catch (_: Exception) {}
+                android.util.Log.w(
+                    "LocalStreamServer",
+                    "content URI non seekable, fallback séquentiel uri=$uri offset=$startPosition",
+                    e
+                )
+            }
+        }
+
+        // Repli pour les rares providers renvoyant un pipe : plus lent sur une plage située loin
+        // dans le fichier, mais strictement exact. Une seule invocation de skip() ne suffit pas.
+        val stream = context.contentResolver.openInputStream(uri)
+            ?: throw java.io.IOException("Cannot open content URI: $uri")
+        try {
+            skipFully(stream, startPosition)
+            return stream
+        } catch (e: Exception) {
+            try { stream.close() } catch (_: Exception) {}
+            throw e
+        }
+    }
+
+    private fun contentLength(uri: Uri): Long {
+        val descriptorSize = runCatching {
+            context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { descriptor ->
+                descriptor.length.takeIf { it > 0 }
+                    ?: descriptor.parcelFileDescriptor.statSize.takeIf { it > 0 }
+            }
+        }.getOrNull()
+        if (descriptorSize != null && descriptorSize > 0) return descriptorSize
+
+        // Certains providers publient statSize=-1 mais renseignent correctement OpenableColumns.SIZE.
+        return runCatching {
+            context.contentResolver.query(
+                uri,
+                arrayOf(android.provider.OpenableColumns.SIZE),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getLong(0) else -1L
+            } ?: -1L
+        }.getOrDefault(-1L)
+    }
+
+    private fun skipFully(stream: InputStream, byteCount: Long) {
+        var remaining = byteCount
+        while (remaining > 0L) {
+            val skipped = stream.skip(remaining)
+            if (skipped > 0L) {
+                remaining -= skipped
+            } else {
+                // Force une progression ou détecte proprement EOF lorsque skip() retourne 0.
+                if (stream.read() == -1) {
+                    throw java.io.EOFException(
+                        "Unable to seek to $byteCount; EOF after ${byteCount - remaining} bytes"
+                    )
+                }
+                remaining--
             }
         }
     }
@@ -247,7 +347,7 @@ class LocalStreamServer(
         val (start, end) = parsed
         val contentLength = end - start + 1
 
-        val inputStream = openInputStreamAt(path, start)
+        val inputStream = openInputStreamAt(path, start, contentLength)
         val response = newFixedLengthResponse(Response.Status.PARTIAL_CONTENT, mimeType, inputStream, contentLength)
         response.addHeader("Content-Range", "bytes $start-$end/$totalLength")
         response.addHeader("Content-Length", contentLength.toString())
@@ -304,19 +404,47 @@ class LocalStreamServer(
         try {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
             if (cm != null) {
-                // Cherche spécifiquement un réseau de transport WIFI (ou Ethernet, pour les box
-                // Android TV/téléphones reliés en filaire) parmi tous les réseaux actifs.
-                for (network in cm.allNetworks) {
-                    val capabilities = cm.getNetworkCapabilities(network) ?: continue
+                fun ipv4For(network: android.net.Network?): String? {
+                    if (network == null) return null
+                    val capabilities = cm.getNetworkCapabilities(network) ?: return null
                     val isWifiOrEthernet =
                         capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ||
-                        capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)
-                    if (!isWifiOrEthernet) continue
-                    val linkProperties = cm.getLinkProperties(network) ?: continue
-                    val ipv4 = linkProperties.linkAddresses
-                        .mapNotNull { it.address as? java.net.Inet4Address }
-                        .firstOrNull { !it.isLoopbackAddress }
-                    if (ipv4 != null) return ipv4.hostAddress
+                            capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)
+                    if (!isWifiOrEthernet || capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) {
+                        return null
+                    }
+                    return cm.getLinkProperties(network)?.linkAddresses
+                        ?.asSequence()
+                        ?.mapNotNull { it.address as? java.net.Inet4Address }
+                        ?.firstOrNull {
+                            !it.isLoopbackAddress && !it.isLinkLocalAddress && !it.isAnyLocalAddress
+                        }
+                        ?.hostAddress
+                }
+
+                // L'ordre de allNetworks n'est pas garanti. Le réseau actif doit être testé en
+                // premier ; sinon, selon le téléphone, une ancienne interface Wi-Fi conservée par
+                // Android pouvait être choisie et produire une URL joignable une fois sur deux.
+                ipv4For(cm.activeNetwork)?.let { return it }
+
+                val candidates = cm.allNetworks
+                    .mapNotNull { network ->
+                        val caps = cm.getNetworkCapabilities(network) ?: return@mapNotNull null
+                        val isWifiOrEthernet =
+                            caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) ||
+                                caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)
+                        if (!isWifiOrEthernet || caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) {
+                            return@mapNotNull null
+                        }
+                        val score =
+                            (if (caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)) 4 else 0) +
+                                (if (caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)) 2 else 0) +
+                                (if (caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)) 1 else 0)
+                        network to score
+                    }
+                    .sortedByDescending { it.second }
+                for ((network, _) in candidates) {
+                    ipv4For(network)?.let { return it }
                 }
             }
         } catch (e: Exception) {
@@ -342,22 +470,49 @@ class LocalStreamServer(
             android.util.Log.w("LocalStreamServer", "WifiManager IP lookup failed", e)
         }
 
-        // Repli : parcourt les interfaces réseau en donnant explicitement la priorité à celles
-        // nommées comme du Wi-Fi (wlan/ap), pour éviter de retomber sur les données mobiles.
+        // Dernier repli : uniquement les interfaces actives, non virtuelles, avec priorité au
+        // Wi-Fi/Ethernet. On exclut explicitement rmnet, tun et autres interfaces non joignables
+        // depuis le Chromecast.
         return try {
-            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()?.toList() ?: emptyList()
-            val sorted = interfaces.sortedByDescending { it.name.startsWith("wlan") || it.name.startsWith("ap") }
-            for (networkInterface in sorted) {
+            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
+                .filter { runCatching { it.isUp && !it.isLoopback && !it.isVirtual }.getOrDefault(false) }
+                .filterNot {
+                    val n = it.name.lowercase()
+                    n.startsWith("rmnet") || n.startsWith("tun") || n.startsWith("ppp") ||
+                        n.startsWith("pdp") || n.startsWith("dummy")
+                }
+                .sortedByDescending {
+                    val n = it.name.lowercase()
+                    n.startsWith("wlan") || n.startsWith("wifi") || n.startsWith("eth")
+                }
+            for (networkInterface in interfaces) {
                 val addresses = networkInterface.inetAddresses
                 while (addresses.hasMoreElements()) {
                     val address = addresses.nextElement()
-                    if (!address.isLoopbackAddress && address is java.net.Inet4Address) {
+                    if (address is java.net.Inet4Address && !address.isLoopbackAddress &&
+                        !address.isLinkLocalAddress && !address.isAnyLocalAddress
+                    ) {
                         return address.hostAddress
                     }
                 }
             }
             null
-        } catch (e: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
+
+private class DescriptorInputStream(
+    stream: InputStream,
+    private val closeDescriptor: () -> Unit
+) : FilterInputStream(stream) {
+    override fun close() {
+        try {
+            super.close()
+        } finally {
+            try { closeDescriptor() } catch (_: Exception) {}
+        }
     }
 }
 
@@ -367,10 +522,12 @@ class LocalStreamServer(
  */
 private class SmbMediaDataSourceInputStream(
     private var source: fr.retrospare.blazeplayer.player.SmbMediaDataSource,
-    startPosition: Long = 0
+    startPosition: Long = 0,
+    maxBytes: Long? = null
 ) : InputStream() {
     private val originalPath = sourcePathFrom(source)
     private var position: Long = startPosition
+    private var remaining: Long = maxBytes?.coerceAtLeast(0L) ?: Long.MAX_VALUE
     private val buffer = ByteArray(LocalStreamServer.SMB_STREAM_BUFFER_SIZE)
     private var bufferPos = 0
     private var bufferLen = 0
@@ -383,25 +540,34 @@ private class SmbMediaDataSourceInputStream(
     }
 
     override fun read(b: ByteArray, off: Int, len: Int): Int {
+        if (len == 0) return 0
+        if (remaining <= 0L) return -1
         if (bufferPos >= bufferLen) {
-            bufferLen = source.readAt(position, buffer, 0, buffer.size)
+            // Les MP4 non « fast start » déclenchent plusieurs petites lectures aléatoires pour
+            // trouver l'atome moov. Ne pas précharger systématiquement 4 Mo pour une sonde de
+            // quelques Ko : cela multipliait les accès SMB et retardait fortement le démarrage.
+            val requested = minOf(buffer.size.toLong(), remaining).toInt()
+            if (requested <= 0) return -1
+            bufferLen = source.readAt(position, buffer, 0, requested)
             bufferPos = 0
             while (bufferLen <= 0 && position < source.size && reopenBudget > 0) {
                 reopenBudget--
                 try { Thread.sleep(250L) } catch (_: InterruptedException) {}
                 try { source.close() } catch (_: Exception) {}
                 source = fr.retrospare.blazeplayer.player.SmbMediaDataSource(originalPath)
-                bufferLen = source.readAt(position, buffer, 0, buffer.size)
+                bufferLen = source.readAt(position, buffer, 0, requested)
             }
             if (bufferLen <= 0 && position < source.size) {
                 throw java.io.IOException("SMB stream interrupted before EOF at $position/${source.size}")
             }
             if (bufferLen <= 0) return -1
         }
-        val toCopy = minOf(len, bufferLen - bufferPos)
+        val toCopy = minOf(len, bufferLen - bufferPos, remaining.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+        if (toCopy <= 0) return -1
         System.arraycopy(buffer, bufferPos, b, off, toCopy)
         bufferPos += toCopy
         position += toCopy
+        remaining -= toCopy.toLong()
         return toCopy
     }
 

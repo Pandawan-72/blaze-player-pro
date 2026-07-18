@@ -3,6 +3,7 @@ package fr.retrospare.blazeplayer.player
 import android.media.audiofx.Visualizer
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 
 /**
  * Capture FFT audio partagée pour les visualiseurs Blaze Audio.
@@ -11,6 +12,10 @@ import android.os.Looper
  * audio : le mini-player peut alors couper le visualiseur du grand player, ou inversement. Cette
  * source unique capture la FFT une seule fois puis la distribue à toutes les vues visibles. Chaque
  * vue garde son propre rendu, son accent et son animation, mais aucune ne vole la session audio.
+ *
+ * Certains appareils interrompent silencieusement les callbacks FFT lors d'un changement de piste
+ * ou d'une recréation de l'AudioTrack, tout en conservant le même audioSessionId. Le paramètre
+ * forceRestart permet donc de recréer réellement le Visualizer même si l'identifiant n'a pas changé.
  */
 object AudioFftStream {
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -19,7 +24,15 @@ object AudioFftStream {
     private var visualizer: Visualizer? = null
     private var currentSessionId: Int = 0
 
-    fun attach(tag: String, sessionId: Int, onFft: (ByteArray?) -> Unit) {
+    @Volatile
+    private var lastCaptureAtMs: Long = 0L
+
+    fun attach(
+        tag: String,
+        sessionId: Int,
+        onFft: (ByteArray?) -> Unit,
+        forceRestart: Boolean = false
+    ) {
         if (sessionId == 0) {
             detach(tag)
             onFft(null)
@@ -27,7 +40,10 @@ object AudioFftStream {
         }
 
         listeners[tag] = onFft
-        if (visualizer != null && currentSessionId == sessionId) return
+        val sameSessionStillEnabled = visualizer != null &&
+            currentSessionId == sessionId &&
+            runCatching { visualizer?.enabled == true }.getOrDefault(false)
+        if (!forceRestart && sameSessionStillEnabled) return
 
         releaseVisualizerOnly()
         currentSessionId = sessionId
@@ -49,6 +65,7 @@ object AudioFftStream {
                         fft: ByteArray?,
                         samplingRate: Int
                     ) {
+                        lastCaptureAtMs = SystemClock.elapsedRealtime()
                         val safeFft = fft?.copyOf()
                         mainHandler.post {
                             val callbacks = listeners.values.toList()
@@ -66,6 +83,17 @@ object AudioFftStream {
         }
     }
 
+    fun isRunning(sessionId: Int): Boolean =
+        sessionId != 0 &&
+            currentSessionId == sessionId &&
+            visualizer != null &&
+            runCatching { visualizer?.enabled == true }.getOrDefault(false)
+
+    fun millisSinceLastCapture(nowMs: Long = SystemClock.elapsedRealtime()): Long {
+        val capturedAt = lastCaptureAtMs
+        return if (capturedAt <= 0L) Long.MAX_VALUE else (nowMs - capturedAt).coerceAtLeast(0L)
+    }
+
     fun detach(tag: String) {
         listeners.remove(tag)
         if (listeners.isEmpty()) releaseVisualizerOnly()
@@ -81,5 +109,6 @@ object AudioFftStream {
         try { visualizer?.release() } catch (_: Exception) {}
         visualizer = null
         currentSessionId = 0
+        lastCaptureAtMs = 0L
     }
 }

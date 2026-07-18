@@ -88,6 +88,8 @@ class BlazePlayerService : MediaLibraryService() {
         const val COMMAND_PLAY_EXTERNAL_AUDIO = "fr.retrospare.blazeplayer.PLAY_EXTERNAL_AUDIO"
         const val COMMAND_PLAY_QUEUE_INDEX_FROM_START = "fr.retrospare.blazeplayer.PLAY_QUEUE_INDEX_FROM_START"
         const val COMMAND_SET_PREFERRED_AUDIO_DEVICE = "fr.retrospare.blazeplayer.SET_PREFERRED_AUDIO_DEVICE"
+        const val COMMAND_GET_SLEEP_TIMER = "fr.retrospare.blazeplayer.GET_SLEEP_TIMER"
+        const val COMMAND_SET_SLEEP_TIMER = "fr.retrospare.blazeplayer.SET_SLEEP_TIMER"
         const val ACTION_PLAY_EXTERNAL_AUDIO = "fr.retrospare.blazeplayer.action.PLAY_EXTERNAL_AUDIO"
         const val ACTION_PLAY_AUDIO_QUEUE = "fr.retrospare.blazeplayer.action.PLAY_AUDIO_QUEUE"
         const val ACTION_APPEND_AUDIO_QUEUE = "fr.retrospare.blazeplayer.action.APPEND_AUDIO_QUEUE"
@@ -101,6 +103,8 @@ class BlazePlayerService : MediaLibraryService() {
         const val EXTRA_AUDIO_QUEUE_INDEX = "index"
         const val EXTRA_QUEUE_INDEX = "queueIndex"
         const val EXTRA_PREFERRED_AUDIO_DEVICE_ID = "preferredAudioDeviceId"
+        const val EXTRA_SLEEP_TIMER_DURATION_MS = "sleepTimerDurationMs"
+        const val EXTRA_SLEEP_TIMER_REMAINING_MS = "sleepTimerRemainingMs"
 
         /** Commandes de session pour piloter le serveur réseau Blaze Party hébergé par CE service
          *  (et non par AudioPlayerFragment), afin qu'une session hôte survive à la fermeture de
@@ -123,6 +127,9 @@ class BlazePlayerService : MediaLibraryService() {
         private const val SMB_STALL_WATCHDOG_MS = 10_000L
         private const val ANDROID_AUTO_QUEUE_ITEM_PREFIX = "blaze:auto:queue:item:"
         private const val ANDROID_AUTO_QUEUE_INDEX_EXTRA = "blaze_android_auto_queue_index"
+        private const val SLEEP_TIMER_PREFS = "blaze_audio_sleep_timer"
+        private const val KEY_SLEEP_TIMER_DEADLINE = "deadline_epoch_ms"
+        private const val MAX_SLEEP_TIMER_MS = (99L * 60L + 59L) * 60_000L
 
         /** Signal léger lu par la bibliothèque audio : quand une piste joue, les scans
          *  métadonnées/covers doivent rester strictement non prioritaires pour éviter
@@ -163,6 +170,7 @@ class BlazePlayerService : MediaLibraryService() {
     private val smbRecoveryHandler = Handler(Looper.getMainLooper())
     private val smbStallHandler = Handler(Looper.getMainLooper())
     private val autoAdvanceHandler = Handler(Looper.getMainLooper())
+    private val sleepTimerHandler = Handler(Looper.getMainLooper())
     private val androidAutoQueueRefreshHandler = Handler(Looper.getMainLooper())
     private val audioDeviceCallback = object : AudioDeviceCallback() {
         override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
@@ -183,6 +191,20 @@ class BlazePlayerService : MediaLibraryService() {
     @Volatile private var ignoreSmbErrorsUntilMs = 0L
     private val playbackRequestGeneration = AtomicLong(0L)
     private var activeAudioPipelineSignature = ""
+    private var sleepTimerDeadlineEpochMs = 0L
+    private val sleepTimerRunnable = object : Runnable {
+        override fun run() {
+            val remaining = remainingSleepTimerMs()
+            if (remaining <= 0L) {
+                if (sleepTimerDeadlineEpochMs > 0L) {
+                    sessionPlayer?.pause()
+                    clearSleepTimer()
+                }
+            } else {
+                sleepTimerHandler.postDelayed(this, remaining.coerceAtMost(60_000L))
+            }
+        }
+    }
     private var rebuildingAudioPipeline = false
     @Volatile private var accessResolved = false
     @Volatile private var hasAudioAccess = false
@@ -288,6 +310,7 @@ class BlazePlayerService : MediaLibraryService() {
         attachSessionStateListener(exoPlayer)
         restoreEqualizerForPlayer(exoPlayer)
         applyAudioProSettings(exoPlayer)
+        restoreSleepTimer()
         activeAudioPipelineSignature = currentAudioPipelineSignature()
 
         val openIntent = PendingIntent.getActivity(
@@ -466,7 +489,11 @@ class BlazePlayerService : MediaLibraryService() {
                         session.notifyChildrenChanged(AndroidAutoLibrary.ARTISTS_ID, Int.MAX_VALUE, null)
                         session.notifyChildrenChanged(AndroidAutoLibrary.FAVORITES_ID, Int.MAX_VALUE, null)
                         session.notifyChildrenChanged(AndroidAutoLibrary.RECENT_ID, Int.MAX_VALUE, null)
-                        session.notifyChildrenChanged(AndroidAutoLibrary.PLAYLISTS_ID, PlaylistManager.SLOT_COUNT, null)
+                        session.notifyChildrenChanged(
+                            AndroidAutoLibrary.PLAYLISTS_ID,
+                            PlaylistManager.getNamedPlaylists(this@BlazePlayerService, fr.retrospare.blazeplayer.playlist.PlaylistCategory.AUDIO).size,
+                            null
+                        )
                     }
                 }
         }
@@ -2143,6 +2170,8 @@ class BlazePlayerService : MediaLibraryService() {
                     .add(SessionCommand(COMMAND_PLAY_EXTERNAL_AUDIO, Bundle.EMPTY))
                     .add(SessionCommand(COMMAND_PLAY_QUEUE_INDEX_FROM_START, Bundle.EMPTY))
                     .add(SessionCommand(COMMAND_SET_PREFERRED_AUDIO_DEVICE, Bundle.EMPTY))
+                    .add(SessionCommand(COMMAND_GET_SLEEP_TIMER, Bundle.EMPTY))
+                    .add(SessionCommand(COMMAND_SET_SLEEP_TIMER, Bundle.EMPTY))
                     .add(SessionCommand(COMMAND_PARTY_START_HOST, Bundle.EMPTY))
                     .add(SessionCommand(COMMAND_PARTY_STOP_HOST, Bundle.EMPTY))
             }
@@ -2558,6 +2587,27 @@ class BlazePlayerService : MediaLibraryService() {
                     SessionResult(SessionResult.RESULT_SUCCESS, resultExtras)
                 }
             }
+            if (customCommand.customAction == COMMAND_GET_SLEEP_TIMER) {
+                return runSessionActionWhenAllowed(COMMAND_GET_SLEEP_TIMER) {
+                    val resultExtras = Bundle().apply {
+                        putLong(EXTRA_SLEEP_TIMER_REMAINING_MS, remainingSleepTimerMs())
+                    }
+                    SessionResult(SessionResult.RESULT_SUCCESS, resultExtras)
+                }
+            }
+            if (customCommand.customAction == COMMAND_SET_SLEEP_TIMER) {
+                val requestedDuration = args.getLong(EXTRA_SLEEP_TIMER_DURATION_MS, 0L)
+                if (requestedDuration < 0L || requestedDuration > MAX_SLEEP_TIMER_MS) {
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
+                }
+                return runSessionActionWhenAllowed(COMMAND_SET_SLEEP_TIMER) {
+                    if (requestedDuration == 0L) clearSleepTimer() else scheduleSleepTimer(requestedDuration)
+                    val resultExtras = Bundle().apply {
+                        putLong(EXTRA_SLEEP_TIMER_REMAINING_MS, remainingSleepTimerMs())
+                    }
+                    SessionResult(SessionResult.RESULT_SUCCESS, resultExtras)
+                }
+            }
             if (customCommand.customAction == COMMAND_SET_PREFERRED_AUDIO_DEVICE) {
                 val deviceId = args.getInt(EXTRA_PREFERRED_AUDIO_DEVICE_ID, -1)
                 val selectedDevice = if (deviceId < 0) {
@@ -2616,6 +2666,41 @@ class BlazePlayerService : MediaLibraryService() {
         }
     }
 
+    private fun restoreSleepTimer() {
+        val savedDeadline = getSharedPreferences(SLEEP_TIMER_PREFS, Context.MODE_PRIVATE)
+            .getLong(KEY_SLEEP_TIMER_DEADLINE, 0L)
+        sleepTimerDeadlineEpochMs = savedDeadline
+        if (remainingSleepTimerMs() > 0L) {
+            sleepTimerHandler.removeCallbacks(sleepTimerRunnable)
+            sleepTimerHandler.post(sleepTimerRunnable)
+        } else {
+            clearSleepTimer()
+        }
+    }
+
+    private fun scheduleSleepTimer(durationMs: Long) {
+        val safeDuration = durationMs.coerceIn(1L, MAX_SLEEP_TIMER_MS)
+        sleepTimerDeadlineEpochMs = System.currentTimeMillis() + safeDuration
+        getSharedPreferences(SLEEP_TIMER_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(KEY_SLEEP_TIMER_DEADLINE, sleepTimerDeadlineEpochMs)
+            .apply()
+        sleepTimerHandler.removeCallbacks(sleepTimerRunnable)
+        sleepTimerHandler.post(sleepTimerRunnable)
+    }
+
+    private fun remainingSleepTimerMs(): Long =
+        (sleepTimerDeadlineEpochMs - System.currentTimeMillis()).coerceAtLeast(0L)
+
+    private fun clearSleepTimer() {
+        sleepTimerHandler.removeCallbacks(sleepTimerRunnable)
+        sleepTimerDeadlineEpochMs = 0L
+        getSharedPreferences(SLEEP_TIMER_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .remove(KEY_SLEEP_TIMER_DEADLINE)
+            .apply()
+    }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     /**
@@ -2625,6 +2710,7 @@ class BlazePlayerService : MediaLibraryService() {
      */
     override fun onTaskRemoved(rootIntent: Intent?) {
         persistAudioQueue()
+        clearSleepTimer()
         try {
             isAudioPlaybackActive = false
             isAudioSessionActive = false
@@ -2648,6 +2734,7 @@ class BlazePlayerService : MediaLibraryService() {
         try { smbRecoveryHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { smbStallHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { autoAdvanceHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
+        try { sleepTimerHandler.removeCallbacksAndMessages(null) } catch (_: Exception) {}
         try { SmbDataSource.cancelActiveReads(SmbDataSource.OWNER_AUDIO) } catch (_: Exception) {}
         try { playerVolumeAnimator?.cancel() } catch (_: Exception) {}
         try { if (::audioProPrefs.isInitialized) audioProPrefs.unregisterOnSharedPreferenceChangeListener(audioProListener) } catch (_: Exception) {}

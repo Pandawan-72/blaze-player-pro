@@ -12,6 +12,7 @@ import fr.retrospare.blazeplayer.favorites.FavoriteFolder
 import fr.retrospare.blazeplayer.favorites.FavoritesManager
 import fr.retrospare.blazeplayer.playlist.PlaylistCategory
 import fr.retrospare.blazeplayer.playlist.PlaylistManager
+import fr.retrospare.blazeplayer.playlist.NamedPlaylist
 import fr.retrospare.blazeplayer.playlist.PlaylistTrackRef
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -127,8 +128,8 @@ class AndroidAutoLibrary(
             parentId == PLAYLISTS_ID -> playlistFolders(tracks)
             parentId == QUEUE_ID -> emptyList() // Fourni par BlazePlayerService depuis la timeline courante.
             parentId.startsWith(PLAYLIST_PREFIX) -> {
-                val slot = parentId.removePrefix(PLAYLIST_PREFIX).toIntOrNull() ?: return emptyList()
-                playlistTracks(slot, tracks).map { trackItem(it, false) }
+                val playlistId = decode(parentId.removePrefix(PLAYLIST_PREFIX)) ?: return emptyList()
+                playlistTracks(playlistId, tracks).map { trackItem(it, false) }
             }
             else -> emptyList()
         }
@@ -159,8 +160,9 @@ class AndroidAutoLibrary(
                 favoriteItem(favorite, snapshot())
             }
             mediaId.startsWith(PLAYLIST_PREFIX) -> {
-                val slot = mediaId.removePrefix(PLAYLIST_PREFIX).toIntOrNull() ?: return null
-                playlistFolder(slot, playlistTracks(slot, snapshot()))
+                val playlistId = decode(mediaId.removePrefix(PLAYLIST_PREFIX)) ?: return null
+                val playlist = PlaylistManager.getNamedPlaylist(appContext, PlaylistCategory.AUDIO, playlistId) ?: return null
+                playlistFolder(playlist, playlistTracks(playlistId, snapshot()))
             }
             else -> null
         }
@@ -390,19 +392,21 @@ class AndroidAutoLibrary(
     }
 
     private fun playlistFolders(library: List<LibraryTrack>): List<MediaItem> =
-        (1..PlaylistManager.SLOT_COUNT).map { slot -> playlistFolder(slot, playlistTracks(slot, library)) }
+        PlaylistManager.getNamedPlaylists(appContext, PlaylistCategory.AUDIO).map { playlist ->
+            playlistFolder(playlist, playlistTracks(playlist.id, library))
+        }
 
-    private fun playlistFolder(slot: Int, tracks: List<LibraryTrack>): MediaItem = browsableItem(
-        mediaId = PLAYLIST_PREFIX + slot,
-        title = appContext.getString(R.string.playlist_slot_name, slot),
+    private fun playlistFolder(playlist: NamedPlaylist, tracks: List<LibraryTrack>): MediaItem = browsableItem(
+        mediaId = PLAYLIST_PREFIX + encode(playlist.id),
+        title = playlist.name,
         subtitle = appContext.getString(R.string.android_auto_track_count, tracks.size),
         artwork = cachedArtwork(tracks.firstOrNull()),
         mediaType = MediaMetadata.MEDIA_TYPE_PLAYLIST
     )
 
-    private fun playlistTracks(slot: Int, library: List<LibraryTrack>): List<LibraryTrack> {
+    private fun playlistTracks(playlistId: String, library: List<LibraryTrack>): List<LibraryTrack> {
         val indexed = library.associateBy { AudioLibraryHeuristics.canonicalPathKey(it.path) }
-        return PlaylistManager.getPlaylist(appContext, PlaylistCategory.AUDIO, slot)
+        return PlaylistManager.getNamedPlaylistTracks(appContext, PlaylistCategory.AUDIO, playlistId)
             .map { ref -> indexed[AudioLibraryHeuristics.canonicalPathKey(ref.path)] ?: ref.toTrack() }
             .distinctBy { AudioLibraryHeuristics.canonicalPathKey(it.path) }
     }

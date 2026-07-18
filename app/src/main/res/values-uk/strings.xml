@@ -19,8 +19,7 @@
     <string name="available_devices">Доступні пристрої</string>
     <string name="no_path_configured">Шлях не налаштовано.
 Натисніть «Сканувати», щоб знайти пристрої.</string>
-    <string name="default_path">Шлях за замовчуванням</string>
-    <string name="test_network_path">Перевірити шлях</string>
+<string name="test_network_path">Перевірити шлях</string>
     <string name="network_path_test_title">Перевірка мережевого шляху</string>
     <string name="network_path_test_success_message">Шлях «%1$s» доступний.</string>
     <string name="network_path_test_failure_message">Не вдалося отримати доступ до «%1$s». Перевірте мережу, облікові дані або дозволи спільного ресурсу.</string>
@@ -106,8 +105,6 @@
     <string name="lang_russian">Російська</string>
     <string name="lang_chinese">Китайська</string>
     <string name="settings_preferred_audio_lang">Бажана мова аудіо</string>
-    <string name="settings_remember_volume">Запам’ятовувати гучність</string>
-    <string name="settings_remember_volume_desc">Зберігати рівень гучності між відтвореннями</string>
 
     <string name="settings_mini_player">Мініпрогравач</string>
     <string name="settings_mini_player_desc">Показувати мініпрогравач у застосунку</string>
@@ -242,8 +239,8 @@ Retro-Spare Dev / Anthony Gentil
     <string name="dialog_which_playlist">До якого списку відтворення додати?</string>
     <string name="playlist_slot_name">Список відтворення %1$d</string>
     <string name="playlist_empty">(порожньо)</string>
-    <string name="action_to_playlist">До списку відтворення</string>
-    <string name="content_desc_queue_to_playlist">Зберегти чергу до списку відтворення</string>
+    <string name="action_to_playlist">Копіювати чергу до списку відтворення</string>
+    <string name="content_desc_queue_to_playlist">Копіювати чергу до списку відтворення</string>
     <string name="playlist_existing_with_count">(існує — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">Список відтворення існує</string>
     <string name="dialog_playlist_not_empty_message">Список відтворення %1$d уже містить %2$s. Усе одно додати вибрані елементи?</string>
@@ -371,8 +368,7 @@ Retro-Spare Dev / Anthony Gentil
 <string name="settings_section_playback">ВІДТВОРЕННЯ</string>
     <string name="settings_section_audio">АУДІО</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">За замовчуванням</string>
-    <string name="eq_preamp_compressor_section">ПЕРЕДПІДСИЛЮВАЧ І КОМПРЕСОР</string>
+<string name="eq_preamp_compressor_section">ПЕРЕДПІДСИЛЮВАЧ І КОМПРЕСОР</string>
     <string name="eq_preamp_label">Передпідсилювач</string>
     <string name="eq_compressor_label">Компресор</string>
     <string name="player_casting_in_progress">Триває трансляція</string>
@@ -881,4 +877,59 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_output_change_failed">Не вдалося змінити аудіовихід</string>
     <string name="karaoke_mirror_opened">Виберіть Chromecast на панелі Android. Утримуйте кнопку, щоб вибрати локальний аудіовихід.</string>
     <string name="karaoke_mirror_unavailable">Налаштування трансляції екрана недоступні. Скористайтеся плиткою «Трансляція екрана» у швидких налаштуваннях.</string>
+
+    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
+    <string name="audio_lyrics_search_online">Завантажити текст пісні (.LRC)</string>
+    <string name="audio_lyrics_download_hint">Виконайте пошук у LRCLIB. Натисніть результат, щоб автоматично завантажити файл .LRC поруч із треком.</string>
+    <string name="audio_lyrics_button_description">Керування текстами й завантаження файлів .LRC. Утримуйте, щоб показати або приховати текст.</string>
+    <string name="lrclib_search_title">Пошук текстів у LRCLIB</string>
+    <string name="lrclib_search_subtitle">Пошук автоматично перевіряє кілька варіантів назви й виконавця. Натисніть результат, щоб зберегти файл .LRC поруч із треком.</string>
+    <string name="lrclib_track_hint">Назва треку</string>
+    <string name="lrclib_artist_hint">Виконавець</string>
+    <string name="lrclib_album_hint">Альбом (необов’язково)</string>
+    <string name="lrclib_search_action">Шукати в LRCLIB</string>
+    <string name="lrclib_searching">Пошук…</string>
+    <string name="lrclib_downloading">Збереження файлу LRC…</string>
+    <string name="lrclib_no_synced_results">Текст не знайдено. Перевірте назву або виконавця й повторіть пошук.</string>
+    <string name="lrclib_search_failed">Помилка пошуку: %1$s</string>
+    <string name="lrclib_save_failed">Не вдалося зберегти файл поруч із треком: %1$s</string>
+    <string name="lrclib_saved">Файл %1$s збережено поруч із треком.</string>
+    <string name="lrclib_track_required">Назва треку обов’язкова.</string>
+    <string name="lrclib_download_result">Завантажити текст %1$s — %2$s</string>
+    <string name="lrclib_download_action">↓ Завантажити файл .LRC</string>
+    <string name="sleep_timer_instruction">Введіть час, через який музика має зупинитися.</string>
+    <string name="sleep_timer_hours">Години</string>
+    <string name="sleep_timer_minutes">Хвилини</string>
+    <string name="sleep_timer_start">Запустити</string>
+    <string name="sleep_timer_active_remaining">Активний · зупинка через %1$s</string>
+    <string name="sleep_timer_minutes_error">Хвилини мають бути від 00 до 59.</string>
+    <string name="sleep_timer_zero_error">Введіть тривалість більше нуля.</string>
+    <string name="sleep_timer_started">Музика зупиниться через %1$s.</string>
+    <string name="sleep_timer_cancelled">Таймер сну скасовано.</string>
+    <string name="eq_surround">Об’ємний звук</string>
+    <string name="eq_surround_summary">Імерсивне двоканальне просторове звучання, оптимізоване для навушників і стереодинаміків.</string>
+    <string name="eq_surround_strength">Занурення</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d синхронізований результат</item>
+        <item quantity="few">%d синхронізовані результати</item>
+        <item quantity="many">%d синхронізованих результатів</item>
+        <item quantity="other">%d синхронізованого результату</item>
+    </plurals>
+    <string name="action_compare_slider">Перетягніть, щоб порівняти до і після</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">Видалити список відтворення</string>
+    <string name="confirm_delete_named_playlist_message">Видалити список відтворення «%1$s»? Увесь його вміст буде видалено.</string>
+    <string name="toast_named_playlist_deleted">Список відтворення «%1$s» видалено.</string>
+    <string name="action_new_playlist">Новий плейлист</string>
+    <string name="action_choose_playlist">Вибрати плейлист</string>
+    <string name="hint_playlist_name">Назва плейлиста</string>
+    <string name="toast_playlist_name_required">Введіть назву плейлиста.</string>
+    <string name="toast_playlist_name_exists">Плейлист із такою назвою вже існує.</string>
+    <string name="toast_playlist_created">Плейлист «%1$s» створено.</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">%1$s додано до «%2$s»</string>
+    <string name="playlist_added_partial_named">%1$s додано, %2$s уже є в «%3$s»</string>
+    <string name="toast_named_playlist_emptied">Плейлист «%1$s» очищено.</string>
+    <string name="toast_named_playlist_sent_to_queue">«%1$s» додано до черги.</string>
 </resources>

@@ -451,6 +451,51 @@
                 </LinearLayout>
 
                 <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchSurround"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/eq_surround"
+                    android:textColor="@color/on_background"
+                    android:paddingVertical="8dp" />
+
+                <TextView
+                    android:id="@+id/tvSurroundSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/eq_surround_summary"
+                    android:textColor="@color/on_surface_variant"
+                    android:textSize="12sp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginBottom="4dp" />
+
+                <LinearLayout
+                    android:id="@+id/surroundStrengthContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:layout_marginBottom="10dp">
+                    <fr.retrospare.blazeplayer.player.RotaryKnobView
+                        android:id="@+id/knobSurroundStrength"
+                        android:layout_width="132dp"
+                        android:layout_height="132dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/eq_surround_strength"
+                        android:textColor="@color/on_background"
+                        android:textStyle="bold"
+                        android:textSize="15sp" />
+                    <TextView
+                        android:id="@+id/tvSurroundStrengthValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="55%"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switchAutoHeadroom"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

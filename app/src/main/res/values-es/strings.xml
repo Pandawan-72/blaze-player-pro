@@ -18,8 +18,7 @@
     <string name="detected_devices">DISPOSITIVOS DETECTADOS</string>
     <string name="available_devices">Dispositivos disponibles</string>
     <string name="no_path_configured">No hay ninguna ruta configurada.\nPulsa Buscar para detectar dispositivos.</string>
-    <string name="default_path">Ruta predeterminada</string>
-    <string name="test_network_path">Probar ruta</string>
+<string name="test_network_path">Probar ruta</string>
     <string name="network_path_test_title">Prueba de ruta de red</string>
     <string name="network_path_test_success_message">La ruta « %1$s » está accesible.</string>
     <string name="network_path_test_failure_message">No se puede acceder a « %1$s ». Comprueba la red, las credenciales o los permisos del recurso compartido.</string>
@@ -105,8 +104,6 @@
     <string name="lang_russian">Ruso</string>
     <string name="lang_chinese">Chino</string>
     <string name="settings_preferred_audio_lang">Idioma de audio preferido</string>
-    <string name="settings_remember_volume">Recordar volumen</string>
-    <string name="settings_remember_volume_desc">Mantener el nivel de volumen entre reproducciones</string>
 
     <string name="settings_mini_player">Mini reproductor</string>
     <string name="settings_mini_player_desc">Mostrar el mini reproductor en la app</string>
@@ -235,8 +232,8 @@
     <string name="dialog_which_playlist">¿Añadir a qué lista?</string>
     <string name="playlist_slot_name">Lista %1$d</string>
     <string name="playlist_empty">(vacía)</string>
-    <string name="action_to_playlist">A playlist</string>
-    <string name="content_desc_queue_to_playlist">Guardar la cola en una playlist</string>
+    <string name="action_to_playlist">Copiar cola a playlist</string>
+    <string name="content_desc_queue_to_playlist">Copiar cola a playlist</string>
     <string name="playlist_existing_with_count">(existente — %1$s)</string>
     <string name="dialog_playlist_not_empty_title">Playlist existente</string>
     <string name="dialog_playlist_not_empty_message">La playlist %1$d ya contiene %2$s. ¿Añadir igualmente los elementos seleccionados a esta playlist?</string>
@@ -352,8 +349,7 @@
 <string name="settings_section_playback">REPRODUCCIÓN</string>
     <string name="settings_section_audio">AUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="label_default">Predeterminado</string>
-    <string name="eq_preamp_compressor_section">PREAMPLIFICADOR Y COMPRESOR</string>
+<string name="eq_preamp_compressor_section">PREAMPLIFICADOR Y COMPRESOR</string>
     <string name="eq_preamp_label">Preamplificador</string>
     <string name="eq_compressor_label">Compresor</string>
     <string name="player_casting_in_progress">Transmisión en curso</string>
@@ -867,4 +863,57 @@ Token: %2$s</string>
     <string name="audio_output_change_failed">No se pudo cambiar la salida de audio</string>
     <string name="karaoke_mirror_opened">Selecciona tu Chromecast en el panel de Android. Mantén pulsado el botón para elegir la salida de audio local.</string>
     <string name="karaoke_mirror_unavailable">La configuración de duplicación de pantalla no está disponible. Usa el acceso rápido para transmitir la pantalla.</string>
+
+    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
+    <string name="audio_lyrics_search_online">Descargar letras (.LRC)</string>
+    <string name="audio_lyrics_download_hint">Busca con LRCLIB. Toca un resultado para descargar automáticamente el archivo .LRC junto a la canción.</string>
+    <string name="audio_lyrics_button_description">Gestionar letras y descargar archivos .LRC. Mantén pulsado para mostrar u ocultar las letras.</string>
+    <string name="lrclib_search_title">Búsqueda de letras en LRCLIB</string>
+    <string name="lrclib_search_subtitle">La búsqueda prueba automáticamente varias variantes del título y del artista. Toca un resultado para guardar el archivo .LRC junto a la canción.</string>
+    <string name="lrclib_track_hint">Título de la canción</string>
+    <string name="lrclib_artist_hint">Artista</string>
+    <string name="lrclib_album_hint">Álbum (opcional)</string>
+    <string name="lrclib_search_action">Buscar en LRCLIB</string>
+    <string name="lrclib_searching">Buscando…</string>
+    <string name="lrclib_downloading">Guardando archivo LRC…</string>
+    <string name="lrclib_no_synced_results">No se encontraron letras. Comprueba el título o el artista y vuelve a buscar.</string>
+    <string name="lrclib_search_failed">Error de búsqueda: %1$s</string>
+    <string name="lrclib_save_failed">No se pudo guardar el archivo junto a la canción: %1$s</string>
+    <string name="lrclib_saved">%1$s se guardó junto a la canción.</string>
+    <string name="lrclib_track_required">El título de la canción es obligatorio.</string>
+    <string name="lrclib_download_result">Descargar la letra de %1$s de %2$s</string>
+    <string name="lrclib_download_action">↓ Descargar archivo .LRC</string>
+    <string name="sleep_timer_instruction">Introduce directamente la duración antes de que se detenga la música.</string>
+    <string name="sleep_timer_hours">Horas</string>
+    <string name="sleep_timer_minutes">Minutos</string>
+    <string name="sleep_timer_start">Iniciar</string>
+    <string name="sleep_timer_active_remaining">Activo · se detendrá en %1$s</string>
+    <string name="sleep_timer_minutes_error">Los minutos deben estar entre 00 y 59.</string>
+    <string name="sleep_timer_zero_error">Introduce una duración mayor que cero.</string>
+    <string name="sleep_timer_started">La música se detendrá en %1$s.</string>
+    <string name="sleep_timer_cancelled">Temporizador de apagado cancelado.</string>
+    <string name="eq_surround">Sonido envolvente</string>
+    <string name="eq_surround_summary">Espacialización inmersiva de dos canales, optimizada para auriculares y altavoces estéreo.</string>
+    <string name="eq_surround_strength">Inmersión</string>
+    <plurals name="lrclib_results_count">
+        <item quantity="one">%d resultado sincronizado</item>
+        <item quantity="other">%d resultados sincronizados</item>
+    </plurals>
+    <string name="action_compare_slider">Desliza para comparar el antes y el después</string>
+
+    <!-- Playlists nommées audio/vidéo -->
+    <string name="action_delete_playlist">Eliminar playlist</string>
+    <string name="confirm_delete_named_playlist_message">¿Eliminar la playlist «%1$s»? Se borrará todo su contenido.</string>
+    <string name="toast_named_playlist_deleted">Playlist «%1$s» eliminada.</string>
+    <string name="action_new_playlist">Nueva playlist</string>
+    <string name="action_choose_playlist">Elegir playlist</string>
+    <string name="hint_playlist_name">Nombre de la playlist</string>
+    <string name="toast_playlist_name_required">Introduce un nombre para la playlist.</string>
+    <string name="toast_playlist_name_exists">Ya existe una playlist con este nombre.</string>
+    <string name="toast_playlist_created">Playlist «%1$s» creada.</string>
+    <string name="playlist_named_with_count">%1$s — %2$s</string>
+    <string name="playlist_added_to_named">%1$s añadido a «%2$s»</string>
+    <string name="playlist_added_partial_named">%1$s añadido, %2$s ya estaba en «%3$s»</string>
+    <string name="toast_named_playlist_emptied">Playlist «%1$s» vaciada.</string>
+    <string name="toast_named_playlist_sent_to_queue">«%1$s» añadida a la cola.</string>
 </resources>

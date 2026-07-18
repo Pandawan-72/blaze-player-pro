@@ -53,13 +53,16 @@ class EqualizerManager(
         const val KEY_BALANCE = "channel_balance"
         const val KEY_STEREO_WIDTH = "stereo_width"
         const val KEY_MONO = "mono_enabled"
+        const val KEY_SURROUND_ENABLED = "surround_enabled"
+        const val KEY_SURROUND_STRENGTH = "surround_strength"
+        const val SURROUND_STRENGTH_MAX = 100
         const val KEY_REVERB_ENABLED = "reverb_enabled"
         const val KEY_REVERB_PRESET = "reverb_preset"
         const val KEY_REVERB_MIX = "reverb_mix"
         const val REVERB_PRESET_COUNT = 4
         const val REVERB_MIX_MAX = 80
         private val SOFTWARE_FREQS_HZ = intArrayOf(31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
-        private const val PREF_VERSION = 6
+        private const val PREF_VERSION = 7
         private const val KEY_LAST_PRESET = "last_preset"
         private const val KEY_CACHE_VERSION = "eq_cache_version"
         private const val KEY_ACTIVE_PREFIX = "active_band_"
@@ -134,7 +137,7 @@ class EqualizerManager(
                     val active = isEnabled()
                     safeSetEnabled(equalizer, active)
                     safeSetEnabled(bassBoost, active && getSavedBassBoost() > 0)
-                    safeSetEnabled(virtualizer, active && getSavedVirtualizer() > 0)
+                    safeSetEnabled(virtualizer, active && effectiveVirtualizerStrength() > 0)
                     scheduleNativeCurveApply()
                 }
                 key == KEY_TONE_BASS || key == KEY_TONE_TREBLE || key == KEY_AUTO_HEADROOM ||
@@ -253,6 +256,8 @@ class EqualizerManager(
         edit.putInt(KEY_BALANCE, prefs.getInt(KEY_BALANCE, 0).coerceIn(-100, 100))
         edit.putInt(KEY_STEREO_WIDTH, prefs.getInt(KEY_STEREO_WIDTH, 100).coerceIn(0, 150))
         edit.putBoolean(KEY_MONO, prefs.getBoolean(KEY_MONO, false))
+        edit.putBoolean(KEY_SURROUND_ENABLED, prefs.getBoolean(KEY_SURROUND_ENABLED, false))
+        edit.putInt(KEY_SURROUND_STRENGTH, prefs.getInt(KEY_SURROUND_STRENGTH, 55).coerceIn(0, SURROUND_STRENGTH_MAX))
         edit.putBoolean(KEY_REVERB_ENABLED, prefs.getBoolean(KEY_REVERB_ENABLED, false))
         edit.putInt(KEY_REVERB_PRESET, prefs.getInt(KEY_REVERB_PRESET, 0).coerceIn(0, REVERB_PRESET_COUNT - 1))
         edit.putInt(KEY_REVERB_MIX, prefs.getInt(KEY_REVERB_MIX, 0).coerceIn(0, REVERB_MIX_MAX))
@@ -306,7 +311,7 @@ class EqualizerManager(
     }
 
     private fun applySavedVirtualizer() {
-        val safe = getSavedVirtualizer()
+        val safe = effectiveVirtualizerStrength()
         val effect = if (safe > 0 && isEnabled()) ensureVirtualizer() else virtualizer
         runCatching {
             effect?.let {
@@ -398,6 +403,24 @@ class EqualizerManager(
 
     fun setMonoEnabled(enabled: Boolean) { prefs.edit().putBoolean(KEY_MONO, enabled).apply() }
     fun isMonoEnabled(): Boolean = prefs.getBoolean(KEY_MONO, false)
+
+    fun setSurroundEnabled(enabled: Boolean) {
+        // Le surround Blaze est traité par le processeur PCM avec un fondu progressif. Ne pas
+        // activer simultanément le Virtualizer constructeur : certains appareils changent alors
+        // brutalement leur gain ou leur route audio.
+        prefs.edit().putBoolean(KEY_SURROUND_ENABLED, enabled).apply()
+    }
+
+    fun isSurroundEnabled(): Boolean = prefs.getBoolean(KEY_SURROUND_ENABLED, false)
+
+    fun setSurroundStrength(value: Int) {
+        prefs.edit().putInt(KEY_SURROUND_STRENGTH, value.coerceIn(0, SURROUND_STRENGTH_MAX)).apply()
+    }
+
+    fun getSavedSurroundStrength(): Int =
+        prefs.getInt(KEY_SURROUND_STRENGTH, 55).coerceIn(0, SURROUND_STRENGTH_MAX)
+
+    private fun effectiveVirtualizerStrength(): Int = getSavedVirtualizer()
 
     fun setReverbEnabled(enabled: Boolean) { prefs.edit().putBoolean(KEY_REVERB_ENABLED, enabled).apply() }
     fun isReverbEnabled(): Boolean = prefs.getBoolean(KEY_REVERB_ENABLED, false)
@@ -502,7 +525,7 @@ class EqualizerManager(
         applyCustomToNative()
         safeSetEnabled(equalizer, enabled)
         safeSetEnabled(bassBoost, enabled && getSavedBassBoost() > 0)
-        safeSetEnabled(virtualizer, enabled && getSavedVirtualizer() > 0)
+        safeSetEnabled(virtualizer, enabled && effectiveVirtualizerStrength() > 0)
     }
 
     fun applyCustom() {

@@ -26,6 +26,8 @@ class BlazePcmAudioProcessor(context: Context) : BaseAudioProcessor() {
     @Volatile private var balance = 0f          // -1 = gauche, +1 = droite
     @Volatile private var stereoWidth = 1f      // 0 = mono, 1 = normal, 1.5 = large
     @Volatile private var mono = false
+    @Volatile private var surroundEnabled = false
+    @Volatile private var surroundStrength = 0.55f
     @Volatile private var limiter = true
     @Volatile private var reverbEnabled = false
     @Volatile private var reverbMix = 0f
@@ -42,6 +44,16 @@ class BlazePcmAudioProcessor(context: Context) : BaseAudioProcessor() {
     private var secondTapRight = 0
     private var dampedWetLeft = 0f
     private var dampedWetRight = 0f
+    private var surroundLeftDelay = FloatArray(1)
+    private var surroundRightDelay = FloatArray(1)
+    private var surroundDelayIndex = 0
+    private var surroundReadOffset = 1
+    private var surroundSideLowPass = 0f
+    private var surroundProcessedLeft = 0f
+    private var surroundProcessedRight = 0f
+    private var surroundMix = 0f
+    private var surroundSmoothedStrength = 0.55f
+    private var surroundCompensationGain = 1f
 
     // Paramètres mis en cache lors d'un changement de profil : aucune branche complexe ni
     // allocation n'est nécessaire dans la boucle audio.
@@ -71,6 +83,10 @@ class BlazePcmAudioProcessor(context: Context) : BaseAudioProcessor() {
         sampleRate = inputAudioFormat.sampleRate
         configuredChannels = inputAudioFormat.channelCount
         rebuildReverbIfNeeded(force = true)
+        rebuildSurroundDelay()
+        surroundMix = if (surroundEnabled && surroundStrength > 0f) 1f else 0f
+        surroundSmoothedStrength = surroundStrength.coerceIn(0f, 1f)
+        surroundCompensationGain = 1f
         return inputAudioFormat
     }
 
@@ -95,6 +111,9 @@ class BlazePcmAudioProcessor(context: Context) : BaseAudioProcessor() {
         balance = prefs.getInt(EqualizerManager.KEY_BALANCE, 0).coerceIn(-100, 100) / 100f
         stereoWidth = prefs.getInt(EqualizerManager.KEY_STEREO_WIDTH, 100).coerceIn(0, 150) / 100f
         mono = prefs.getBoolean(EqualizerManager.KEY_MONO, false)
+        surroundEnabled = prefs.getBoolean(EqualizerManager.KEY_SURROUND_ENABLED, false)
+        surroundStrength = prefs.getInt(EqualizerManager.KEY_SURROUND_STRENGTH, 55)
+            .coerceIn(0, EqualizerManager.SURROUND_STRENGTH_MAX) / 100f
         limiter = prefs.getBoolean(EqualizerManager.KEY_LIMITER, true)
         reverbEnabled = prefs.getBoolean(EqualizerManager.KEY_REVERB_ENABLED, false)
         reverbMix = prefs.getInt(EqualizerManager.KEY_REVERB_MIX, 0)
@@ -183,6 +202,15 @@ class BlazePcmAudioProcessor(context: Context) : BaseAudioProcessor() {
             right = mid - side
         }
 
+        if (!mono) {
+            // Le délai continue d'être alimenté même lorsque l'effet est désactivé. À l'activation,
+            // le signal retardé est donc déjà valide et aucun buffer rempli de zéros ne provoque
+            // de creux sonore.
+            processSurround(left, right)
+            left = surroundProcessedLeft
+            right = surroundProcessedRight
+        }
+
         if (balance > 0f) left *= (1f - balance)
         if (balance < 0f) right *= (1f + balance)
 
@@ -217,6 +245,102 @@ class BlazePcmAudioProcessor(context: Context) : BaseAudioProcessor() {
         }
         processedLeft = left.coerceIn(-1f, 1f)
         processedRight = right.coerceIn(-1f, 1f)
+    }
+
+    /**
+     * Spatialisation casque/enceintes en deux canaux : élargissement mid/side, accentuation douce
+     * des informations latérales et micro-retard croisé (effet Haas).
+     *
+     * L'effet est mélangé progressivement sur environ 180 ms. Le délai est alimenté en permanence,
+     * même à 0 %, et un léger gain de compensation ne s'applique que si le traitement ferait
+     * réellement baisser l'énergie instantanée. Cela supprime la marche de volume et le sursaut
+     * observés lors de l'activation.
+     */
+    private fun processSurround(left: Float, right: Float) {
+        if (surroundLeftDelay.size <= 1 || surroundRightDelay.size <= 1 || sampleRate <= 0) {
+            surroundProcessedLeft = left
+            surroundProcessedRight = right
+            return
+        }
+
+        val targetStrength = surroundStrength.coerceIn(0f, 1f)
+        val targetMix = if (surroundEnabled && targetStrength > 0f) 1f else 0f
+        surroundMix = moveTowards(
+            surroundMix,
+            targetMix,
+            1f / (sampleRate * SURROUND_MIX_RAMP_SECONDS).coerceAtLeast(1f)
+        )
+        surroundSmoothedStrength = moveTowards(
+            surroundSmoothedStrength,
+            targetStrength,
+            1f / (sampleRate * SURROUND_STRENGTH_RAMP_SECONDS).coerceAtLeast(1f)
+        )
+
+        val strength = surroundSmoothedStrength.coerceIn(0f, 1f)
+        val delayMs = 5.5f + strength * 7.5f
+        surroundReadOffset = (sampleRate * delayMs / 1000f).toInt()
+            .coerceIn(1, surroundLeftDelay.size - 1)
+        val readIndex = (surroundDelayIndex - surroundReadOffset + surroundLeftDelay.size) % surroundLeftDelay.size
+        val delayedLeft = surroundLeftDelay[readIndex]
+        val delayedRight = surroundRightDelay[readIndex]
+        surroundLeftDelay[surroundDelayIndex] = left
+        surroundRightDelay[surroundDelayIndex] = right
+        surroundDelayIndex = (surroundDelayIndex + 1) % surroundLeftDelay.size
+
+        val mid = (left + right) * 0.5f
+        val side = (left - right) * 0.5f
+        val smoothing = 0.035f + (1f - strength) * 0.045f
+        surroundSideLowPass += (side - surroundSideLowPass) * smoothing
+        val sidePresence = side - surroundSideLowPass
+        val sideGain = 1f + 0.42f * strength
+        val presenceGain = 0.22f * strength
+        val crossDelayGain = 0.085f * strength
+
+        val spatialSide = side * sideGain + sidePresence * presenceGain
+        var wetLeft = mid + spatialSide - delayedRight * crossDelayGain
+        var wetRight = mid - spatialSide - delayedLeft * crossDelayGain
+
+        // Compensation uniquement ascendante : elle corrige une éventuelle perte d'énergie sans
+        // créer de baisse artificielle quand l'effet élargit déjà suffisamment le signal.
+        val dryEnergy = kotlin.math.sqrt((left * left + right * right) * 0.5f + 1e-7f)
+        val wetEnergy = kotlin.math.sqrt((wetLeft * wetLeft + wetRight * wetRight) * 0.5f + 1e-7f)
+        val targetCompensation = if (wetEnergy < dryEnergy) {
+            (dryEnergy / wetEnergy).coerceIn(1f, SURROUND_MAX_COMPENSATION)
+        } else {
+            1f
+        }
+        val compensationSmoothing = if (targetCompensation > surroundCompensationGain) 0.012f else 0.0025f
+        surroundCompensationGain += (targetCompensation - surroundCompensationGain) * compensationSmoothing
+        wetLeft *= surroundCompensationGain
+        wetRight *= surroundCompensationGain
+
+        val mix = smoothStep(surroundMix)
+        surroundProcessedLeft = left + (wetLeft - left) * mix
+        surroundProcessedRight = right + (wetRight - right) * mix
+    }
+
+    private fun rebuildSurroundDelay() {
+        val rate = sampleRate
+        if (rate <= 0) return
+        val maxDelaySamples = (rate * 0.018f).toInt().coerceAtLeast(64)
+        surroundLeftDelay = FloatArray(maxDelaySamples)
+        surroundRightDelay = FloatArray(maxDelaySamples)
+        val delayMs = 5.5f + surroundSmoothedStrength.coerceIn(0f, 1f) * 7.5f
+        surroundReadOffset = (rate * delayMs / 1000f).toInt().coerceIn(1, maxDelaySamples - 1)
+        surroundDelayIndex = 0
+        surroundSideLowPass = 0f
+        surroundCompensationGain = 1f
+    }
+
+    private fun moveTowards(current: Float, target: Float, maxDelta: Float): Float = when {
+        current < target -> (current + maxDelta).coerceAtMost(target)
+        current > target -> (current - maxDelta).coerceAtLeast(target)
+        else -> target
+    }
+
+    private fun smoothStep(value: Float): Float {
+        val x = value.coerceIn(0f, 1f)
+        return x * x * (3f - 2f * x)
     }
 
     private fun mixReverb(dry: Float, wet: Float): Float {
@@ -337,5 +461,8 @@ class BlazePcmAudioProcessor(context: Context) : BaseAudioProcessor() {
 
     companion object {
         private const val LIMITER_THRESHOLD = 0.92f
+        private const val SURROUND_MIX_RAMP_SECONDS = 0.18f
+        private const val SURROUND_STRENGTH_RAMP_SECONDS = 0.12f
+        private const val SURROUND_MAX_COMPENSATION = 1.10f
     }
 }
