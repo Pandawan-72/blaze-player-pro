@@ -1,45 +1,42 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Pemutaran audio</string>
     <string name="notif_channel_video">Pemutaran video</string>
-
     <string name="tab_local">Lokal</string>
     <string name="tab_network">Jaringan</string>
     <string name="tab_blaze_video">Blaze Video</string>
-
     <string name="version_badge_free">Gratis</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
-<string name="favorites">Favorit</string>
-<string name="add_network_path">Tambahkan jalur jaringan</string>
+    <string name="favorites">Favorit</string>
+    <string name="add_network_path">Tambahkan jalur jaringan</string>
     <string name="add_manually">Tambahkan secara manual</string>
     <string name="saved_paths">JALUR TERSIMPAN</string>
     <string name="detected_devices">PERANGKAT TERDETEKSI</string>
     <string name="available_devices">Perangkat tersedia</string>
     <string name="no_path_configured">Tidak ada jalur yang dikonfigurasi.
 Ketuk Pindai untuk mendeteksi perangkat.</string>
-<string name="test_network_path">Uji jalur</string>
+    <string name="test_network_path">Uji jalur</string>
     <string name="network_path_test_title">Uji jalur jaringan</string>
     <string name="network_path_test_success_message">Jalur “%1$s” dapat diakses.</string>
     <string name="network_path_test_failure_message">Tidak dapat mengakses “%1$s”. Periksa jaringan, kredensial, atau izin berbagi.</string>
-<string name="example_smb_path">smb://192.168.1.10/Film</string>
+    <string name="example_smb_path">smb://192.168.1.10/Film</string>
     <string name="name_label">Nama</string>
-
     <string name="unknown_artist">Artis tidak dikenal</string>
     <string name="unknown_title">Judul tidak dikenal</string>
     <string name="audio_track">Trek audio</string>
-<string name="timer">Pengatur waktu</string>
+    <string name="timer">Pengatur waktu</string>
     <string name="equalizer">Pengaturan suara</string>
     <string name="sound_short">Suara</string>
-<string name="loading">Memuat…</string>
+    <string name="loading">Memuat…</string>
     <string name="no_track_found">0 trek ditemukan</string>
     <string name="zero_time">0:00</string>
-<string name="add_tracks">Tambahkan trek</string>
-<string name="add_to_playlist_short">Tambahkan ke daftar putar</string>
+    <string name="add_tracks">Tambahkan trek</string>
+    <string name="add_to_playlist_short">Tambahkan ke daftar putar</string>
     <string name="add_to_party_short">Tambahkan ke Party</string>
-<string name="sort_name_az">Nama A–Z</string>
-<string name="queue">ANTREAN</string>
+    <string name="sort_name_az">Nama A–Z</string>
+    <string name="queue">ANTREAN</string>
     <string name="queue_short">Antrean</string>
     <string name="add">Tambahkan</string>
     <string name="info">Info</string>
@@ -53,14 +50,13 @@ Ketuk Pindai untuk mendeteksi perangkat.</string>
     <string name="audio_lyrics_static">Lirik statis</string>
     <string name="folder">Folder</string>
     <string name="movies">Film</string>
-
     <string name="settings">Pengaturan</string>
     <string name="login_optional">Masuk (opsional)</string>
-<string name="upgrade_to_pro">⭐ Tingkatkan ke Blaze Player Pro atau Pro+</string>
-<string name="settings_rate_app">Beri nilai aplikasi</string>
+    <string name="upgrade_to_pro">⭐ Tingkatkan ke Blaze Player Pro atau Pro+</string>
+    <string name="settings_rate_app">Beri nilai aplikasi</string>
     <string name="settings_rate_app_desc">Bagikan ulasan Anda di Play Store</string>
     <string name="restore_purchases">Pulihkan pembelian</string>
-<string name="about_section">TENTANG</string>
+    <string name="about_section">TENTANG</string>
     <string name="interface_section">ANTARMUKA</string>
     <string name="data_section">DATA</string>
     <string name="contact_section">KONTAK</string>
@@ -71,7 +67,6 @@ Ketuk Pindai untuk mendeteksi perangkat.</string>
     <string name="toast_no_email_app">Tidak ada aplikasi email</string>
     <string name="presets_section">PRESET</string>
     <string name="local_network_label">Jaringan lokal</string>
-
     <string name="settings_resume_playback">Lanjutkan pemutaran</string>
     <string name="resume_always">Selalu</string>
     <string name="resume_ask">Tanyakan</string>
@@ -92,7 +87,6 @@ Ketuk Pindai untuk mendeteksi perangkat.</string>
     <string name="orientation_landscape">Lanskap</string>
     <string name="settings_auto_pip">PiP otomatis</string>
     <string name="settings_auto_pip_desc">Beralih ke Gambar-dalam-Gambar saat meninggalkan aplikasi</string>
-
     <string name="lang_no_preference">Tanpa preferensi</string>
     <string name="lang_french">Prancis</string>
     <string name="lang_english">Inggris</string>
@@ -105,19 +99,16 @@ Ketuk Pindai untuk mendeteksi perangkat.</string>
     <string name="lang_russian">Rusia</string>
     <string name="lang_chinese">Tionghoa</string>
     <string name="settings_preferred_audio_lang">Bahasa audio pilihan</string>
-
     <string name="settings_mini_player">Pemutar mini</string>
     <string name="settings_mini_player_desc">Tampilkan pemutar mini di aplikasi</string>
     <string name="settings_show_hidden_files">Tampilkan file tersembunyi</string>
     <string name="settings_show_hidden_files_desc">File yang diawali titik (.)</string>
-
     <string name="settings_clear_history">Hapus riwayat</string>
     <string name="settings_clear_history_desc">Hapus semua file yang baru diputar</string>
     <string name="dialog_clear_history_message">Hapus semua file yang baru diputar?</string>
     <string name="action_clear">Hapus</string>
     <string name="action_cancel">Batal</string>
     <string name="toast_history_cleared">Riwayat dihapus</string>
-
     <string name="settings_about">Tentang</string>
     <string name="settings_about_desc">Yang perlu Anda ketahui tentang Blaze Player</string>
     <string name="about_dialog_message">Versi %1$s
@@ -131,7 +122,6 @@ Pemutar media Anda untuk Android</string>
     <string name="dialog_choose_language">Pilih bahasa</string>
     <string name="toast_play_store_unavailable">Tidak dapat membuka Play Store</string>
     <string name="toast_restore_purchases_soon">Memulihkan pembelian… (segera hadir)</string>
-
     <string name="ratio_auto">Otomatis</string>
     <string name="ratio_zoom">Perbesar</string>
     <string name="ratio_stretched">Direntangkan</string>
@@ -151,14 +141,12 @@ Pemutar media Anda untuk Android</string>
     <string name="dialog_network_error_message">Pemutaran video ini gagal (koneksi NAS terputus, Wi‑Fi tidak stabil, atau file tidak dapat diakses).</string>
     <string name="action_retry">Coba lagi</string>
     <string name="action_quit">Keluar</string>
-
     <string name="toast_no_track_selected">Tidak ada trek yang dipilih</string>
     <string name="toast_select_tracks_first">Pilih trek terlebih dahulu (kotak centang di sebelah kiri setiap file)</string>
-<string name="toast_no_network_path_configured">Tidak ada jalur jaringan yang dikonfigurasi</string>
+    <string name="toast_no_network_path_configured">Tidak ada jalur jaringan yang dikonfigurasi</string>
     <string name="dialog_choose_network_path">Pilih jalur jaringan</string>
     <string name="local_storage">Penyimpanan lokal</string>
     <string name="lossless_label">Lossless</string>
-
     <plurals name="folder_count">
         <item quantity="one">%1$d folder</item>
         <item quantity="other">%1$d folder</item>
@@ -167,7 +155,6 @@ Pemutar media Anda untuk Android</string>
         <item quantity="one">%1$d trek ditemukan</item>
         <item quantity="other">%1$d trek ditemukan</item>
     </plurals>
-
     <string name="preset_flat">Datar</string>
     <string name="preset_custom">Kustom</string>
     <string name="preset_rock">Rock</string>
@@ -181,7 +168,6 @@ Pemutar media Anda untuk Android</string>
     <string name="preset_treble">Treble</string>
     <string name="preset_vocal">Vokal</string>
     <string name="preset_acoustic">Akustik</string>
-
     <string name="toast_no_device_detected">Tidak ada perangkat jaringan yang terdeteksi.</string>
     <string name="toast_click_device_to_explore">Ketuk perangkat untuk menjelajahinya.</string>
     <string name="scan_in_progress">Memindai…</string>
@@ -195,12 +181,10 @@ Pemutar media Anda untuk Android</string>
     <string name="toast_name_host_required">Nama dan host wajib diisi</string>
     <string name="action_delete">Hapus</string>
     <string name="dialog_delete_message">Hapus "%1$s"?</string>
-
     <plurals name="devices_found">
         <item quantity="one">%1$d perangkat ditemukan</item>
         <item quantity="other">%1$d perangkat ditemukan</item>
     </plurals>
-
     <string name="dialog_title_already_favorite">Sudah menjadi favorit</string>
     <string name="dialog_already_favorite_message">"%1$s" sudah ada di folder favorit Anda.</string>
     <string name="dialog_add_favorite_folder">Tambahkan folder favorit</string>
@@ -223,9 +207,8 @@ Di browser, buka menu (⋮) di samping folder untuk menambahkannya ke favorit.</
     <string name="toast_screenshot_save_error">Kesalahan saat menyimpan tangkapan layar</string>
     <string name="dialog_remove_favorites">Hapus dari favorit</string>
     <string name="action_remove">Hapus</string>
-
     <string name="unknown_generic">Tidak dikenal</string>
-<string name="sleep_timer_title">Pengatur waktu tidur</string>
+    <string name="sleep_timer_title">Pengatur waktu tidur</string>
     <string name="minutes_5">5 menit</string>
     <string name="minutes_15">15 menit</string>
     <string name="minutes_30">30 menit</string>
@@ -234,7 +217,6 @@ Di browser, buka menu (⋮) di samping folder untuk menambahkannya ke favorit.</
     <string name="dialog_clean_list">Bersihkan daftar</string>
     <string name="action_remove_selection">Hapus pilihan</string>
     <string name="action_clear_all">Hapus semua</string>
-
     <string name="toast_no_file_selected">Tidak ada file yang dipilih</string>
     <string name="dialog_which_playlist">Tambahkan ke daftar putar mana?</string>
     <string name="playlist_slot_name">Daftar putar %1$d</string>
@@ -253,7 +235,6 @@ Di browser, pilih file lalu gunakan "Tambahkan ke daftar putar" untuk mengisinya
     <string name="action_play_playlist">Putar daftar putar</string>
     <string name="action_empty_playlist">Kosongkan</string>
     <string name="toast_playlist_emptied">Daftar putar %1$d dikosongkan</string>
-
     <plurals name="playlist_item_count">
         <item quantity="one">%1$d item</item>
         <item quantity="other">%1$d item</item>
@@ -266,9 +247,8 @@ Di browser, pilih file lalu gunakan "Tambahkan ke daftar putar" untuk mengisinya
         <item quantity="one">%1$d sudah ada</item>
         <item quantity="other">%1$d sudah ada</item>
     </plurals>
-<string name="category_network">Jaringan</string>
+    <string name="category_network">Jaringan</string>
     <string name="category_audio">Audio</string>
-
     <string name="toast_error_generic">Kesalahan: %1$s</string>
     <string name="action_play">Putar</string>
     <string name="action_information">Informasi</string>
@@ -279,63 +259,50 @@ Kontainer: %2$s
 Resolusi: %3$s
 Durasi: %4$s
 Ukuran: %5$s</string>
-
     <string name="dialog_video_info_video_codec">Codec video: %1$s</string>
-
     <string name="dialog_video_info_audio_codec">Codec audio: %1$s</string>
-
     <plurals name="video_count">
         <item quantity="one">%1$d video</item>
         <item quantity="other">%1$d video</item>
     </plurals>
-
     <string name="toast_cannot_open_screen_cast_settings">Tidak dapat membuka pengaturan transmisi layar</string>
     <string name="toast_share_not_found">Berbagi tidak ditemukan untuk favorit ini</string>
     <string name="action_remove_from_history">Hapus dari riwayat</string>
-
     <string name="sort_name_za">Nama Z–A</string>
     <string name="sort_date_recent">Terbaru</string>
     <string name="sort_size">Ukuran</string>
     <string name="sort_album_order">Urutan album</string>
-
     <string name="dialog_permission_needed">Izin diperlukan</string>
-
     <string name="dialog_permission_intro_title">Izin diperlukan</string>
-
     <string name="dialog_permission_intro_message">Agar berfungsi dengan baik, Blaze Player akan meminta beberapa izin sekaligus:
 
 • Foto, musik, dan video: untuk menampilkan pustaka Anda dan Blaze Gallery
 • Notifikasi: untuk kontrol pemutaran
 • Jaringan lokal: untuk menemukan tamu Blaze Party
 • Mikrofon: hanya untuk equalizer visual dinamis — tidak ada audio yang direkam</string>
-
     <string name="action_continue">Lanjutkan</string>
     <string name="dialog_permission_message">Blaze Player memerlukan akses ke file video Anda agar dapat berfungsi.</string>
     <string name="action_allow">Izinkan</string>
     <string name="action_ignore">Abaikan</string>
-
     <string name="action_edit">Edit</string>
     <string name="browser_files_audio">File audio saya</string>
-<string name="breadcrumb_home">Beranda</string>
+    <string name="breadcrumb_home">Beranda</string>
     <string name="toast_path_saved">Jalur disimpan</string>
     <string name="toast_path_deleted">Jalur dihapus</string>
-<string name="search_hint_video">Cari video</string>
+    <string name="search_hint_video">Cari video</string>
     <string name="browser_search_in_progress">Pencarian berlangsung…</string>
     <string name="hint_path_name">Nama jalur</string>
     <string name="hint_shared_folder">Folder bersama</string>
-<string name="hint_ip_host">Alamat IP / Host</string>
+    <string name="hint_ip_host">Alamat IP / Host</string>
     <string name="hint_port">Port</string>
     <string name="hint_shared_folder_example">Folder bersama (mis. video)</string>
     <string name="hint_username_optional">Nama pengguna (opsional)</string>
     <string name="hint_password_optional">Kata sandi (opsional)</string>
     <string name="hint_username">Nama pengguna</string>
     <string name="hint_password">Kata sandi</string>
-<string name="history_empty_blaze_video_subtitle">Jelajahi video lokal atau jaringan untuk memulai</string>
-
+    <string name="history_empty_blaze_video_subtitle">Jelajahi video lokal atau jaringan untuk memulai</string>
     <string name="history_empty_blaze_video_title">Belum ada video yang ditonton</string>
-
     <string name="history_blaze_video">Riwayat</string>
-
     <string name="history_selection_active">Pilihan aktif: %1$d gambar mini dipilih.</string>
     <string name="history_action_prompt">Pilih tindakan untuk riwayat ini.</string>
     <string name="history_delete_selection">Hapus pilihan (%1$d)</string>
@@ -347,35 +314,32 @@ Ukuran: %5$s</string>
     <string name="history_confirm_delete_all_network">Hapus seluruh riwayat jaringan?</string>
     <string name="history_toast_select_thumbnails">Pilih gambar mini yang akan dihapus dari riwayat</string>
     <string name="permission_gallery_required">Izinkan akses ke foto dan video untuk menampilkan Blaze Gallery.</string>
-<string name="browse_files_local">Jelajahi</string>
-<plurals name="file_count">
+    <string name="browse_files_local">Jelajahi</string>
+    <plurals name="file_count">
         <item quantity="one">%1$d file</item>
         <item quantity="other">%1$d file</item>
     </plurals>
     <string name="browser_folder_file_count">%1$s · %2$s</string>
     <string name="content_desc_back">Kembali</string>
-
     <plurals name="results_found">
         <item quantity="one">%1$d hasil</item>
         <item quantity="other">%1$d hasil</item>
     </plurals>
     <string name="path_internal_storage">/penyimpanan internal</string>
-
     <plurals name="selected_tracks_count">
         <item quantity="one">%1$d trek dipilih</item>
         <item quantity="other">%1$d trek dipilih</item>
     </plurals>
-<string name="settings_section_playback">PEMUTARAN</string>
+    <string name="settings_section_playback">PEMUTARAN</string>
     <string name="settings_section_audio">AUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-<string name="eq_preamp_compressor_section">PREAMP &amp; KOMPRESOR</string>
+    <string name="eq_preamp_compressor_section">PREAMP &amp; KOMPRESOR</string>
     <string name="eq_preamp_label">Preamp</string>
     <string name="eq_compressor_label">Kompresor</string>
     <string name="player_casting_in_progress">Transmisi sedang berlangsung</string>
     <string name="player_stop_casting">Hentikan transmisi</string>
     <string name="player_speed_label_short">Kecepatan</string>
     <string name="player_ratio_label">Rasio</string>
-
     <string name="content_desc_close_playlist">Tutup daftar putar</string>
     <string name="content_desc_clean">Bersihkan</string>
     <string name="content_desc_playlist">Daftar putar</string>
@@ -386,8 +350,7 @@ Ukuran: %5$s</string>
     <string name="content_desc_repeat">Ulangi</string>
     <string name="content_desc_timer">Pengatur waktu</string>
     <string name="content_desc_options">Opsi</string>
-<string name="error_loading_media">Tidak dapat memulai pemutaran video.</string>
-
+    <string name="error_loading_media">Tidak dapat memulai pemutaran video.</string>
     <string name="cast_dialog_status">Sedang mentransmisikan</string>
     <string name="cast_dialog_stop">Hentikan transmisi</string>
     <string name="select_all">Pilih semua</string>
@@ -403,7 +366,7 @@ Ukuran: %5$s</string>
     <string name="paywall_pro_desc">Mencakup Free, lalu membuka jaringan lokal SMB/UPnP dan Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">€5,99</string>
-    <string name="paywall_pro_plus_desc">Mencakup semua fitur Pro dan membuka pemutar audio premium Blaze Audio.</string>
+    <string name="paywall_pro_plus_desc">Mencakup semua fitur Pro dan membuka Blaze Audio, termasuk Blaze Party dan KaraoKast.</string>
     <string name="paywall_buy_pro">Buka Pro — €3,99</string>
     <string name="paywall_buy_pro_plus">Buka Pro+ — €5,99</string>
     <string name="paywall_debug_unlocked">Mode debug: Pro dan Pro+ dibuka sementara.</string>
@@ -419,26 +382,19 @@ Ukuran: %5$s</string>
     <string name="action_off">Nonaktif</string>
     <string name="video_setting_volume_boost">Peningkat volume</string>
     <string name="action_reset">Atur ulang</string>
-
-    
-
-<string name="gallery_folders">Galeri</string>
-
+    <string name="gallery_folders">Galeri</string>
     <string name="gallery_empty_folders">Belum ada folder — buat satu untuk memulai</string>
-
     <string name="gallery_empty_photos">Folder ini kosong</string>
-
     <string name="gallery_trash_empty_message">Sampah kosong</string>
     <string name="gallery_type_photo">Foto</string>
     <string name="gallery_type_video">Video</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Urutkan</string>
-<string name="gallery_sort_date_desc">Terbaru lebih dulu</string>
+    <string name="gallery_sort_date_desc">Terbaru lebih dulu</string>
     <string name="gallery_sort_date_asc">Terlama lebih dulu</string>
     <string name="gallery_sort_name">Urutan alfabet</string>
     <string name="gallery_sort_size">Ukuran file</string>
     <string name="gallery_unknown_folder">Folder tidak dikenal</string>
-
     <string name="action_open">Buka</string>
     <string name="action_share">Bagikan</string>
     <string name="gallery_trash">Sampah</string>
@@ -447,7 +403,7 @@ Ukuran: %5$s</string>
     <string name="gallery_delete">Hapus</string>
     <string name="gallery_delete_folder">Hapus folder</string>
     <string name="gallery_delete_permanently_from_trash">Hapus permanen dari sampah</string>
-<string name="gallery_delete_all">Hapus semua</string>
+    <string name="gallery_delete_all">Hapus semua</string>
     <string name="gallery_share_all">Bagikan semua</string>
     <string name="gallery_selected_count">%1$d dipilih</string>
     <string name="confirm_delete_title">Konfirmasi penghapusan</string>
@@ -467,8 +423,6 @@ Ukuran: %5$s</string>
     </plurals>
     <string name="settings_audio_spectrum">Aktifkan spektrum visual</string>
     <string name="settings_audio_spectrum_desc">Tampilkan visualizer audio animasi di Blaze Audio.</string>
-
-    
     <string name="blaze_party">Blaze Party</string>
     <string name="blaze_party_intro">Buat sesi lokal atau bergabung dengan antrean bersama di Wi‑Fi yang sama.</string>
     <string name="blaze_party_host">Host Blaze Party</string>
@@ -481,9 +435,9 @@ Ukuran: %5$s</string>
     <string name="blaze_party_share_code">Alamat: %1$s
 Token: %2$s</string>
     <string name="blaze_party_host_waiting">Sesi siap: tamu dapat memindai kode ini.</string>
-<string name="blaze_party_scan_unavailable">Pemindai QR tidak tersedia. Instal pemindai QR atau masukkan kode secara manual.</string>
+    <string name="blaze_party_scan_unavailable">Pemindai QR tidak tersedia. Instal pemindai QR atau masukkan kode secara manual.</string>
     <string name="blaze_party_joined">Bergabung dengan sesi Blaze Party</string>
-<string name="blaze_party_short">Party</string>
+    <string name="blaze_party_short">Party</string>
     <string name="add_to_blaze_party">Tambahkan ke Blaze Party</string>
     <string name="blaze_party_playlist_title">Daftar putar Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">Tidak ada trek dalam daftar putar Blaze Party. Tambahkan trek dari browser audio dengan “Tambahkan ke Blaze Party”.</string>
@@ -493,7 +447,6 @@ Token: %2$s</string>
         <item quantity="one">%d trek ditambahkan ke Blaze Party</item>
         <item quantity="other">%d trek ditambahkan ke Blaze Party</item>
     </plurals>
-
     <string name="blaze_party_launch">Mulai</string>
     <string name="blaze_party_vote">Pilih</string>
     <string name="blaze_party_vote_hint">Ketuk trek untuk melihat suara dan memilih.</string>
@@ -506,7 +459,6 @@ Token: %2$s</string>
         <item quantity="one">%d suara</item>
         <item quantity="other">%d suara</item>
     </plurals>
-
     <string name="gallery_folder_button">Folder</string>
     <string name="gallery_create_folder">Tambahkan</string>
     <string name="gallery_create_folder_title">Folder foto baru</string>
@@ -531,8 +483,6 @@ Token: %2$s</string>
     <string name="blaze_party_default_host">Host</string>
     <string name="blaze_party_default_guest">Tamu</string>
     <string name="app_name_gallery">Blaze Gallery</string>
-
-    
     <string name="photo_editor_title">Edit</string>
     <string name="filter_normal">Normal</string>
     <string name="filter_vivid">Cerah</string>
@@ -562,7 +512,7 @@ Token: %2$s</string>
     <string name="editor_tab_crop">Pangkas</string>
     <string name="editor_tab_rotate">Putar</string>
     <string name="editor_tab_blur">Buram</string>
-<string name="blur_effect_blur">Buram</string>
+    <string name="blur_effect_blur">Buram</string>
     <string name="blur_effect_mosaic">Mosaik</string>
     <string name="blur_shape_circle">Lingkaran</string>
     <string name="blur_shape_square">Persegi</string>
@@ -578,7 +528,7 @@ Token: %2$s</string>
     <string name="action_compare_hold">Tahan untuk membandingkan</string>
     <string name="content_desc_rotate_left">Putar ke kiri</string>
     <string name="content_desc_rotate_right">Putar ke kanan</string>
-<string name="toast_photo_save_failed">Gagal menyimpan</string>
+    <string name="toast_photo_save_failed">Gagal menyimpan</string>
     <string name="photo_details_no_exif">Tidak ada metadata untuk foto ini</string>
     <string name="photo_details_dimensions">Dimensi: %1$s</string>
     <string name="photo_details_size">Ukuran: %1$s</string>
@@ -586,8 +536,6 @@ Token: %2$s</string>
     <string name="photo_details_camera">Kamera: %1$s</string>
     <string name="photo_details_location">Lokasi: %1$s</string>
     <string name="gallery_menu_edit">Edit</string>
-
-    
     <string name="video_trim_title">Pangkas</string>
     <string name="action_export_fast">SQ</string>
     <string name="action_export_precise">HQ</string>
@@ -599,7 +547,6 @@ Token: %2$s</string>
     <string name="toast_mp3_saved">MP3 disimpan di Documents/Blaze Audio Extractor</string>
     <string name="toast_mp3_export_failed">Ekspor MP3 gagal</string>
     <string name="gallery_menu_cut">Pangkas</string>
-
     <string name="add_to_video_queue_short">antrean</string>
     <string name="video_queue_title">ANTREAN VIDEO</string>
     <string name="video_queue_title_with_category">ANTREAN VIDEO — %1$s (%2$d)</string>
@@ -611,18 +558,14 @@ Token: %2$s</string>
     <string name="toast_video_queue_item_removed">Video dihapus dari antrean</string>
     <string name="content_desc_video_queue">Antrean video</string>
     <string name="content_desc_close_video_queue">Tutup antrean video</string>
-
-    
     <string name="add_to_playlist_fixed_short">Tambahkan ke daftar putar</string>
     <string name="app_name_audio">Blaze Audio</string>
     <string name="blaze_party_network_error">Tidak dapat terhubung ke host. Pastikan Anda berada di Wi‑Fi yang sama.</string>
-
-    
     <string name="audio_library_title">Pustaka</string>
     <string name="audio_library_subtitle">Pustaka musik Pro+ Anda</string>
     <string name="audio_loading_in_progress">Memuat...</string>
     <string name="audio_search">Cari</string>
-<string name="audio_tab_albums">Album</string>
+    <string name="audio_tab_albums">Album</string>
     <string name="audio_tab_artists">Artis</string>
     <string name="audio_tab_titles">Trek</string>
     <string name="audio_tab_playlists">Daftar putar</string>
@@ -642,7 +585,7 @@ Token: %2$s</string>
     <string name="audio_crossfade_title">Crossfade</string>
     <string name="audio_crossfade_subtitle">Transisi halus antar trek</string>
     <string name="audio_crossfade_duration">Durasi fade</string>
-<string name="audio_section_quality">Kualitas audio</string>
+    <string name="audio_section_quality">Kualitas audio</string>
     <string name="audio_high_quality_output">Keluaran kualitas tinggi</string>
     <string name="audio_high_quality_subtitle">Menonaktifkan pengaturan suara untuk memprioritaskan keluaran audio langsung</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -662,7 +605,7 @@ Token: %2$s</string>
     <string name="audio_auto_scan_subtitle">Deteksi file lokal dan jaringan baru secara berkala</string>
     <string name="audio_watched_folders">Folder yang dipantau</string>
     <string name="audio_watched_folders_subtitle">Pilih folder audio</string>
-<string name="audio_sort_album_track">Urutkan berdasarkan nomor trek</string>
+    <string name="audio_sort_album_track">Urutkan berdasarkan nomor trek</string>
     <string name="audio_sort_album_track_subtitle">Ikuti urutan album dan disk</string>
     <string name="audio_ignore_short_files">Abaikan file pendek</string>
     <string name="audio_ignore_short_files_subtitle">Di bawah 30 detik</string>
@@ -671,7 +614,7 @@ Token: %2$s</string>
     <string name="audio_dynamic_theme_subtitle">Hijau Blaze secara default, warna sampul saat diaktifkan</string>
     <string name="audio_cover_border">Bingkai sampul berwarna</string>
     <string name="audio_cover_border_subtitle">Aksen dinamis di sekitar sampul</string>
-<string name="audio_artwork_size">Ukuran sampul</string>
+    <string name="audio_artwork_size">Ukuran sampul</string>
     <string name="audio_size_small">Kecil</string>
     <string name="audio_size_medium">Sedang</string>
     <string name="audio_size_large">Besar</string>
@@ -680,7 +623,7 @@ Token: %2$s</string>
     <string name="audio_synced_lyrics_subtitle">Sakelar utama untuk lirik LRC/TXT lokal</string>
     <string name="audio_tag_editor">Editor tag</string>
     <string name="audio_tag_editor_subtitle">Edit judul, artis, album, genre, trek, dan disk</string>
-<string name="audio_no_current_track">Tidak ada trek saat ini</string>
+    <string name="audio_no_current_track">Tidak ada trek saat ini</string>
     <string name="audio_tag_title">Judul</string>
     <string name="audio_tag_artist">Artis</string>
     <string name="audio_tag_album">Album</string>
@@ -722,7 +665,7 @@ Token: %2$s</string>
     <string name="audio_tag_network_not_supported">Penulisan langsung tersedia untuk file lokal dan file jaringan SMB/NAS. Sumber ini tidak mengizinkan pengeditan jarak jauh.</string>
     <string name="action_scan">Pindai</string>
     <string name="action_done">Selesai</string>
-<string name="audio_play_album">Putar seluruh album</string>
+    <string name="audio_play_album">Putar seluruh album</string>
     <string name="audio_add_album_queue">Tambahkan ke antrean</string>
     <string name="audio_select_tracks">Pilih trek</string>
     <string name="audio_add_playlist_blaze_party">Tambahkan daftar putar ke Blaze Party</string>
@@ -738,7 +681,6 @@ Token: %2$s</string>
     <string name="audio_add_track_blaze_party">Tambahkan ke Blaze Party</string>
     <string name="audio_back_to_albums">Kembali ke album</string>
     <string name="audio_back_to_albums_hint">Kembali ke tampilan pustaka lengkap</string>
-
     <string name="action_refresh">Segarkan</string>
     <string name="audio_watched_folders_empty_short">Tidak ada folder yang dipantau</string>
     <string name="audio_watched_folders_summary_mixed">%1$d lokal · %2$d %3$s</string>
@@ -751,7 +693,6 @@ Token: %2$s</string>
     <string name="audio_library_network_synced">Jaringan disinkronkan</string>
     <string name="audio_album_sort_album">Nama album</string>
     <string name="audio_album_sort_artist">Nama artis</string>
-
     <string name="close">Tutup</string>
     <string name="eq_tab_tone">Nada</string>
     <string name="eq_tab_dynamics">Dinamika</string>
@@ -778,7 +719,6 @@ Token: %2$s</string>
     <string name="eq_room_hall">Aula besar</string>
     <string name="eq_room_plate">Plate</string>
     <string name="eq_equalizer_unavailable">Equalizer perangkat tidak tersedia pada keluaran ini. Kontrol kanal tetap aktif.</string>
-
     <string name="action_play_pause">Putar / jeda</string>
     <string name="action_stop">Hentikan</string>
     <string name="cast_remote_title">Remote Cast</string>
@@ -797,10 +737,8 @@ Token: %2$s</string>
     <string name="cast_remote_next">Video berikutnya</string>
     <string name="cast_remote_hint">Tombol merah membuka panel Chromecast untuk menyambungkan atau memutuskan TV.</string>
     <string name="content_desc_cast_remote">Remote control Chromecast</string>
-
     <string name="cast_remote_led_on">ON</string>
     <string name="cast_remote_led_off">OFF</string>
-
     <string name="content_desc_rewind">Mundur</string>
     <string name="content_desc_forward">Maju cepat</string>
     <string name="content_desc_video_screenshot">Tangkap bingkai video</string>
@@ -810,11 +748,8 @@ Token: %2$s</string>
     <string name="content_desc_sort">Urutkan</string>
     <string name="content_desc_show_audio_files">Tampilkan file audio</string>
     <string name="content_desc_rescan">Pindai ulang</string>
-
     <string name="eq_status_on">ON</string>
     <string name="eq_status_off">OFF</string>
-
-    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
     <string name="audio_watched_help_button_desc">Bantuan tentang folder terpantau</string>
     <string name="audio_watched_help_title">Cara menyiapkan pustaka audio Anda</string>
     <string name="audio_watched_help_desc">Saat Anda menambahkan folder lokal atau jaringan ke pustaka untuk pertama kalinya, harap bersabar: pemuatan metadata dan sampul bisa memakan waktu lama, terutama jika Anda memiliki banyak album atau trek.</string>
@@ -828,8 +763,6 @@ Token: %2$s</string>
     <string name="audio_watched_help_lrc">        └── 01 - Judul trek.lrc</string>
     <string name="audio_watched_help_cover_note">Letakkan sampul di folder album dengan nama cover.jpg atau cover.png.</string>
     <string name="audio_watched_help_lrc_note">Letakkan file .lrc di samping setiap trek dengan nama file yang sama persis.</string>
-
-    <!-- Aide de l’onglet Réseau -->
     <string name="network_help_button_desc">Bantuan tentang jalur jaringan</string>
     <string name="network_help_title">Bantuan jaringan</string>
     <string name="network_help_message">Anda harus menyimpan jalur menuju file di jaringan lokal Anda di sini agar dapat menjelajahinya nanti di aplikasi.</string>
@@ -845,13 +778,8 @@ Token: %2$s</string>
         <item quantity="one">Uji coba Pro+: tersisa %1$d hari</item>
         <item quantity="other">Uji coba Pro+: tersisa %1$d hari</item>
     </plurals>
-
-    <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Umpan balik haptik</string>
     <string name="settings_haptic_feedback_desc">Aktifkan getaran ringan setiap kali mengetuk elemen yang dapat diklik di aplikasi.</string>
-
-
-    <!-- Bibliothèque Blaze Audio pour Android Auto -->
     <string name="android_auto_root_title">Blaze Audio</string>
     <string name="android_auto_root_subtitle">Perpustakaan musik Anda</string>
     <string name="android_auto_premium_required">Blaze Audio Premium diperlukan</string>
@@ -865,7 +793,6 @@ Token: %2$s</string>
     <string name="android_auto_unknown_album">Album tidak dikenal</string>
     <string name="android_auto_artist_subtitle">%1$d album • %2$d lagu</string>
     <string name="android_auto_track_count">%1$d lagu</string>
-
     <string name="audio_karaoke_cast">KaraoKast</string>
     <string name="content_desc_karaoke_cast">Buka pencerminan layar karaoke</string>
     <string name="karaoke_cast_requires_lrc">File .lrc tersinkron diperlukan untuk Cast karaoke.</string>
@@ -877,8 +804,6 @@ Token: %2$s</string>
     <string name="audio_output_change_failed">Tidak dapat mengubah keluaran audio</string>
     <string name="karaoke_mirror_opened">Pilih Chromecast di panel Android. Tekan lama tombol untuk memilih keluaran audio lokal.</string>
     <string name="karaoke_mirror_unavailable">Pengaturan transmisi layar tidak tersedia. Gunakan ubin Cast layar di Setelan Cepat.</string>
-
-    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
     <string name="audio_lyrics_search_online">Unduh lirik (.LRC)</string>
     <string name="audio_lyrics_download_hint">Cari dengan LRCLIB. Ketuk hasil untuk otomatis mengunduh file .LRC di samping lagu.</string>
     <string name="audio_lyrics_button_description">Kelola lirik dan unduh file .LRC. Tekan lama untuk menampilkan atau menyembunyikan lirik.</string>
@@ -914,8 +839,6 @@ Token: %2$s</string>
         <item quantity="other">%d hasil tersinkron</item>
     </plurals>
     <string name="action_compare_slider">Geser untuk membandingkan sebelum dan sesudah</string>
-
-    <!-- Playlists nommées audio/vidéo -->
     <string name="action_delete_playlist">Hapus playlist</string>
     <string name="confirm_delete_named_playlist_message">Hapus playlist “%1$s”? Semua isinya akan dihapus.</string>
     <string name="toast_named_playlist_deleted">Playlist “%1$s” dihapus.</string>
@@ -930,4 +853,84 @@ Token: %2$s</string>
     <string name="playlist_added_partial_named">%1$s ditambahkan, %2$s sudah ada di “%3$s”</string>
     <string name="toast_named_playlist_emptied">Playlist “%1$s” dikosongkan.</string>
     <string name="toast_named_playlist_sent_to_queue">“%1$s” ditambahkan ke antrean.</string>
+    <string name="subtitle_add_external">Tambahkan file SRT/ASS</string>
+    <string name="subtitle_remove_external">Hapus file subtitle</string>
+    <string name="subtitle_invalid_file">Pilih file subtitle SRT, ASS, SSA, atau VTT.</string>
+    <string name="subtitle_cast_conversion_failed">Subtitle berfungsi secara lokal, tetapi konversi untuk Chromecast gagal.</string>
+    <string name="subtitle_external_added">File subtitle ditambahkan.</string>
+    <string name="cast_fallback_preparing">Menyiapkan Chromecast: remux tanpa enkode ulang video…</string>
+    <string name="cast_fallback_ready_audio">Video siap untuk Chromecast. Hanya trek audio yang dikonversi.</string>
+    <string name="cast_fallback_ready_remux">Video siap untuk Chromecast tanpa enkode ulang.</string>
+    <string name="cast_fallback_not_possible">File ini memerlukan enkode ulang video, yang dinonaktifkan untuk menjaga performa.</string>
+    <string name="cast_fallback_failed">File ini tidak dapat disiapkan untuk Chromecast.</string>
+
+    <string name="slideshow_short">Diapo</string>
+    <string name="slideshow_create">Buat slideshow</string>
+    <string name="slideshow_title">Buat slideshow</string>
+    <string name="slideshow_reorder_hint">Tekan dan seret foto untuk mengubah urutannya.</string>
+    <string name="slideshow_music_title">Musik slideshow</string>
+    <string name="slideshow_no_music">Belum ada musik dipilih</string>
+    <string name="slideshow_music_selected">Musik dipilih</string>
+    <string name="slideshow_choose_music">Pilih MP3/WAV</string>
+    <string name="slideshow_music_invalid">Durasi file audio ini tidak dapat dibaca.</string>
+    <string name="slideshow_duration_summary">Durasi: %1$s • %2$s dtk/foto</string>
+    <string name="slideshow_export">Ekspor MP4</string>
+    <string name="slideshow_exporting">Membuat slideshow…</string>
+    <string name="slideshow_export_success">Slideshow disimpan di Blaze Gallery.</string>
+    <string name="slideshow_export_failed">Slideshow tidak dapat dibuat.</string>
+    <string name="slideshow_need_two_photos">Pilih setidaknya 2 foto.</string>
+    <string name="slideshow_photo_number">Foto %1$d</string>
+    <string name="slideshow_annotation_title">Anotasi foto</string>
+    <string name="slideshow_annotation_hint">Tambahkan anotasi singkat…</string>
+    <string name="slideshow_annotation_style_glass">Kaca gelap</string>
+    <string name="slideshow_annotation_style_accent">Aksen Blaze</string>
+    <string name="slideshow_annotation_style_minimal">Minimal</string>
+    <string name="slideshow_no_annotation">Tanpa anotasi</string>
+    <string name="slideshow_annotation_short">Anotasi</string>
+    <string name="slideshow_select_hint">Ketuk foto yang ingin disertakan, lalu ketuk Buat slideshow.</string>
+
+    <string name="slideshow_annotation_editor_title">Edit anotasi</string>
+    <string name="slideshow_annotation_text">Teks (emoji didukung)</string>
+    <string name="slideshow_annotation_font">Font</string>
+    <string name="slideshow_annotation_size_value">Ukuran teks: %1$d%%</string>
+    <string name="slideshow_annotation_background_color">Warna latar</string>
+    <string name="slideshow_annotation_shape">Bentuk latar</string>
+    <string name="slideshow_annotation_shape_pill">Pil</string>
+    <string name="slideshow_annotation_shape_parallelogram">Jajar genjang</string>
+    <string name="slideshow_annotation_shape_rectangle">Persegi panjang</string>
+    <string name="slideshow_annotation_drag_hint">Geser anotasi atau GIF langsung di atas foto untuk menempatkannya.</string>
+    <string name="slideshow_gif_title">GIF animasi</string>
+    <string name="slideshow_gif_choose">Tambahkan GIF</string>
+    <string name="slideshow_gif_invalid">File ini bukan GIF animasi yang valid.</string>
+    <string name="slideshow_gif_selected">GIF animasi ditambahkan</string>
+    <string name="slideshow_annotation_and_gif_summary">%1$s • GIF animasi</string>
+    <string name="slideshow_export_name_title">Nama file MP4</string>
+    <string name="slideshow_export_name_hint">Nama slideshow</string>
+    <string name="slideshow_export_name_invalid">Masukkan nama file.</string>
+
+    <string name="slideshow_add_to">Tambahkan ke slideshow</string>
+    <string name="slideshow_add_photos">Tambahkan foto</string>
+    <string name="slideshow_picker_selected_count">Slideshow: %1$d • Akan ditambahkan: %2$d</string>
+    <string name="slideshow_added_count">%1$d foto ditambahkan ke slideshow</string>
+
+    <string name="slideshow_picker_folders">Folder</string>
+
+    <string name="karaoke_sync_offset_value">Sinkron %1$s%2$d md</string>
+    <string name="karaoke_sync_offset_default">Sinkron +300 md</string>
+    <string name="content_desc_karaoke_sync_minus">Tunda lirik 50 milidetik</string>
+    <string name="content_desc_karaoke_sync_plus">Majukan lirik 50 milidetik</string>
+    <string name="paywall_buy_pro_dynamic">Buka Pro — %1$s</string>
+    <string name="paywall_buy_pro_plus_dynamic">Buka Pro+ — %1$s</string>
+    <string name="paywall_purchase_success_pro">Pembelian berhasil: versi Pro telah dibuka.</string>
+    <string name="paywall_purchase_success_pro_plus">Pembelian berhasil: versi Pro+ telah dibuka.</string>
+    <string name="paywall_purchase_error">Pembelian tidak dapat diselesaikan: %1$s</string>
+    <string name="paywall_restore_success">Pembelian berhasil dipulihkan.</string>
+    <string name="paywall_restore_nothing_found">Tidak ada pembelian yang dapat dipulihkan pada akun Google Play ini.</string>
+    <string name="paywall_restore_error">Pemulihan gagal: %1$s</string>
+    <string name="slideshow_font_montserrat">Montserrat</string>
+    <string name="slideshow_font_playfair">Playfair Display</string>
+    <string name="slideshow_font_pacifico">Pacifico</string>
+    <string name="slideshow_font_bebas">Bebas Neue</string>
+    <string name="slideshow_font_caveat">Caveat</string>
+    <string name="slideshow_font_cinzel">Cinzel</string>
 </resources>

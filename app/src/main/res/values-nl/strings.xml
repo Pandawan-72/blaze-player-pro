@@ -3,42 +3,39 @@
     <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Audioweergave</string>
     <string name="notif_channel_video">Videoweergave</string>
-
     <string name="tab_local">Lokaal</string>
     <string name="tab_network">Netwerk</string>
     <string name="tab_blaze_video">Blaze Video</string>
-
     <string name="version_badge_free">Gratis</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
-<string name="favorites">Favorieten</string>
-<string name="add_network_path">Netwerkpad toevoegen</string>
+    <string name="favorites">Favorieten</string>
+    <string name="add_network_path">Netwerkpad toevoegen</string>
     <string name="add_manually">Handmatig toevoegen</string>
     <string name="saved_paths">OPGESLAGEN PADEN</string>
     <string name="detected_devices">GEDETECTEERDE APPARATEN</string>
     <string name="available_devices">Beschikbare apparaten</string>
     <string name="no_path_configured">Geen pad geconfigureerd.\nTik op Scannen om apparaten te detecteren.</string>
-<string name="test_network_path">Pad testen</string>
+    <string name="test_network_path">Pad testen</string>
     <string name="network_path_test_title">Netwerkpad testen</string>
     <string name="network_path_test_success_message">Het pad “%1$s” is bereikbaar.</string>
     <string name="network_path_test_failure_message">Kan “%1$s” niet bereiken. Controleer netwerk, aanmeldgegevens of sharemachtigingen.</string>
-<string name="example_smb_path">smb://192.168.1.10/Films</string>
+    <string name="example_smb_path">smb://192.168.1.10/Films</string>
     <string name="name_label">Naam</string>
-
     <string name="unknown_artist">Onbekende artiest</string>
     <string name="unknown_title">Onbekende titel</string>
     <string name="audio_track">Audiospoor</string>
-<string name="timer">Timer</string>
+    <string name="timer">Timer</string>
     <string name="equalizer">Geluidsinstellingen</string>
     <string name="sound_short">Geluid</string>
-<string name="loading">Laden…</string>
+    <string name="loading">Laden…</string>
     <string name="no_track_found">0 nummers gevonden</string>
     <string name="zero_time">0:00</string>
-<string name="add_tracks">Nummers toevoegen</string>
-<string name="add_to_playlist_short">Toevoegen aan playlist</string>
+    <string name="add_tracks">Nummers toevoegen</string>
+    <string name="add_to_playlist_short">Toevoegen aan playlist</string>
     <string name="add_to_party_short">Toevoegen aan Party</string>
-<string name="sort_name_az">Naam A–Z</string>
-<string name="queue">WACHTRIJ</string>
+    <string name="sort_name_az">Naam A–Z</string>
+    <string name="queue">WACHTRIJ</string>
     <string name="queue_short">Wachtrij</string>
     <string name="add">Toevoegen</string>
     <string name="info">Info</string>
@@ -52,14 +49,13 @@
     <string name="audio_lyrics_static">Statische songteksten</string>
     <string name="folder">Map</string>
     <string name="movies">Films</string>
-
     <string name="settings">Instellingen</string>
     <string name="login_optional">Inloggen (optioneel)</string>
-<string name="upgrade_to_pro">⭐ Overstappen naar Blaze Player Pro of Pro+</string>
-<string name="settings_rate_app">Beoordeel de app</string>
+    <string name="upgrade_to_pro">⭐ Overstappen naar Blaze Player Pro of Pro+</string>
+    <string name="settings_rate_app">Beoordeel de app</string>
     <string name="settings_rate_app_desc">Deel je beoordeling in de Play Store</string>
     <string name="restore_purchases">Aankopen herstellen</string>
-<string name="about_section">OVER</string>
+    <string name="about_section">OVER</string>
     <string name="interface_section">INTERFACE</string>
     <string name="data_section">GEGEVENS</string>
     <string name="contact_section">CONTACT</string>
@@ -70,7 +66,6 @@
     <string name="toast_no_email_app">Geen e-mailapp gevonden</string>
     <string name="presets_section">VOORINSTELLINGEN</string>
     <string name="local_network_label">Lokaal netwerk</string>
-
     <string name="settings_resume_playback">Afspelen hervatten</string>
     <string name="resume_always">Altijd</string>
     <string name="resume_ask">Vragen</string>
@@ -91,7 +86,6 @@
     <string name="orientation_landscape">Liggend</string>
     <string name="settings_auto_pip">Automatische PiP</string>
     <string name="settings_auto_pip_desc">Overschakelen naar Picture-in-Picture bij wisselen van app</string>
-
     <string name="lang_no_preference">Geen voorkeur</string>
     <string name="lang_french">Frans</string>
     <string name="lang_english">Engels</string>
@@ -104,19 +98,16 @@
     <string name="lang_russian">Russisch</string>
     <string name="lang_chinese">Chinees</string>
     <string name="settings_preferred_audio_lang">Voorkeurstaal audio</string>
-
     <string name="settings_mini_player">Mini-player</string>
     <string name="settings_mini_player_desc">Mini-player weergeven in de app</string>
     <string name="settings_show_hidden_files">Verborgen bestanden weergeven</string>
     <string name="settings_show_hidden_files_desc">Bestanden die beginnen met een punt (.)</string>
-
     <string name="settings_clear_history">Geschiedenis wissen</string>
     <string name="settings_clear_history_desc">Alle recent afgespeelde bestanden verwijderen</string>
     <string name="dialog_clear_history_message">Alle recent afgespeelde bestanden verwijderen?</string>
     <string name="action_clear">Wissen</string>
     <string name="action_cancel">Annuleren</string>
     <string name="toast_history_cleared">Geschiedenis gewist</string>
-
     <string name="settings_about">Over</string>
     <string name="settings_about_desc">Wat je moet weten over Blaze Player</string>
     <string name="about_dialog_message">Versie %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nJouw mediaspeler voor Android</string>
@@ -126,7 +117,6 @@
     <string name="dialog_choose_language">Taal kiezen</string>
     <string name="toast_play_store_unavailable">Kan de Play Store niet openen</string>
     <string name="toast_restore_purchases_soon">Aankopen herstellen… (binnenkort beschikbaar)</string>
-
     <string name="ratio_auto">Auto</string>
     <string name="ratio_zoom">Zoom</string>
     <string name="ratio_stretched">Uitgerekt</string>
@@ -146,14 +136,12 @@
     <string name="dialog_network_error_message">Het afspelen van deze video is mislukt (NAS-verbinding verbroken, onstabiele wifi of bestand niet toegankelijk).</string>
     <string name="action_retry">Opnieuw proberen</string>
     <string name="action_quit">Afsluiten</string>
-
     <string name="toast_no_track_selected">Geen nummer geselecteerd</string>
     <string name="toast_select_tracks_first">Selecteer eerst nummers (vakje links van elk bestand)</string>
-<string name="toast_no_network_path_configured">Geen netwerkpad geconfigureerd</string>
+    <string name="toast_no_network_path_configured">Geen netwerkpad geconfigureerd</string>
     <string name="dialog_choose_network_path">Netwerkpad kiezen</string>
     <string name="local_storage">Lokale opslag</string>
     <string name="lossless_label">Lossless</string>
-
     <plurals name="folder_count">
         <item quantity="one">%1$d map</item>
         <item quantity="other">%1$d mappen</item>
@@ -162,7 +150,6 @@
         <item quantity="one">%1$d nummer gevonden</item>
         <item quantity="other">%1$d nummers gevonden</item>
     </plurals>
-
     <string name="preset_flat">Neutraal</string>
     <string name="preset_custom">Aangepast</string>
     <string name="preset_rock">Rock</string>
@@ -176,7 +163,6 @@
     <string name="preset_treble">Hoge tonen</string>
     <string name="preset_vocal">Zang</string>
     <string name="preset_acoustic">Akoestisch</string>
-
     <string name="toast_no_device_detected">Geen netwerkapparaat gevonden.</string>
     <string name="toast_click_device_to_explore">Tik op een apparaat om het te verkennen.</string>
     <string name="scan_in_progress">Bezig met scannen…</string>
@@ -190,12 +176,10 @@
     <string name="toast_name_host_required">Naam en host vereist</string>
     <string name="action_delete">Verwijderen</string>
     <string name="dialog_delete_message">\"%1$s\" verwijderen?</string>
-
     <plurals name="devices_found">
         <item quantity="one">%1$d apparaat gevonden</item>
         <item quantity="other">%1$d apparaten gevonden</item>
     </plurals>
-
     <string name="dialog_title_already_favorite">Al favoriet</string>
     <string name="dialog_already_favorite_message">"%1$s" staat al bij je favoriete mappen.</string>
     <string name="dialog_add_favorite_folder">Favoriete map toevoegen</string>
@@ -216,9 +200,8 @@
     <string name="toast_screenshot_save_error">Fout bij het opslaan van de screenshot</string>
     <string name="dialog_remove_favorites">Verwijderen uit favorieten</string>
     <string name="action_remove">Verwijderen</string>
-
     <string name="unknown_generic">Onbekend</string>
-<string name="sleep_timer_title">Slaaptimer</string>
+    <string name="sleep_timer_title">Slaaptimer</string>
     <string name="minutes_5">5 minuten</string>
     <string name="minutes_15">15 minuten</string>
     <string name="minutes_30">30 minuten</string>
@@ -227,7 +210,6 @@
     <string name="dialog_clean_list">Lijst opschonen</string>
     <string name="action_remove_selection">Selectie verwijderen</string>
     <string name="action_clear_all">Alles wissen</string>
-
     <string name="toast_no_file_selected">Geen bestand geselecteerd</string>
     <string name="dialog_which_playlist">Aan welke afspeellijst toevoegen?</string>
     <string name="playlist_slot_name">Afspeellijst %1$d</string>
@@ -244,7 +226,6 @@
     <string name="action_play_playlist">Afspeellijst afspelen</string>
     <string name="action_empty_playlist">Legen</string>
     <string name="toast_playlist_emptied">Afspeellijst %1$d geleegd</string>
-
     <plurals name="playlist_item_count">
         <item quantity="one">%1$d item</item>
         <item quantity="other">%1$d items</item>
@@ -257,66 +238,52 @@
         <item quantity="one">%1$d al aanwezig</item>
         <item quantity="other">%1$d al aanwezig</item>
     </plurals>
-<string name="category_network">Netwerk</string>
+    <string name="category_network">Netwerk</string>
     <string name="category_audio">Audio</string>
-
     <string name="toast_error_generic">Fout: %1$s</string>
     <string name="action_play">Afspelen</string>
     <string name="action_information">Informatie</string>
     <string name="unknown_size">Onbekend</string>
     <string name="dialog_video_info_message">Pad: %1$s\n\nContainer: %2$s\nResolutie: %3$s\nDuur: %4$s\nGrootte: %5$s</string>
-
     <string name="dialog_video_info_video_codec">Videocodec: %1$s</string>
-
     <string name="dialog_video_info_audio_codec">Audiocodec: %1$s</string>
-
     <plurals name="video_count">
         <item quantity="one">%1$d video</item>
         <item quantity="other">%1$d video\'s</item>
     </plurals>
-
     <string name="toast_cannot_open_screen_cast_settings">Kan schermcast-instellingen niet openen</string>
     <string name="toast_share_not_found">Gedeelde map niet gevonden voor deze favoriet</string>
     <string name="action_remove_from_history">Verwijderen uit geschiedenis</string>
-
     <string name="sort_name_za">Naam Z–A</string>
     <string name="sort_date_recent">Meest recent</string>
     <string name="sort_size">Grootte</string>
     <string name="sort_album_order">Albumvolgorde</string>
-
     <string name="dialog_permission_needed">Toestemming vereist</string>
-
     <string name="dialog_permission_intro_title">Toestemmingen vereist</string>
-
     <string name="dialog_permission_intro_message">Om goed te werken, vraagt Blaze Player een paar toestemmingen tegelijk:\n\n• Foto\'s, muziek en video\'s: om je bibliotheek en Blaze Gallery te tonen\n• Meldingen: voor de afspeelbediening\n• Lokaal netwerk: om Blaze Party-gasten te vinden\n• Microfoon: alleen voor de dynamische visuele equalizer — er wordt nooit audio opgenomen</string>
-
     <string name="action_continue">Doorgaan</string>
     <string name="dialog_permission_message">Blaze Player heeft toegang tot je videobestanden nodig om te werken.</string>
     <string name="action_allow">Toestaan</string>
     <string name="action_ignore">Negeren</string>
-
     <string name="action_edit">Bewerken</string>
     <string name="browser_files_audio">Mijn audiobestanden</string>
-<string name="breadcrumb_home">Start</string>
+    <string name="breadcrumb_home">Start</string>
     <string name="toast_path_saved">Pad opgeslagen</string>
     <string name="toast_path_deleted">Pad verwijderd</string>
-<string name="search_hint_video">Video zoeken</string>
+    <string name="search_hint_video">Video zoeken</string>
     <string name="browser_search_in_progress">Zoeken…</string>
     <string name="hint_path_name">Padnaam</string>
     <string name="hint_shared_folder">Gedeelde map</string>
-<string name="hint_ip_host">IP-adres / Host</string>
+    <string name="hint_ip_host">IP-adres / Host</string>
     <string name="hint_port">Poort</string>
     <string name="hint_shared_folder_example">Gedeelde map (bijv. videos)</string>
     <string name="hint_username_optional">Gebruikersnaam (optioneel)</string>
     <string name="hint_password_optional">Wachtwoord (optioneel)</string>
     <string name="hint_username">Gebruikersnaam</string>
     <string name="hint_password">Wachtwoord</string>
-<string name="history_empty_blaze_video_subtitle">Blader door je lokale of netwerkvideo\'s om te beginnen</string>
-
+    <string name="history_empty_blaze_video_subtitle">Blader door je lokale of netwerkvideo\'s om te beginnen</string>
     <string name="history_empty_blaze_video_title">Geen recent bekeken video\'s</string>
-
     <string name="history_blaze_video">Geschiedenis</string>
-
     <string name="history_selection_active">Selectie actief: %1$d miniatuur/miniaturen geselecteerd.</string>
     <string name="history_action_prompt">Kies een actie voor deze geschiedenis.</string>
     <string name="history_delete_selection">Selectie verwijderen (%1$d)</string>
@@ -328,35 +295,32 @@
     <string name="history_confirm_delete_all_network">Alle netwerkgeschiedenis verwijderen?</string>
     <string name="history_toast_select_thumbnails">Selecteer de miniaturen die je uit de geschiedenis wilt verwijderen</string>
     <string name="permission_gallery_required">Sta toegang tot foto’s en video’s toe om Blaze Gallery weer te geven.</string>
-<string name="browse_files_local">Bladeren</string>
-<plurals name="file_count">
+    <string name="browse_files_local">Bladeren</string>
+    <plurals name="file_count">
         <item quantity="one">%1$d bestand</item>
         <item quantity="other">%1$d bestanden</item>
     </plurals>
     <string name="browser_folder_file_count">%1$s · %2$s</string>
     <string name="content_desc_back">Terug</string>
-
     <plurals name="results_found">
         <item quantity="one">%1$d resultaat</item>
         <item quantity="other">%1$d resultaten</item>
     </plurals>
     <string name="path_internal_storage">/interne opslag</string>
-
     <plurals name="selected_tracks_count">
         <item quantity="one">%1$d nummer geselecteerd</item>
         <item quantity="other">%1$d nummers geselecteerd</item>
     </plurals>
-<string name="settings_section_playback">AFSPELEN</string>
+    <string name="settings_section_playback">AFSPELEN</string>
     <string name="settings_section_audio">AUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-<string name="eq_preamp_compressor_section">VOORVERSTERKER EN COMPRESSOR</string>
+    <string name="eq_preamp_compressor_section">VOORVERSTERKER EN COMPRESSOR</string>
     <string name="eq_preamp_label">Voorversterker</string>
     <string name="eq_compressor_label">Compressor</string>
     <string name="player_casting_in_progress">Streaming bezig</string>
     <string name="player_stop_casting">Streaming stoppen</string>
     <string name="player_speed_label_short">Snelheid</string>
     <string name="player_ratio_label">Beeldverhouding</string>
-
     <string name="content_desc_close_playlist">Afspeellijst sluiten</string>
     <string name="content_desc_clean">Opschonen</string>
     <string name="content_desc_playlist">Afspeellijst</string>
@@ -367,8 +331,7 @@
     <string name="content_desc_repeat">Herhalen</string>
     <string name="content_desc_timer">Timer</string>
     <string name="content_desc_options">Opties</string>
-<string name="error_loading_media">Kan het afspelen van video niet starten.</string>
-
+    <string name="error_loading_media">Kan het afspelen van video niet starten.</string>
     <string name="cast_dialog_status">Casten bezig</string>
     <string name="cast_dialog_stop">Casten stoppen</string>
     <string name="select_all">Alles selecteren</string>
@@ -384,7 +347,7 @@
     <string name="paywall_pro_desc">Bevat Free en ontgrendelt lokaal SMB/UPnP-netwerk en Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">€ 5,99</string>
-    <string name="paywall_pro_plus_desc">Bevat alle Pro-functies en ontgrendelt de premium Blaze Audio-speler.</string>
+    <string name="paywall_pro_plus_desc">Bevat alle Pro-functies en ontgrendelt Blaze Audio, inclusief Blaze Party en KaraoKast.</string>
     <string name="paywall_buy_pro">Pro ontgrendelen — € 3,99</string>
     <string name="paywall_buy_pro_plus">Pro+ ontgrendelen — € 5,99</string>
     <string name="paywall_buy_pro_dynamic">Pro ontgrendelen — %1$s</string>
@@ -408,26 +371,19 @@
     <string name="action_off">Uit</string>
     <string name="video_setting_volume_boost">Volumeboost</string>
     <string name="action_reset">Resetten</string>
-
-    
-
-<string name="gallery_folders">Gallery</string>
-
+    <string name="gallery_folders">Gallery</string>
     <string name="gallery_empty_folders">Nog geen mappen — maak er een aan om te beginnen</string>
-
     <string name="gallery_empty_photos">Deze map is leeg</string>
-
     <string name="gallery_trash_empty_message">De prullenbak is leeg</string>
     <string name="gallery_type_photo">Foto\'s</string>
     <string name="gallery_type_video">Video\'s</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Sorteren</string>
-<string name="gallery_sort_date_desc">Nieuwste eerst</string>
+    <string name="gallery_sort_date_desc">Nieuwste eerst</string>
     <string name="gallery_sort_date_asc">Oudste eerst</string>
     <string name="gallery_sort_name">Alfabetische volgorde</string>
     <string name="gallery_sort_size">Bestandsgrootte</string>
     <string name="gallery_unknown_folder">Onbekende map</string>
-
     <string name="action_open">Openen</string>
     <string name="action_share">Delen</string>
     <string name="gallery_trash">Prullenbak</string>
@@ -436,7 +392,7 @@
     <string name="gallery_delete">Verwijderen</string>
     <string name="gallery_delete_folder">Map verwijderen</string>
     <string name="gallery_delete_permanently_from_trash">Permanent uit prullenbak verwijderen</string>
-<string name="gallery_delete_all">Alles verwijderen</string>
+    <string name="gallery_delete_all">Alles verwijderen</string>
     <string name="gallery_share_all">Alles delen</string>
     <string name="gallery_selected_count">%1$d geselecteerd</string>
     <string name="confirm_delete_title">Verwijderen bevestigen</string>
@@ -456,7 +412,6 @@
     </plurals>
     <string name="settings_audio_spectrum">Visueel spectrum inschakelen</string>
     <string name="settings_audio_spectrum_desc">Toon de geanimeerde audiovisualizer in Blaze Audio.</string>
-
     <string name="blaze_party_short">Party</string>
     <string name="add_to_blaze_party">Toevoegen aan Blaze Party</string>
     <string name="blaze_party_playlist_title">Blaze Party-afspeellijst</string>
@@ -467,7 +422,6 @@
         <item quantity="one">%d nummer toegevoegd aan Blaze Party</item>
         <item quantity="other">%d nummers toegevoegd aan Blaze Party</item>
     </plurals>
-
     <string name="blaze_party_launch">Starten</string>
     <string name="blaze_party_vote">Stemmen</string>
     <string name="blaze_party_vote_hint">Tik op een nummer om stemmen te bekijken en te stemmen.</string>
@@ -483,7 +437,6 @@
     <string name="blaze_party_disconnect">Verbinding verbreken</string>
     <string name="blaze_party_disconnected">Verbinding met Blaze Party verbroken</string>
     <string name="blaze_party_connection_lost">Verbinding met host verloren — terug naar je lokale wachtrij</string>
-
     <string name="gallery_folder_button">Map</string>
     <string name="gallery_create_folder">Toevoegen</string>
     <string name="gallery_create_folder_title">Nieuwe fotomap</string>
@@ -511,16 +464,14 @@
     <string name="blaze_party_share_code">Adres: %1$s
 Token: %2$s</string>
     <string name="blaze_party_host_waiting">Sessie klaar: gasten kunnen deze code scannen.</string>
-<string name="blaze_party_scan_unavailable">QR-scanner niet beschikbaar. Installeer een QR-scanner of voer de code handmatig in.</string>
+    <string name="blaze_party_scan_unavailable">QR-scanner niet beschikbaar. Installeer een QR-scanner of voer de code handmatig in.</string>
     <string name="blaze_party_joined">Deelgenomen aan Blaze Party-sessie</string>
-<string name="blaze_party_not_host_queue">Alleen de host kan deze wachtrij wijzigen</string>
+    <string name="blaze_party_not_host_queue">Alleen de host kan deze wachtrij wijzigen</string>
     <string name="blaze_party_remove_vote">Mijn stem verwijderen</string>
     <string name="blaze_party_vote_removed">Stem verwijderd</string>
     <string name="blaze_party_default_host">Host</string>
     <string name="blaze_party_default_guest">Gast</string>
     <string name="app_name_gallery">Blaze Gallery</string>
-
-    
     <string name="photo_editor_title">Bewerken</string>
     <string name="filter_normal">Normaal</string>
     <string name="filter_vivid">Levendig</string>
@@ -550,7 +501,7 @@ Token: %2$s</string>
     <string name="editor_tab_crop">Bijsnijden</string>
     <string name="editor_tab_rotate">Draaien</string>
     <string name="editor_tab_blur">Vervagen</string>
-<string name="blur_effect_blur">Vervagen</string>
+    <string name="blur_effect_blur">Vervagen</string>
     <string name="blur_effect_mosaic">Mozaïek</string>
     <string name="blur_shape_circle">Cirkel</string>
     <string name="blur_shape_square">Vierkant</string>
@@ -566,7 +517,7 @@ Token: %2$s</string>
     <string name="action_compare_hold">Ingedrukt houden om te vergelijken</string>
     <string name="content_desc_rotate_left">Linksom draaien</string>
     <string name="content_desc_rotate_right">Rechtsom draaien</string>
-<string name="toast_photo_save_failed">Opslaan mislukt</string>
+    <string name="toast_photo_save_failed">Opslaan mislukt</string>
     <string name="photo_details_no_exif">Geen metadata beschikbaar voor deze foto</string>
     <string name="photo_details_dimensions">Afmetingen: %1$s</string>
     <string name="photo_details_size">Grootte: %1$s</string>
@@ -574,8 +525,6 @@ Token: %2$s</string>
     <string name="photo_details_camera">Camera: %1$s</string>
     <string name="photo_details_location">Locatie: %1$s</string>
     <string name="gallery_menu_edit">Bewerken</string>
-
-    
     <string name="video_trim_title">Bijsnijden</string>
     <string name="action_export_fast">SQ</string>
     <string name="action_export_precise">HQ</string>
@@ -587,7 +536,6 @@ Token: %2$s</string>
     <string name="toast_mp3_saved">MP3 opgeslagen in Documents/Blaze Audio Extractor</string>
     <string name="toast_mp3_export_failed">MP3 exporteren mislukt</string>
     <string name="gallery_menu_cut">Bijsnijden</string>
-
     <string name="add_to_playlist_fixed_short">Naar afspeellijst</string>
     <string name="add_to_video_queue_short">wachtrij</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -602,13 +550,11 @@ Token: %2$s</string>
     <string name="toast_video_queue_item_removed">Video uit de wachtrij verwijderd</string>
     <string name="content_desc_video_queue">Videowachtrij</string>
     <string name="content_desc_close_video_queue">Videowachtrij sluiten</string>
-
-    
     <string name="audio_library_title">Bibliotheek</string>
     <string name="audio_library_subtitle">Je Pro+ muziekbibliotheek</string>
     <string name="audio_loading_in_progress">Laden...</string>
     <string name="audio_search">Zoeken</string>
-<string name="audio_tab_albums">Albums</string>
+    <string name="audio_tab_albums">Albums</string>
     <string name="audio_tab_artists">Artiesten</string>
     <string name="audio_tab_titles">Nummers</string>
     <string name="audio_tab_playlists">Playlists</string>
@@ -628,7 +574,7 @@ Token: %2$s</string>
     <string name="audio_crossfade_title">Crossfade</string>
     <string name="audio_crossfade_subtitle">Vloeiende overgangen tussen nummers</string>
     <string name="audio_crossfade_duration">Fade-duur</string>
-<string name="audio_section_quality">Audiokwaliteit</string>
+    <string name="audio_section_quality">Audiokwaliteit</string>
     <string name="audio_high_quality_output">Uitvoer hoge kwaliteit</string>
     <string name="audio_high_quality_subtitle">Schakelt geluidsinstellingen uit voor directe audio-uitvoer</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -648,7 +594,7 @@ Token: %2$s</string>
     <string name="audio_auto_scan_subtitle">Regelmatig nieuwe lokale en netwerkbestanden detecteren</string>
     <string name="audio_watched_folders">Bewaakte mappen</string>
     <string name="audio_watched_folders_subtitle">Audiomappen selecteren</string>
-<string name="audio_sort_album_track">Sorteren op tracknummer</string>
+    <string name="audio_sort_album_track">Sorteren op tracknummer</string>
     <string name="audio_sort_album_track_subtitle">Album- en schijfvolgorde respecteren</string>
     <string name="audio_ignore_short_files">Korte bestanden negeren</string>
     <string name="audio_ignore_short_files_subtitle">Minder dan 30 seconden</string>
@@ -657,7 +603,7 @@ Token: %2$s</string>
     <string name="audio_dynamic_theme_subtitle">Standaard Blaze-groen, coverkleuren wanneer ingeschakeld</string>
     <string name="audio_cover_border">Gekleurde coverrand</string>
     <string name="audio_cover_border_subtitle">Dynamisch accent rond artwork</string>
-<string name="audio_artwork_size">Covergrootte</string>
+    <string name="audio_artwork_size">Covergrootte</string>
     <string name="audio_size_small">Klein</string>
     <string name="audio_size_medium">Gemiddeld</string>
     <string name="audio_size_large">Groot</string>
@@ -666,7 +612,7 @@ Token: %2$s</string>
     <string name="audio_synced_lyrics_subtitle">Hoofdschakelaar voor lokale LRC/TXT-songteksten</string>
     <string name="audio_tag_editor">Tag-editor</string>
     <string name="audio_tag_editor_subtitle">Titel, artiest, album, genre, track en disc bewerken</string>
-<string name="audio_no_current_track">Geen huidig nummer</string>
+    <string name="audio_no_current_track">Geen huidig nummer</string>
     <string name="audio_tag_title">Titel</string>
     <string name="audio_tag_artist">Artiest</string>
     <string name="audio_tag_album">Album</string>
@@ -708,7 +654,7 @@ Token: %2$s</string>
     <string name="audio_tag_network_not_supported">Direct schrijven is beschikbaar voor lokale bestanden en SMB/NAS-netwerkbestanden. Deze bron staat bewerken op afstand niet toe.</string>
     <string name="action_scan">Scannen</string>
     <string name="action_done">Klaar</string>
-<string name="audio_play_album">Hele album afspelen</string>
+    <string name="audio_play_album">Hele album afspelen</string>
     <string name="audio_add_album_queue">Aan wachtrij toevoegen</string>
     <string name="audio_select_tracks">Nummers selecteren</string>
     <string name="audio_add_playlist_blaze_party">Playlist aan Blaze Party toevoegen</string>
@@ -724,7 +670,6 @@ Token: %2$s</string>
     <string name="audio_add_track_blaze_party">Aan Blaze Party toevoegen</string>
     <string name="audio_back_to_albums">Terug naar albums</string>
     <string name="audio_back_to_albums_hint">Terug naar de volledige bibliotheekweergave</string>
-
     <string name="action_refresh">Vernieuwen</string>
     <string name="audio_watched_folders_empty_short">Geen bewaakte map</string>
     <string name="audio_watched_folders_summary_mixed">%1$d lokaal · %2$d %3$s</string>
@@ -755,10 +700,8 @@ Token: %2$s</string>
     <string name="cast_remote_next">Volgende video</string>
     <string name="cast_remote_hint">De rode knop opent het Chromecast-paneel om de tv te verbinden of los te koppelen.</string>
     <string name="content_desc_cast_remote">Chromecast-afstandsbediening</string>
-
     <string name="cast_remote_led_on">ON</string>
     <string name="cast_remote_led_off">OFF</string>
-
     <string name="close">Sluiten</string>
     <string name="eq_tab_tone">Klank</string>
     <string name="eq_tab_dynamics">Dynamiek</string>
@@ -785,7 +728,6 @@ Token: %2$s</string>
     <string name="eq_room_hall">Grote zaal</string>
     <string name="eq_room_plate">Plaat</string>
     <string name="eq_equalizer_unavailable">De equalizer van het apparaat is niet beschikbaar op deze uitgang. De kanaalregelaars blijven actief.</string>
-
     <string name="content_desc_rewind">Terugspoelen</string>
     <string name="content_desc_forward">Vooruitspoelen</string>
     <string name="content_desc_video_screenshot">Videoframe vastleggen</string>
@@ -795,11 +737,8 @@ Token: %2$s</string>
     <string name="content_desc_sort">Sorteren</string>
     <string name="content_desc_show_audio_files">Audiobestanden tonen</string>
     <string name="content_desc_rescan">Opnieuw scannen</string>
-
     <string name="eq_status_on">AAN</string>
     <string name="eq_status_off">UIT</string>
-
-    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
     <string name="audio_watched_help_button_desc">Hulp over bewaakte mappen</string>
     <string name="audio_watched_help_title">Zo bereid je je audiobibliotheek voor</string>
     <string name="audio_watched_help_desc">Wanneer je voor het eerst lokale of netwerkmappen aan je bibliotheek toevoegt, wees dan geduldig: het laden van metadata en hoezen kan lang duren, vooral als je veel albums of nummers hebt.</string>
@@ -813,8 +752,6 @@ Token: %2$s</string>
     <string name="audio_watched_help_lrc">        └── 01 - Titel van nummer.lrc</string>
     <string name="audio_watched_help_cover_note">Plaats de hoes in de albummap met de naam cover.jpg of cover.png.</string>
     <string name="audio_watched_help_lrc_note">Plaats .lrc-bestanden naast elk nummer met exact dezelfde bestandsnaam.</string>
-
-    <!-- Aide de l’onglet Réseau -->
     <string name="network_help_button_desc">Hulp bij netwerkpaden</string>
     <string name="network_help_title">Netwerkhulp</string>
     <string name="network_help_message">Je moet hier de paden naar je bestanden op je lokale netwerk opslaan, zodat je ze daarna in de app kunt doorbladeren.</string>
@@ -830,13 +767,8 @@ Token: %2$s</string>
         <item quantity="one">Pro+-proefperiode: nog %1$d dag</item>
         <item quantity="other">Pro+-proefperiode: nog %1$d dagen</item>
     </plurals>
-
-    <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Haptische feedback</string>
     <string name="settings_haptic_feedback_desc">Schakel een subtiele trilling in wanneer je op een aanklikbaar onderdeel in de app tikt.</string>
-
-
-    <!-- Bibliothèque Blaze Audio pour Android Auto -->
     <string name="android_auto_root_title">Blaze Audio</string>
     <string name="android_auto_root_subtitle">Je muziekbibliotheek</string>
     <string name="android_auto_premium_required">Blaze Audio Premium vereist</string>
@@ -850,7 +782,6 @@ Token: %2$s</string>
     <string name="android_auto_unknown_album">Onbekend album</string>
     <string name="android_auto_artist_subtitle">%1$d albums • %2$d nummers</string>
     <string name="android_auto_track_count">%1$d nummers</string>
-
     <string name="audio_karaoke_cast">KaraoKast</string>
     <string name="content_desc_karaoke_cast">Karaoke-schermspiegeling openen</string>
     <string name="karaoke_cast_requires_lrc">Voor karaoke-cast is een gesynchroniseerd .lrc-bestand vereist.</string>
@@ -862,8 +793,6 @@ Token: %2$s</string>
     <string name="audio_output_change_failed">Kan de audio-uitgang niet wijzigen</string>
     <string name="karaoke_mirror_opened">Selecteer je Chromecast in het Android-paneel. Houd de knop ingedrukt om de lokale audio-uitgang te kiezen.</string>
     <string name="karaoke_mirror_unavailable">Instellingen voor schermcasting zijn niet beschikbaar. Gebruik de tegel Scherm casten in Snelle instellingen.</string>
-
-    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
     <string name="audio_lyrics_search_online">Songtekst downloaden (.LRC)</string>
     <string name="audio_lyrics_download_hint">Zoek met LRCLIB. Tik op een resultaat om het .LRC-bestand automatisch naast het nummer te downloaden.</string>
     <string name="audio_lyrics_button_description">Songteksten beheren en .LRC-bestanden downloaden. Houd ingedrukt om songteksten te tonen of te verbergen.</string>
@@ -899,8 +828,6 @@ Token: %2$s</string>
         <item quantity="other">%d gesynchroniseerde resultaten</item>
     </plurals>
     <string name="action_compare_slider">Sleep om voor en na te vergelijken</string>
-
-    <!-- Playlists nommées audio/vidéo -->
     <string name="action_delete_playlist">Afspeellijst verwijderen</string>
     <string name="confirm_delete_named_playlist_message">Afspeellijst ‘%1$s’ verwijderen? De volledige inhoud wordt gewist.</string>
     <string name="toast_named_playlist_deleted">Afspeellijst ‘%1$s’ verwijderd.</string>
@@ -915,4 +842,76 @@ Token: %2$s</string>
     <string name="playlist_added_partial_named">%1$s toegevoegd, %2$s stond al in ‘%3$s’</string>
     <string name="toast_named_playlist_emptied">Afspeellijst ‘%1$s’ geleegd.</string>
     <string name="toast_named_playlist_sent_to_queue">‘%1$s’ toegevoegd aan de wachtrij.</string>
+    <string name="subtitle_add_external">SRT-/ASS-bestand toevoegen</string>
+    <string name="subtitle_remove_external">Ondertitelbestand verwijderen</string>
+    <string name="subtitle_invalid_file">Selecteer een SRT-, ASS-, SSA- of VTT-ondertitelbestand.</string>
+    <string name="subtitle_cast_conversion_failed">De ondertiteling werkt lokaal, maar de conversie voor Chromecast is mislukt.</string>
+    <string name="subtitle_external_added">Ondertitelbestand toegevoegd.</string>
+    <string name="cast_fallback_preparing">Chromecast voorbereiden: remux zonder video opnieuw te coderen…</string>
+    <string name="cast_fallback_ready_audio">Video klaar voor Chromecast. Alleen het audiospoor is geconverteerd.</string>
+    <string name="cast_fallback_ready_remux">Video klaar voor Chromecast zonder opnieuw coderen.</string>
+    <string name="cast_fallback_not_possible">Dit bestand vereist videohercodering, die is uitgeschakeld om de prestaties te behouden.</string>
+    <string name="cast_fallback_failed">Dit bestand kon niet voor Chromecast worden voorbereid.</string>
+
+    <string name="slideshow_short">Diashow</string>
+    <string name="slideshow_create">Diashow maken</string>
+    <string name="slideshow_title">Een diashow maken</string>
+    <string name="slideshow_reorder_hint">Houd een foto ingedrukt en sleep om de volgorde te wijzigen.</string>
+    <string name="slideshow_music_title">Diashowmuziek</string>
+    <string name="slideshow_no_music">Geen muziek geselecteerd</string>
+    <string name="slideshow_music_selected">Muziek geselecteerd</string>
+    <string name="slideshow_choose_music">MP3/WAV kiezen</string>
+    <string name="slideshow_music_invalid">De duur van dit audiobestand kan niet worden gelezen.</string>
+    <string name="slideshow_duration_summary">Duur: %1$s • %2$s s/foto</string>
+    <string name="slideshow_export">Exporteren als MP4</string>
+    <string name="slideshow_exporting">Diashow maken…</string>
+    <string name="slideshow_export_success">Diashow opgeslagen in Blaze Gallery.</string>
+    <string name="slideshow_export_failed">Kan de diashow niet maken.</string>
+    <string name="slideshow_need_two_photos">Selecteer minstens 2 foto’s.</string>
+    <string name="slideshow_photo_number">Foto %1$d</string>
+    <string name="slideshow_annotation_title">Foto-annotatie</string>
+    <string name="slideshow_annotation_hint">Voeg een korte annotatie toe…</string>
+    <string name="slideshow_annotation_style_glass">Donker glas</string>
+    <string name="slideshow_annotation_style_accent">Blaze-accent</string>
+    <string name="slideshow_annotation_style_minimal">Minimaal</string>
+    <string name="slideshow_no_annotation">Geen annotatie</string>
+    <string name="slideshow_annotation_short">Annoteren</string>
+    <string name="slideshow_select_hint">Tik op de foto’s die je wilt opnemen en kies daarna Diashow maken.</string>
+
+    <string name="slideshow_annotation_editor_title">Annotatie bewerken</string>
+    <string name="slideshow_annotation_text">Tekst (emoji ondersteund)</string>
+    <string name="slideshow_annotation_font">Lettertype</string>
+    <string name="slideshow_annotation_size_value">Tekstgrootte: %1$d%%</string>
+    <string name="slideshow_annotation_background_color">Achtergrondkleur</string>
+    <string name="slideshow_annotation_shape">Achtergrondvorm</string>
+    <string name="slideshow_annotation_shape_pill">Pil</string>
+    <string name="slideshow_annotation_shape_parallelogram">Parallellogram</string>
+    <string name="slideshow_annotation_shape_rectangle">Rechthoek</string>
+    <string name="slideshow_annotation_drag_hint">Sleep de annotatie of GIF rechtstreeks over de foto om deze te plaatsen.</string>
+    <string name="slideshow_gif_title">Geanimeerde GIF</string>
+    <string name="slideshow_gif_choose">GIF toevoegen</string>
+    <string name="slideshow_gif_invalid">Dit bestand is geen geldige geanimeerde GIF.</string>
+    <string name="slideshow_gif_selected">Geanimeerde GIF toegevoegd</string>
+    <string name="slideshow_annotation_and_gif_summary">%1$s • Geanimeerde GIF</string>
+    <string name="slideshow_export_name_title">MP4-bestandsnaam</string>
+    <string name="slideshow_export_name_hint">Naam van diavoorstelling</string>
+    <string name="slideshow_export_name_invalid">Voer een bestandsnaam in.</string>
+
+    <string name="slideshow_add_to">Aan diavoorstelling toevoegen</string>
+    <string name="slideshow_add_photos">Foto’s toevoegen</string>
+    <string name="slideshow_picker_selected_count">Diavoorstelling: %1$d • Toe te voegen: %2$d</string>
+    <string name="slideshow_added_count">%1$d foto(’s) toegevoegd aan de diavoorstelling</string>
+
+    <string name="slideshow_picker_folders">Mappen</string>
+
+    <string name="karaoke_sync_offset_value">Sync %1$s%2$d ms</string>
+    <string name="karaoke_sync_offset_default">Sync +300 ms</string>
+    <string name="content_desc_karaoke_sync_minus">Songtekst 50 milliseconden vertragen</string>
+    <string name="content_desc_karaoke_sync_plus">Songtekst 50 milliseconden vervroegen</string>
+    <string name="slideshow_font_montserrat">Montserrat</string>
+    <string name="slideshow_font_playfair">Playfair Display</string>
+    <string name="slideshow_font_pacifico">Pacifico</string>
+    <string name="slideshow_font_bebas">Bebas Neue</string>
+    <string name="slideshow_font_caveat">Caveat</string>
+    <string name="slideshow_font_cinzel">Cinzel</string>
 </resources>

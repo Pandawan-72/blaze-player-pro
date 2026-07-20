@@ -309,6 +309,24 @@
         android:theme="@style/Theme.BlazePlayer" />
 
     <activity
+        android:name=".gallery.slideshow.SlideshowActivity"
+        android:exported="false"
+        android:screenOrientation="portrait"
+        android:theme="@style/Theme.BlazePlayer" />
+
+    <activity
+        android:name=".gallery.slideshow.SlideshowPhotoPickerActivity"
+        android:exported="false"
+        android:screenOrientation="portrait"
+        android:theme="@style/Theme.BlazePlayer" />
+
+    <activity
+        android:name=".gallery.slideshow.AnnotationEditorActivity"
+        android:exported="false"
+        android:screenOrientation="portrait"
+        android:theme="@style/Theme.BlazePlayer" />
+
+    <activity
         android:name=".gallery.edit.PhotoEditorActivity"
         android:exported="false"
         android:screenOrientation="portrait"

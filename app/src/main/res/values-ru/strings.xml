@@ -3,42 +3,39 @@
     <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Воспроизведение аудио</string>
     <string name="notif_channel_video">Воспроизведение видео</string>
-
     <string name="tab_local">Локально</string>
     <string name="tab_network">Сеть</string>
     <string name="tab_blaze_video">Blaze Video</string>
-
     <string name="version_badge_free">Free</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
-<string name="favorites">Избранное</string>
-<string name="add_network_path">Добавить сетевой путь</string>
+    <string name="favorites">Избранное</string>
+    <string name="add_network_path">Добавить сетевой путь</string>
     <string name="add_manually">Добавить вручную</string>
     <string name="saved_paths">СОХРАНЁННЫЕ ПУТИ</string>
     <string name="detected_devices">ОБНАРУЖЕННЫЕ УСТРОЙСТВА</string>
     <string name="available_devices">Доступные устройства</string>
     <string name="no_path_configured">Путь не настроен.\nНажмите Сканировать, чтобы найти устройства.</string>
-<string name="test_network_path">Проверить путь</string>
+    <string name="test_network_path">Проверить путь</string>
     <string name="network_path_test_title">Проверка сетевого пути</string>
     <string name="network_path_test_success_message">Путь «%1$s» доступен.</string>
     <string name="network_path_test_failure_message">Не удалось открыть «%1$s». Проверьте сеть, учетные данные или права доступа к общему ресурсу.</string>
-<string name="example_smb_path">smb://192.168.1.10/Фильмы</string>
+    <string name="example_smb_path">smb://192.168.1.10/Фильмы</string>
     <string name="name_label">Имя</string>
-
     <string name="unknown_artist">Неизвестный исполнитель</string>
     <string name="unknown_title">Неизвестное название</string>
     <string name="audio_track">Аудиодорожка</string>
-<string name="timer">Таймер</string>
+    <string name="timer">Таймер</string>
     <string name="equalizer">Настройки звука</string>
     <string name="sound_short">Звук</string>
-<string name="loading">Загрузка…</string>
+    <string name="loading">Загрузка…</string>
     <string name="no_track_found">Найдено треков: 0</string>
     <string name="zero_time">0:00</string>
-<string name="add_tracks">Добавить треки</string>
-<string name="add_to_playlist_short">Добавить в плейлист</string>
+    <string name="add_tracks">Добавить треки</string>
+    <string name="add_to_playlist_short">Добавить в плейлист</string>
     <string name="add_to_party_short">Добавить в Party</string>
-<string name="sort_name_az">Имя А–Я</string>
-<string name="queue">ОЧЕРЕДЬ</string>
+    <string name="sort_name_az">Имя А–Я</string>
+    <string name="queue">ОЧЕРЕДЬ</string>
     <string name="queue_short">Очередь</string>
     <string name="add">Добавить</string>
     <string name="info">Инфо</string>
@@ -52,14 +49,13 @@
     <string name="audio_lyrics_static">Статические тексты</string>
     <string name="folder">Папка</string>
     <string name="movies">Фильмы</string>
-
     <string name="settings">Настройки</string>
     <string name="login_optional">Вход (необязательно)</string>
-<string name="upgrade_to_pro">⭐ Перейти на Blaze Player Pro или Pro+</string>
-<string name="settings_rate_app">Оценить приложение</string>
+    <string name="upgrade_to_pro">⭐ Перейти на Blaze Player Pro или Pro+</string>
+    <string name="settings_rate_app">Оценить приложение</string>
     <string name="settings_rate_app_desc">Оставьте отзыв в Play Маркете</string>
     <string name="restore_purchases">Восстановить покупки</string>
-<string name="about_section">О ПРИЛОЖЕНИИ</string>
+    <string name="about_section">О ПРИЛОЖЕНИИ</string>
     <string name="interface_section">ИНТЕРФЕЙС</string>
     <string name="data_section">ДАННЫЕ</string>
     <string name="contact_section">КОНТАКТЫ</string>
@@ -70,7 +66,6 @@
     <string name="toast_no_email_app">Почтовое приложение не найдено</string>
     <string name="presets_section">ПРЕСЕТЫ</string>
     <string name="local_network_label">Локальная сеть</string>
-
     <string name="settings_resume_playback">Продолжить воспроизведение</string>
     <string name="resume_always">Всегда</string>
     <string name="resume_ask">Спрашивать</string>
@@ -91,7 +86,6 @@
     <string name="orientation_landscape">Альбомная</string>
     <string name="settings_auto_pip">Автоматический PiP</string>
     <string name="settings_auto_pip_desc">Переключаться в режим "картинка в картинке" при выходе из приложения</string>
-
     <string name="lang_no_preference">Без предпочтений</string>
     <string name="lang_french">Французский</string>
     <string name="lang_english">Английский</string>
@@ -104,19 +98,16 @@
     <string name="lang_russian">Русский</string>
     <string name="lang_chinese">Китайский</string>
     <string name="settings_preferred_audio_lang">Предпочитаемый язык звука</string>
-
     <string name="settings_mini_player">Мини-плеер</string>
     <string name="settings_mini_player_desc">Показывать мини-плеер в приложении</string>
     <string name="settings_show_hidden_files">Показывать скрытые файлы</string>
     <string name="settings_show_hidden_files_desc">Файлы, начинающиеся с точки (.)</string>
-
     <string name="settings_clear_history">Очистить историю</string>
     <string name="settings_clear_history_desc">Удалить все недавно воспроизведённые файлы</string>
     <string name="dialog_clear_history_message">Удалить все недавно воспроизведённые файлы?</string>
     <string name="action_clear">Очистить</string>
     <string name="action_cancel">Отмена</string>
     <string name="toast_history_cleared">История очищена</string>
-
     <string name="settings_about">О приложении</string>
     <string name="settings_about_desc">Что нужно знать о Blaze Player</string>
     <string name="about_dialog_message">Версия %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nВаш медиаплеер для Android</string>
@@ -126,7 +117,6 @@
     <string name="dialog_choose_language">Выбрать язык</string>
     <string name="toast_play_store_unavailable">Не удалось открыть Play Маркет</string>
     <string name="toast_restore_purchases_soon">Восстановление покупок… (скоро)</string>
-
     <string name="ratio_auto">Авто</string>
     <string name="ratio_zoom">Увеличение</string>
     <string name="ratio_stretched">Растянуть</string>
@@ -146,14 +136,12 @@
     <string name="dialog_network_error_message">Не удалось воспроизвести это видео (потеряно соединение с NAS, нестабильный Wi-Fi или файл недоступен).</string>
     <string name="action_retry">Повторить</string>
     <string name="action_quit">Выйти</string>
-
     <string name="toast_no_track_selected">Трек не выбран</string>
     <string name="toast_select_tracks_first">Сначала выберите треки (флажок слева от каждого файла)</string>
-<string name="toast_no_network_path_configured">Сетевой путь не настроен</string>
+    <string name="toast_no_network_path_configured">Сетевой путь не настроен</string>
     <string name="dialog_choose_network_path">Выбрать сетевой путь</string>
     <string name="local_storage">Локальное хранилище</string>
     <string name="lossless_label">Без потерь</string>
-
     <plurals name="folder_count">
         <item quantity="one">%1$d папка</item>
         <item quantity="few">%1$d папки</item>
@@ -166,7 +154,6 @@
         <item quantity="many">Найдено %1$d треков</item>
         <item quantity="other">Найдено %1$d трека</item>
     </plurals>
-
     <string name="preset_flat">Нейтральный</string>
     <string name="preset_custom">Свой</string>
     <string name="preset_rock">Рок</string>
@@ -180,7 +167,6 @@
     <string name="preset_treble">Высокие частоты</string>
     <string name="preset_vocal">Вокал</string>
     <string name="preset_acoustic">Акустика</string>
-
     <string name="toast_no_device_detected">Сетевые устройства не обнаружены.</string>
     <string name="toast_click_device_to_explore">Нажмите на устройство, чтобы его просмотреть.</string>
     <string name="scan_in_progress">Сканирование…</string>
@@ -194,14 +180,12 @@
     <string name="toast_name_host_required">Требуется имя и хост</string>
     <string name="action_delete">Удалить</string>
     <string name="dialog_delete_message">Удалить \"%1$s\"?</string>
-
     <plurals name="devices_found">
         <item quantity="one">Найдено %1$d устройство</item>
         <item quantity="few">Найдено %1$d устройства</item>
         <item quantity="many">Найдено %1$d устройств</item>
         <item quantity="other">Найдено %1$d устройства</item>
     </plurals>
-
     <string name="dialog_title_already_favorite">Уже в избранном</string>
     <string name="dialog_already_favorite_message">«%1$s» уже в ваших избранных папках.</string>
     <string name="dialog_add_favorite_folder">Добавить папку в избранное</string>
@@ -222,9 +206,8 @@
     <string name="toast_screenshot_save_error">Ошибка при сохранении скриншота</string>
     <string name="dialog_remove_favorites">Удалить из избранного</string>
     <string name="action_remove">Удалить</string>
-
     <string name="unknown_generic">Неизвестно</string>
-<string name="sleep_timer_title">Таймер сна</string>
+    <string name="sleep_timer_title">Таймер сна</string>
     <string name="minutes_5">5 минут</string>
     <string name="minutes_15">15 минут</string>
     <string name="minutes_30">30 минут</string>
@@ -233,7 +216,6 @@
     <string name="dialog_clean_list">Очистить список</string>
     <string name="action_remove_selection">Удалить выбранное</string>
     <string name="action_clear_all">Очистить всё</string>
-
     <string name="toast_no_file_selected">Файл не выбран</string>
     <string name="dialog_which_playlist">В какой плейлист добавить?</string>
     <string name="playlist_slot_name">Плейлист %1$d</string>
@@ -250,7 +232,6 @@
     <string name="action_play_playlist">Воспроизвести плейлист</string>
     <string name="action_empty_playlist">Очистить</string>
     <string name="toast_playlist_emptied">Плейлист %1$d очищен</string>
-
     <plurals name="playlist_item_count">
         <item quantity="one">%1$d элемент</item>
         <item quantity="few">%1$d элемента</item>
@@ -269,68 +250,54 @@
         <item quantity="many">%1$d уже добавлены</item>
         <item quantity="other">%1$d уже добавлены</item>
     </plurals>
-<string name="category_network">Сеть</string>
+    <string name="category_network">Сеть</string>
     <string name="category_audio">Аудио</string>
-
     <string name="toast_error_generic">Ошибка: %1$s</string>
     <string name="action_play">Воспроизвести</string>
     <string name="action_information">Информация</string>
     <string name="unknown_size">Неизвестно</string>
     <string name="dialog_video_info_message">Путь: %1$s\n\nКонтейнер: %2$s\nРазрешение: %3$s\nДлительность: %4$s\nРазмер: %5$s</string>
-
     <string name="dialog_video_info_video_codec">Видеокодек: %1$s</string>
-
     <string name="dialog_video_info_audio_codec">Аудиокодек: %1$s</string>
-
     <plurals name="video_count">
         <item quantity="one">%1$d видео</item>
         <item quantity="few">%1$d видео</item>
         <item quantity="many">%1$d видео</item>
         <item quantity="other">%1$d видео</item>
     </plurals>
-
     <string name="toast_cannot_open_screen_cast_settings">Не удалось открыть настройки трансляции экрана</string>
     <string name="toast_share_not_found">Общий ресурс не найден для этого избранного</string>
     <string name="action_remove_from_history">Удалить из истории</string>
-
     <string name="sort_name_za">Имя Я–А</string>
     <string name="sort_date_recent">Недавние</string>
     <string name="sort_size">Размер</string>
     <string name="sort_album_order">Порядок альбома</string>
-
     <string name="dialog_permission_needed">Требуется разрешение</string>
-
     <string name="dialog_permission_intro_title">Необходимые разрешения</string>
-
     <string name="dialog_permission_intro_message">Чтобы Blaze Player работал корректно, приложение запросит несколько разрешений сразу:\n\n• Фото, музыка и видео: для отображения вашей библиотеки и Blaze Gallery\n• Уведомления: для управления воспроизведением\n• Локальная сеть: для поиска участников Blaze Party\n• Микрофон: только для динамического визуального эквалайзера — запись звука никогда не производится</string>
-
     <string name="action_continue">Продолжить</string>
     <string name="dialog_permission_message">Blaze Player нужен доступ к вашим видеофайлам для работы.</string>
     <string name="action_allow">Разрешить</string>
     <string name="action_ignore">Игнорировать</string>
-
     <string name="action_edit">Изменить</string>
     <string name="browser_files_audio">Мои аудиофайлы</string>
-<string name="breadcrumb_home">Главная</string>
+    <string name="breadcrumb_home">Главная</string>
     <string name="toast_path_saved">Путь сохранён</string>
     <string name="toast_path_deleted">Путь удалён</string>
-<string name="search_hint_video">Найти видео</string>
+    <string name="search_hint_video">Найти видео</string>
     <string name="browser_search_in_progress">Выполняется поиск…</string>
     <string name="hint_path_name">Название пути</string>
     <string name="hint_shared_folder">Общая папка</string>
-<string name="hint_ip_host">IP-адрес / Хост</string>
+    <string name="hint_ip_host">IP-адрес / Хост</string>
     <string name="hint_port">Порт</string>
     <string name="hint_shared_folder_example">Общая папка (напр. videos)</string>
     <string name="hint_username_optional">Имя пользователя (необязательно)</string>
     <string name="hint_password_optional">Пароль (необязательно)</string>
     <string name="hint_username">Имя пользователя</string>
     <string name="hint_password">Пароль</string>
-<string name="history_empty_blaze_video_subtitle">Просмотрите локальные или сетевые видео, чтобы начать</string>
-
+    <string name="history_empty_blaze_video_subtitle">Просмотрите локальные или сетевые видео, чтобы начать</string>
     <string name="history_empty_blaze_video_title">Нет недавно просмотренных видео</string>
-
     <string name="history_blaze_video">История</string>
-
     <string name="history_selection_active">Выбор активен: выбрано миниатюр: %1$d.</string>
     <string name="history_action_prompt">Выберите действие для этой истории.</string>
     <string name="history_delete_selection">Удалить выбранное (%1$d)</string>
@@ -342,8 +309,8 @@
     <string name="history_confirm_delete_all_network">Удалить всю сетевую историю?</string>
     <string name="history_toast_select_thumbnails">Выберите миниатюры, которые нужно удалить из истории</string>
     <string name="permission_gallery_required">Разрешите доступ к фото и видео, чтобы отображать Blaze Gallery.</string>
-<string name="browse_files_local">Обзор</string>
-<plurals name="file_count">
+    <string name="browse_files_local">Обзор</string>
+    <plurals name="file_count">
         <item quantity="one">%1$d файл</item>
         <item quantity="few">%1$d файла</item>
         <item quantity="many">%1$d файлов</item>
@@ -351,7 +318,6 @@
     </plurals>
     <string name="browser_folder_file_count">%1$s · %2$s</string>
     <string name="content_desc_back">Назад</string>
-
     <plurals name="results_found">
         <item quantity="one">Найден %1$d результат</item>
         <item quantity="few">Найдено %1$d результата</item>
@@ -359,24 +325,22 @@
         <item quantity="other">Найдено %1$d результата</item>
     </plurals>
     <string name="path_internal_storage">/внутренняя память</string>
-
     <plurals name="selected_tracks_count">
         <item quantity="one">%1$d трек выбран</item>
         <item quantity="few">%1$d трека выбрано</item>
         <item quantity="many">%1$d треков выбрано</item>
         <item quantity="other">%1$d трека выбрано</item>
     </plurals>
-<string name="settings_section_playback">ВОСПРОИЗВЕДЕНИЕ</string>
+    <string name="settings_section_playback">ВОСПРОИЗВЕДЕНИЕ</string>
     <string name="settings_section_audio">АУДИО</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-<string name="eq_preamp_compressor_section">ПРЕДУСИЛИТЕЛЬ И КОМПРЕССОР</string>
+    <string name="eq_preamp_compressor_section">ПРЕДУСИЛИТЕЛЬ И КОМПРЕССОР</string>
     <string name="eq_preamp_label">Предусилитель</string>
     <string name="eq_compressor_label">Компрессор</string>
     <string name="player_casting_in_progress">Идёт трансляция</string>
     <string name="player_stop_casting">Остановить трансляцию</string>
     <string name="player_speed_label_short">Скорость</string>
     <string name="player_ratio_label">Соотношение сторон</string>
-
     <string name="content_desc_close_playlist">Закрыть плейлист</string>
     <string name="content_desc_clean">Очистить</string>
     <string name="content_desc_playlist">Плейлист</string>
@@ -387,8 +351,7 @@
     <string name="content_desc_repeat">Повтор</string>
     <string name="content_desc_timer">Таймер</string>
     <string name="content_desc_options">Параметры</string>
-<string name="error_loading_media">Не удалось начать воспроизведение видео.</string>
-
+    <string name="error_loading_media">Не удалось начать воспроизведение видео.</string>
     <string name="cast_dialog_status">Идет трансляция</string>
     <string name="cast_dialog_stop">Остановить трансляцию</string>
     <string name="select_all">Выбрать все</string>
@@ -404,7 +367,7 @@
     <string name="paywall_pro_desc">Включает Free и открывает локальную сеть SMB/UPnP и Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Включает все функции Pro и открывает премиальный аудиоплеер Blaze Audio.</string>
+    <string name="paywall_pro_plus_desc">Включает все функции Pro и открывает Blaze Audio, включая Blaze Party и KaraoKast.</string>
     <string name="paywall_buy_pro">Открыть Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Открыть Pro+ — 5,99 €</string>
     <string name="paywall_buy_pro_dynamic">Открыть Pro — %1$s</string>
@@ -428,26 +391,19 @@
     <string name="action_off">Выкл.</string>
     <string name="video_setting_volume_boost">Усиление громкости</string>
     <string name="action_reset">Сбросить</string>
-
-    
-
-<string name="gallery_folders">Gallery</string>
-
+    <string name="gallery_folders">Gallery</string>
     <string name="gallery_empty_folders">Пока нет папок — создайте одну, чтобы начать</string>
-
     <string name="gallery_empty_photos">Эта папка пуста</string>
-
     <string name="gallery_trash_empty_message">Корзина пуста</string>
     <string name="gallery_type_photo">Фото</string>
     <string name="gallery_type_video">Видео</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Сортировка</string>
-<string name="gallery_sort_date_desc">Сначала новые</string>
+    <string name="gallery_sort_date_desc">Сначала новые</string>
     <string name="gallery_sort_date_asc">Сначала старые</string>
     <string name="gallery_sort_name">По алфавиту</string>
     <string name="gallery_sort_size">Размер файла</string>
     <string name="gallery_unknown_folder">Неизвестная папка</string>
-
     <string name="action_open">Открыть</string>
     <string name="action_share">Поделиться</string>
     <string name="gallery_trash">Корзина</string>
@@ -456,7 +412,7 @@
     <string name="gallery_delete">Удалить</string>
     <string name="gallery_delete_folder">Удалить папку</string>
     <string name="gallery_delete_permanently_from_trash">Удалить из корзины окончательно</string>
-<string name="gallery_delete_all">Удалить всё</string>
+    <string name="gallery_delete_all">Удалить всё</string>
     <string name="gallery_share_all">Поделиться всем</string>
     <string name="gallery_selected_count">Выбрано: %1$d</string>
     <string name="confirm_delete_title">Подтвердите удаление</string>
@@ -476,8 +432,6 @@
     </plurals>
     <string name="settings_audio_spectrum">Включить визуальный спектр</string>
     <string name="settings_audio_spectrum_desc">Показывать анимированный аудиовизуализатор в Blaze Audio.</string>
-
-    
     <string name="blaze_party">Blaze Party</string>
     <string name="blaze_party_intro">Создайте локальную сессию или присоединитесь к общей очереди в той же сети Wi‑Fi.</string>
     <string name="blaze_party_host">Хост Blaze Party</string>
@@ -490,9 +444,9 @@
     <string name="blaze_party_share_code">Адрес: %1$s
 Токен: %2$s</string>
     <string name="blaze_party_host_waiting">Сессия готова: гости могут отсканировать этот код.</string>
-<string name="blaze_party_scan_unavailable">QR-сканер недоступен. Установите QR-сканер или введите код вручную.</string>
+    <string name="blaze_party_scan_unavailable">QR-сканер недоступен. Установите QR-сканер или введите код вручную.</string>
     <string name="blaze_party_joined">Вы присоединились к сессии Blaze Party</string>
-<string name="blaze_party_short">Party</string>
+    <string name="blaze_party_short">Party</string>
     <string name="add_to_blaze_party">Добавить в Blaze Party</string>
     <string name="blaze_party_playlist_title">Плейлист Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">В плейлисте Blaze Party нет треков. Добавьте треки из аудиобраузера кнопкой «Добавить в Blaze Party».</string>
@@ -502,7 +456,6 @@
         <item quantity="one">%d трек добавлен в Blaze Party</item>
         <item quantity="other">%d трека(ов) добавлено в Blaze Party</item>
     </plurals>
-
     <string name="blaze_party_launch">Запустить</string>
     <string name="blaze_party_vote">Голосовать</string>
     <string name="blaze_party_vote_hint">Нажмите на трек, чтобы посмотреть голоса и проголосовать.</string>
@@ -515,7 +468,6 @@
         <item quantity="one">%d vote</item>
         <item quantity="other">%d votes</item>
     </plurals>
-
     <string name="gallery_folder_button">Папка</string>
     <string name="gallery_create_folder">Добавить</string>
     <string name="gallery_create_folder_title">Новая папка фото</string>
@@ -540,8 +492,6 @@
     <string name="blaze_party_default_host">Хост</string>
     <string name="blaze_party_default_guest">Гость</string>
     <string name="app_name_gallery">Blaze Gallery</string>
-
-    
     <string name="photo_editor_title">Редактировать</string>
     <string name="filter_normal">Обычный</string>
     <string name="filter_vivid">Насыщенный</string>
@@ -571,7 +521,7 @@
     <string name="editor_tab_crop">Обрезка</string>
     <string name="editor_tab_rotate">Поворот</string>
     <string name="editor_tab_blur">Размытие</string>
-<string name="blur_effect_blur">Размытие</string>
+    <string name="blur_effect_blur">Размытие</string>
     <string name="blur_effect_mosaic">Мозаика</string>
     <string name="blur_shape_circle">Круг</string>
     <string name="blur_shape_square">Квадрат</string>
@@ -587,7 +537,7 @@
     <string name="action_compare_hold">Удерживайте для сравнения</string>
     <string name="content_desc_rotate_left">Повернуть влево</string>
     <string name="content_desc_rotate_right">Повернуть вправо</string>
-<string name="toast_photo_save_failed">Не удалось сохранить</string>
+    <string name="toast_photo_save_failed">Не удалось сохранить</string>
     <string name="photo_details_no_exif">Нет доступных метаданных для этого фото</string>
     <string name="photo_details_dimensions">Размеры: %1$s</string>
     <string name="photo_details_size">Размер файла: %1$s</string>
@@ -595,8 +545,6 @@
     <string name="photo_details_camera">Камера: %1$s</string>
     <string name="photo_details_location">Местоположение: %1$s</string>
     <string name="gallery_menu_edit">Редактировать</string>
-
-    
     <string name="video_trim_title">Обрезать</string>
     <string name="action_export_fast">SQ</string>
     <string name="action_export_precise">HQ</string>
@@ -608,7 +556,6 @@
     <string name="toast_mp3_saved">MP3 сохранён в Documents/Blaze Audio Extractor</string>
     <string name="toast_mp3_export_failed">Не удалось экспортировать MP3</string>
     <string name="gallery_menu_cut">Обрезать</string>
-
     <string name="add_to_playlist_fixed_short">В плейлист</string>
     <string name="add_to_video_queue_short">очередь</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -623,13 +570,11 @@
     <string name="toast_video_queue_item_removed">Видео удалено из очереди</string>
     <string name="content_desc_video_queue">Очередь видео</string>
     <string name="content_desc_close_video_queue">Закрыть очередь видео</string>
-
-    
     <string name="audio_library_title">Библиотека</string>
     <string name="audio_library_subtitle">Ваша музыкальная библиотека Pro+</string>
     <string name="audio_loading_in_progress">Загрузка...</string>
     <string name="audio_search">Поиск</string>
-<string name="audio_tab_albums">Альбомы</string>
+    <string name="audio_tab_albums">Альбомы</string>
     <string name="audio_tab_artists">Исполнители</string>
     <string name="audio_tab_titles">Треки</string>
     <string name="audio_tab_playlists">Плейлисты</string>
@@ -649,7 +594,7 @@
     <string name="audio_crossfade_title">Кроссфейд</string>
     <string name="audio_crossfade_subtitle">Плавные переходы между треками</string>
     <string name="audio_crossfade_duration">Длительность фейда</string>
-<string name="audio_section_quality">Качество аудио</string>
+    <string name="audio_section_quality">Качество аудио</string>
     <string name="audio_high_quality_output">Высокое качество вывода</string>
     <string name="audio_high_quality_subtitle">Отключает настройки звука для приоритета прямого аудиовыхода</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -669,7 +614,7 @@
     <string name="audio_auto_scan_subtitle">Регулярно находить новые локальные и сетевые файлы</string>
     <string name="audio_watched_folders">Отслеживаемые папки</string>
     <string name="audio_watched_folders_subtitle">Выбрать аудиопапки</string>
-<string name="audio_sort_album_track">Сортировать по номеру трека</string>
+    <string name="audio_sort_album_track">Сортировать по номеру трека</string>
     <string name="audio_sort_album_track_subtitle">Соблюдать порядок альбома и диска</string>
     <string name="audio_ignore_short_files">Игнорировать короткие файлы</string>
     <string name="audio_ignore_short_files_subtitle">Менее 30 секунд</string>
@@ -678,7 +623,7 @@
     <string name="audio_dynamic_theme_subtitle">По умолчанию зелёный Blaze, цвета обложки при включении</string>
     <string name="audio_cover_border">Цветная рамка обложки</string>
     <string name="audio_cover_border_subtitle">Динамический акцент вокруг обложки</string>
-<string name="audio_artwork_size">Размер обложек</string>
+    <string name="audio_artwork_size">Размер обложек</string>
     <string name="audio_size_small">Маленький</string>
     <string name="audio_size_medium">Средний</string>
     <string name="audio_size_large">Большой</string>
@@ -687,7 +632,7 @@
     <string name="audio_synced_lyrics_subtitle">Главный переключатель локальных текстов LRC/TXT</string>
     <string name="audio_tag_editor">Редактор тегов</string>
     <string name="audio_tag_editor_subtitle">Изменить название, исполнителя, альбом, жанр, трек и диск</string>
-<string name="audio_no_current_track">Нет текущего трека</string>
+    <string name="audio_no_current_track">Нет текущего трека</string>
     <string name="audio_tag_title">Название</string>
     <string name="audio_tag_artist">Исполнитель</string>
     <string name="audio_tag_album">Альбом</string>
@@ -729,7 +674,7 @@
     <string name="audio_tag_network_not_supported">Прямая запись доступна для локальных файлов и сетевых файлов SMB/NAS. Этот источник не поддерживает удалённое редактирование.</string>
     <string name="action_scan">Сканировать</string>
     <string name="action_done">Готово</string>
-<string name="audio_play_album">Воспроизвести весь альбом</string>
+    <string name="audio_play_album">Воспроизвести весь альбом</string>
     <string name="audio_add_album_queue">Добавить в очередь</string>
     <string name="audio_select_tracks">Выбрать треки</string>
     <string name="audio_add_playlist_blaze_party">Добавить плейлист в Blaze Party</string>
@@ -745,7 +690,6 @@
     <string name="audio_add_track_blaze_party">Добавить в Blaze Party</string>
     <string name="audio_back_to_albums">Назад к альбомам</string>
     <string name="audio_back_to_albums_hint">Вернуться к полному виду медиатеки</string>
-
     <string name="action_refresh">Обновить</string>
     <string name="audio_watched_folders_empty_short">Нет отслеживаемых папок</string>
     <string name="audio_watched_folders_summary_mixed">%1$d локально · %2$d %3$s</string>
@@ -776,10 +720,8 @@
     <string name="cast_remote_next">Следующее видео</string>
     <string name="cast_remote_hint">Красная кнопка открывает панель Chromecast для подключения или отключения телевизора.</string>
     <string name="content_desc_cast_remote">Пульт Chromecast</string>
-
     <string name="cast_remote_led_on">ON</string>
     <string name="cast_remote_led_off">OFF</string>
-
     <string name="close">Закрыть</string>
     <string name="eq_tab_tone">Тембр</string>
     <string name="eq_tab_dynamics">Динамика</string>
@@ -806,7 +748,6 @@
     <string name="eq_room_hall">Большой зал</string>
     <string name="eq_room_plate">Пластина</string>
     <string name="eq_equalizer_unavailable">Эквалайзер устройства недоступен для этого выхода. Регуляторы каналов остаются активными.</string>
-
     <string name="content_desc_rewind">Перемотать назад</string>
     <string name="content_desc_forward">Перемотать вперёд</string>
     <string name="content_desc_video_screenshot">Сделать снимок кадра</string>
@@ -816,11 +757,8 @@
     <string name="content_desc_sort">Сортировать</string>
     <string name="content_desc_show_audio_files">Показать аудиофайлы</string>
     <string name="content_desc_rescan">Сканировать повторно</string>
-
     <string name="eq_status_on">ВКЛ</string>
     <string name="eq_status_off">ВЫКЛ</string>
-
-    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
     <string name="audio_watched_help_button_desc">Справка об отслеживаемых папках</string>
     <string name="audio_watched_help_title">Как подготовить аудиотеку</string>
     <string name="audio_watched_help_desc">Когда вы впервые добавляете локальные или сетевые папки в библиотеку, наберитесь терпения: загрузка метаданных и обложек может занять много времени, особенно если у вас много альбомов или треков.</string>
@@ -834,8 +772,6 @@
     <string name="audio_watched_help_lrc">        └── 01 - Название трека.lrc</string>
     <string name="audio_watched_help_cover_note">Поместите обложку в папку альбома под именем cover.jpg или cover.png.</string>
     <string name="audio_watched_help_lrc_note">Размещайте файлы .lrc рядом с треком, используя точно такое же имя файла.</string>
-
-    <!-- Aide de l’onglet Réseau -->
     <string name="network_help_button_desc">Справка о сетевых путях</string>
     <string name="network_help_title">Справка по сети</string>
     <string name="network_help_message">Здесь необходимо сохранить пути к файлам в локальной сети, чтобы затем просматривать их в приложении.</string>
@@ -851,13 +787,8 @@
         <item quantity="one">Пробный период Pro+: остался %1$d день</item>
         <item quantity="other">Пробный период Pro+: осталось %1$d дней</item>
     </plurals>
-
-    <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Тактильная отдача</string>
     <string name="settings_haptic_feedback_desc">Включить лёгкую вибрацию при каждом нажатии на интерактивный элемент приложения.</string>
-
-
-    <!-- Bibliothèque Blaze Audio pour Android Auto -->
     <string name="android_auto_root_title">Blaze Audio</string>
     <string name="android_auto_root_subtitle">Ваша музыкальная библиотека</string>
     <string name="android_auto_premium_required">Требуется Blaze Audio Premium</string>
@@ -871,7 +802,6 @@
     <string name="android_auto_unknown_album">Неизвестный альбом</string>
     <string name="android_auto_artist_subtitle">%1$d альб. • %2$d треков</string>
     <string name="android_auto_track_count">%1$d треков</string>
-
     <string name="audio_karaoke_cast">KaraoKast</string>
     <string name="content_desc_karaoke_cast">Открыть трансляцию экрана караоке</string>
     <string name="karaoke_cast_requires_lrc">Для трансляции караоке требуется синхронизированный файл .lrc.</string>
@@ -883,8 +813,6 @@
     <string name="audio_output_change_failed">Не удалось изменить аудиовыход</string>
     <string name="karaoke_mirror_opened">Выберите Chromecast в панели Android. Удерживайте кнопку, чтобы выбрать локальный аудиовыход.</string>
     <string name="karaoke_mirror_unavailable">Настройки трансляции экрана недоступны. Используйте плитку «Трансляция экрана» в быстрых настройках.</string>
-
-    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
     <string name="audio_lyrics_search_online">Скачать текст песни (.LRC)</string>
     <string name="audio_lyrics_download_hint">Выполните поиск в LRCLIB. Нажмите результат, чтобы автоматически скачать файл .LRC рядом с треком.</string>
     <string name="audio_lyrics_button_description">Управление текстами и загрузка файлов .LRC. Удерживайте, чтобы показать или скрыть текст.</string>
@@ -922,8 +850,6 @@
         <item quantity="other">%d синхронизированного результата</item>
     </plurals>
     <string name="action_compare_slider">Перетащите, чтобы сравнить до и после</string>
-
-    <!-- Playlists nommées audio/vidéo -->
     <string name="action_delete_playlist">Удалить плейлист</string>
     <string name="confirm_delete_named_playlist_message">Удалить плейлист «%1$s»? Всё его содержимое будет удалено.</string>
     <string name="toast_named_playlist_deleted">Плейлист «%1$s» удалён.</string>
@@ -938,4 +864,76 @@
     <string name="playlist_added_partial_named">%1$s добавлено, %2$s уже есть в «%3$s»</string>
     <string name="toast_named_playlist_emptied">Плейлист «%1$s» очищен.</string>
     <string name="toast_named_playlist_sent_to_queue">«%1$s» добавлен в очередь.</string>
+    <string name="subtitle_add_external">Добавить файл SRT/ASS</string>
+    <string name="subtitle_remove_external">Удалить файл субтитров</string>
+    <string name="subtitle_invalid_file">Выберите файл субтитров SRT, ASS, SSA или VTT.</string>
+    <string name="subtitle_cast_conversion_failed">Локально субтитры работают, но преобразование для Chromecast не удалось.</string>
+    <string name="subtitle_external_added">Файл субтитров добавлен.</string>
+    <string name="cast_fallback_preparing">Подготовка Chromecast: ремультиплексирование без перекодирования видео…</string>
+    <string name="cast_fallback_ready_audio">Видео готово для Chromecast. Преобразована только аудиодорожка.</string>
+    <string name="cast_fallback_ready_remux">Видео готово для Chromecast без перекодирования.</string>
+    <string name="cast_fallback_not_possible">Для этого файла требуется перекодирование видео, отключённое для сохранения производительности.</string>
+    <string name="cast_fallback_failed">Не удалось подготовить этот файл для Chromecast.</string>
+
+    <string name="slideshow_short">Слайд-шоу</string>
+    <string name="slideshow_create">Создать слайд-шоу</string>
+    <string name="slideshow_title">Создать слайд-шоу</string>
+    <string name="slideshow_reorder_hint">Нажмите и перетащите фото, чтобы изменить порядок.</string>
+    <string name="slideshow_music_title">Музыка слайд-шоу</string>
+    <string name="slideshow_no_music">Музыка не выбрана</string>
+    <string name="slideshow_music_selected">Музыка выбрана</string>
+    <string name="slideshow_choose_music">Выбрать MP3/WAV</string>
+    <string name="slideshow_music_invalid">Не удалось определить длительность этого аудиофайла.</string>
+    <string name="slideshow_duration_summary">Длительность: %1$s • %2$s с/фото</string>
+    <string name="slideshow_export">Экспортировать MP4</string>
+    <string name="slideshow_exporting">Создание слайд-шоу…</string>
+    <string name="slideshow_export_success">Слайд-шоу сохранено в Blaze Gallery.</string>
+    <string name="slideshow_export_failed">Не удалось создать слайд-шоу.</string>
+    <string name="slideshow_need_two_photos">Выберите минимум 2 фотографии.</string>
+    <string name="slideshow_photo_number">Фото %1$d</string>
+    <string name="slideshow_annotation_title">Подпись к фото</string>
+    <string name="slideshow_annotation_hint">Добавьте короткую подпись…</string>
+    <string name="slideshow_annotation_style_glass">Тёмное стекло</string>
+    <string name="slideshow_annotation_style_accent">Акцент Blaze</string>
+    <string name="slideshow_annotation_style_minimal">Минимализм</string>
+    <string name="slideshow_no_annotation">Без подписи</string>
+    <string name="slideshow_annotation_short">Подпись</string>
+    <string name="slideshow_select_hint">Выберите фотографии, затем нажмите Создать слайд-шоу.</string>
+
+    <string name="slideshow_annotation_editor_title">Редактировать подпись</string>
+    <string name="slideshow_annotation_text">Текст (эмодзи поддерживаются)</string>
+    <string name="slideshow_annotation_font">Шрифт</string>
+    <string name="slideshow_annotation_size_value">Размер текста: %1$d%%</string>
+    <string name="slideshow_annotation_background_color">Цвет фона</string>
+    <string name="slideshow_annotation_shape">Форма фона</string>
+    <string name="slideshow_annotation_shape_pill">Капсула</string>
+    <string name="slideshow_annotation_shape_parallelogram">Параллелограмм</string>
+    <string name="slideshow_annotation_shape_rectangle">Прямоугольник</string>
+    <string name="slideshow_annotation_drag_hint">Перетащите подпись или GIF прямо по фотографии в нужное место.</string>
+    <string name="slideshow_gif_title">Анимированный GIF</string>
+    <string name="slideshow_gif_choose">Добавить GIF</string>
+    <string name="slideshow_gif_invalid">Этот файл не является допустимым анимированным GIF.</string>
+    <string name="slideshow_gif_selected">Анимированный GIF добавлен</string>
+    <string name="slideshow_annotation_and_gif_summary">%1$s • Анимированный GIF</string>
+    <string name="slideshow_export_name_title">Имя файла MP4</string>
+    <string name="slideshow_export_name_hint">Название слайд-шоу</string>
+    <string name="slideshow_export_name_invalid">Введите имя файла.</string>
+
+    <string name="slideshow_add_to">Добавить в слайд-шоу</string>
+    <string name="slideshow_add_photos">Добавить фото</string>
+    <string name="slideshow_picker_selected_count">Слайд-шоу: %1$d • Добавить: %2$d</string>
+    <string name="slideshow_added_count">Добавлено фото в слайд-шоу: %1$d</string>
+
+    <string name="slideshow_picker_folders">Папки</string>
+
+    <string name="karaoke_sync_offset_value">Синхр. %1$s%2$d мс</string>
+    <string name="karaoke_sync_offset_default">Синхр. +300 мс</string>
+    <string name="content_desc_karaoke_sync_minus">Задержать текст на 50 миллисекунд</string>
+    <string name="content_desc_karaoke_sync_plus">Сдвинуть текст вперёд на 50 миллисекунд</string>
+    <string name="slideshow_font_montserrat">Montserrat</string>
+    <string name="slideshow_font_playfair">Playfair Display</string>
+    <string name="slideshow_font_pacifico">Pacifico</string>
+    <string name="slideshow_font_bebas">Bebas Neue</string>
+    <string name="slideshow_font_caveat">Caveat</string>
+    <string name="slideshow_font_cinzel">Cinzel</string>
 </resources>

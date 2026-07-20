@@ -7,6 +7,7 @@ import androidx.media3.cast.MediaItemConverter
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import fr.retrospare.blazeplayer.player.ExternalSubtitleManager
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaMetadata
 import com.google.android.gms.cast.MediaQueueItem
@@ -41,20 +42,24 @@ class BlazeCastMediaItemConverter(context: Context) : MediaItemConverter {
         // Le lecteur audio ne possède plus d'implémentation Chromecast afin d'éviter tout mélange
         // d'état/métadonnées avec la vidéo.
         val originalUrl = local.uri.toString()
-        val scheme = local.uri.scheme?.lowercase()
-        val needsRelay = originalUrl.contains("127.0.0.1") ||
-            originalUrl.contains("localhost") || scheme !in setOf("http", "https")
-        val sourcePath = mediaItem.mediaId.takeIf { it.isNotBlank() } ?:
+        val originalSourcePath = mediaItem.mediaId.takeIf { it.isNotBlank() } ?:
             VideoStreamServerManager.currentSourcePath.takeIf { it.isNotBlank() } ?: originalUrl
+        val preparedPath = ChromecastFallbackManager.preparedPath(originalSourcePath)
+        val castSourcePath = preparedPath ?: originalSourcePath
+        val sourceUri = if (preparedPath != null) Uri.fromFile(java.io.File(preparedPath)) else local.uri
+        val sourceUrl = sourceUri.toString()
+        val scheme = sourceUri.scheme?.lowercase()
+        val needsRelay = preparedPath != null || sourceUrl.contains("127.0.0.1") ||
+            sourceUrl.contains("localhost") || scheme !in setOf("http", "https")
         val contentUrl = if (needsRelay) {
-            // Chaque MediaItem obtient sa propre URL versionnée. Une conversion retardée de
-            // l'ancienne vidéo ne peut donc plus faire servir son fichier à l'URL de la nouvelle.
-            runCatching { VideoStreamServerManager.getLanStreamUrlFor(appContext, sourcePath) }
-                .onFailure { android.util.Log.e("CAST", "Impossible de préparer le relais pour $sourcePath", it) }
-                .getOrNull() ?: originalUrl
-        } else originalUrl
+            // Chaque MediaItem obtient sa propre URL versionnée. Le fallback MP4 et les sources
+            // originales restent enregistrés séparément dans le même serveur HTTP.
+            runCatching { VideoStreamServerManager.getLanStreamUrlFor(appContext, castSourcePath) }
+                .onFailure { android.util.Log.e("CAST", "Impossible de préparer le relais pour $castSourcePath", it) }
+                .getOrNull() ?: sourceUrl
+        } else sourceUrl
         val contentId = contentUrl
-        val contentType = local.mimeType ?: guessContentType(local.uri)
+        val contentType = if (preparedPath != null) MimeTypes.VIDEO_MP4 else (local.mimeType ?: guessContentType(local.uri))
 
         val castMetadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE).apply {
             mediaItem.mediaMetadata.title?.let { putString(MediaMetadata.KEY_TITLE, it.toString()) }
@@ -63,13 +68,27 @@ class BlazeCastMediaItemConverter(context: Context) : MediaItemConverter {
         }
 
         val subtitleConfigs = local.subtitleConfigurations
-        val tracks = subtitleConfigs.mapIndexed { index, subtitle ->
+        val tracks = subtitleConfigs.mapIndexedNotNull { index, subtitle ->
+            val selection = ExternalSubtitleManager.Selection(
+                uri = subtitle.uri.toString(),
+                mimeType = subtitle.mimeType ?: MimeTypes.TEXT_VTT,
+                label = subtitle.label ?: "Sous-titres"
+            )
+            val preparedVtt = ExternalSubtitleManager.preparedWebVttPath(selection)
+            val subtitleUrl = when {
+                subtitle.mimeType == MimeTypes.TEXT_VTT && subtitle.uri.scheme?.lowercase() in setOf("http", "https") ->
+                    subtitle.uri.toString()
+                preparedVtt != null -> runCatching {
+                    VideoStreamServerManager.getLanStreamUrlFor(appContext, preparedVtt)
+                }.getOrNull()
+                else -> null
+            } ?: return@mapIndexedNotNull null
             val id = (index + 1).toLong()
             MediaTrack.Builder(id, MediaTrack.TYPE_TEXT)
-                .setName(subtitle.label ?: "Français")
+                .setName(selection.label)
                 .setSubtype(MediaTrack.SUBTYPE_SUBTITLES)
-                .setContentId(subtitle.uri.toString())
-                .setContentType(subtitle.mimeType ?: MimeTypes.TEXT_VTT)
+                .setContentId(subtitleUrl)
+                .setContentType(MimeTypes.TEXT_VTT)
                 .setLanguage(toCastLanguage(subtitle.language))
                 .build()
         }
@@ -97,7 +116,7 @@ class BlazeCastMediaItemConverter(context: Context) : MediaItemConverter {
 
         android.util.Log.i(
             "CAST",
-            "MediaQueueItem Cast créé url=$contentUrl contentType=$contentType " +
+            "MediaQueueItem Cast créé url=$contentUrl contentType=$contentType fallback=${preparedPath != null} " +
                 "tracks=${tracks.map { "${it.id}:${it.name}:${it.contentId}:${it.contentType}" }} " +
                 "active=${activeTrackIds.toList()}"
         )

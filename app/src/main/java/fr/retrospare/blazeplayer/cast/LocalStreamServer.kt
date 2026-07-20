@@ -69,11 +69,15 @@ class LocalStreamServer(
      *  PlayerActivity.buildMediaItem(forCast=true) remplace l'hôte de cette URL au moment de la
      *  transition vers le Chromecast (cf. onDeviceInfoChanged) — CastPlayer.Builder n'exposant
      *  aucun point d'injection pour faire cette réécriture automatiquement (Media3 1.9). */
-    fun getStreamUrl(): String {
+    fun getStreamUrl(): String = getStreamUrl(activeSource?.version ?: 0L)
+
+    /** URL loopback versionnée. Elle permet à FFmpeg de lire une source locale, content:// ou SMB
+     *  sans copier préalablement le fichier et sans dépendre d'un chemin que FFmpeg ne comprend pas. */
+    fun getStreamUrl(version: Long): String {
         // Lecture locale dans l'app : toujours passer par loopback. Utiliser l'IP Wi‑Fi du téléphone
         // forçait certains appareils/box à sortir puis revenir par le réseau local, ce qui créait
         // des gels sur les gros fichiers 4K et pouvait laisser le player bloqué au redémarrage.
-        return "http://127.0.0.1:${this.listeningPort}/stream/${activeSource?.version ?: 0L}"
+        return "http://127.0.0.1:${this.listeningPort}/stream/$version"
     }
 
     fun getLanStreamUrl(): String? = activeSource?.let { getLanStreamUrl(it.version) }
@@ -385,6 +389,9 @@ class LocalStreamServer(
             "mp3" -> "audio/mpeg"
             "flac" -> "audio/flac"
             "wav" -> "audio/wav"
+            "vtt" -> "text/vtt; charset=utf-8"
+            "srt" -> "application/x-subrip; charset=utf-8"
+            "ass", "ssa" -> "text/x-ssa; charset=utf-8"
             // Repli sur un type concret plutôt qu'un joker ("video/*") : certains récepteurs
             // Chromecast refusent un flux dont le Content-Type n'est pas un type MIME précis.
             else -> "video/mp4"

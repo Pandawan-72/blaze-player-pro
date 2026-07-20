@@ -3,42 +3,39 @@
     <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Reproducción de audio</string>
     <string name="notif_channel_video">Reproducción de vídeo</string>
-
     <string name="tab_local">Local</string>
     <string name="tab_network">Red</string>
     <string name="tab_blaze_video">Blaze Video</string>
-
     <string name="version_badge_free">Gratis</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
-<string name="favorites">Favoritos</string>
-<string name="add_network_path">Añadir ruta de red</string>
+    <string name="favorites">Favoritos</string>
+    <string name="add_network_path">Añadir ruta de red</string>
     <string name="add_manually">Añadir manualmente</string>
     <string name="saved_paths">RUTAS GUARDADAS</string>
     <string name="detected_devices">DISPOSITIVOS DETECTADOS</string>
     <string name="available_devices">Dispositivos disponibles</string>
     <string name="no_path_configured">No hay ninguna ruta configurada.\nPulsa Buscar para detectar dispositivos.</string>
-<string name="test_network_path">Probar ruta</string>
+    <string name="test_network_path">Probar ruta</string>
     <string name="network_path_test_title">Prueba de ruta de red</string>
     <string name="network_path_test_success_message">La ruta « %1$s » está accesible.</string>
     <string name="network_path_test_failure_message">No se puede acceder a « %1$s ». Comprueba la red, las credenciales o los permisos del recurso compartido.</string>
-<string name="example_smb_path">smb://192.168.1.10/Peliculas</string>
+    <string name="example_smb_path">smb://192.168.1.10/Peliculas</string>
     <string name="name_label">Nombre</string>
-
     <string name="unknown_artist">Artista desconocido</string>
     <string name="unknown_title">Título desconocido</string>
     <string name="audio_track">Pista de audio</string>
-<string name="timer">Temporizador</string>
+    <string name="timer">Temporizador</string>
     <string name="equalizer">Ajustes de sonido</string>
     <string name="sound_short">Sonido</string>
-<string name="loading">Cargando…</string>
+    <string name="loading">Cargando…</string>
     <string name="no_track_found">0 pistas encontradas</string>
     <string name="zero_time">0:00</string>
-<string name="add_tracks">Añadir pistas</string>
-<string name="add_to_playlist_short">Añadir a playlist</string>
+    <string name="add_tracks">Añadir pistas</string>
+    <string name="add_to_playlist_short">Añadir a playlist</string>
     <string name="add_to_party_short">Añadir a Party</string>
-<string name="sort_name_az">Nombre A–Z</string>
-<string name="queue">COLA</string>
+    <string name="sort_name_az">Nombre A–Z</string>
+    <string name="queue">COLA</string>
     <string name="queue_short">Cola</string>
     <string name="add">Añadir</string>
     <string name="info">Información</string>
@@ -52,14 +49,13 @@
     <string name="audio_lyrics_static">Letras estáticas</string>
     <string name="folder">Carpeta</string>
     <string name="movies">Películas</string>
-
     <string name="settings">Ajustes</string>
     <string name="login_optional">Inicio de sesión (opcional)</string>
-<string name="upgrade_to_pro">⭐ Pasa a Blaze Player Pro o Pro+</string>
-<string name="settings_rate_app">Valorar la aplicación</string>
+    <string name="upgrade_to_pro">⭐ Pasa a Blaze Player Pro o Pro+</string>
+    <string name="settings_rate_app">Valorar la aplicación</string>
     <string name="settings_rate_app_desc">Comparte tu opinión en Play Store</string>
     <string name="restore_purchases">Restaurar compras</string>
-<string name="about_section">ACERCA DE</string>
+    <string name="about_section">ACERCA DE</string>
     <string name="interface_section">INTERFAZ</string>
     <string name="data_section">DATOS</string>
     <string name="contact_section">CONTACTO</string>
@@ -70,7 +66,6 @@
     <string name="toast_no_email_app">No se encontró ninguna aplicación de correo</string>
     <string name="presets_section">AJUSTES PREDEFINIDOS</string>
     <string name="local_network_label">Red local</string>
-
     <string name="settings_resume_playback">Reanudar reproducción</string>
     <string name="resume_always">Siempre</string>
     <string name="resume_ask">Preguntar</string>
@@ -91,7 +86,6 @@
     <string name="orientation_landscape">Horizontal</string>
     <string name="settings_auto_pip">PiP automático</string>
     <string name="settings_auto_pip_desc">Pasar a Picture-in-Picture al cambiar de app</string>
-
     <string name="lang_no_preference">Sin preferencia</string>
     <string name="lang_french">Francés</string>
     <string name="lang_english">Inglés</string>
@@ -104,19 +98,16 @@
     <string name="lang_russian">Ruso</string>
     <string name="lang_chinese">Chino</string>
     <string name="settings_preferred_audio_lang">Idioma de audio preferido</string>
-
     <string name="settings_mini_player">Mini reproductor</string>
     <string name="settings_mini_player_desc">Mostrar el mini reproductor en la app</string>
     <string name="settings_show_hidden_files">Mostrar archivos ocultos</string>
     <string name="settings_show_hidden_files_desc">Archivos que empiezan con un punto (.)</string>
-
     <string name="settings_clear_history">Borrar historial</string>
     <string name="settings_clear_history_desc">Eliminar todos los archivos reproducidos recientemente</string>
     <string name="dialog_clear_history_message">¿Eliminar todos los archivos reproducidos recientemente?</string>
     <string name="action_clear">Borrar</string>
     <string name="action_cancel">Cancelar</string>
     <string name="toast_history_cleared">Historial borrado</string>
-
     <string name="settings_about">Acerca de</string>
     <string name="settings_about_desc">Lo que debes saber sobre Blaze Player</string>
     <string name="about_dialog_message">Versión %1$s\n\nRetro-Spare Dev / Anthony Gentil\n\nTu reproductor multimedia para Android</string>
@@ -126,7 +117,6 @@
     <string name="dialog_choose_language">Elegir idioma</string>
     <string name="toast_play_store_unavailable">No se puede abrir Play Store</string>
     <string name="toast_restore_purchases_soon">Restaurando compras… (próximamente)</string>
-
     <string name="ratio_auto">Auto</string>
     <string name="ratio_zoom">Zoom</string>
     <string name="ratio_stretched">Estirado</string>
@@ -146,14 +136,12 @@
     <string name="dialog_network_error_message">La reproducción de este vídeo ha fallado (conexión al NAS interrumpida, Wi-Fi inestable o archivo inaccesible).</string>
     <string name="action_retry">Reintentar</string>
     <string name="action_quit">Salir</string>
-
     <string name="toast_no_track_selected">Ninguna pista seleccionada</string>
     <string name="toast_select_tracks_first">Selecciona pistas primero (casilla a la izquierda de cada archivo)</string>
-<string name="toast_no_network_path_configured">Ninguna ruta de red configurada</string>
+    <string name="toast_no_network_path_configured">Ninguna ruta de red configurada</string>
     <string name="dialog_choose_network_path">Elegir una ruta de red</string>
     <string name="local_storage">Almacenamiento local</string>
     <string name="lossless_label">Lossless</string>
-
     <plurals name="folder_count">
         <item quantity="one">%1$d carpeta</item>
         <item quantity="other">%1$d carpetas</item>
@@ -162,7 +150,6 @@
         <item quantity="one">%1$d pista encontrada</item>
         <item quantity="other">%1$d pistas encontradas</item>
     </plurals>
-
     <string name="preset_flat">Neutro</string>
     <string name="preset_custom">Personalizado</string>
     <string name="preset_rock">Rock</string>
@@ -176,7 +163,6 @@
     <string name="preset_treble">Agudos</string>
     <string name="preset_vocal">Voz</string>
     <string name="preset_acoustic">Acústico</string>
-
     <string name="toast_no_device_detected">No se detectó ningún dispositivo de red.</string>
     <string name="toast_click_device_to_explore">Toca un dispositivo para explorarlo.</string>
     <string name="scan_in_progress">Buscando…</string>
@@ -190,12 +176,10 @@
     <string name="toast_name_host_required">Nombre y host obligatorios</string>
     <string name="action_delete">Eliminar</string>
     <string name="dialog_delete_message">¿Eliminar \"%1$s\"?</string>
-
     <plurals name="devices_found">
         <item quantity="one">%1$d dispositivo encontrado</item>
         <item quantity="other">%1$d dispositivos encontrados</item>
     </plurals>
-
     <string name="dialog_title_already_favorite">Ya está en favoritos</string>
     <string name="dialog_already_favorite_message">«%1$s» ya está en tus carpetas favoritas.</string>
     <string name="dialog_add_favorite_folder">Añadir carpeta favorita</string>
@@ -216,9 +200,8 @@
     <string name="toast_screenshot_save_error">Error al guardar la captura</string>
     <string name="dialog_remove_favorites">Quitar de favoritos</string>
     <string name="action_remove">Quitar</string>
-
     <string name="unknown_generic">Desconocido</string>
-<string name="sleep_timer_title">Temporizador de apagado</string>
+    <string name="sleep_timer_title">Temporizador de apagado</string>
     <string name="minutes_5">5 minutos</string>
     <string name="minutes_15">15 minutos</string>
     <string name="minutes_30">30 minutos</string>
@@ -227,7 +210,6 @@
     <string name="dialog_clean_list">Limpiar lista</string>
     <string name="action_remove_selection">Quitar selección</string>
     <string name="action_clear_all">Borrar todo</string>
-
     <string name="toast_no_file_selected">Ningún archivo seleccionado</string>
     <string name="dialog_which_playlist">¿Añadir a qué lista?</string>
     <string name="playlist_slot_name">Lista %1$d</string>
@@ -244,7 +226,6 @@
     <string name="action_play_playlist">Reproducir lista</string>
     <string name="action_empty_playlist">Vaciar</string>
     <string name="toast_playlist_emptied">Lista %1$d vaciada</string>
-
     <plurals name="playlist_item_count">
         <item quantity="one">%1$d elemento</item>
         <item quantity="other">%1$d elementos</item>
@@ -257,66 +238,52 @@
         <item quantity="one">%1$d ya presente</item>
         <item quantity="other">%1$d ya presentes</item>
     </plurals>
-<string name="category_network">Red</string>
+    <string name="category_network">Red</string>
     <string name="category_audio">Audio</string>
-
     <string name="toast_error_generic">Error: %1$s</string>
     <string name="action_play">Reproducir</string>
     <string name="action_information">Información</string>
     <string name="unknown_size">Desconocido</string>
     <string name="dialog_video_info_message">Ruta: %1$s\n\nContenedor: %2$s\nResolución: %3$s\nDuración: %4$s\nTamaño: %5$s</string>
-
     <string name="dialog_video_info_video_codec">Códec de vídeo: %1$s</string>
-
     <string name="dialog_video_info_audio_codec">Códec de audio: %1$s</string>
-
     <plurals name="video_count">
         <item quantity="one">%1$d vídeo</item>
         <item quantity="other">%1$d vídeos</item>
     </plurals>
-
     <string name="toast_cannot_open_screen_cast_settings">No se pueden abrir los ajustes de transmisión de pantalla</string>
     <string name="toast_share_not_found">No se encontró el recurso compartido para este favorito</string>
     <string name="action_remove_from_history">Quitar del historial</string>
-
     <string name="sort_name_za">Nombre Z–A</string>
     <string name="sort_date_recent">Más reciente</string>
     <string name="sort_size">Tamaño</string>
     <string name="sort_album_order">Orden del álbum</string>
-
     <string name="dialog_permission_needed">Permiso necesario</string>
-
     <string name="dialog_permission_intro_title">Permisos necesarios</string>
-
     <string name="dialog_permission_intro_message">Para funcionar correctamente, Blaze Player te pedirá varios permisos, todos a la vez:\n\n• Fotos, música y vídeos: para mostrar tu biblioteca y Blaze Gallery\n• Notificaciones: para los controles de reproducción\n• Red local: para descubrir invitados de Blaze Party\n• Micrófono: solo para el ecualizador visual dinámico — nunca se graba audio</string>
-
     <string name="action_continue">Continuar</string>
     <string name="dialog_permission_message">Blaze Player necesita acceso a tus archivos de vídeo para funcionar.</string>
     <string name="action_allow">Permitir</string>
     <string name="action_ignore">Ignorar</string>
-
     <string name="action_edit">Editar</string>
     <string name="browser_files_audio">Mis archivos de audio</string>
-<string name="breadcrumb_home">Inicio</string>
+    <string name="breadcrumb_home">Inicio</string>
     <string name="toast_path_saved">Ruta guardada</string>
     <string name="toast_path_deleted">Ruta eliminada</string>
-<string name="search_hint_video">Buscar un vídeo</string>
+    <string name="search_hint_video">Buscar un vídeo</string>
     <string name="browser_search_in_progress">Búsqueda en curso…</string>
     <string name="hint_path_name">Nombre de la ruta</string>
     <string name="hint_shared_folder">Carpeta compartida</string>
-<string name="hint_ip_host">Dirección IP / Host</string>
+    <string name="hint_ip_host">Dirección IP / Host</string>
     <string name="hint_port">Puerto</string>
     <string name="hint_shared_folder_example">Carpeta compartida (ej: videos)</string>
     <string name="hint_username_optional">Usuario (opcional)</string>
     <string name="hint_password_optional">Contraseña (opcional)</string>
     <string name="hint_username">Usuario</string>
     <string name="hint_password">Contraseña</string>
-<string name="history_empty_blaze_video_subtitle">Explora tus vídeos locales o de red para empezar</string>
-
+    <string name="history_empty_blaze_video_subtitle">Explora tus vídeos locales o de red para empezar</string>
     <string name="history_empty_blaze_video_title">No hay vídeos vistos recientemente</string>
-
     <string name="history_blaze_video">Historial</string>
-
     <string name="history_selection_active">Selección activa: %1$d miniatura(s) seleccionada(s).</string>
     <string name="history_action_prompt">Elige una acción para este historial.</string>
     <string name="history_delete_selection">Eliminar selección (%1$d)</string>
@@ -328,35 +295,32 @@
     <string name="history_confirm_delete_all_network">¿Eliminar todo el historial de red?</string>
     <string name="history_toast_select_thumbnails">Selecciona las miniaturas que quieres quitar del historial</string>
     <string name="permission_gallery_required">Autoriza el acceso a fotos y vídeos para mostrar Blaze Gallery.</string>
-<string name="browse_files_local">Explorar</string>
-<plurals name="file_count">
+    <string name="browse_files_local">Explorar</string>
+    <plurals name="file_count">
         <item quantity="one">%1$d archivo</item>
         <item quantity="other">%1$d archivos</item>
     </plurals>
     <string name="browser_folder_file_count">%1$s · %2$s</string>
     <string name="content_desc_back">Atrás</string>
-
     <plurals name="results_found">
         <item quantity="one">%1$d resultado</item>
         <item quantity="other">%1$d resultados</item>
     </plurals>
     <string name="path_internal_storage">/almacenamiento interno</string>
-
     <plurals name="selected_tracks_count">
         <item quantity="one">%1$d pista seleccionada</item>
         <item quantity="other">%1$d pistas seleccionadas</item>
     </plurals>
-<string name="settings_section_playback">REPRODUCCIÓN</string>
+    <string name="settings_section_playback">REPRODUCCIÓN</string>
     <string name="settings_section_audio">AUDIO</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-<string name="eq_preamp_compressor_section">PREAMPLIFICADOR Y COMPRESOR</string>
+    <string name="eq_preamp_compressor_section">PREAMPLIFICADOR Y COMPRESOR</string>
     <string name="eq_preamp_label">Preamplificador</string>
     <string name="eq_compressor_label">Compresor</string>
     <string name="player_casting_in_progress">Transmisión en curso</string>
     <string name="player_stop_casting">Detener transmisión</string>
     <string name="player_speed_label_short">Velocidad</string>
     <string name="player_ratio_label">Proporción</string>
-
     <string name="content_desc_close_playlist">Cerrar lista de reproducción</string>
     <string name="content_desc_clean">Limpiar</string>
     <string name="content_desc_playlist">Lista de reproducción</string>
@@ -367,8 +331,7 @@
     <string name="content_desc_repeat">Repetir</string>
     <string name="content_desc_timer">Temporizador</string>
     <string name="content_desc_options">Opciones</string>
-<string name="error_loading_media">No se pudo iniciar la reproducción de vídeo.</string>
-
+    <string name="error_loading_media">No se pudo iniciar la reproducción de vídeo.</string>
     <string name="cast_dialog_status">Transmitiendo ahora</string>
     <string name="cast_dialog_stop">Detener transmisión</string>
     <string name="select_all">Seleccionar todo</string>
@@ -384,7 +347,7 @@
     <string name="paywall_pro_desc">Incluye Free y desbloquea la red local SMB/UPnP y Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Incluye todas las funciones Pro y desbloquea el reproductor de audio premium Blaze Audio.</string>
+    <string name="paywall_pro_plus_desc">Incluye todas las funciones Pro y desbloquea Blaze Audio, incluido Blaze Party y KaraoKast.</string>
     <string name="paywall_buy_pro">Desbloquear Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Desbloquear Pro+ — 5,99 €</string>
     <string name="paywall_buy_pro_dynamic">Desbloquear Pro — %1$s</string>
@@ -408,26 +371,19 @@
     <string name="action_off">Desactivado</string>
     <string name="video_setting_volume_boost">Refuerzo de volumen</string>
     <string name="action_reset">Restablecer</string>
-
-    
-
-<string name="gallery_folders">Gallery</string>
-
+    <string name="gallery_folders">Gallery</string>
     <string name="gallery_empty_folders">Aún no hay carpetas — crea una para empezar</string>
-
     <string name="gallery_empty_photos">Esta carpeta está vacía</string>
-
     <string name="gallery_trash_empty_message">La papelera está vacía</string>
     <string name="gallery_type_photo">Fotos</string>
     <string name="gallery_type_video">Vídeos</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Ordenar</string>
-<string name="gallery_sort_date_desc">Más recientes primero</string>
+    <string name="gallery_sort_date_desc">Más recientes primero</string>
     <string name="gallery_sort_date_asc">Más antiguas primero</string>
     <string name="gallery_sort_name">Orden alfabético</string>
     <string name="gallery_sort_size">Tamaño del archivo</string>
     <string name="gallery_unknown_folder">Carpeta desconocida</string>
-
     <string name="action_open">Abrir</string>
     <string name="action_share">Compartir</string>
     <string name="gallery_trash">Papelera</string>
@@ -436,7 +392,7 @@
     <string name="gallery_delete">Eliminar</string>
     <string name="gallery_delete_folder">Eliminar carpeta</string>
     <string name="gallery_delete_permanently_from_trash">Eliminar definitivamente de la papelera</string>
-<string name="gallery_delete_all">Eliminar todo</string>
+    <string name="gallery_delete_all">Eliminar todo</string>
     <string name="gallery_share_all">Compartir todo</string>
     <string name="gallery_selected_count">%1$d seleccionada(s)</string>
     <string name="confirm_delete_title">Confirmar eliminación</string>
@@ -456,8 +412,6 @@
     </plurals>
     <string name="settings_audio_spectrum">Activar espectro visual</string>
     <string name="settings_audio_spectrum_desc">Mostrar el visualizador de audio animado en Blaze Audio.</string>
-
-    
     <string name="blaze_party">Blaze Party</string>
     <string name="blaze_party_intro">Crea una sesión local o únete a una cola compartida en la misma Wi‑Fi.</string>
     <string name="blaze_party_host">Anfitrión de Blaze Party</string>
@@ -470,9 +424,9 @@
     <string name="blaze_party_share_code">Dirección: %1$s
 Token: %2$s</string>
     <string name="blaze_party_host_waiting">Sesión lista: los invitados pueden escanear este código.</string>
-<string name="blaze_party_scan_unavailable">Escáner QR no disponible. Instala un escáner QR o introduce el código manualmente.</string>
+    <string name="blaze_party_scan_unavailable">Escáner QR no disponible. Instala un escáner QR o introduce el código manualmente.</string>
     <string name="blaze_party_joined">Sesión Blaze Party unida</string>
-<string name="blaze_party_short">Party</string>
+    <string name="blaze_party_short">Party</string>
     <string name="add_to_blaze_party">Añadir a Blaze Party</string>
     <string name="blaze_party_playlist_title">Playlist Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">No hay canciones en la playlist Blaze Party. Añade canciones desde el navegador de audio con “Añadir a Blaze Party”.</string>
@@ -482,7 +436,6 @@ Token: %2$s</string>
         <item quantity="one">%d canción añadida a Blaze Party</item>
         <item quantity="other">%d canciones añadidas a Blaze Party</item>
     </plurals>
-
     <string name="blaze_party_launch">Iniciar</string>
     <string name="blaze_party_vote">Votar</string>
     <string name="blaze_party_vote_hint">Toca una pista para ver los votos y votar.</string>
@@ -495,7 +448,6 @@ Token: %2$s</string>
         <item quantity="one">%d vote</item>
         <item quantity="other">%d votes</item>
     </plurals>
-
     <string name="gallery_folder_button">Carpeta</string>
     <string name="gallery_create_folder">Añadir</string>
     <string name="gallery_create_folder_title">Nueva carpeta de fotos</string>
@@ -520,8 +472,6 @@ Token: %2$s</string>
     <string name="blaze_party_default_host">Anfitrión</string>
     <string name="blaze_party_default_guest">Invitado</string>
     <string name="app_name_gallery">Blaze Gallery</string>
-
-    
     <string name="photo_editor_title">Editar</string>
     <string name="filter_normal">Normal</string>
     <string name="filter_vivid">Vivo</string>
@@ -551,7 +501,7 @@ Token: %2$s</string>
     <string name="editor_tab_crop">Recortar</string>
     <string name="editor_tab_rotate">Rotación</string>
     <string name="editor_tab_blur">Desenfoque</string>
-<string name="blur_effect_blur">Desenfoque</string>
+    <string name="blur_effect_blur">Desenfoque</string>
     <string name="blur_effect_mosaic">Mosaico</string>
     <string name="blur_shape_circle">Círculo</string>
     <string name="blur_shape_square">Cuadrado</string>
@@ -567,7 +517,7 @@ Token: %2$s</string>
     <string name="action_compare_hold">Mantén para comparar</string>
     <string name="content_desc_rotate_left">Girar a la izquierda</string>
     <string name="content_desc_rotate_right">Girar a la derecha</string>
-<string name="toast_photo_save_failed">Error al guardar</string>
+    <string name="toast_photo_save_failed">Error al guardar</string>
     <string name="photo_details_no_exif">No hay metadatos disponibles para esta foto</string>
     <string name="photo_details_dimensions">Dimensiones: %1$s</string>
     <string name="photo_details_size">Tamaño: %1$s</string>
@@ -575,8 +525,6 @@ Token: %2$s</string>
     <string name="photo_details_camera">Cámara: %1$s</string>
     <string name="photo_details_location">Ubicación: %1$s</string>
     <string name="gallery_menu_edit">Editar</string>
-
-    
     <string name="video_trim_title">Recortar</string>
     <string name="action_export_fast">SQ</string>
     <string name="action_export_precise">HQ</string>
@@ -588,7 +536,6 @@ Token: %2$s</string>
     <string name="toast_mp3_saved">MP3 guardado en Documents/Blaze Audio Extractor</string>
     <string name="toast_mp3_export_failed">Error al exportar MP3</string>
     <string name="gallery_menu_cut">Recortar</string>
-
     <string name="add_to_playlist_fixed_short">Añadir a playlist</string>
     <string name="add_to_video_queue_short">cola</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -603,13 +550,11 @@ Token: %2$s</string>
     <string name="toast_video_queue_item_removed">Video eliminado de la cola</string>
     <string name="content_desc_video_queue">Cola de video</string>
     <string name="content_desc_close_video_queue">Cerrar la cola de video</string>
-
-    
     <string name="audio_library_title">Biblioteca</string>
     <string name="audio_library_subtitle">Tu biblioteca musical Pro+</string>
     <string name="audio_loading_in_progress">Cargando...</string>
     <string name="audio_search">Buscar</string>
-<string name="audio_tab_albums">Álbumes</string>
+    <string name="audio_tab_albums">Álbumes</string>
     <string name="audio_tab_artists">Artistas</string>
     <string name="audio_tab_titles">Pistas</string>
     <string name="audio_tab_playlists">Playlists</string>
@@ -629,7 +574,7 @@ Token: %2$s</string>
     <string name="audio_crossfade_title">Fundido cruzado</string>
     <string name="audio_crossfade_subtitle">Transiciones suaves entre pistas</string>
     <string name="audio_crossfade_duration">Duración del fundido</string>
-<string name="audio_section_quality">Calidad de audio</string>
+    <string name="audio_section_quality">Calidad de audio</string>
     <string name="audio_high_quality_output">Salida de alta calidad</string>
     <string name="audio_high_quality_subtitle">Desactiva los ajustes de sonido para priorizar la salida directa</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -649,7 +594,7 @@ Token: %2$s</string>
     <string name="audio_auto_scan_subtitle">Detectar periódicamente nuevos archivos locales y de red</string>
     <string name="audio_watched_folders">Carpetas vigiladas</string>
     <string name="audio_watched_folders_subtitle">Seleccionar carpetas de audio</string>
-<string name="audio_sort_album_track">Ordenar por número de pista</string>
+    <string name="audio_sort_album_track">Ordenar por número de pista</string>
     <string name="audio_sort_album_track_subtitle">Respetar orden de álbum y disco</string>
     <string name="audio_ignore_short_files">Ignorar archivos cortos</string>
     <string name="audio_ignore_short_files_subtitle">Menos de 30 segundos</string>
@@ -658,7 +603,7 @@ Token: %2$s</string>
     <string name="audio_dynamic_theme_subtitle">Verde Blaze por defecto, colores de la portada al activarlo</string>
     <string name="audio_cover_border">Borde coloreado de portada</string>
     <string name="audio_cover_border_subtitle">Acento dinámico alrededor de la portada</string>
-<string name="audio_artwork_size">Tamaño de portadas</string>
+    <string name="audio_artwork_size">Tamaño de portadas</string>
     <string name="audio_size_small">Pequeña</string>
     <string name="audio_size_medium">Mediana</string>
     <string name="audio_size_large">Grande</string>
@@ -667,7 +612,7 @@ Token: %2$s</string>
     <string name="audio_synced_lyrics_subtitle">Interruptor principal de letras locales LRC/TXT</string>
     <string name="audio_tag_editor">Editor de etiquetas</string>
     <string name="audio_tag_editor_subtitle">Editar título, artista, álbum, género, pista y disco</string>
-<string name="audio_no_current_track">No hay pista actual</string>
+    <string name="audio_no_current_track">No hay pista actual</string>
     <string name="audio_tag_title">Título</string>
     <string name="audio_tag_artist">Artista</string>
     <string name="audio_tag_album">Álbum</string>
@@ -709,7 +654,7 @@ Token: %2$s</string>
     <string name="audio_tag_network_not_supported">La escritura directa está disponible para archivos locales y archivos de red SMB/NAS. Esta fuente no permite edición remota.</string>
     <string name="action_scan">Escanear</string>
     <string name="action_done">Listo</string>
-<string name="audio_play_album">Reproducir todo el álbum</string>
+    <string name="audio_play_album">Reproducir todo el álbum</string>
     <string name="audio_add_album_queue">Añadir a la cola</string>
     <string name="audio_select_tracks">Seleccionar pistas</string>
     <string name="audio_add_playlist_blaze_party">Añadir playlist a Blaze Party</string>
@@ -725,7 +670,6 @@ Token: %2$s</string>
     <string name="audio_add_track_blaze_party">Añadir a Blaze Party</string>
     <string name="audio_back_to_albums">Volver a álbumes</string>
     <string name="audio_back_to_albums_hint">Volver a la vista completa de la biblioteca</string>
-
     <string name="action_refresh">Actualizar</string>
     <string name="audio_watched_folders_empty_short">Ninguna carpeta vigilada</string>
     <string name="audio_watched_folders_summary_mixed">%1$d local · %2$d %3$s</string>
@@ -756,10 +700,8 @@ Token: %2$s</string>
     <string name="cast_remote_next">Vídeo siguiente</string>
     <string name="cast_remote_hint">El botón rojo abre el panel de Chromecast para conectar o desconectar el televisor.</string>
     <string name="content_desc_cast_remote">Mando a distancia Chromecast</string>
-
     <string name="cast_remote_led_on">ON</string>
     <string name="cast_remote_led_off">OFF</string>
-
     <string name="close">Cerrar</string>
     <string name="eq_tab_tone">Tono</string>
     <string name="eq_tab_dynamics">Dinámica</string>
@@ -786,7 +728,6 @@ Token: %2$s</string>
     <string name="eq_room_hall">Sala grande</string>
     <string name="eq_room_plate">Placa</string>
     <string name="eq_equalizer_unavailable">El ecualizador del dispositivo no está disponible en esta salida. Los controles de canales siguen activos.</string>
-
     <string name="content_desc_rewind">Retroceder</string>
     <string name="content_desc_forward">Avanzar</string>
     <string name="content_desc_video_screenshot">Capturar fotograma de vídeo</string>
@@ -796,11 +737,8 @@ Token: %2$s</string>
     <string name="content_desc_sort">Ordenar</string>
     <string name="content_desc_show_audio_files">Mostrar archivos de audio</string>
     <string name="content_desc_rescan">Volver a buscar</string>
-
     <string name="eq_status_on">ACTIVO</string>
     <string name="eq_status_off">INACTIVO</string>
-
-    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
     <string name="audio_watched_help_button_desc">Ayuda sobre carpetas supervisadas</string>
     <string name="audio_watched_help_title">Cómo preparar tu biblioteca de audio</string>
     <string name="audio_watched_help_desc">Cuando añadas por primera vez carpetas locales o de red a tu biblioteca, ten paciencia: la carga de metadatos y portadas puede tardar bastante, sobre todo si tienes muchos álbumes o pistas.</string>
@@ -814,8 +752,6 @@ Token: %2$s</string>
     <string name="audio_watched_help_lrc">        └── 01 - Título de la pista.lrc</string>
     <string name="audio_watched_help_cover_note">Coloca la portada en la carpeta del álbum con el nombre cover.jpg o cover.png.</string>
     <string name="audio_watched_help_lrc_note">Coloca los archivos .lrc junto a cada pista, usando exactamente el mismo nombre de archivo.</string>
-
-    <!-- Aide de l’onglet Réseau -->
     <string name="network_help_button_desc">Ayuda sobre rutas de red</string>
     <string name="network_help_title">Ayuda de red</string>
     <string name="network_help_message">Debes guardar aquí las rutas a tus archivos de la red local para poder explorarlos después en la aplicación.</string>
@@ -831,13 +767,8 @@ Token: %2$s</string>
         <item quantity="one">Prueba Pro+: queda %1$d día</item>
         <item quantity="other">Prueba Pro+: quedan %1$d días</item>
     </plurals>
-
-    <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Respuesta háptica</string>
     <string name="settings_haptic_feedback_desc">Activa una vibración suave cada vez que pulses un elemento de la aplicación.</string>
-
-
-    <!-- Bibliothèque Blaze Audio pour Android Auto -->
     <string name="android_auto_root_title">Blaze Audio</string>
     <string name="android_auto_root_subtitle">Tu biblioteca de música</string>
     <string name="android_auto_premium_required">Se requiere Blaze Audio Premium</string>
@@ -851,7 +782,6 @@ Token: %2$s</string>
     <string name="android_auto_unknown_album">Álbum desconocido</string>
     <string name="android_auto_artist_subtitle">%1$d álbumes • %2$d canciones</string>
     <string name="android_auto_track_count">%1$d canciones</string>
-
     <string name="audio_karaoke_cast">KaraoKast</string>
     <string name="content_desc_karaoke_cast">Abrir duplicación de pantalla de karaoke</string>
     <string name="karaoke_cast_requires_lrc">Se necesita un archivo .lrc sincronizado para enviar el karaoke.</string>
@@ -863,8 +793,6 @@ Token: %2$s</string>
     <string name="audio_output_change_failed">No se pudo cambiar la salida de audio</string>
     <string name="karaoke_mirror_opened">Selecciona tu Chromecast en el panel de Android. Mantén pulsado el botón para elegir la salida de audio local.</string>
     <string name="karaoke_mirror_unavailable">La configuración de duplicación de pantalla no está disponible. Usa el acceso rápido para transmitir la pantalla.</string>
-
-    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
     <string name="audio_lyrics_search_online">Descargar letras (.LRC)</string>
     <string name="audio_lyrics_download_hint">Busca con LRCLIB. Toca un resultado para descargar automáticamente el archivo .LRC junto a la canción.</string>
     <string name="audio_lyrics_button_description">Gestionar letras y descargar archivos .LRC. Mantén pulsado para mostrar u ocultar las letras.</string>
@@ -900,8 +828,6 @@ Token: %2$s</string>
         <item quantity="other">%d resultados sincronizados</item>
     </plurals>
     <string name="action_compare_slider">Desliza para comparar el antes y el después</string>
-
-    <!-- Playlists nommées audio/vidéo -->
     <string name="action_delete_playlist">Eliminar playlist</string>
     <string name="confirm_delete_named_playlist_message">¿Eliminar la playlist «%1$s»? Se borrará todo su contenido.</string>
     <string name="toast_named_playlist_deleted">Playlist «%1$s» eliminada.</string>
@@ -916,4 +842,76 @@ Token: %2$s</string>
     <string name="playlist_added_partial_named">%1$s añadido, %2$s ya estaba en «%3$s»</string>
     <string name="toast_named_playlist_emptied">Playlist «%1$s» vaciada.</string>
     <string name="toast_named_playlist_sent_to_queue">«%1$s» añadida a la cola.</string>
+    <string name="subtitle_add_external">Añadir archivo SRT/ASS</string>
+    <string name="subtitle_remove_external">Quitar archivo de subtítulos</string>
+    <string name="subtitle_invalid_file">Selecciona un archivo de subtítulos SRT, ASS, SSA o VTT.</string>
+    <string name="subtitle_cast_conversion_failed">El subtítulo funciona localmente, pero falló la conversión para Chromecast.</string>
+    <string name="subtitle_external_added">Archivo de subtítulos añadido.</string>
+    <string name="cast_fallback_preparing">Preparando Chromecast: remux sin recodificar el vídeo…</string>
+    <string name="cast_fallback_ready_audio">Vídeo listo para Chromecast. Solo se convirtió la pista de audio.</string>
+    <string name="cast_fallback_ready_remux">Vídeo listo para Chromecast sin recodificación.</string>
+    <string name="cast_fallback_not_possible">Este archivo requiere recodificar el vídeo, opción desactivada para preservar el rendimiento.</string>
+    <string name="cast_fallback_failed">No se pudo preparar este archivo para Chromecast.</string>
+
+    <string name="slideshow_short">Diapo</string>
+    <string name="slideshow_create">Crear diaporama</string>
+    <string name="slideshow_title">Crear un diaporama</string>
+    <string name="slideshow_reorder_hint">Mantén pulsada una foto y arrástrala para cambiar el orden.</string>
+    <string name="slideshow_music_title">Música del diaporama</string>
+    <string name="slideshow_no_music">No hay música seleccionada</string>
+    <string name="slideshow_music_selected">Música seleccionada</string>
+    <string name="slideshow_choose_music">Elegir MP3/WAV</string>
+    <string name="slideshow_music_invalid">No se puede leer la duración de este archivo de audio.</string>
+    <string name="slideshow_duration_summary">Duración: %1$s • %2$s s/foto</string>
+    <string name="slideshow_export">Exportar a MP4</string>
+    <string name="slideshow_exporting">Creando diaporama…</string>
+    <string name="slideshow_export_success">Diaporama guardado en Blaze Gallery.</string>
+    <string name="slideshow_export_failed">No se pudo crear el diaporama.</string>
+    <string name="slideshow_need_two_photos">Selecciona al menos 2 fotos.</string>
+    <string name="slideshow_photo_number">Foto %1$d</string>
+    <string name="slideshow_annotation_title">Anotación de la foto</string>
+    <string name="slideshow_annotation_hint">Añade una anotación breve…</string>
+    <string name="slideshow_annotation_style_glass">Cristal oscuro</string>
+    <string name="slideshow_annotation_style_accent">Acento Blaze</string>
+    <string name="slideshow_annotation_style_minimal">Minimalista</string>
+    <string name="slideshow_no_annotation">Sin anotación</string>
+    <string name="slideshow_annotation_short">Anotar</string>
+    <string name="slideshow_select_hint">Toca las fotos que quieras incluir y luego Crear diaporama.</string>
+
+    <string name="slideshow_annotation_editor_title">Editar anotación</string>
+    <string name="slideshow_annotation_text">Texto (admite emoji)</string>
+    <string name="slideshow_annotation_font">Fuente</string>
+    <string name="slideshow_annotation_size_value">Tamaño del texto: %1$d%%</string>
+    <string name="slideshow_annotation_background_color">Color de fondo</string>
+    <string name="slideshow_annotation_shape">Forma del fondo</string>
+    <string name="slideshow_annotation_shape_pill">Píldora</string>
+    <string name="slideshow_annotation_shape_parallelogram">Paralelogramo</string>
+    <string name="slideshow_annotation_shape_rectangle">Rectángulo</string>
+    <string name="slideshow_annotation_drag_hint">Arrastra la anotación o el GIF directamente sobre la foto para colocarlo.</string>
+    <string name="slideshow_gif_title">GIF animado</string>
+    <string name="slideshow_gif_choose">Añadir GIF</string>
+    <string name="slideshow_gif_invalid">Este archivo no es un GIF animado válido.</string>
+    <string name="slideshow_gif_selected">GIF animado añadido</string>
+    <string name="slideshow_annotation_and_gif_summary">%1$s • GIF animado</string>
+    <string name="slideshow_export_name_title">Nombre del archivo MP4</string>
+    <string name="slideshow_export_name_hint">Nombre del diaporama</string>
+    <string name="slideshow_export_name_invalid">Introduce un nombre de archivo.</string>
+
+    <string name="slideshow_add_to">Añadir al pase</string>
+    <string name="slideshow_add_photos">Añadir fotos</string>
+    <string name="slideshow_picker_selected_count">Pase: %1$d • Por añadir: %2$d</string>
+    <string name="slideshow_added_count">%1$d foto(s) añadida(s) al pase</string>
+
+    <string name="slideshow_picker_folders">Carpetas</string>
+
+    <string name="karaoke_sync_offset_value">Sincronización %1$s%2$d ms</string>
+    <string name="karaoke_sync_offset_default">Sincronización +300 ms</string>
+    <string name="content_desc_karaoke_sync_minus">Retrasar la letra 50 milisegundos</string>
+    <string name="content_desc_karaoke_sync_plus">Adelantar la letra 50 milisegundos</string>
+    <string name="slideshow_font_montserrat">Montserrat</string>
+    <string name="slideshow_font_playfair">Playfair Display</string>
+    <string name="slideshow_font_pacifico">Pacifico</string>
+    <string name="slideshow_font_bebas">Bebas Neue</string>
+    <string name="slideshow_font_caveat">Caveat</string>
+    <string name="slideshow_font_cinzel">Cinzel</string>
 </resources>

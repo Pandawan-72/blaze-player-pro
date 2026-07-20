@@ -526,6 +526,7 @@ class VideoPlaybackService : MediaSessionService() {
         exoPlayer = null
         castPlayer = null
         try { fr.retrospare.blazeplayer.cast.VideoStreamServerManager.stopServer() } catch (_: Exception) {}
+        try { fr.retrospare.blazeplayer.cast.ChromecastFallbackManager.cleanupAll(applicationContext) } catch (_: Exception) {}
         super.onDestroy()
     }
 }

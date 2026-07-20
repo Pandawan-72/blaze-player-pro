@@ -47,6 +47,11 @@ class PhotoEditorActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_PHOTO_PATH = "photo_path"
         const val EXTRA_PHOTO_NAME = "photo_name"
+        /** Mode utilisé par Diapo : l'éditeur renvoie une copie temporaire au lieu de publier
+         *  une nouvelle photo dans MediaStore. Cela permet de réutiliser exactement les filtres,
+         *  crop, rotation et flou existants sans polluer la galerie pendant la préparation. */
+        const val EXTRA_RETURN_TEMP = "return_temp"
+        const val EXTRA_OUTPUT_PATH = "output_path"
     }
 
     private lateinit var ivPhoto: BeforeAfterImageView
@@ -67,6 +72,7 @@ class PhotoEditorActivity : AppCompatActivity() {
 
     private var photoPath: String = ""
     private var photoName: String = "photo"
+    private var returnTempMode: Boolean = false
     private var basePreviewBitmap: Bitmap? = null
     // Bitmap d'aperçu après rotation mais AVANT flou/mosaïque : sert de source à chaque
     // régénération de l'aperçu en direct de l'outil Flou (on ne veut jamais réappliquer le
@@ -98,6 +104,7 @@ class PhotoEditorActivity : AppCompatActivity() {
 
         photoPath = intent.getStringExtra(EXTRA_PHOTO_PATH) ?: run { finish(); return }
         photoName = intent.getStringExtra(EXTRA_PHOTO_NAME) ?: "photo"
+        returnTempMode = intent.getBooleanExtra(EXTRA_RETURN_TEMP, false)
 
         ivPhoto = findViewById(R.id.ivPhoto)
         cropOverlay = findViewById(R.id.cropOverlay)
@@ -480,15 +487,29 @@ class PhotoEditorActivity : AppCompatActivity() {
                 val bottom = (cropFrac.bottom * bmp.height).toInt().coerceIn(top + 1, bmp.height)
                 val cropped = Bitmap.createBitmap(bmp, left, top, right - left, bottom - top)
                 val filtered = applyFilter(cropped, filterMatrix)
-                MediaSaveUtils.saveEditedBitmap(this@PhotoEditorActivity, filtered, photoName)
+                if (returnTempMode) {
+                    val dir = File(cacheDir, "slideshow_edits").apply { mkdirs() }
+                    val out = File(dir, "slide_edit_${System.currentTimeMillis()}.jpg")
+                    val saved = out.outputStream().use { stream ->
+                        filtered.compress(Bitmap.CompressFormat.JPEG, 95, stream)
+                    }
+                    if (saved && out.exists() && out.length() > 0L) out.absolutePath else null
+                } else {
+                    if (MediaSaveUtils.saveEditedBitmap(this@PhotoEditorActivity, filtered, photoName)) "published" else null
+                }
             } catch (_: Exception) {
-                false
+                null
             }
             withContext(Dispatchers.Main) {
                 editorProgress.visibility = View.GONE
-                if (ok) {
-                    setResult(RESULT_OK, Intent())
-                    showAfterSaveDialog()
+                if (ok != null) {
+                    if (returnTempMode) {
+                        setResult(RESULT_OK, Intent().putExtra(EXTRA_OUTPUT_PATH, ok))
+                        finish()
+                    } else {
+                        setResult(RESULT_OK, Intent())
+                        showAfterSaveDialog()
+                    }
                 } else {
                     Toast.makeText(this@PhotoEditorActivity, getString(R.string.toast_photo_save_failed), Toast.LENGTH_SHORT).show()
                 }

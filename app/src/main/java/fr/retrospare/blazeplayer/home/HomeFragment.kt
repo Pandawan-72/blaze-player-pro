@@ -67,6 +67,7 @@ class HomeFragment : Fragment() {
     private var currentGalleryBucketName: String? = null
     private var galleryTrashMode: Boolean = false
     private var gallerySelectionMode: Boolean = false
+    private var gallerySlideshowSelectionMode: Boolean = false
     private val selectedGalleryPhotos = linkedSetOf<String>()
     private var currentGalleryPhotos: List<MediaItem> = emptyList()
     private var galleryFoldersScrollPosition: Int = 0
@@ -174,6 +175,40 @@ class HomeFragment : Fragment() {
      *  c'est justement le but de [suppressGalleryResetOnResume], qui empêche onResume() de nous
      *  ramener sur la liste des dossiers alors qu'on était dans un dossier précis. */
     private val photoEditorLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { }
+
+    private val slideshowPhotoPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != android.app.Activity.RESULT_OK || !isAdded) return@registerForActivityResult
+        val data = result.data ?: return@registerForActivityResult
+        val paths = data.getStringArrayListExtra(fr.retrospare.blazeplayer.gallery.slideshow.SlideshowPhotoPickerActivity.EXTRA_RESULT_PATHS).orEmpty()
+        val names = data.getStringArrayListExtra(fr.retrospare.blazeplayer.gallery.slideshow.SlideshowPhotoPickerActivity.EXTRA_RESULT_NAMES).orEmpty()
+        if (paths.size < 2) return@registerForActivityResult
+        suppressGalleryResetOnResume = true
+        slideshowLauncher.launch(android.content.Intent(requireContext(), fr.retrospare.blazeplayer.gallery.slideshow.SlideshowActivity::class.java).apply {
+            putStringArrayListExtra(
+                fr.retrospare.blazeplayer.gallery.slideshow.SlideshowActivity.EXTRA_PHOTO_PATHS,
+                ArrayList(paths)
+            )
+            putStringArrayListExtra(
+                fr.retrospare.blazeplayer.gallery.slideshow.SlideshowActivity.EXTRA_PHOTO_NAMES,
+                ArrayList(names)
+            )
+        })
+    }
+
+    /** Après un export Diapo réussi, on revient volontairement à l'accueil Vidéos de Blaze
+     *  Gallery pour retrouver immédiatement le MP4 nouvellement créé. */
+    private val slideshowLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        suppressGalleryResetOnResume = false
+        if (result.resultCode == android.app.Activity.RESULT_OK && _binding != null && isAdded) {
+            clearGallerySelection()
+            currentGalleryMediaType = GalleryMediaType.VIDEO
+            refreshGalleryTypeToggleColors()
+            galleryTrashMode = false
+            currentGalleryBucketId = null
+            currentGalleryBucketName = null
+            showGalleryFolders()
+        }
+    }
 
     /** Au retour de la découpe vidéo/export GIF, on navigue explicitement vers le dossier "Blaze
      *  Gallery" où le résultat vient d'être enregistré — contrairement à l'éditeur photo, ici
@@ -714,6 +749,7 @@ class HomeFragment : Fragment() {
         binding.btnGallerySecondary.text = getString(R.string.action_back)
         binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
         binding.btnGallerySecondary.visibility = View.GONE
+        binding.btnGalleryDiapo.visibility = View.GONE
         setupGalleryTypeToggle()
     }
 
@@ -886,6 +922,7 @@ class HomeFragment : Fragment() {
         binding.tvEmptyStateGallery.text = getString(R.string.permission_gallery_required)
         binding.btnGallerySecondary.visibility = View.GONE
         binding.btnGalleryPrimary.visibility = View.GONE
+        binding.btnGalleryDiapo.visibility = View.GONE
         updateGalleryTypeToggle(false)
     }
 
@@ -1053,12 +1090,16 @@ class HomeFragment : Fragment() {
         currentGalleryBucketName = null
         galleryTrashMode = false
         clearGallerySelection()
+        binding.btnGalleryDiapo.visibility = if (currentGalleryMediaType == GalleryMediaType.PHOTO && !galleryCustomThumbnailMode) View.VISIBLE else View.GONE
+        binding.btnGalleryDiapo.setOnClickListener { launchSlideshowFolderPicker() }
         binding.btnGallerySecondary.visibility = View.VISIBLE
         binding.btnGallerySecondary.text = getString(R.string.gallery_folder_button)
         binding.btnGallerySecondary.setIconResource(R.drawable.ic_add_circle)
         binding.btnGallerySecondary.setOnClickListener { showCreateGalleryFolderDialog() }
         styleGalleryCreateFolderButton()
         binding.btnGalleryPrimary.visibility = View.VISIBLE
+        binding.btnGalleryPrimary.isEnabled = true
+        binding.btnGalleryPrimary.alpha = 1f
         configureGalleryPrimaryAsTrashIcon()
         binding.btnGalleryPrimary.setOnClickListener { showGalleryTrash() }
         binding.tvSectionGallery.text = if (galleryCustomThumbnailMode) {
@@ -1122,7 +1163,11 @@ class HomeFragment : Fragment() {
         binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
         binding.btnGallerySecondary.setOnClickListener { showGalleryFolders(restoreScroll = true) }
         styleGalleryBackButton()
+        binding.btnGalleryDiapo.visibility = if (currentGalleryMediaType == GalleryMediaType.PHOTO && !galleryCustomThumbnailMode) View.VISIBLE else View.GONE
+        binding.btnGalleryDiapo.setOnClickListener { launchSlideshowFolderPicker() }
         binding.btnGalleryPrimary.visibility = View.VISIBLE
+        binding.btnGalleryPrimary.isEnabled = true
+        binding.btnGalleryPrimary.alpha = 1f
         binding.btnGalleryPrimary.text = getString(R.string.gallery_sort)
         binding.btnGalleryPrimary.setIconResource(R.drawable.ic_sort)
         binding.btnGalleryPrimary.setOnClickListener { showGallerySortMenu() }
@@ -1899,12 +1944,15 @@ class HomeFragment : Fragment() {
         currentGalleryBucketId = null
         currentGalleryBucketName = null
         updateGalleryTypeToggle(visible = false)
+        binding.btnGalleryDiapo.visibility = View.GONE
         binding.tvSectionGallery.text = getString(R.string.gallery_trash)
         binding.btnGallerySecondary.visibility = View.VISIBLE
         binding.btnGallerySecondary.text = getString(R.string.action_back)
         binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
         binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
         binding.btnGalleryPrimary.visibility = View.VISIBLE
+        binding.btnGalleryPrimary.isEnabled = true
+        binding.btnGalleryPrimary.alpha = 1f
         binding.btnGalleryPrimary.text = getString(R.string.gallery_empty_trash)
         binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
         binding.btnGalleryPrimary.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_empty_trash_message)) { emptyGalleryTrashPermanently() } }
@@ -2006,27 +2054,135 @@ class HomeFragment : Fragment() {
     private fun toggleGallerySelection(photo: MediaItem) {
         if (!gallerySelectionMode) return
         if (!selectedGalleryPhotos.add(photo.path)) selectedGalleryPhotos.remove(photo.path)
-        if (selectedGalleryPhotos.isEmpty()) clearGallerySelection() else updateGallerySelectionToolbar()
+        if (selectedGalleryPhotos.isEmpty() && !gallerySlideshowSelectionMode) {
+            clearGallerySelection()
+        } else {
+            updateGallerySelectionToolbar()
+        }
         binding.listGallery.adapter?.notifyDataSetChanged()
     }
 
     private fun clearGallerySelection() {
         gallerySelectionMode = false
+        gallerySlideshowSelectionMode = false
         selectedGalleryPhotos.clear()
     }
 
     private fun updateGallerySelectionToolbar() {
+        binding.btnGalleryDiapo.visibility = View.GONE
         binding.btnGallerySecondary.visibility = View.VISIBLE
-        binding.btnGallerySecondary.text = getString(R.string.gallery_delete_all)
-        binding.btnGallerySecondary.setIconResource(R.drawable.ic_trash)
-        binding.btnGallerySecondary.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_delete_selected_message)) { deleteSelectedGalleryPhotos() } }
         binding.btnGalleryPrimary.visibility = View.VISIBLE
-        binding.btnGalleryPrimary.text = getString(R.string.gallery_share_all)
-        binding.btnGalleryPrimary.setIconResource(R.drawable.ic_share)
-        binding.btnGalleryPrimary.setOnClickListener { shareSelectedGalleryPhotosAsZip() }
-        styleGallerySecondaryNeutralButton()
-        styleGalleryTrashButton(false)
+        if (gallerySlideshowSelectionMode) {
+            binding.btnGallerySecondary.text = getString(R.string.action_cancel)
+            binding.btnGallerySecondary.setIconResource(R.drawable.ic_close)
+            binding.btnGallerySecondary.setOnClickListener {
+                val bucketId = currentGalleryBucketId
+                val bucketName = currentGalleryBucketName.orEmpty()
+                clearGallerySelection()
+                if (bucketId != null) showGalleryPhotos(bucketId, bucketName) else showGalleryFolders(restoreScroll = true)
+            }
+            binding.btnGalleryPrimary.text = getString(R.string.slideshow_create)
+            binding.btnGalleryPrimary.setIconResource(R.drawable.ic_movie_clap)
+            binding.btnGalleryPrimary.isEnabled = selectedGalleryPhotos.size >= 2
+            binding.btnGalleryPrimary.alpha = if (binding.btnGalleryPrimary.isEnabled) 1f else 0.45f
+            binding.btnGalleryPrimary.setOnClickListener { launchGallerySlideshow() }
+            styleGallerySecondaryNeutralButton()
+            styleGalleryTrashButton(false)
+        } else {
+            binding.btnGalleryPrimary.isEnabled = true
+            binding.btnGalleryPrimary.alpha = 1f
+            binding.btnGallerySecondary.text = getString(R.string.gallery_delete_all)
+            binding.btnGallerySecondary.setIconResource(R.drawable.ic_trash)
+            binding.btnGallerySecondary.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_delete_selected_message)) { deleteSelectedGalleryPhotos() } }
+            binding.btnGalleryPrimary.text = getString(R.string.gallery_share_all)
+            binding.btnGalleryPrimary.setIconResource(R.drawable.ic_share)
+            binding.btnGalleryPrimary.setOnClickListener { shareSelectedGalleryPhotosAsZip() }
+            styleGallerySecondaryNeutralButton()
+            styleGalleryTrashButton(false)
+        }
         binding.tvSectionGallery.text = getString(R.string.gallery_selected_count, selectedGalleryPhotos.size)
+    }
+
+    private fun launchSlideshowFolderPicker() {
+        if (currentGalleryMediaType != GalleryMediaType.PHOTO || !isAdded || !requestGalleryPermissionIfNeeded()) return
+        slideshowPhotoPickerLauncher.launch(
+            android.content.Intent(requireContext(), fr.retrospare.blazeplayer.gallery.slideshow.SlideshowPhotoPickerActivity::class.java)
+        )
+    }
+
+    private fun showGallerySlideshowAllPhotosSelection() {
+        if (currentGalleryMediaType != GalleryMediaType.PHOTO || !isAdded || !requestGalleryPermissionIfNeeded()) return
+        val renderGeneration = nextGalleryRenderGeneration()
+        currentGalleryBucketId = null
+        currentGalleryBucketName = null
+        galleryTrashMode = false
+        gallerySelectionMode = true
+        gallerySlideshowSelectionMode = true
+        selectedGalleryPhotos.clear()
+        updateGalleryTypeToggle(false)
+        updateGallerySelectionToolbar()
+        binding.listGallery.visibility = View.VISIBLE
+        binding.listGallery.apply {
+            setHasFixedSize(true)
+            setItemViewCacheSize(24)
+            setBackgroundColor(android.graphics.Color.BLACK)
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
+            itemAnimator = null
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val photos = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                loadAllGalleryPhotosFromMediaStore(includeOnlyTrashed = false)
+            }
+            if (!isCurrentGalleryRender(renderGeneration) || !gallerySlideshowSelectionMode) return@launch
+            currentGalleryPhotos = photos
+            binding.listGallery.adapter = GalleryAdapter(
+                items = photos,
+                grid = true,
+                trashMode = false,
+                onClick = { photo -> toggleGallerySelection(photo) },
+                onLongClick = { photo -> toggleGallerySelection(photo) },
+                onMore = { _, _ -> }
+            )
+            precacheGalleryPhotoThumbnails(photos.map { it.path }, renderGeneration, maxSize = 360)
+            updateGalleryEmptyState(photos.isEmpty(), getString(R.string.gallery_empty_photos))
+            if (photos.size < 2) {
+                android.widget.Toast.makeText(requireContext(), R.string.slideshow_need_two_photos, android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                android.widget.Toast.makeText(requireContext(), R.string.slideshow_select_hint, android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun startGallerySlideshowSelection() {
+        if (currentGalleryMediaType != GalleryMediaType.PHOTO || currentGalleryPhotos.size < 2) {
+            android.widget.Toast.makeText(requireContext(), R.string.slideshow_need_two_photos, android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        gallerySelectionMode = true
+        gallerySlideshowSelectionMode = true
+        selectedGalleryPhotos.clear()
+        updateGallerySelectionToolbar()
+        binding.listGallery.adapter?.notifyDataSetChanged()
+        android.widget.Toast.makeText(requireContext(), R.string.slideshow_select_hint, android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    private fun launchGallerySlideshow() {
+        val selected = currentGalleryPhotos.filter { selectedGalleryPhotos.contains(it.path) }
+        if (selected.size < 2) {
+            android.widget.Toast.makeText(requireContext(), R.string.slideshow_need_two_photos, android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        suppressGalleryResetOnResume = true
+        slideshowLauncher.launch(android.content.Intent(requireContext(), fr.retrospare.blazeplayer.gallery.slideshow.SlideshowActivity::class.java).apply {
+            putStringArrayListExtra(
+                fr.retrospare.blazeplayer.gallery.slideshow.SlideshowActivity.EXTRA_PHOTO_PATHS,
+                ArrayList(selected.map { it.path })
+            )
+            putStringArrayListExtra(
+                fr.retrospare.blazeplayer.gallery.slideshow.SlideshowActivity.EXTRA_PHOTO_NAMES,
+                ArrayList(selected.map { it.name })
+            )
+        })
     }
 
     private fun deleteSelectedGalleryPhotos() {

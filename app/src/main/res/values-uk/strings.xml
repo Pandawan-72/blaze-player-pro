@@ -1,45 +1,42 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Blaze Player</string>
     <string name="notif_channel_audio">Відтворення аудіо</string>
     <string name="notif_channel_video">Відтворення відео</string>
-
     <string name="tab_local">Локально</string>
     <string name="tab_network">Мережа</string>
     <string name="tab_blaze_video">Blaze Video</string>
-
     <string name="version_badge_free">Безкоштовно</string>
     <string name="version_badge_pro">Pro</string>
     <string name="version_badge_pro_plus">Pro+</string>
-<string name="favorites">Обране</string>
-<string name="add_network_path">Додати мережевий шлях</string>
+    <string name="favorites">Обране</string>
+    <string name="add_network_path">Додати мережевий шлях</string>
     <string name="add_manually">Додати вручну</string>
     <string name="saved_paths">ЗБЕРЕЖЕНІ ШЛЯХИ</string>
     <string name="detected_devices">ВИЯВЛЕНІ ПРИСТРОЇ</string>
     <string name="available_devices">Доступні пристрої</string>
     <string name="no_path_configured">Шлях не налаштовано.
 Натисніть «Сканувати», щоб знайти пристрої.</string>
-<string name="test_network_path">Перевірити шлях</string>
+    <string name="test_network_path">Перевірити шлях</string>
     <string name="network_path_test_title">Перевірка мережевого шляху</string>
     <string name="network_path_test_success_message">Шлях «%1$s» доступний.</string>
     <string name="network_path_test_failure_message">Не вдалося отримати доступ до «%1$s». Перевірте мережу, облікові дані або дозволи спільного ресурсу.</string>
-<string name="example_smb_path">smb://192.168.1.10/Фільми</string>
+    <string name="example_smb_path">smb://192.168.1.10/Фільми</string>
     <string name="name_label">Назва</string>
-
     <string name="unknown_artist">Невідомий виконавець</string>
     <string name="unknown_title">Невідома назва</string>
     <string name="audio_track">Аудіодоріжка</string>
-<string name="timer">Таймер</string>
+    <string name="timer">Таймер</string>
     <string name="equalizer">Налаштування звуку</string>
     <string name="sound_short">Звук</string>
-<string name="loading">Завантаження…</string>
+    <string name="loading">Завантаження…</string>
     <string name="no_track_found">Знайдено 0 доріжок</string>
     <string name="zero_time">0:00</string>
-<string name="add_tracks">Додати доріжки</string>
-<string name="add_to_playlist_short">Додати до списку відтворення</string>
+    <string name="add_tracks">Додати доріжки</string>
+    <string name="add_to_playlist_short">Додати до списку відтворення</string>
     <string name="add_to_party_short">Додати до Party</string>
-<string name="sort_name_az">Назва А–Я</string>
-<string name="queue">ЧЕРГА</string>
+    <string name="sort_name_az">Назва А–Я</string>
+    <string name="queue">ЧЕРГА</string>
     <string name="queue_short">Черга</string>
     <string name="add">Додати</string>
     <string name="info">Інформація</string>
@@ -53,14 +50,13 @@
     <string name="audio_lyrics_static">Статичний текст</string>
     <string name="folder">Папка</string>
     <string name="movies">Фільми</string>
-
     <string name="settings">Налаштування</string>
     <string name="login_optional">Вхід (необов’язково)</string>
-<string name="upgrade_to_pro">⭐ Перейти на Blaze Player Pro або Pro+</string>
-<string name="settings_rate_app">Оцінити застосунок</string>
+    <string name="upgrade_to_pro">⭐ Перейти на Blaze Player Pro або Pro+</string>
+    <string name="settings_rate_app">Оцінити застосунок</string>
     <string name="settings_rate_app_desc">Залиште відгук у Play Store</string>
     <string name="restore_purchases">Відновити покупки</string>
-<string name="about_section">ПРО ЗАСТОСУНОК</string>
+    <string name="about_section">ПРО ЗАСТОСУНОК</string>
     <string name="interface_section">ІНТЕРФЕЙС</string>
     <string name="data_section">ДАНІ</string>
     <string name="contact_section">КОНТАКТИ</string>
@@ -71,7 +67,6 @@
     <string name="toast_no_email_app">Не знайдено поштового застосунку</string>
     <string name="presets_section">ПРЕСЕТИ</string>
     <string name="local_network_label">Локальна мережа</string>
-
     <string name="settings_resume_playback">Продовжити відтворення</string>
     <string name="resume_always">Завжди</string>
     <string name="resume_ask">Запитувати</string>
@@ -92,7 +87,6 @@
     <string name="orientation_landscape">Альбомна</string>
     <string name="settings_auto_pip">Автоматичний PiP</string>
     <string name="settings_auto_pip_desc">Переходити в режим «Картинка в картинці» після виходу із застосунку</string>
-
     <string name="lang_no_preference">Без переваг</string>
     <string name="lang_french">Французька</string>
     <string name="lang_english">Англійська</string>
@@ -105,19 +99,16 @@
     <string name="lang_russian">Російська</string>
     <string name="lang_chinese">Китайська</string>
     <string name="settings_preferred_audio_lang">Бажана мова аудіо</string>
-
     <string name="settings_mini_player">Мініпрогравач</string>
     <string name="settings_mini_player_desc">Показувати мініпрогравач у застосунку</string>
     <string name="settings_show_hidden_files">Показувати приховані файли</string>
     <string name="settings_show_hidden_files_desc">Файли, назва яких починається з крапки (.)</string>
-
     <string name="settings_clear_history">Очистити історію</string>
     <string name="settings_clear_history_desc">Видалити всі нещодавно відтворені файли</string>
     <string name="dialog_clear_history_message">Видалити всі нещодавно відтворені файли?</string>
     <string name="action_clear">Очистити</string>
     <string name="action_cancel">Скасувати</string>
     <string name="toast_history_cleared">Історію очищено</string>
-
     <string name="settings_about">Про застосунок</string>
     <string name="settings_about_desc">Що потрібно знати про Blaze Player</string>
     <string name="about_dialog_message">Версія %1$s
@@ -131,7 +122,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="dialog_choose_language">Виберіть мову</string>
     <string name="toast_play_store_unavailable">Не вдалося відкрити Play Store</string>
     <string name="toast_restore_purchases_soon">Відновлення покупок… (незабаром)</string>
-
     <string name="ratio_auto">Авто</string>
     <string name="ratio_zoom">Масштаб</string>
     <string name="ratio_stretched">Розтягнуто</string>
@@ -151,14 +141,12 @@ Retro-Spare Dev / Anthony Gentil
     <string name="dialog_network_error_message">Не вдалося відтворити це відео (втрачено з’єднання з NAS, нестабільний Wi‑Fi або файл недоступний).</string>
     <string name="action_retry">Повторити</string>
     <string name="action_quit">Вийти</string>
-
     <string name="toast_no_track_selected">Доріжку не вибрано</string>
     <string name="toast_select_tracks_first">Спочатку виберіть доріжки (прапорець ліворуч від кожного файлу)</string>
-<string name="toast_no_network_path_configured">Мережевий шлях не налаштовано</string>
+    <string name="toast_no_network_path_configured">Мережевий шлях не налаштовано</string>
     <string name="dialog_choose_network_path">Виберіть мережевий шлях</string>
     <string name="local_storage">Локальне сховище</string>
     <string name="lossless_label">Без втрат</string>
-
     <plurals name="folder_count">
         <item quantity="one">%1$d папка</item>
         <item quantity="other">%1$d папок</item>
@@ -167,7 +155,6 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="one">Знайдено %1$d доріжку</item>
         <item quantity="other">Знайдено %1$d доріжок</item>
     </plurals>
-
     <string name="preset_flat">Рівний</string>
     <string name="preset_custom">Власний</string>
     <string name="preset_rock">Рок</string>
@@ -181,7 +168,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="preset_treble">Високі частоти</string>
     <string name="preset_vocal">Вокал</string>
     <string name="preset_acoustic">Акустика</string>
-
     <string name="toast_no_device_detected">Мережеві пристрої не знайдено.</string>
     <string name="toast_click_device_to_explore">Натисніть пристрій, щоб переглянути його.</string>
     <string name="scan_in_progress">Сканування…</string>
@@ -195,12 +181,10 @@ Retro-Spare Dev / Anthony Gentil
     <string name="toast_name_host_required">Потрібні назва й хост</string>
     <string name="action_delete">Видалити</string>
     <string name="dialog_delete_message">Видалити "%1$s"?</string>
-
     <plurals name="devices_found">
         <item quantity="one">Знайдено %1$d пристрій</item>
         <item quantity="other">Знайдено %1$d пристроїв</item>
     </plurals>
-
     <string name="dialog_title_already_favorite">Уже в обраному</string>
     <string name="dialog_already_favorite_message">«%1$s» уже є серед ваших обраних папок.</string>
     <string name="dialog_add_favorite_folder">Додати обрану папку</string>
@@ -223,9 +207,8 @@ Retro-Spare Dev / Anthony Gentil
     <string name="toast_screenshot_save_error">Помилка збереження знімка екрана</string>
     <string name="dialog_remove_favorites">Видалити з обраного</string>
     <string name="action_remove">Видалити</string>
-
     <string name="unknown_generic">Невідомо</string>
-<string name="sleep_timer_title">Таймер сну</string>
+    <string name="sleep_timer_title">Таймер сну</string>
     <string name="minutes_5">5 хвилин</string>
     <string name="minutes_15">15 хвилин</string>
     <string name="minutes_30">30 хвилин</string>
@@ -234,7 +217,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="dialog_clean_list">Очистити список</string>
     <string name="action_remove_selection">Видалити вибране</string>
     <string name="action_clear_all">Очистити все</string>
-
     <string name="toast_no_file_selected">Файл не вибрано</string>
     <string name="dialog_which_playlist">До якого списку відтворення додати?</string>
     <string name="playlist_slot_name">Список відтворення %1$d</string>
@@ -253,7 +235,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="action_play_playlist">Відтворити список</string>
     <string name="action_empty_playlist">Очистити</string>
     <string name="toast_playlist_emptied">Список відтворення %1$d очищено</string>
-
     <plurals name="playlist_item_count">
         <item quantity="one">%1$d елемент</item>
         <item quantity="other">%1$d елементів</item>
@@ -266,9 +247,8 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="one">%1$d уже є</item>
         <item quantity="other">%1$d уже є</item>
     </plurals>
-<string name="category_network">Мережа</string>
+    <string name="category_network">Мережа</string>
     <string name="category_audio">Аудіо</string>
-
     <string name="toast_error_generic">Помилка: %1$s</string>
     <string name="action_play">Відтворити</string>
     <string name="action_information">Інформація</string>
@@ -279,63 +259,50 @@ Retro-Spare Dev / Anthony Gentil
 Роздільність: %3$s
 Тривалість: %4$s
 Розмір: %5$s</string>
-
     <string name="dialog_video_info_video_codec">Відеокодек: %1$s</string>
-
     <string name="dialog_video_info_audio_codec">Аудіокодек: %1$s</string>
-
     <plurals name="video_count">
         <item quantity="one">%1$d відео</item>
         <item quantity="other">%1$d відео</item>
     </plurals>
-
     <string name="toast_cannot_open_screen_cast_settings">Не вдалося відкрити налаштування трансляції екрана</string>
     <string name="toast_share_not_found">Спільний ресурс для цього обраного не знайдено</string>
     <string name="action_remove_from_history">Видалити з історії</string>
-
     <string name="sort_name_za">Назва Я–А</string>
     <string name="sort_date_recent">Найновіші</string>
     <string name="sort_size">Розмір</string>
     <string name="sort_album_order">Порядок альбому</string>
-
     <string name="dialog_permission_needed">Потрібен дозвіл</string>
-
     <string name="dialog_permission_intro_title">Потрібні дозволи</string>
-
     <string name="dialog_permission_intro_message">Для правильної роботи Blaze Player попросить кілька дозволів одночасно:
 
 • Фото, музика та відео: для показу вашої бібліотеки й Blaze Gallery
 • Сповіщення: для керування відтворенням
 • Локальна мережа: для пошуку гостей Blaze Party
 • Мікрофон: лише для динамічного візуального еквалайзера — звук ніколи не записується</string>
-
     <string name="action_continue">Продовжити</string>
     <string name="dialog_permission_message">Для роботи Blaze Player потрібен доступ до ваших відеофайлів.</string>
     <string name="action_allow">Дозволити</string>
     <string name="action_ignore">Ігнорувати</string>
-
     <string name="action_edit">Редагувати</string>
     <string name="browser_files_audio">Мої аудіофайли</string>
-<string name="breadcrumb_home">Головна</string>
+    <string name="breadcrumb_home">Головна</string>
     <string name="toast_path_saved">Шлях збережено</string>
     <string name="toast_path_deleted">Шлях видалено</string>
-<string name="search_hint_video">Пошук відео</string>
+    <string name="search_hint_video">Пошук відео</string>
     <string name="browser_search_in_progress">Триває пошук…</string>
     <string name="hint_path_name">Назва шляху</string>
     <string name="hint_shared_folder">Спільна папка</string>
-<string name="hint_ip_host">IP-адреса / Хост</string>
+    <string name="hint_ip_host">IP-адреса / Хост</string>
     <string name="hint_port">Порт</string>
     <string name="hint_shared_folder_example">Спільна папка (наприклад, videos)</string>
     <string name="hint_username_optional">Ім’я користувача (необов’язково)</string>
     <string name="hint_password_optional">Пароль (необов’язково)</string>
     <string name="hint_username">Ім’я користувача</string>
     <string name="hint_password">Пароль</string>
-<string name="history_empty_blaze_video_subtitle">Перегляньте локальні або мережеві відео, щоб почати</string>
-
+    <string name="history_empty_blaze_video_subtitle">Перегляньте локальні або мережеві відео, щоб почати</string>
     <string name="history_empty_blaze_video_title">Немає нещодавно переглянутих відео</string>
-
     <string name="history_blaze_video">Історія</string>
-
     <string name="history_selection_active">Вибір активний: вибрано %1$d мініатюр.</string>
     <string name="history_action_prompt">Виберіть дію для цієї історії.</string>
     <string name="history_delete_selection">Видалити вибране (%1$d)</string>
@@ -347,35 +314,32 @@ Retro-Spare Dev / Anthony Gentil
     <string name="history_confirm_delete_all_network">Видалити всю мережеву історію?</string>
     <string name="history_toast_select_thumbnails">Виберіть мініатюри, які потрібно видалити з історії</string>
     <string name="permission_gallery_required">Дозвольте доступ до фото й відео, щоб відображати Blaze Gallery.</string>
-<string name="browse_files_local">Переглянути</string>
-<plurals name="file_count">
+    <string name="browse_files_local">Переглянути</string>
+    <plurals name="file_count">
         <item quantity="one">%1$d файл</item>
         <item quantity="other">%1$d файлів</item>
     </plurals>
     <string name="browser_folder_file_count">%1$s · %2$s</string>
     <string name="content_desc_back">Назад</string>
-
     <plurals name="results_found">
         <item quantity="one">%1$d результат</item>
         <item quantity="other">%1$d результатів</item>
     </plurals>
     <string name="path_internal_storage">/внутрішня пам’ять</string>
-
     <plurals name="selected_tracks_count">
         <item quantity="one">Вибрано %1$d доріжку</item>
         <item quantity="other">Вибрано %1$d доріжок</item>
     </plurals>
-<string name="settings_section_playback">ВІДТВОРЕННЯ</string>
+    <string name="settings_section_playback">ВІДТВОРЕННЯ</string>
     <string name="settings_section_audio">АУДІО</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-<string name="eq_preamp_compressor_section">ПЕРЕДПІДСИЛЮВАЧ І КОМПРЕСОР</string>
+    <string name="eq_preamp_compressor_section">ПЕРЕДПІДСИЛЮВАЧ І КОМПРЕСОР</string>
     <string name="eq_preamp_label">Передпідсилювач</string>
     <string name="eq_compressor_label">Компресор</string>
     <string name="player_casting_in_progress">Триває трансляція</string>
     <string name="player_stop_casting">Зупинити трансляцію</string>
     <string name="player_speed_label_short">Швидкість</string>
     <string name="player_ratio_label">Співвідношення</string>
-
     <string name="content_desc_close_playlist">Закрити список відтворення</string>
     <string name="content_desc_clean">Очистити</string>
     <string name="content_desc_playlist">Список відтворення</string>
@@ -386,8 +350,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="content_desc_repeat">Повтор</string>
     <string name="content_desc_timer">Таймер</string>
     <string name="content_desc_options">Параметри</string>
-<string name="error_loading_media">Не вдалося почати відтворення відео.</string>
-
+    <string name="error_loading_media">Не вдалося почати відтворення відео.</string>
     <string name="cast_dialog_status">Трансляція зараз</string>
     <string name="cast_dialog_stop">Зупинити трансляцію</string>
     <string name="select_all">Вибрати все</string>
@@ -403,7 +366,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="paywall_pro_desc">Містить Free і відкриває локальну мережу SMB/UPnP та Blaze Gallery.</string>
     <string name="paywall_pro_plus_title">Blaze Player Pro+</string>
     <string name="paywall_pro_plus_price">5,99 €</string>
-    <string name="paywall_pro_plus_desc">Містить усі функції Pro і відкриває преміальний аудіопрогравач Blaze Audio.</string>
+    <string name="paywall_pro_plus_desc">Містить усі функції Pro і відкриває Blaze Audio, включно з Blaze Party та KaraoKast.</string>
     <string name="paywall_buy_pro">Розблокувати Pro — 3,99 €</string>
     <string name="paywall_buy_pro_plus">Розблокувати Pro+ — 5,99 €</string>
     <string name="paywall_debug_unlocked">Режим налагодження: Pro і Pro+ тимчасово розблоковано.</string>
@@ -419,26 +382,19 @@ Retro-Spare Dev / Anthony Gentil
     <string name="action_off">Вимкнено</string>
     <string name="video_setting_volume_boost">Підсилення гучності</string>
     <string name="action_reset">Скинути</string>
-
-    
-
-<string name="gallery_folders">Галерея</string>
-
+    <string name="gallery_folders">Галерея</string>
     <string name="gallery_empty_folders">Папок ще немає — створіть першу</string>
-
     <string name="gallery_empty_photos">Ця папка порожня</string>
-
     <string name="gallery_trash_empty_message">Кошик порожній</string>
     <string name="gallery_type_photo">Фото</string>
     <string name="gallery_type_video">Відео</string>
     <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Сортувати</string>
-<string name="gallery_sort_date_desc">Спочатку нові</string>
+    <string name="gallery_sort_date_desc">Спочатку нові</string>
     <string name="gallery_sort_date_asc">Спочатку старі</string>
     <string name="gallery_sort_name">За алфавітом</string>
     <string name="gallery_sort_size">Розмір файлу</string>
     <string name="gallery_unknown_folder">Невідома папка</string>
-
     <string name="action_open">Відкрити</string>
     <string name="action_share">Поділитися</string>
     <string name="gallery_trash">Кошик</string>
@@ -447,7 +403,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="gallery_delete">Видалити</string>
     <string name="gallery_delete_folder">Видалити папку</string>
     <string name="gallery_delete_permanently_from_trash">Видалити назавжди з кошика</string>
-<string name="gallery_delete_all">Видалити все</string>
+    <string name="gallery_delete_all">Видалити все</string>
     <string name="gallery_share_all">Поділитися всім</string>
     <string name="gallery_selected_count">Вибрано: %1$d</string>
     <string name="confirm_delete_title">Підтвердити видалення</string>
@@ -467,8 +423,6 @@ Retro-Spare Dev / Anthony Gentil
     </plurals>
     <string name="settings_audio_spectrum">Увімкнути візуальний спектр</string>
     <string name="settings_audio_spectrum_desc">Показувати анімований аудіовізуалізатор у Blaze Audio.</string>
-
-    
     <string name="blaze_party">Blaze Party</string>
     <string name="blaze_party_intro">Створіть локальну сесію або приєднайтеся до спільної черги в тій самій мережі Wi‑Fi.</string>
     <string name="blaze_party_host">Хост Blaze Party</string>
@@ -481,9 +435,9 @@ Retro-Spare Dev / Anthony Gentil
     <string name="blaze_party_share_code">Адреса: %1$s
 Токен: %2$s</string>
     <string name="blaze_party_host_waiting">Сесію підготовлено: гості можуть відсканувати цей код.</string>
-<string name="blaze_party_scan_unavailable">QR-сканер недоступний. Установіть сканер або введіть код вручну.</string>
+    <string name="blaze_party_scan_unavailable">QR-сканер недоступний. Установіть сканер або введіть код вручну.</string>
     <string name="blaze_party_joined">Підключено до сесії Blaze Party</string>
-<string name="blaze_party_short">Party</string>
+    <string name="blaze_party_short">Party</string>
     <string name="add_to_blaze_party">Додати до Blaze Party</string>
     <string name="blaze_party_playlist_title">Список відтворення Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">У списку Blaze Party немає доріжок. Додайте їх з аудіобраузера через «Додати до Blaze Party».</string>
@@ -493,7 +447,6 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="one">До Blaze Party додано %d доріжку</item>
         <item quantity="other">До Blaze Party додано %d доріжок</item>
     </plurals>
-
     <string name="blaze_party_launch">Запустити</string>
     <string name="blaze_party_vote">Голосувати</string>
     <string name="blaze_party_vote_hint">Натисніть доріжку, щоб переглянути голоси й проголосувати.</string>
@@ -506,7 +459,6 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="one">%d голос</item>
         <item quantity="other">%d голосів</item>
     </plurals>
-
     <string name="gallery_folder_button">Папка</string>
     <string name="gallery_create_folder">Додати</string>
     <string name="gallery_create_folder_title">Нова папка фотографій</string>
@@ -531,8 +483,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="blaze_party_default_host">Хост</string>
     <string name="blaze_party_default_guest">Гість</string>
     <string name="app_name_gallery">Blaze Gallery</string>
-
-    
     <string name="photo_editor_title">Редагувати</string>
     <string name="filter_normal">Звичайний</string>
     <string name="filter_vivid">Яскравий</string>
@@ -562,7 +512,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="editor_tab_crop">Обрізати</string>
     <string name="editor_tab_rotate">Повернути</string>
     <string name="editor_tab_blur">Розмиття</string>
-<string name="blur_effect_blur">Розмиття</string>
+    <string name="blur_effect_blur">Розмиття</string>
     <string name="blur_effect_mosaic">Мозаїка</string>
     <string name="blur_shape_circle">Коло</string>
     <string name="blur_shape_square">Квадрат</string>
@@ -578,7 +528,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="action_compare_hold">Утримуйте для порівняння</string>
     <string name="content_desc_rotate_left">Повернути ліворуч</string>
     <string name="content_desc_rotate_right">Повернути праворуч</string>
-<string name="toast_photo_save_failed">Не вдалося зберегти</string>
+    <string name="toast_photo_save_failed">Не вдалося зберегти</string>
     <string name="photo_details_no_exif">Метадані для цього фото недоступні</string>
     <string name="photo_details_dimensions">Розміри: %1$s</string>
     <string name="photo_details_size">Розмір: %1$s</string>
@@ -586,8 +536,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="photo_details_camera">Камера: %1$s</string>
     <string name="photo_details_location">Місце: %1$s</string>
     <string name="gallery_menu_edit">Редагувати</string>
-
-    
     <string name="video_trim_title">Обрізати</string>
     <string name="action_export_fast">SQ</string>
     <string name="action_export_precise">HQ</string>
@@ -599,7 +547,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="toast_mp3_saved">MP3 збережено в Documents/Blaze Audio Extractor</string>
     <string name="toast_mp3_export_failed">Не вдалося експортувати MP3</string>
     <string name="gallery_menu_cut">Обрізати</string>
-
     <string name="add_to_video_queue_short">черга</string>
     <string name="video_queue_title">ЧЕРГА ВІДЕО</string>
     <string name="video_queue_title_with_category">ЧЕРГА ВІДЕО — %1$s (%2$d)</string>
@@ -611,18 +558,14 @@ Retro-Spare Dev / Anthony Gentil
     <string name="toast_video_queue_item_removed">Відео видалено з черги</string>
     <string name="content_desc_video_queue">Черга відео</string>
     <string name="content_desc_close_video_queue">Закрити чергу відео</string>
-
-    
     <string name="add_to_playlist_fixed_short">Додати до списку відтворення</string>
     <string name="app_name_audio">Blaze Audio</string>
     <string name="blaze_party_network_error">Не вдалося підключитися до хоста. Переконайтеся, що ви в тій самій мережі Wi‑Fi.</string>
-
-    
     <string name="audio_library_title">Бібліотека</string>
     <string name="audio_library_subtitle">Ваша музична бібліотека Pro+</string>
     <string name="audio_loading_in_progress">Завантаження...</string>
     <string name="audio_search">Пошук</string>
-<string name="audio_tab_albums">Альбоми</string>
+    <string name="audio_tab_albums">Альбоми</string>
     <string name="audio_tab_artists">Виконавці</string>
     <string name="audio_tab_titles">Доріжки</string>
     <string name="audio_tab_playlists">Списки відтворення</string>
@@ -642,7 +585,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_crossfade_title">Плавний перехід</string>
     <string name="audio_crossfade_subtitle">Плавні переходи між доріжками</string>
     <string name="audio_crossfade_duration">Тривалість переходу</string>
-<string name="audio_section_quality">Якість аудіо</string>
+    <string name="audio_section_quality">Якість аудіо</string>
     <string name="audio_high_quality_output">Високоякісний вихід</string>
     <string name="audio_high_quality_subtitle">Вимикає налаштування звуку, щоб надати пріоритет прямому аудіовиходу</string>
     <string name="audio_replaygain_title">ReplayGain</string>
@@ -662,7 +605,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_auto_scan_subtitle">Регулярно знаходити нові локальні й мережеві файли</string>
     <string name="audio_watched_folders">Відстежувані папки</string>
     <string name="audio_watched_folders_subtitle">Виберіть аудіопапки</string>
-<string name="audio_sort_album_track">Сортувати за номером доріжки</string>
+    <string name="audio_sort_album_track">Сортувати за номером доріжки</string>
     <string name="audio_sort_album_track_subtitle">Дотримуватися порядку альбому й диска</string>
     <string name="audio_ignore_short_files">Ігнорувати короткі файли</string>
     <string name="audio_ignore_short_files_subtitle">Коротші за 30 секунд</string>
@@ -671,7 +614,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_dynamic_theme_subtitle">Зелений Blaze за замовчуванням, кольори обкладинки після ввімкнення</string>
     <string name="audio_cover_border">Кольорова рамка обкладинки</string>
     <string name="audio_cover_border_subtitle">Динамічний акцент навколо обкладинки</string>
-<string name="audio_artwork_size">Розмір обкладинки</string>
+    <string name="audio_artwork_size">Розмір обкладинки</string>
     <string name="audio_size_small">Малий</string>
     <string name="audio_size_medium">Середній</string>
     <string name="audio_size_large">Великий</string>
@@ -680,7 +623,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_synced_lyrics_subtitle">Головний перемикач для локальних текстів LRC/TXT</string>
     <string name="audio_tag_editor">Редактор тегів</string>
     <string name="audio_tag_editor_subtitle">Редагувати назву, виконавця, альбом, жанр, доріжку й диск</string>
-<string name="audio_no_current_track">Немає поточної доріжки</string>
+    <string name="audio_no_current_track">Немає поточної доріжки</string>
     <string name="audio_tag_title">Назва</string>
     <string name="audio_tag_artist">Виконавець</string>
     <string name="audio_tag_album">Альбом</string>
@@ -722,7 +665,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_tag_network_not_supported">Прямий запис доступний для локальних файлів і мережевих файлів SMB/NAS. Це джерело не дозволяє віддалене редагування.</string>
     <string name="action_scan">Сканувати</string>
     <string name="action_done">Готово</string>
-<string name="audio_play_album">Відтворити весь альбом</string>
+    <string name="audio_play_album">Відтворити весь альбом</string>
     <string name="audio_add_album_queue">Додати до черги</string>
     <string name="audio_select_tracks">Вибрати доріжки</string>
     <string name="audio_add_playlist_blaze_party">Додати список до Blaze Party</string>
@@ -738,7 +681,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_add_track_blaze_party">Додати до Blaze Party</string>
     <string name="audio_back_to_albums">Назад до альбомів</string>
     <string name="audio_back_to_albums_hint">Повернутися до повного перегляду бібліотеки</string>
-
     <string name="action_refresh">Оновити</string>
     <string name="audio_watched_folders_empty_short">Немає відстежуваних папок</string>
     <string name="audio_watched_folders_summary_mixed">%1$d локальних · %2$d %3$s</string>
@@ -751,7 +693,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_library_network_synced">Мережу синхронізовано</string>
     <string name="audio_album_sort_album">Назва альбому</string>
     <string name="audio_album_sort_artist">Ім’я виконавця</string>
-
     <string name="close">Закрити</string>
     <string name="eq_tab_tone">Тембр</string>
     <string name="eq_tab_dynamics">Динаміка</string>
@@ -778,7 +719,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="eq_room_hall">Велика зала</string>
     <string name="eq_room_plate">Пластина</string>
     <string name="eq_equalizer_unavailable">Еквалайзер пристрою недоступний для цього виходу. Керування каналами залишається активним.</string>
-
     <string name="action_play_pause">Відтворити / пауза</string>
     <string name="action_stop">Зупинити</string>
     <string name="cast_remote_title">Пульт Cast</string>
@@ -797,10 +737,8 @@ Retro-Spare Dev / Anthony Gentil
     <string name="cast_remote_next">Наступне відео</string>
     <string name="cast_remote_hint">Червона кнопка відкриває панель Chromecast для підключення або відключення телевізора.</string>
     <string name="content_desc_cast_remote">Пульт керування Chromecast</string>
-
     <string name="cast_remote_led_on">УВІМК.</string>
     <string name="cast_remote_led_off">ВИМК.</string>
-
     <string name="content_desc_rewind">Перемотати назад</string>
     <string name="content_desc_forward">Перемотати вперед</string>
     <string name="content_desc_video_screenshot">Захопити кадр відео</string>
@@ -810,11 +748,8 @@ Retro-Spare Dev / Anthony Gentil
     <string name="content_desc_sort">Сортувати</string>
     <string name="content_desc_show_audio_files">Показати аудіофайли</string>
     <string name="content_desc_rescan">Сканувати знову</string>
-
     <string name="eq_status_on">УВІМК.</string>
     <string name="eq_status_off">ВИМК.</string>
-
-    <!-- Aide pour organiser les dossiers surveillés de la bibliothèque audio -->
     <string name="audio_watched_help_button_desc">Довідка про відстежувані папки</string>
     <string name="audio_watched_help_title">Як підготувати аудіобібліотеку</string>
     <string name="audio_watched_help_desc">Коли ви вперше додаєте локальні або мережеві папки до бібліотеки, запасіться терпінням: завантаження метаданих і обкладинок може тривати довго, особливо якщо у вас багато альбомів або треків.</string>
@@ -828,8 +763,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_watched_help_lrc">        └── 01 - Назва треку.lrc</string>
     <string name="audio_watched_help_cover_note">Розмістіть обкладинку в папці альбому під назвою cover.jpg або cover.png.</string>
     <string name="audio_watched_help_lrc_note">Розміщуйте файли .lrc поруч із кожним треком, використовуючи точно таку саму назву файлу.</string>
-
-    <!-- Aide de l’onglet Réseau -->
     <string name="network_help_button_desc">Довідка про мережеві шляхи</string>
     <string name="network_help_title">Довідка про мережу</string>
     <string name="network_help_message">Тут потрібно зберегти шляхи до файлів у локальній мережі, щоб потім переглядати їх у застосунку.</string>
@@ -845,13 +778,8 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="one">Пробний період Pro+: залишився %1$d день</item>
         <item quantity="other">Пробний період Pro+: залишилося %1$d днів</item>
     </plurals>
-
-    <!-- Retour haptique global, désactivé par défaut -->
     <string name="settings_haptic_feedback">Тактильний відгук</string>
     <string name="settings_haptic_feedback_desc">Увімкнути легку вібрацію під час кожного натискання на інтерактивний елемент застосунку.</string>
-
-
-    <!-- Bibliothèque Blaze Audio pour Android Auto -->
     <string name="android_auto_root_title">Blaze Audio</string>
     <string name="android_auto_root_subtitle">Ваша музична бібліотека</string>
     <string name="android_auto_premium_required">Потрібен Blaze Audio Premium</string>
@@ -865,7 +793,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="android_auto_unknown_album">Невідомий альбом</string>
     <string name="android_auto_artist_subtitle">%1$d альб. • %2$d треків</string>
     <string name="android_auto_track_count">%1$d треків</string>
-
     <string name="audio_karaoke_cast">KaraoKast</string>
     <string name="content_desc_karaoke_cast">Відкрити трансляцію екрана караоке</string>
     <string name="karaoke_cast_requires_lrc">Для трансляції караоке потрібен синхронізований файл .lrc.</string>
@@ -877,8 +804,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_output_change_failed">Не вдалося змінити аудіовихід</string>
     <string name="karaoke_mirror_opened">Виберіть Chromecast на панелі Android. Утримуйте кнопку, щоб вибрати локальний аудіовихід.</string>
     <string name="karaoke_mirror_unavailable">Налаштування трансляції екрана недоступні. Скористайтеся плиткою «Трансляція екрана» у швидких налаштуваннях.</string>
-
-    <!-- Sleep timer, LRCLIB lyrics download and surround sound -->
     <string name="audio_lyrics_search_online">Завантажити текст пісні (.LRC)</string>
     <string name="audio_lyrics_download_hint">Виконайте пошук у LRCLIB. Натисніть результат, щоб автоматично завантажити файл .LRC поруч із треком.</string>
     <string name="audio_lyrics_button_description">Керування текстами й завантаження файлів .LRC. Утримуйте, щоб показати або приховати текст.</string>
@@ -916,8 +841,6 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="other">%d синхронізованого результату</item>
     </plurals>
     <string name="action_compare_slider">Перетягніть, щоб порівняти до і після</string>
-
-    <!-- Playlists nommées audio/vidéo -->
     <string name="action_delete_playlist">Видалити список відтворення</string>
     <string name="confirm_delete_named_playlist_message">Видалити список відтворення «%1$s»? Увесь його вміст буде видалено.</string>
     <string name="toast_named_playlist_deleted">Список відтворення «%1$s» видалено.</string>
@@ -932,4 +855,84 @@ Retro-Spare Dev / Anthony Gentil
     <string name="playlist_added_partial_named">%1$s додано, %2$s уже є в «%3$s»</string>
     <string name="toast_named_playlist_emptied">Плейлист «%1$s» очищено.</string>
     <string name="toast_named_playlist_sent_to_queue">«%1$s» додано до черги.</string>
+    <string name="subtitle_add_external">Додати файл SRT/ASS</string>
+    <string name="subtitle_remove_external">Видалити файл субтитрів</string>
+    <string name="subtitle_invalid_file">Виберіть файл субтитрів SRT, ASS, SSA або VTT.</string>
+    <string name="subtitle_cast_conversion_failed">Локально субтитри працюють, але перетворення для Chromecast не вдалося.</string>
+    <string name="subtitle_external_added">Файл субтитрів додано.</string>
+    <string name="cast_fallback_preparing">Підготовка Chromecast: ремультиплексування без перекодування відео…</string>
+    <string name="cast_fallback_ready_audio">Відео готове для Chromecast. Перетворено лише аудіодоріжку.</string>
+    <string name="cast_fallback_ready_remux">Відео готове для Chromecast без перекодування.</string>
+    <string name="cast_fallback_not_possible">Для цього файлу потрібне перекодування відео, вимкнене для збереження продуктивності.</string>
+    <string name="cast_fallback_failed">Не вдалося підготувати цей файл для Chromecast.</string>
+
+    <string name="slideshow_short">Слайд-шоу</string>
+    <string name="slideshow_create">Створити слайд-шоу</string>
+    <string name="slideshow_title">Створити слайд-шоу</string>
+    <string name="slideshow_reorder_hint">Натисніть і перетягніть фото, щоб змінити порядок.</string>
+    <string name="slideshow_music_title">Музика слайд-шоу</string>
+    <string name="slideshow_no_music">Музику не вибрано</string>
+    <string name="slideshow_music_selected">Музику вибрано</string>
+    <string name="slideshow_choose_music">Вибрати MP3/WAV</string>
+    <string name="slideshow_music_invalid">Не вдалося визначити тривалість цього аудіофайлу.</string>
+    <string name="slideshow_duration_summary">Тривалість: %1$s • %2$s с/фото</string>
+    <string name="slideshow_export">Експортувати MP4</string>
+    <string name="slideshow_exporting">Створення слайд-шоу…</string>
+    <string name="slideshow_export_success">Слайд-шоу збережено в Blaze Gallery.</string>
+    <string name="slideshow_export_failed">Не вдалося створити слайд-шоу.</string>
+    <string name="slideshow_need_two_photos">Виберіть щонайменше 2 фото.</string>
+    <string name="slideshow_photo_number">Фото %1$d</string>
+    <string name="slideshow_annotation_title">Підпис до фото</string>
+    <string name="slideshow_annotation_hint">Додайте короткий підпис…</string>
+    <string name="slideshow_annotation_style_glass">Темне скло</string>
+    <string name="slideshow_annotation_style_accent">Акцент Blaze</string>
+    <string name="slideshow_annotation_style_minimal">Мінімалізм</string>
+    <string name="slideshow_no_annotation">Без підпису</string>
+    <string name="slideshow_annotation_short">Підпис</string>
+    <string name="slideshow_select_hint">Виберіть фото, а потім натисніть Створити слайд-шоу.</string>
+
+    <string name="slideshow_annotation_editor_title">Редагувати підпис</string>
+    <string name="slideshow_annotation_text">Текст (емодзі підтримуються)</string>
+    <string name="slideshow_annotation_font">Шрифт</string>
+    <string name="slideshow_annotation_size_value">Розмір тексту: %1$d%%</string>
+    <string name="slideshow_annotation_background_color">Колір фону</string>
+    <string name="slideshow_annotation_shape">Форма фону</string>
+    <string name="slideshow_annotation_shape_pill">Капсула</string>
+    <string name="slideshow_annotation_shape_parallelogram">Паралелограм</string>
+    <string name="slideshow_annotation_shape_rectangle">Прямокутник</string>
+    <string name="slideshow_annotation_drag_hint">Перетягніть підпис або GIF безпосередньо по фото в потрібне місце.</string>
+    <string name="slideshow_gif_title">Анімований GIF</string>
+    <string name="slideshow_gif_choose">Додати GIF</string>
+    <string name="slideshow_gif_invalid">Цей файл не є коректним анімованим GIF.</string>
+    <string name="slideshow_gif_selected">Анімований GIF додано</string>
+    <string name="slideshow_annotation_and_gif_summary">%1$s • Анімований GIF</string>
+    <string name="slideshow_export_name_title">Назва файлу MP4</string>
+    <string name="slideshow_export_name_hint">Назва слайд-шоу</string>
+    <string name="slideshow_export_name_invalid">Введіть назву файлу.</string>
+
+    <string name="slideshow_add_to">Додати до слайд-шоу</string>
+    <string name="slideshow_add_photos">Додати фото</string>
+    <string name="slideshow_picker_selected_count">Слайд-шоу: %1$d • Додати: %2$d</string>
+    <string name="slideshow_added_count">Додано фото до слайд-шоу: %1$d</string>
+
+    <string name="slideshow_picker_folders">Папки</string>
+
+    <string name="karaoke_sync_offset_value">Синхр. %1$s%2$d мс</string>
+    <string name="karaoke_sync_offset_default">Синхр. +300 мс</string>
+    <string name="content_desc_karaoke_sync_minus">Затримати текст на 50 мілісекунд</string>
+    <string name="content_desc_karaoke_sync_plus">Випередити текст на 50 мілісекунд</string>
+    <string name="paywall_buy_pro_dynamic">Розблокувати Pro — %1$s</string>
+    <string name="paywall_buy_pro_plus_dynamic">Розблокувати Pro+ — %1$s</string>
+    <string name="paywall_purchase_success_pro">Покупка успішна: версію Pro розблоковано.</string>
+    <string name="paywall_purchase_success_pro_plus">Покупка успішна: версію Pro+ розблоковано.</string>
+    <string name="paywall_purchase_error">Не вдалося завершити покупку: %1$s</string>
+    <string name="paywall_restore_success">Покупки успішно відновлено.</string>
+    <string name="paywall_restore_nothing_found">У цьому обліковому записі Google Play немає покупок для відновлення.</string>
+    <string name="paywall_restore_error">Не вдалося відновити: %1$s</string>
+    <string name="slideshow_font_montserrat">Montserrat</string>
+    <string name="slideshow_font_playfair">Playfair Display</string>
+    <string name="slideshow_font_pacifico">Pacifico</string>
+    <string name="slideshow_font_bebas">Bebas Neue</string>
+    <string name="slideshow_font_caveat">Caveat</string>
+    <string name="slideshow_font_cinzel">Cinzel</string>
 </resources>

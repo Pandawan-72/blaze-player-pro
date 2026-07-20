@@ -28,6 +28,7 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -55,6 +56,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.cast.VideoStreamServerManager
+import fr.retrospare.blazeplayer.cast.ChromecastFallbackManager
 import fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory
 import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.debug.CrashReporter
@@ -207,6 +209,12 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
     private val playbackThumbnailCapturedPaths = linkedSetOf<String>()
     private val playbackThumbnailRetryAfter = mutableMapOf<String, Long>()
     private var playbackThumbnailCaptureInProgress = false
+    private var externalSubtitle: ExternalSubtitleManager.Selection? = null
+    private var castFallbackInProgress = false
+
+    private val externalSubtitlePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) handleExternalSubtitlePicked(uri)
+    }
 
 
     override fun onNewIntent(intent: Intent) {
@@ -283,6 +291,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
         } else {
             mediaPath = newPath
             mediaName = newName
+            externalSubtitle = ExternalSubtitleManager.restore(this, newPath)
             lifecycleScope.launch {
                 playerReady.await()
                 if (!isFinishing && !isDestroyed) switchTo(newPath, newName)
@@ -322,6 +331,12 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
         intent.getStringArrayListExtra("queueNames")?.let { videoQueueNames = it }
         videoQueueIndex = intent.getIntExtra("queueIndex", 0)
         mediaName = intent.getStringExtra("mediaName") ?: externalMedia?.name ?: File(mediaPath).name
+        externalSubtitle = ExternalSubtitleManager.restore(this, mediaPath)
+        externalSubtitle?.let { selection ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                ExternalSubtitleManager.prepareWebVtt(applicationContext, selection)
+            }
+        }
         if (mediaPath.startsWith("content://", true)) {
             try {
                 val grantUri = externalMedia?.uri ?: intent.data ?: Uri.parse(mediaPath)
@@ -527,8 +542,14 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
             .build()
     }
 
-    private fun buildMediaItem(path: String, name: String): MediaItem =
-        VideoMediaItemFactory.build(this, path, name)
+    private fun buildMediaItem(path: String, name: String): MediaItem {
+        val subtitleConfigurations = if (path == mediaPath) {
+            externalSubtitle?.let { listOf(it.toMedia3Configuration()) }.orEmpty()
+        } else {
+            ExternalSubtitleManager.restore(this, path)?.let { listOf(it.toMedia3Configuration()) }.orEmpty()
+        }
+        return VideoMediaItemFactory.build(this, path, name, subtitleConfigurations)
+    }
 
     private fun persistRemoteQueueState() {
         if (mediaPath.isBlank()) return
@@ -635,7 +656,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
             }
             val correctItem = player.currentMediaItem?.mediaId == path
             val state = player.playbackState
-            val expectedUrl = VideoStreamServerManager.getLanStreamUrl()
+            val expectedUrl = expectedCastContentUrl(path)
             val remoteContentUrl = runCatching {
                 val client = com.google.android.gms.cast.framework.CastContext
                     .getSharedInstance(applicationContext)
@@ -667,6 +688,9 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
             } else {
                 mediaReplacementInProgress = false
                 pendingCastReplacementVerification = null
+                if (startCastFallbackPreparation(path, name, positionMs, autoPlay, "replacement")) {
+                    return@Runnable
+                }
                 CrashReporter.log(
                     this@PlayerActivity,
                     "Chromecast replacement failed after retries for $path state=$state item=${player.currentMediaItem?.mediaId}"
@@ -827,6 +851,9 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
 
             if (castStartupRetryCount >= 3) {
                 pendingCastStartupVerification = null
+                if (startCastFallbackPreparation(path, name, positionMs, autoPlay, "initial load")) {
+                    return@Runnable
+                }
                 CrashReporter.log(
                     this@PlayerActivity,
                     "Chromecast initial LOAD failed path=$path expected=$expectedUrl actual=$actualUrl state=$playerState idle=$idleReason"
@@ -893,12 +920,98 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
         }.onFailure { CrashReporter.log(this, "Failed to retry initial Cast LOAD for $path", it) }
     }
 
+    /** Lance le fallback seulement après l'échec confirmé de la lecture directe.
+     *  Le travail reste hors du thread UI et ne touche jamais au codec vidéo. */
+    private fun startCastFallbackPreparation(
+        path: String,
+        name: String,
+        positionMs: Long,
+        autoPlay: Boolean,
+        reason: String
+    ): Boolean {
+        val existingFallback = ChromecastFallbackManager.preparedSource(path)
+        val forceAudioTranscode = existingFallback != null && !existingFallback.audioTranscoded
+        if (castFallbackInProgress || existingFallback?.audioTranscoded == true ||
+            ChromecastFallbackManager.hasAttempted(path, forceAudioTranscode) || !::player.isInitialized ||
+            player.deviceInfo.playbackType != DeviceInfo.PLAYBACK_TYPE_REMOTE
+        ) return false
+
+        castFallbackInProgress = true
+        pendingCastStartupVerification?.let(uiHandler::removeCallbacks)
+        pendingCastStartupVerification = null
+        pendingCastReplacementVerification?.let(uiHandler::removeCallbacks)
+        pendingCastReplacementVerification = null
+        android.widget.Toast.makeText(this, R.string.cast_fallback_preparing, android.widget.Toast.LENGTH_LONG).show()
+
+        val castModel = runCatching {
+            com.google.android.gms.cast.framework.CastContext.getSharedInstance(applicationContext)
+                .sessionManager.currentCastSession?.castDevice?.modelName
+        }.getOrNull()
+
+        lifecycleScope.launch {
+            val result = ChromecastFallbackManager.prepare(
+                applicationContext,
+                path,
+                castModel,
+                forceAudioTranscode = forceAudioTranscode
+            )
+            castFallbackInProgress = false
+            if (mediaPath != path || isFinishing || isDestroyed || !::player.isInitialized ||
+                player.deviceInfo.playbackType != DeviceInfo.PLAYBACK_TYPE_REMOTE
+            ) return@launch
+
+            when (result) {
+                is ChromecastFallbackManager.Result.Ready -> {
+                    externalSubtitle?.let { selection ->
+                        withContext(Dispatchers.IO) {
+                            ExternalSubtitleManager.prepareWebVtt(applicationContext, selection)
+                        }
+                    }
+                    val message = if (result.source.audioTranscoded) {
+                        R.string.cast_fallback_ready_audio
+                    } else {
+                        R.string.cast_fallback_ready_remux
+                    }
+                    android.widget.Toast.makeText(this@PlayerActivity, message, android.widget.Toast.LENGTH_SHORT).show()
+                    android.util.Log.i(
+                        "CAST",
+                        "Fallback ready reason=$reason path=$path output=${result.source.outputPath} " +
+                            "audioTranscoded=${result.source.audioTranscoded} forcedAudio=$forceAudioTranscode"
+                    )
+                    val safePosition = maxOf(positionMs, lastKnownRemotePosition).coerceAtLeast(0L)
+                    castStartupVerificationGeneration++
+                    castStartupRetryCount = 0
+                    loadMedia(path, name, safePosition, autoPlay = autoPlay)
+                }
+                is ChromecastFallbackManager.Result.NotPossible -> {
+                    CrashReporter.log(this@PlayerActivity, "Cast fallback unavailable for $path: ${result.reason}")
+                    android.widget.Toast.makeText(
+                        this@PlayerActivity,
+                        R.string.cast_fallback_not_possible,
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+                is ChromecastFallbackManager.Result.Failed -> {
+                    CrashReporter.log(this@PlayerActivity, "Cast fallback failed for $path: ${result.reason}")
+                    android.widget.Toast.makeText(
+                        this@PlayerActivity,
+                        R.string.cast_fallback_failed,
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+        return true
+    }
+
     private fun expectedCastContentUrl(path: String): String? {
-        return if (path.startsWith("http://", true) || path.startsWith("https://", true)) {
+        val preparedPath = ChromecastFallbackManager.preparedPath(path)
+        val effectivePath = preparedPath ?: path
+        return if (preparedPath == null && (path.startsWith("http://", true) || path.startsWith("https://", true))) {
             path
         } else {
-            runCatching { VideoStreamServerManager.getLanStreamUrlFor(applicationContext, path) }
-                .onFailure { CrashReporter.log(this, "Failed to resolve expected Cast URL for $path", it) }
+            runCatching { VideoStreamServerManager.getLanStreamUrlFor(applicationContext, effectivePath) }
+                .onFailure { CrashReporter.log(this, "Failed to resolve expected Cast URL for $effectivePath", it) }
                 .getOrNull()
         }
     }
@@ -1345,10 +1458,6 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
     }
 
     private fun showSubtitles() {
-        if (isCastingVideo()) {
-            InfoDialog.show(this, getString(R.string.info_dialog_title_unavailable), getString(R.string.cast_subtitles_unavailable), R.drawable.ic_cast)
-            return
-        }
         val tracks = player.currentTracks
         val subGroups = tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
         val labels = mutableListOf(getString(R.string.subtitles_disabled))
@@ -1362,22 +1471,91 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
                 else -> baseLang
             })
         }
+        val addIndex = labels.size
+        labels.add(getString(R.string.subtitle_add_external))
+        val removeIndex = if (externalSubtitle != null) {
+            labels.add(getString(R.string.subtitle_remove_external))
+            labels.lastIndex
+        } else -1
         val selectedIndex = if (subGroups.none { it.isSelected }) 0 else subGroups.indexOfFirst { it.isSelected } + 1
         showTrackSelector(getString(R.string.dialog_title_subtitles), labels, selectedIndex) { i ->
-            if (i == 0) {
-                player.trackSelectionParameters = player.trackSelectionParameters
-                    .buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-                    .clearOverridesOfType(C.TRACK_TYPE_TEXT)
-                    .build()
+            when {
+                i == 0 -> {
+                    player.trackSelectionParameters = player.trackSelectionParameters
+                        .buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                        .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                        .build()
+                }
+                i in 1..subGroups.size -> {
+                    val selectedGroup = subGroups[i - 1]
+                    val override = TrackSelectionOverride(selectedGroup.mediaTrackGroup, 0)
+                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                        .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                        .addOverride(override)
+                        .build()
+                }
+                i == addIndex -> externalSubtitlePicker.launch(
+                    arrayOf("application/x-subrip", "text/x-ssa", "text/vtt", "text/plain", "*/*")
+                )
+                i == removeIndex -> {
+                    ExternalSubtitleManager.clear(this, mediaPath)
+                    externalSubtitle = null
+                    reloadCurrentMediaForSubtitle()
+                }
+            }
+        }
+    }
+
+    private fun handleExternalSubtitlePicked(uri: Uri) {
+        runCatching {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val selection = ExternalSubtitleManager.createSelection(this, uri)
+        if (selection == null) {
+            android.widget.Toast.makeText(this, R.string.subtitle_invalid_file, android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+        ExternalSubtitleManager.save(this, mediaPath, selection)
+        externalSubtitle = selection
+        lifecycleScope.launch {
+            val vttReady = withContext(Dispatchers.IO) {
+                ExternalSubtitleManager.prepareWebVtt(applicationContext, selection) != null
+            }
+            if (!vttReady && isCastingVideo()) {
+                android.widget.Toast.makeText(
+                    this@PlayerActivity,
+                    R.string.subtitle_cast_conversion_failed,
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
             } else {
-                val selectedGroup = subGroups[i - 1]
-                val override = TrackSelectionOverride(selectedGroup.mediaTrackGroup, 0)
-                player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
-                    .clearOverridesOfType(C.TRACK_TYPE_TEXT)
-                    .addOverride(override)
-                    .build()
+                android.widget.Toast.makeText(
+                    this@PlayerActivity,
+                    R.string.subtitle_external_added,
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+            reloadCurrentMediaForSubtitle()
+        }
+    }
+
+    private fun reloadCurrentMediaForSubtitle() {
+        if (!::player.isInitialized || mediaPath.isBlank()) return
+        val position = player.currentPosition.coerceAtLeast(0L)
+        val autoPlay = player.playWhenReady || player.isPlaying || isCastingVideo()
+        loadMedia(mediaPath, mediaName, position, autoPlay)
+    }
+
+    private fun ensureExternalSubtitlePreparedForCast() {
+        val selection = externalSubtitle ?: return
+        if (ExternalSubtitleManager.preparedWebVttPath(selection) != null) return
+        lifecycleScope.launch {
+            val ready = withContext(Dispatchers.IO) {
+                ExternalSubtitleManager.prepareWebVtt(applicationContext, selection) != null
+            }
+            if (ready && !castFallbackInProgress && isCastingVideo() && mediaPath.isNotBlank()) {
+                reloadCurrentMediaForSubtitle()
             }
         }
     }
@@ -1527,6 +1705,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
                     error
                 )
                 val isCasting = ::player.isInitialized && player.deviceInfo.playbackType == DeviceInfo.PLAYBACK_TYPE_REMOTE
+                if (castFallbackInProgress && isCasting) return
                 if (mediaReplacementInProgress && isCasting) {
                     // Le LOAD distant peut produire un état transitoire pendant le remplacement.
                     // La vérification dédiée effectuera au maximum deux retries propres, sans
@@ -1601,7 +1780,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
                     }
                 }
                 if (state == Player.STATE_IDLE && isNetworkPlayback() && !mediaReplacementInProgress &&
-                    !closingPlayerExplicitly && !videoStoppedByUser && !networkRecoveryIsSuppressed() &&
+                    !castFallbackInProgress && !closingPlayerExplicitly && !videoStoppedByUser && !networkRecoveryIsSuppressed() &&
                     player.currentMediaItem != null
                 ) {
                     runOnUiThread { recoverNetworkStarvation(player.currentPosition.coerceAtLeast(lastKnownPositionForCurrentOutput())) }
@@ -1672,6 +1851,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
                     if (isRemote) {
                         scheduleRemoteAutoplayChecks("device switched to Cast")
                         beginCastStartupVerification(mediaPath, mediaName, transferPosition, autoPlay = true)
+                        ensureExternalSubtitlePreparedForCast()
                     } else {
                         pendingCastStartupVerification?.let(uiHandler::removeCallbacks)
                         pendingCastStartupVerification = null
@@ -2981,6 +3161,13 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
 
         mediaPath = path
         mediaName = name
+        externalSubtitle = ExternalSubtitleManager.restore(this, path)
+        externalSubtitle?.let { selection ->
+            lifecycleScope.launch(Dispatchers.IO) {
+                ExternalSubtitleManager.prepareWebVtt(applicationContext, selection)
+            }
+        }
+        castFallbackInProgress = false
         isNetworkMedia = fr.retrospare.blazeplayer.paywall.FeatureAccess.isNetworkMediaPath(path)
         persistRemoteQueueState()
         binding.tvTitle.text = mediaName

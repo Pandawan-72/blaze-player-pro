@@ -49,6 +49,17 @@ object VideoStreamServerManager {
         return server.getLanStreamUrl(version)
     }
 
+
+    /** URL loopback propre à une source précise. Utilisée uniquement par le pipeline FFmpeg Cast :
+     *  le serveur sait déjà lire file://, content:// et SMB avec des accès Range exacts. */
+    @Synchronized
+    fun getLoopbackStreamUrlFor(context: Context, sourcePath: String): String? {
+        val server = ensureServer(context) ?: return null
+        val version = sourceVersions[sourcePath]
+            ?: server.registerSource(sourcePath).also { sourceVersions[sourcePath] = it }
+        return server.getStreamUrl(version)
+    }
+
     private fun ensureServer(context: Context): LocalStreamServer? {
         var server = sharedServer
         if (server == null) {

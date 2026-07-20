@@ -13,7 +13,12 @@ import java.io.File
 /** Construction partagée des MediaItem vidéo pour le player et la télécommande Cast. */
 object VideoMediaItemFactory {
 
-    fun build(context: Context, path: String, name: String): MediaItem {
+    fun build(
+        context: Context,
+        path: String,
+        name: String,
+        subtitleConfigurations: List<MediaItem.SubtitleConfiguration> = emptyList()
+    ): MediaItem {
         try {
             if (!path.startsWith("http://", true) && !path.startsWith("https://", true)) {
                 VideoStreamServerManager.startServer(context.applicationContext, path)
@@ -33,6 +38,7 @@ object VideoMediaItemFactory {
             .setUri(uri)
             .setMediaId(path)
             .setMimeType(guessMimeType(path))
+            .setSubtitleConfigurations(subtitleConfigurations)
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(name)

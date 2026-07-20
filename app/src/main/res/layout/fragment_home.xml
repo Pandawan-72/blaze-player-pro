@@ -507,6 +507,29 @@
                             android:insetBottom="0dp" />
 
                     <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnGalleryDiapo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="8dp"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:paddingHorizontal="12dp"
+                        android:text="@string/slideshow_short"
+                        android:textColor="@color/on_surface"
+                        android:textSize="13sp"
+                        android:visibility="gone"
+                        app:backgroundTint="@color/surface_variant"
+                        app:cornerRadius="20dp"
+                        app:icon="@drawable/ic_movie_clap"
+                        app:iconGravity="textStart"
+                        app:iconSize="15dp"
+                        app:iconTint="@color/green_accent"
+                        app:strokeColor="@color/green_accent_stroke"
+                        app:strokeWidth="1dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp" />
+
+                    <com.google.android.material.button.MaterialButton
                         android:includeFontPadding="false"
                         android:id="@+id/btnGalleryPrimary"
                         android:layout_width="wrap_content"
