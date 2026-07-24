@@ -39,7 +39,6 @@
     <string name="queue">कतार</string>
     <string name="queue_short">कतार</string>
     <string name="add">जोड़ें</string>
-    <string name="info">जानकारी</string>
     <string name="lyrics">गीत के बोल</string>
     <string name="audio_lyrics_title">गीत के बोल</string>
     <string name="audio_lyrics_disabled">स्थानीय बोलों के लिए ऑडियो सेटिंग्स में “सिंक किए गए बोल” चालू करें।</string>
@@ -172,7 +171,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="toast_click_device_to_explore">ब्राउज़ करने के लिए किसी डिवाइस पर टैप करें।</string>
     <string name="scan_in_progress">स्कैन हो रहा है…</string>
     <string name="scan_complete">स्कैन पूरा हुआ</string>
-    <string name="audio_scan_deferred_playback">प्लेबैक सक्रिय है: रुकावट से बचने के लिए ऑडियो स्कैन स्थगित किया गया है।</string>
     <string name="dialog_choose_share">शेयर चुनें</string>
     <string name="action_add_to_favorites">पसंदीदा में जोड़ें</string>
     <string name="toast_added_to_favorites">%1$s को पसंदीदा में जोड़ा गया</string>
@@ -209,10 +207,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="action_remove">हटाएँ</string>
     <string name="unknown_generic">अज्ञात</string>
     <string name="sleep_timer_title">स्लीप टाइमर</string>
-    <string name="minutes_5">5 मिनट</string>
-    <string name="minutes_15">15 मिनट</string>
-    <string name="minutes_30">30 मिनट</string>
-    <string name="hour_1">1 घंटा</string>
     <string name="toast_list_already_empty">सूची पहले से खाली है</string>
     <string name="dialog_clean_list">सूची साफ़ करें</string>
     <string name="action_remove_selection">चयन हटाएँ</string>
@@ -223,18 +217,11 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="playlist_empty">(खाली)</string>
     <string name="action_to_playlist">कतार को प्लेलिस्ट में कॉपी करें</string>
     <string name="content_desc_queue_to_playlist">कतार को प्लेलिस्ट में कॉपी करें</string>
-    <string name="playlist_existing_with_count">(मौजूद — %1$s)</string>
-    <string name="dialog_playlist_not_empty_title">मौजूदा प्लेलिस्ट</string>
-    <string name="dialog_playlist_not_empty_message">प्लेलिस्ट %1$d में पहले से %2$s हैं। फिर भी चयनित आइटम जोड़ें?</string>
-    <string name="action_confirm_add_to_existing_playlist">फिर भी जोड़ें</string>
-    <string name="playlist_added_to_slot">%1$s को प्लेलिस्ट %2$d में</string>
-    <string name="playlist_added_partial">%1$s (%2$s)</string>
     <string name="dialog_playlist_empty_message">यह प्लेलिस्ट खाली है।
 
 ब्राउज़र में फ़ाइलें चुनें और इसे भरने के लिए "प्लेलिस्ट में जोड़ें" का उपयोग करें।</string>
     <string name="action_play_playlist">प्लेलिस्ट चलाएँ</string>
     <string name="action_empty_playlist">खाली करें</string>
-    <string name="toast_playlist_emptied">प्लेलिस्ट %1$d खाली की गई</string>
     <plurals name="playlist_item_count">
         <item quantity="one">%1$d आइटम</item>
         <item quantity="other">%1$d आइटम</item>
@@ -273,14 +260,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="sort_size">आकार</string>
     <string name="sort_album_order">एल्बम क्रम</string>
     <string name="dialog_permission_needed">अनुमति आवश्यक</string>
-    <string name="dialog_permission_intro_title">अनुमतियाँ आवश्यक</string>
-    <string name="dialog_permission_intro_message">ठीक से काम करने के लिए Blaze Player एक साथ कुछ अनुमतियाँ माँगेगा:
-
-• फ़ोटो, संगीत और वीडियो: आपकी लाइब्रेरी और Blaze Gallery दिखाने के लिए
-• सूचनाएँ: प्लेबैक नियंत्रणों के लिए
-• स्थानीय नेटवर्क: Blaze Party अतिथियों को खोजने के लिए
-• माइक्रोफ़ोन: केवल डायनेमिक विज़ुअल इक्वलाइज़र के लिए — कोई ऑडियो रिकॉर्ड नहीं किया जाता</string>
-    <string name="action_continue">जारी रखें</string>
     <string name="dialog_permission_message">काम करने के लिए Blaze Player को आपकी वीडियो फ़ाइलों तक पहुँच चाहिए।</string>
     <string name="action_allow">अनुमति दें</string>
     <string name="action_ignore">अनदेखा करें</string>
@@ -304,14 +283,10 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="history_empty_blaze_video_title">हाल में देखे गए वीडियो नहीं हैं</string>
     <string name="history_blaze_video">इतिहास</string>
     <string name="history_selection_active">चयन सक्रिय: %1$d थंबनेल चयनित।</string>
-    <string name="history_action_prompt">इस इतिहास के लिए कोई कार्रवाई चुनें।</string>
     <string name="history_delete_selection">चयन हटाएँ (%1$d)</string>
     <string name="history_finish_selection">चयन समाप्त करें</string>
     <string name="history_select_thumbnails">थंबनेल चुनें</string>
-    <string name="history_delete_all">पूरा इतिहास हटाएँ</string>
     <string name="history_confirm_delete_items">इतिहास से %1$d आइटम हटाएँ?</string>
-    <string name="history_confirm_delete_all_local">पूरा स्थानीय इतिहास हटाएँ?</string>
-    <string name="history_confirm_delete_all_network">पूरा नेटवर्क इतिहास हटाएँ?</string>
     <string name="history_toast_select_thumbnails">इतिहास से हटाने के लिए थंबनेल चुनें</string>
     <string name="permission_gallery_required">Blaze Gallery दिखाने के लिए फ़ोटो और वीडियो की पहुँच दें।</string>
     <string name="browse_files_local">ब्राउज़ करें</string>
@@ -333,7 +308,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="settings_section_playback">प्लेबैक</string>
     <string name="settings_section_audio">ऑडियो</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="eq_preamp_compressor_section">प्रीऐम्प और कंप्रेसर</string>
     <string name="eq_preamp_label">प्रीऐम्प</string>
     <string name="eq_compressor_label">कंप्रेसर</string>
     <string name="player_casting_in_progress">कास्ट जारी है</string>
@@ -354,8 +328,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="cast_dialog_status">अभी कास्ट हो रहा है</string>
     <string name="cast_dialog_stop">कास्ट रोकें</string>
     <string name="select_all">सभी चुनें</string>
-    <string name="deselect_all">सभी का चयन हटाएँ</string>
-    <string name="cast_subtitles_unavailable">कास्ट करते समय उपशीर्षक उपलब्ध नहीं हैं</string>
     <string name="cast_audio_language_unavailable">कास्ट करते समय ऑडियो भाषा नहीं बदली जा सकती</string>
     <string name="paywall_title">अपना Blaze संस्करण चुनें</string>
     <string name="paywall_subtitle">15 दिनों तक सभी Pro+ सुविधाएँ इस्तेमाल करें, फिर अपनी ज़रूरत के अनुसार संस्करण चुनें।</string>
@@ -369,10 +341,8 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="paywall_pro_plus_desc">सभी Pro सुविधाएँ शामिल हैं और Blaze Audio को अनलॉक करता है, जिसमें Blaze Party और KaraoKast भी शामिल हैं।</string>
     <string name="paywall_buy_pro">Pro अनलॉक करें — €3.99</string>
     <string name="paywall_buy_pro_plus">Pro+ अनलॉक करें — €5.99</string>
-    <string name="paywall_debug_unlocked">डीबग मोड: Pro और Pro+ अस्थायी रूप से अनलॉक हैं।</string>
     <string name="paywall_restore">खरीदारी पुनर्स्थापित करें</string>
     <string name="action_back">वापस</string>
-    <string name="toast_billing_soon">खरीदारी जल्द उपलब्ध होगी</string>
     <string name="video_settings_title">वीडियो सेटिंग्स</string>
     <string name="video_setting_brightness">चमक</string>
     <string name="video_setting_contrast">कॉन्ट्रास्ट</string>
@@ -525,7 +495,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="crop_ratio_square">1:1</string>
     <string name="crop_ratio_4_3">4:3</string>
     <string name="crop_ratio_16_9">16:9</string>
-    <string name="action_compare_hold">तुलना करने के लिए दबाए रखें</string>
     <string name="content_desc_rotate_left">बाएँ घुमाएँ</string>
     <string name="content_desc_rotate_right">दाएँ घुमाएँ</string>
     <string name="toast_photo_save_failed">सहेजना विफल</string>
@@ -565,14 +534,12 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_library_subtitle">आपकी Pro+ संगीत लाइब्रेरी</string>
     <string name="audio_loading_in_progress">लोड हो रहा है...</string>
     <string name="audio_search">खोजें</string>
-    <string name="audio_tab_albums">एल्बम</string>
     <string name="audio_tab_artists">कलाकार</string>
     <string name="audio_tab_titles">ट्रैक</string>
     <string name="audio_tab_playlists">प्लेलिस्ट</string>
     <string name="audio_resume_listening">हाल में सुना गया</string>
     <string name="audio_recent_albums">मेरे एल्बम</string>
     <string name="audio_played_tracks">ट्रैक</string>
-    <string name="audio_all">सभी दिखाएँ</string>
     <string name="audio_album_view_grid_3">ग्रिड 3</string>
     <string name="audio_album_view_grid_4">ग्रिड 4</string>
     <string name="audio_album_view_list">सूची</string>
@@ -592,8 +559,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_replaygain_off">बंद</string>
     <string name="audio_replaygain_track">ट्रैक</string>
     <string name="audio_replaygain_album">एल्बम</string>
-    <string name="audio_preamp_title">प्रीऐम्प</string>
-    <string name="audio_preamp_subtitle">आउटपुट स्तर समायोजित करें</string>
     <string name="audio_output_mode_title">प्रिसीजन मोड</string>
     <string name="audio_output_mode_subtitle">डिवाइस की गुणवत्ता और अनुकूलता के लिए PCM पथ अनुकूलित करता है</string>
     <string name="audio_output_mode_auto">स्वचालित</string>
@@ -628,7 +593,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_tag_artist">कलाकार</string>
     <string name="audio_tag_album">एल्बम</string>
     <string name="audio_tag_reset">रीसेट</string>
-    <string name="audio_tag_saved">ऑडियो मेटाडेटा सहेजा गया</string>
     <string name="audio_tag_reset_done">स्थानीय मेटाडेटा साफ़ किया गया</string>
     <plurals name="audio_folder_count_compact">
         <item quantity="one">%d फ़ोल्डर</item>
@@ -650,7 +614,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_watched_folders_manage_info">निगरानी हटाने के लिए फ़ोल्डर पर टैप करें। ऑडियो ब्राउज़र के फ़ोल्डर मेनू से नए फ़ोल्डर जोड़ें।</string>
     <string name="audio_remove_watched_folder">हटाएँ</string>
     <string name="audio_add_to_watched">निगरानी वाले फ़ोल्डरों में जोड़ें</string>
-    <string name="audio_add_to_favorites">पसंदीदा में जोड़ें</string>
     <string name="audio_watched_folder_added">फ़ोल्डर निगरानी वाले फ़ोल्डरों में जोड़ा गया</string>
     <string name="audio_watched_folder_refresh_hint">फ़ोल्डर निगरानी वाले फ़ोल्डरों में जोड़ा गया। लाइब्रेरी पर लौटने पर पूरा रिफ़्रेश अपने-आप शुरू होगा।</string>
     <string name="audio_watched_folder_removed">फ़ोल्डर निगरानी वाले फ़ोल्डरों से हटाया गया</string>
@@ -667,20 +630,15 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="action_done">पूर्ण</string>
     <string name="audio_play_album">पूरा एल्बम चलाएँ</string>
     <string name="audio_add_album_queue">कतार में जोड़ें</string>
-    <string name="audio_select_tracks">ट्रैक चुनें</string>
     <string name="audio_add_playlist_blaze_party">प्लेलिस्ट को Blaze Party में जोड़ें</string>
     <string name="audio_add_playlist_queue">प्लेलिस्ट को कतार में जोड़ें</string>
-    <string name="audio_various_artists">विभिन्न कलाकार</string>
     <string name="queue_clear_all">सभी साफ़ करें</string>
     <string name="queue_clear_selection">चयन साफ़ करें</string>
     <string name="queue_clear_hint">सभी साफ़ करने से पूरी कतार हटती है। अन्यथा केवल हटाने वाले ट्रैक चुनें, फिर चयन साफ़ करें।</string>
     <string name="audio_track_more_options">ट्रैक विकल्प</string>
-    <string name="audio_album_more_options">एल्बम विकल्प</string>
     <string name="audio_add_track_queue">कतार में जोड़ें</string>
     <string name="audio_add_track_playlist">प्लेलिस्ट में जोड़ें</string>
     <string name="audio_add_track_blaze_party">Blaze Party में जोड़ें</string>
-    <string name="audio_back_to_albums">एल्बम पर वापस</string>
-    <string name="audio_back_to_albums_hint">पूरी लाइब्रेरी दृश्य पर लौटें</string>
     <string name="action_refresh">रिफ़्रेश</string>
     <string name="audio_watched_folders_empty_short">कोई निगरानी वाला फ़ोल्डर नहीं</string>
     <string name="audio_watched_folders_summary_mixed">%1$d स्थानीय · %2$d %3$s</string>
@@ -688,11 +646,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_watched_folders_summary_local">%1$d स्थानीय फ़ोल्डर</string>
     <string name="audio_library_refresh_started">रिफ़्रेश बैकग्राउंड में शुरू हुआ</string>
     <string name="audio_library_refresh_done">लाइब्रेरी अपडेट हुई</string>
-    <string name="audio_library_refresh_in_progress_message">लाइब्रेरी रिफ़्रेश जारी है। प्लेबैक शुरू करने से पहले प्रतीक्षा करें।</string>
-    <string name="audio_library_refresh_failed">रिफ़्रेश विफल</string>
-    <string name="audio_library_network_synced">नेटवर्क सिंक हुआ</string>
-    <string name="audio_album_sort_album">एल्बम का नाम</string>
-    <string name="audio_album_sort_artist">कलाकार का नाम</string>
     <string name="close">बंद करें</string>
     <string name="eq_tab_tone">टोन</string>
     <string name="eq_tab_dynamics">डायनेमिक्स</string>
@@ -721,11 +674,7 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="eq_equalizer_unavailable">इस आउटपुट पर डिवाइस इक्वलाइज़र उपलब्ध नहीं है। चैनल नियंत्रण सक्रिय रहेंगे।</string>
     <string name="action_play_pause">चलाएँ / रोकें</string>
     <string name="action_stop">रोकें</string>
-    <string name="cast_remote_title">Cast रिमोट</string>
-    <string name="cast_remote_subtitle">अपने टीवी पर वीडियो नियंत्रित करें</string>
     <string name="cast_remote_power">Chromecast कनेक्ट या डिस्कनेक्ट करें</string>
-    <string name="cast_remote_not_connected">कोई सक्रिय CAST नहीं</string>
-    <string name="cast_remote_connected">CAST कनेक्ट है</string>
     <string name="cast_remote_no_media">अभी कोई वीडियो कास्ट नहीं हो रहा है</string>
     <string name="cast_remote_control_label">BLAZE रिमोट</string>
     <string name="cast_remote_volume_up">वॉल्यूम बढ़ाएँ</string>
@@ -880,11 +829,7 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="slideshow_export_failed">स्लाइडशो नहीं बनाया जा सका।</string>
     <string name="slideshow_need_two_photos">कम से कम 2 फोटो चुनें।</string>
     <string name="slideshow_photo_number">फोटो %1$d</string>
-    <string name="slideshow_annotation_title">फोटो टिप्पणी</string>
     <string name="slideshow_annotation_hint">एक छोटी टिप्पणी जोड़ें…</string>
-    <string name="slideshow_annotation_style_glass">डार्क ग्लास</string>
-    <string name="slideshow_annotation_style_accent">Blaze एक्सेंट</string>
-    <string name="slideshow_annotation_style_minimal">मिनिमल</string>
     <string name="slideshow_no_annotation">कोई टिप्पणी नहीं</string>
     <string name="slideshow_annotation_short">टिप्पणी</string>
     <string name="slideshow_select_hint">शामिल करने वाली फोटो चुनें, फिर स्लाइडशो बनाएँ दबाएँ।</string>

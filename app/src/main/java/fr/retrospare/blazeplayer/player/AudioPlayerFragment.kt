@@ -97,6 +97,29 @@ class AudioPlayerFragment : Fragment() {
     private lateinit var playlistAdapter: PlaylistAdapter
     private lateinit var partyPlaylistAdapter: PartyPlaylistAdapter
     private val handler = Handler(Looper.getMainLooper())
+    private val lyricsClockSyncRunnable = object : Runnable {
+        override fun run() {
+            val b = _binding
+            val ctrl = controller
+            if (
+                b != null &&
+                ctrl != null &&
+                isResumed &&
+                !isHidden &&
+                karaokeLandscapeActive &&
+                currentLyrics.isNotEmpty()
+            ) {
+                b.karaokeLyricsView.updatePlaybackPosition(
+                    karaoKastLyricsPosition(ctrl.currentPosition),
+                    ctrl.isPlaying,
+                    ctrl.playbackParameters.speed
+                )
+            }
+            if (_binding != null) {
+                handler.postDelayed(this, LYRICS_CLOCK_SYNC_INTERVAL_MS)
+            }
+        }
+    }
     private var isSeekBarTracking = false
     private var sleepTimerIndicatorJob: Job? = null
     private var eqManager: EqualizerManager? = null
@@ -112,6 +135,8 @@ class AudioPlayerFragment : Fragment() {
     private var visualizerAttachedAtMs: Long = 0L
     private var lastVisualizerFrameAtMs: Long = 0L
     private var lastVisualizerRestartAtMs: Long = 0L
+    private var visualizerPlaybackStartAtMs: Long = 0L
+    private var visualizerStartupVerificationAttempts: Int = 0
     private val visualizerWatchdogRunnable = object : Runnable {
         override fun run() {
             val ctrl = controller
@@ -147,9 +172,47 @@ class AudioPlayerFragment : Fragment() {
     }
     private val visualizerTrackRestartRunnable = Runnable {
         if (audioSpectrumEnabled && _binding != null && controller?.isPlaying == true) {
-            // Une transition de morceau redemande la session, mais ne recrée jamais le Visualizer
-            // si Android a conservé la même session et que la capture fonctionne encore.
-            ensureAudioVisualizer(forceRestart = false)
+            // Après un démarrage/changement de titre, certains appareils conservent le même
+            // audioSessionId tout en arrêtant silencieusement les callbacks FFT. Si aucune trame
+            // n'est arrivée depuis le début de cette lecture, on recrée réellement le Visualizer.
+            val receivedFrameForThisPlayback = visualizerPlaybackStartAtMs > 0L &&
+                lastVisualizerFrameAtMs >= visualizerPlaybackStartAtMs
+            ensureAudioVisualizer(forceRestart = !receivedFrameForThisPlayback)
+            scheduleVisualizerStartupVerification()
+        }
+    }
+    private val visualizerStartupVerifyRunnable = object : Runnable {
+        override fun run() {
+            val ctrl = controller
+            if (!audioSpectrumEnabled || _binding == null || isHidden || !isResumed || ctrl?.isPlaying != true) {
+                return
+            }
+            // KaraoKast garde volontairement son Visualizer intact pour éviter toute micro-coupure
+            // pendant le mirroring. Le watchdog normal reprendra dès la sortie du mode.
+            if (karaokeLandscapeActive || karaokeMirroringActive) return
+
+            val now = SystemClock.elapsedRealtime()
+            val sessionId = currentVisualizerSessionId
+            val streamHealthy = sessionId > 0 &&
+                AudioFftStream.isRunning(sessionId) &&
+                AudioFftStream.millisSinceLastCapture(now) <= VISUALIZER_STARTUP_FRAME_TIMEOUT_MS
+            if (streamHealthy) {
+                visualizerStartupVerificationAttempts = 0
+                startVisualizerWatchdog()
+                return
+            }
+
+            if (visualizerStartupVerificationAttempts >= VISUALIZER_STARTUP_MAX_RETRIES) {
+                // Ne boucle jamais agressivement : le watchdog périodique reste le dernier filet
+                // de sécurité si la session audio tarde exceptionnellement à devenir disponible.
+                startVisualizerWatchdog()
+                return
+            }
+
+            visualizerStartupVerificationAttempts++
+            visualizerPlaybackStartAtMs = now
+            ensureAudioVisualizer(forceRestart = true)
+            handler.postDelayed(this, VISUALIZER_STARTUP_RETRY_DELAY_MS)
         }
     }
     private var currentLyrics: List<AudioLocalEnhancements.LyricLine> = emptyList()
@@ -403,6 +466,7 @@ class AudioPlayerFragment : Fragment() {
         binding.root.post { ButtonTextFitter.fitRecursively(binding.root, minSp = 9, maxSp = 13) }
         setupSeekBar()
         startProgressUpdate()
+        startLyricsClockSync()
         observeAudioSpectrumSetting()
         connectMediaController()
     }
@@ -565,6 +629,7 @@ class AudioPlayerFragment : Fragment() {
         }
         karaokeLandscapeActive = active
         b.karaokeLandscapeRoot.visibility = if (active) View.VISIBLE else View.GONE
+        if (active) startLyricsClockSync()
         b.playerPanel.visibility = if (active) View.GONE else View.VISIBLE
         if (active) {
             b.playlistSheet.visibility = View.GONE
@@ -801,13 +866,30 @@ class AudioPlayerFragment : Fragment() {
                     stopAudioVisualizer()
                     setAudioSpectrumIdle()
                 } else if (isPlaying) {
+                    // Démarre immédiatement avec la session disponible, puis vérifie quelques
+                    // centaines de ms plus tard qu'une vraie trame FFT est bien arrivée.
                     ensureAudioVisualizer()
-                    startVisualizerWatchdog()
+                    scheduleVisualizerRestartForTrack()
                 } else {
                     stopVisualizerWatchdog()
                     stopAudioVisualizer()
                     setAudioSpectrumIdle()
                 }
+            }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int
+            ) {
+                // Seek utilisateur, changement de morceau ou correction interne Media3 : recaler
+                // immédiatement l'horloge des paroles au lieu d'attendre le prochain polling UI.
+                syncLyricsPlaybackClock(ctrl.currentPosition)
+            }
+
+            override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
+                // Une variation de vitesse change la pente de l'horloge extrapolée par la vue.
+                syncLyricsPlaybackClock(ctrl.currentPosition)
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -823,6 +905,7 @@ class AudioPlayerFragment : Fragment() {
                 // Lance immédiatement le lookup de la piste qui vient d'être sélectionnée ;
                 // syncMetadata() rejoindra le même travail sans le redémarrer.
                 if (!newPartyPath.isNullOrBlank()) loadLyricsForCurrentTrack(newPartyPath)
+                syncLyricsPlaybackClock(ctrl.currentPosition)
 
                 syncSelection()
                 syncMetadata()
@@ -856,6 +939,7 @@ class AudioPlayerFragment : Fragment() {
 
             override fun onEvents(player: Player, events: Player.Events) {
                 if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)) {
+                    syncLyricsPlaybackClock(player.currentPosition)
                     if (isPlayingBlazePartyQueue && player.playbackState == Player.STATE_ENDED && !currentBlazePartyPath.isNullOrBlank()) {
                         syncBlazePartyPlaybackOrder(resetPlayedPath = currentBlazePartyPath)
                         currentBlazePartyPath = null
@@ -993,8 +1077,25 @@ class AudioPlayerFragment : Fragment() {
 
     private fun scheduleVisualizerRestartForTrack() {
         handler.removeCallbacks(visualizerTrackRestartRunnable)
+        handler.removeCallbacks(visualizerStartupVerifyRunnable)
+        visualizerPlaybackStartAtMs = SystemClock.elapsedRealtime()
+        visualizerStartupVerificationAttempts = 0
         handler.postDelayed(visualizerTrackRestartRunnable, VISUALIZER_TRACK_RESTART_DELAY_MS)
         startVisualizerWatchdog()
+    }
+
+    private fun scheduleVisualizerStartupVerification() {
+        handler.removeCallbacks(visualizerStartupVerifyRunnable)
+        if (audioSpectrumEnabled &&
+            _binding != null &&
+            !isHidden &&
+            isResumed &&
+            controller?.isPlaying == true &&
+            !karaokeLandscapeActive &&
+            !karaokeMirroringActive
+        ) {
+            handler.postDelayed(visualizerStartupVerifyRunnable, VISUALIZER_STARTUP_VERIFY_DELAY_MS)
+        }
     }
 
     private fun startVisualizerWatchdog() {
@@ -1014,6 +1115,8 @@ class AudioPlayerFragment : Fragment() {
     private fun stopVisualizerWatchdog() {
         handler.removeCallbacks(visualizerWatchdogRunnable)
         handler.removeCallbacks(visualizerTrackRestartRunnable)
+        handler.removeCallbacks(visualizerStartupVerifyRunnable)
+        visualizerStartupVerificationAttempts = 0
     }
 
     private fun stopAudioVisualizer() {
@@ -1024,6 +1127,8 @@ class AudioPlayerFragment : Fragment() {
         pendingVisualizerSessionId = 0
         visualizerAttachedAtMs = 0L
         lastVisualizerFrameAtMs = 0L
+        visualizerPlaybackStartAtMs = 0L
+        visualizerStartupVerificationAttempts = 0
     }
 
     // ── Sync UI depuis MediaController (source unique) ─────────────────────────
@@ -2872,6 +2977,26 @@ class AudioPlayerFragment : Fragment() {
         })
     }
 
+    private fun startLyricsClockSync() {
+        handler.removeCallbacks(lyricsClockSyncRunnable)
+        handler.post(lyricsClockSyncRunnable)
+    }
+
+    private fun syncLyricsPlaybackClock(positionMs: Long = controller?.currentPosition ?: 0L) {
+        val b = _binding ?: return
+        val ctrl = controller ?: return
+        val speed = ctrl.playbackParameters.speed
+        if (karaokeLandscapeActive) {
+            b.karaokeLyricsView.updatePlaybackPosition(
+                karaoKastLyricsPosition(positionMs),
+                ctrl.isPlaying,
+                speed
+            )
+        } else if (currentLyrics.isNotEmpty()) {
+            b.standardLyricsView.updatePlaybackPosition(positionMs, ctrl.isPlaying, speed)
+        }
+    }
+
     private fun startProgressUpdate() {
         handler.post(object : Runnable {
             override fun run() {
@@ -3324,7 +3449,7 @@ class AudioPlayerFragment : Fragment() {
         val root = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(22), dp(20), dp(22), dp(20))
-            background = ContextCompat.getDrawable(requireContext(), fr.retrospare.blazeplayer.R.drawable.bg_dialog)
+            background = ContextCompat.getDrawable(requireContext(), fr.retrospare.blazeplayer.R.drawable.bg_dialog_rounded)
         }
         root.addView(TextView(requireContext()).apply {
             text = getString(fr.retrospare.blazeplayer.R.string.blaze_party)
@@ -3393,7 +3518,7 @@ class AudioPlayerFragment : Fragment() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(dp(22), dp(20), dp(22), dp(18))
-            background = ContextCompat.getDrawable(requireContext(), fr.retrospare.blazeplayer.R.drawable.bg_dialog)
+            background = ContextCompat.getDrawable(requireContext(), fr.retrospare.blazeplayer.R.drawable.bg_dialog_rounded)
         }
         root.addView(TextView(requireContext()).apply {
             text = getString(fr.retrospare.blazeplayer.R.string.blaze_party_host_title)
@@ -4021,10 +4146,15 @@ class AudioPlayerFragment : Fragment() {
 
 
     companion object {
+        private const val LYRICS_CLOCK_SYNC_INTERVAL_MS = 120L
         private const val VISUALIZER_WATCHDOG_INTERVAL_MS = 2_000L
         private const val VISUALIZER_STALE_AFTER_MS = 8_000L
         private const val VISUALIZER_RESTART_COOLDOWN_MS = 10_000L
         private const val VISUALIZER_TRACK_RESTART_DELAY_MS = 350L
+        private const val VISUALIZER_STARTUP_VERIFY_DELAY_MS = 900L
+        private const val VISUALIZER_STARTUP_FRAME_TIMEOUT_MS = 1_200L
+        private const val VISUALIZER_STARTUP_RETRY_DELAY_MS = 900L
+        private const val VISUALIZER_STARTUP_MAX_RETRIES = 3
         private const val DYNAMIC_AUDIO_PREFS = "blaze_audio_dynamic_colors"
         private const val KEY_DYNAMIC_BG = "dynamic_bg"
         private const val KEY_DYNAMIC_ACCENT = "dynamic_accent"

@@ -2779,7 +2779,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
         val root = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(dp(22), dp(22), dp(22), dp(22))
-            setBackgroundResource(R.drawable.bg_cast_status_card)
+            setBackgroundResource(R.drawable.bg_dialog_rounded)
         }
 
         val header = android.widget.LinearLayout(this).apply {

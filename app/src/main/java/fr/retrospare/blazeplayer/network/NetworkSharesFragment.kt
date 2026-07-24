@@ -289,7 +289,7 @@ class NetworkSharesFragment : Fragment() {
         val container = android.widget.LinearLayout(requireContext()).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(48, 36, 48, 12)
-            setBackgroundResource(R.drawable.bg_dialog)
+            setBackgroundResource(R.drawable.bg_dialog_rounded)
         }
         container.addView(android.widget.TextView(requireContext()).apply {
             text = device.name

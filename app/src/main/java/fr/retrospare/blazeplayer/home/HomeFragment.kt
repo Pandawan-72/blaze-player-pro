@@ -1390,7 +1390,22 @@ class HomeFragment : Fragment() {
                 setMargins(margin, margin, margin, margin)
             }
         }
+        val shareButton = ImageButton(requireContext()).apply {
+            setImageResource(R.drawable.ic_share)
+            setColorFilter(ContextCompat.getColor(requireContext(), R.color.on_surface))
+            background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_icon_gray)
+            contentDescription = getString(R.string.action_share)
+            setOnClickListener { shareGalleryPhoto(photo) }
+            val size = (48 * resources.displayMetrics.density).toInt()
+            val margin = (18 * resources.displayMetrics.density).toInt()
+            val spacing = (8 * resources.displayMetrics.density).toInt()
+            layoutParams = android.widget.FrameLayout.LayoutParams(size, size, android.view.Gravity.TOP or android.view.Gravity.END).apply {
+                topMargin = margin
+                marginEnd = margin + size + spacing
+            }
+        }
         root.addView(image)
+        root.addView(shareButton)
         root.addView(close)
         // Bouton "Modifier" en overlay, accès direct à l'éditeur sans repasser par le menu "...".
         // Masqué pour les GIF : l'éditeur travaille sur une image statique et aplatirait
@@ -2807,7 +2822,7 @@ class HomeFragment : Fragment() {
         val root = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(22), dp(22), dp(22), dp(22))
-            setBackgroundResource(R.drawable.bg_cast_status_card)
+            setBackgroundResource(R.drawable.bg_dialog_rounded)
         }
 
         val header = LinearLayout(requireContext()).apply {

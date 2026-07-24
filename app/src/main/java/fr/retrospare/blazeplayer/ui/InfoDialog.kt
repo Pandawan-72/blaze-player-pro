@@ -41,7 +41,7 @@ object InfoDialog {
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(22), dp(22), dp(22), dp(22))
-            setBackgroundResource(R.drawable.bg_cast_status_card)
+            setBackgroundResource(R.drawable.bg_dialog_rounded)
         }
 
         // En-tête : badge d'icône, titre, croix de fermeture (identique à showVideoSettingsDialog)

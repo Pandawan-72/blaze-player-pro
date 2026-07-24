@@ -153,7 +153,11 @@ class UserRepository @Inject constructor(
         val trialEnd = if (trialStart > 0L) trialStart + TRIAL_DURATION_MILLIS else 0L
         val lastSeen = preferences[KEY_TRIAL_LAST_SEEN_MILLIS] ?: 0L
         val effectiveNow = maxOf(nowMillis, lastSeen)
-        val trialActive = trialStart > 0L && effectiveNow < trialEnd
+        // Dès qu'un achat permanent est actif, l'essai Pro+ local s'arrête.
+        // Un achat Pro ne doit jamais continuer à bénéficier temporairement des droits Pro+
+        // ni afficher le badge Pro+ simplement parce que l'essai avait été démarré auparavant.
+        val trialActive = !proPurchased && !proPlusPurchased &&
+            trialStart > 0L && effectiveNow < trialEnd
         val remainingMillis = (trialEnd - effectiveNow).coerceAtLeast(0L)
         val daysLeft = if (trialActive) {
             ceil(remainingMillis.toDouble() / DAY_MILLIS.toDouble()).toInt().coerceAtLeast(1)

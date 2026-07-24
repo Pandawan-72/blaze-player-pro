@@ -279,7 +279,7 @@
             android:layout_gravity="center"
             android:layout_marginStart="28dp"
             android:layout_marginEnd="28dp"
-            android:background="@drawable/bg_cast_status_card"
+            android:background="@drawable/bg_dialog_rounded"
             android:clickable="true"
             android:elevation="10dp"
             android:focusable="true"
@@ -531,7 +531,7 @@
                     android:layout_height="48dp"
                     android:layout_marginStart="4dp"
                     android:layout_marginEnd="4dp"
-                    android:background="@drawable/bg_stop_btn_player"
+                    android:background="@drawable/bg_play_btn_player"
                     android:clickable="true"
                     android:focusable="true">
 

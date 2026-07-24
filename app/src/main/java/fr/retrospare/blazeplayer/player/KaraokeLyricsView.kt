@@ -53,7 +53,6 @@ class KaraokeLyricsView @JvmOverloads constructor(
     /** Position verticale réellement affichée dans le contenu complet des paroles. */
     private var renderedContentY = Float.NaN
     private var previousTargetContentY = Float.NaN
-    private var scrollVelocityPxPerSecond = 0f
     private var lastScrollFrameRealtimeNs: Long = 0L
     private var forceScrollSnap = true
 
@@ -98,17 +97,40 @@ class KaraokeLyricsView @JvmOverloads constructor(
     ) {
         val now = SystemClock.elapsedRealtime()
         val safePosition = positionMs.coerceAtLeast(0L)
+        val safeSpeed = speed.takeIf { it.isFinite() && it > 0f } ?: 1f
         val stateChanged = playing != isPlaying
-        val largeCorrection = !renderedPositionMs.isNaN() &&
-            abs(safePosition - renderedPositionMs) >= SEEK_SNAP_THRESHOLD_MS
 
-        basePositionMs = safePosition
+        // Le MediaController est rééchantillonné régulièrement par le Fragment. Sur certains
+        // appareils, deux échantillons consécutifs peuvent légèrement reculer pendant une
+        // transition de buffer ou une resynchronisation de session. On compare donc la nouvelle
+        // mesure à notre horloge monotone avant de déplacer l'ancre : les petites oscillations
+        // sont absorbées, tandis qu'un vrai seek ou une grosse dérive recale immédiatement.
+        val predictedBeforeAnchor = if (playing) {
+            val elapsed = (now - baseRealtimeMs).coerceAtLeast(0L)
+            basePositionMs + (elapsed * playbackSpeed).roundToLong()
+        } else {
+            basePositionMs
+        }
+        val anchorErrorMs = safePosition - predictedBeforeAnchor
+        val largeCorrection = stateChanged ||
+            renderedPositionMs.isNaN() ||
+            abs(anchorErrorMs) >= SEEK_SNAP_THRESHOLD_MS
+
+        val anchoredPosition = when {
+            largeCorrection || !isPlaying -> safePosition
+            anchorErrorMs in -BACKWARD_JITTER_TOLERANCE_MS until 0L -> predictedBeforeAnchor
+            anchorErrorMs < -BACKWARD_JITTER_TOLERANCE_MS ->
+                predictedBeforeAnchor + anchorErrorMs.coerceAtLeast(-MAX_BACKWARD_ANCHOR_CORRECTION_MS)
+            else -> safePosition
+        }.coerceAtLeast(0L)
+
+        basePositionMs = anchoredPosition
         baseRealtimeMs = now
-        playbackSpeed = speed.takeIf { it.isFinite() && it > 0f } ?: 1f
+        playbackSpeed = safeSpeed
         playing = isPlaying
 
         if (!isPlaying || stateChanged || largeCorrection || renderedPositionMs.isNaN()) {
-            renderedPositionMs = safePosition.toFloat()
+            renderedPositionMs = anchoredPosition.toFloat()
             lastPositionFrameRealtimeNs = SystemClock.elapsedRealtimeNanos()
         }
         if (largeCorrection || renderedContentY.isNaN()) {
@@ -239,40 +261,41 @@ class KaraokeLyricsView @JvmOverloads constructor(
         ) {
             renderedContentY = targetContentY
             previousTargetContentY = targetContentY
-            scrollVelocityPxPerSecond = 0f
             lastScrollFrameRealtimeNs = nowNs
             forceScrollSnap = false
             return renderedContentY
         }
 
-        val frameDeltaSeconds = ((nowNs - lastScrollFrameRealtimeNs) / 1_000_000_000f)
-            .coerceIn(1f / 240f, 0.05f)
+        val rawFrameDeltaSeconds = (nowNs - lastScrollFrameRealtimeNs) / 1_000_000_000f
+        val frameDeltaSeconds = rawFrameDeltaSeconds.coerceIn(1f / 240f, 0.12f)
         lastScrollFrameRealtimeNs = nowNs
-
-        val targetVelocity = (targetContentY - previousTargetContentY) / frameDeltaSeconds
         previousTargetContentY = targetContentY
 
         val positionError = targetContentY - renderedContentY
-        val maxSpeed = MAX_SCROLL_SPEED_DP_PER_SECOND * density
-        val desiredVelocity = (
-            targetVelocity + positionError * SCROLL_POSITION_FOLLOW_PER_SECOND
-        ).coerceIn(-maxSpeed, maxSpeed)
-
-        val velocityBlend = 1f - exp(
-            -frameDeltaSeconds / SCROLL_VELOCITY_TAU_SECONDS
+        val emergencyDistance = maxOf(
+            EMERGENCY_CATCHUP_DISTANCE_DP * density,
+            lineHeights.getOrNull(cachedActiveIndex.coerceAtLeast(0))?.toFloat()?.times(1.35f) ?: 0f
         )
-        scrollVelocityPxPerSecond +=
-            (desiredVelocity - scrollVelocityPxPerSecond) * velocityBlend
 
-        val proposedStep = scrollVelocityPxPerSecond * frameDeltaSeconds
-        renderedContentY = if (
-            abs(positionError) <= SNAP_TO_TARGET_DISTANCE_DP * density &&
-            abs(proposedStep) >= abs(positionError)
-        ) {
-            scrollVelocityPxPerSecond = 0f
-            targetContentY
-        } else {
-            renderedContentY + proposedStep
+        // La cible est déjà une interpolation temporelle douce entre deux timecodes LRC. Ajouter
+        // par-dessus une limite de vitesse créait du retard dès que deux lignes étaient proches.
+        // On suit donc directement cette cible avec un amortissement court et dépendant de l'erreur.
+        // Après une frame réellement longue (GC, rotation, surcharge UI), on se recale sans tenter
+        // de rejouer visuellement le temps perdu.
+        if (rawFrameDeltaSeconds >= LONG_FRAME_SNAP_SECONDS || abs(positionError) >= emergencyDistance) {
+            renderedContentY = targetContentY
+            return renderedContentY
+        }
+
+        val normalizedError = (abs(positionError) / (CATCHUP_REFERENCE_DISTANCE_DP * density))
+            .coerceIn(0f, 1f)
+        val tauSeconds = SCROLL_FOLLOW_TAU_SECONDS -
+            (SCROLL_FOLLOW_TAU_SECONDS - SCROLL_CATCHUP_TAU_SECONDS) * normalizedError
+        val follow = 1f - exp(-frameDeltaSeconds / tauSeconds)
+        renderedContentY += positionError * follow
+
+        if (abs(targetContentY - renderedContentY) <= SNAP_TO_TARGET_DISTANCE_DP * density) {
+            renderedContentY = targetContentY
         }
         return renderedContentY
     }
@@ -329,7 +352,6 @@ class KaraokeLyricsView @JvmOverloads constructor(
         geometryWidth = -1
         renderedContentY = Float.NaN
         previousTargetContentY = Float.NaN
-        scrollVelocityPxPerSecond = 0f
         lastScrollFrameRealtimeNs = 0L
         forceScrollSnap = true
     }
@@ -459,14 +481,18 @@ class KaraokeLyricsView @JvmOverloads constructor(
         const val EDGE_FADE_PORTION = 0.20f
         const val KARAOKE_TEXT_SIZE_SP = 27f
         const val LYRICS_LOOKAHEAD_MS = 180L
-        const val SEEK_SNAP_THRESHOLD_MS = 700f
-        const val POSITION_CORRECTION_TAU_MS = 115f
+        const val SEEK_SNAP_THRESHOLD_MS = 520f
+        const val POSITION_CORRECTION_TAU_MS = 70f
+        const val BACKWARD_JITTER_TOLERANCE_MS = 45L
+        const val MAX_BACKWARD_ANCHOR_CORRECTION_MS = 90L
 
-        /** Limite les accélérations visuelles lors de time codes très rapprochés. */
-        const val MAX_SCROLL_SPEED_DP_PER_SECOND = 215f
-        const val SCROLL_POSITION_FOLLOW_PER_SECOND = 4.8f
-        const val SCROLL_VELOCITY_TAU_SECONDS = 0.16f
-        const val SNAP_TO_TARGET_DISTANCE_DP = 0.35f
+        /** Suivi court : la position visuelle reste liée au timecode au lieu d'accumuler du retard. */
+        const val SCROLL_FOLLOW_TAU_SECONDS = 0.052f
+        const val SCROLL_CATCHUP_TAU_SECONDS = 0.022f
+        const val CATCHUP_REFERENCE_DISTANCE_DP = 72f
+        const val EMERGENCY_CATCHUP_DISTANCE_DP = 120f
+        const val LONG_FRAME_SNAP_SECONDS = 0.095f
+        const val SNAP_TO_TARGET_DISTANCE_DP = 0.25f
         const val KARAO_KAST_FRAME_DELAY_MS = 33L
     }
 }

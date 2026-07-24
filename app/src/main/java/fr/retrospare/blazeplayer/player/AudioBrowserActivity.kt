@@ -1179,7 +1179,7 @@ class FolderAdapter(
 ) : androidx.recyclerview.widget.RecyclerView.Adapter<FolderAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int) =
-        ViewHolder(android.view.LayoutInflater.from(parent.context).inflate(R.layout.item_audio_folder, parent, false))
+        ViewHolder(android.view.LayoutInflater.from(parent.context).inflate(R.layout.item_folder, parent, false))
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val folder = folders[position]
@@ -1242,7 +1242,7 @@ class MixedAudioAdapter(
     override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
         val inflater = android.view.LayoutInflater.from(parent.context)
         return if (viewType == TYPE_FOLDER)
-            object : androidx.recyclerview.widget.RecyclerView.ViewHolder(inflater.inflate(R.layout.item_audio_folder, parent, false)) {}
+            object : androidx.recyclerview.widget.RecyclerView.ViewHolder(inflater.inflate(R.layout.item_folder, parent, false)) {}
         else
             object : androidx.recyclerview.widget.RecyclerView.ViewHolder(inflater.inflate(R.layout.item_audio_browser, parent, false)) {}
     }

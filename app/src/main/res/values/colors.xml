@@ -5,12 +5,9 @@
     <color name="background_auth">#060A0F</color>
     <color name="surface">#101827</color>
     <color name="surface_variant">#151E2E</color>
-    <color name="surface_glass">#CC101827</color>
-    <color name="surface_glass_soft">#7A111A28</color>
 
     <!-- Accents -->
     <color name="green_accent">#21E69A</color>
-    <color name="green_accent_soft">#3321E69A</color>
     <color name="green_accent_stroke">#8A21E69A</color>
     <color name="blue_accent">#46A6FF</color>
     <color name="yellow_accent">#F4B72E</color>
@@ -35,39 +32,23 @@
     <!-- Bordures -->
     <color name="outline">#151C29</color>
     <color name="outline_variant">#263247</color>
-    <color name="outline_glass">#26FFFFFF</color>
 
     <!-- Containers -->
     <color name="green_container">#09251B</color>
     <color name="on_green_container">#21E69A</color>
-    <color name="blue_container">#0B1D34</color>
-    <color name="on_blue_container">#46A6FF</color>
-    <color name="yellow_container">#2B2105</color>
-    <color name="on_yellow_container">#F4B72E</color>
-    <color name="red_container">#2B1112</color>
-    <color name="on_red_container">#F05A5A</color>
-    <color name="purple_container">#1E1838</color>
-    <color name="on_purple_container">#8D75FF</color>
 
     <!-- Icônes background -->
     <color name="icon_bg_green">#173D2D</color>
-    <color name="icon_bg_blue">#102B4A</color>
     <color name="icon_bg_yellow">#2E2206</color>
-    <color name="icon_bg_red">#2C1314</color>
-    <color name="icon_bg_purple">#231C45</color>
-    <color name="icon_bg_gray">#151D2B</color>
 
     <!-- Lecteur -->
     <color name="player_background">#000000</color>
-    <color name="player_overlay_top">#CC000000</color>
-    <color name="player_overlay_bottom">#D9000000</color>
 
     <!-- Legacy -->
     <color name="error_color">#F05A5A</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="orange_accent">#F0A500</color>
-    <color name="orange_badge_bg">#1AF0A500</color>
 
     <!-- Texte des badges conteneur sur fond noir opaque -->
     <color name="badge_mkv">#46A6FF</color>

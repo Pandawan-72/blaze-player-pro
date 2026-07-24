@@ -22,7 +22,7 @@
     </style>
 
     <style name="Widget.BlazePlayer.PopupMenu" parent="Widget.AppCompat.PopupMenu">
-        <item name="android:popupBackground">@drawable/bg_modal_video_style</item>
+        <item name="android:popupBackground">@drawable/bg_dialog_rounded</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>
     </style>

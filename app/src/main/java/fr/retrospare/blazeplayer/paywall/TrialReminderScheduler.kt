@@ -34,7 +34,7 @@ object TrialReminderScheduler {
     private const val REQUEST_EXPIRY = 15015
 
     fun sync(context: Context, state: SubscriptionAccessState) {
-        if (state.trialStartMillis <= 0L || state.isProPlusPurchased) {
+        if (state.trialStartMillis <= 0L || state.isProPurchased || state.isProPlusPurchased) {
             cancel(context)
             return
         }

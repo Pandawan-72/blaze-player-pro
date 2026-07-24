@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="24dp"
-    android:background="@drawable/bg_dialog">
+    android:background="@drawable/bg_dialog_rounded">
 
     <TextView
         android:id="@+id/tvDeviceName"

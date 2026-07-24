@@ -39,7 +39,6 @@
     <string name="queue">قائمة الانتظار</string>
     <string name="queue_short">قائمة الانتظار</string>
     <string name="add">إضافة</string>
-    <string name="info">معلومات</string>
     <string name="lyrics">كلمات الأغنية</string>
     <string name="audio_lyrics_title">كلمات الأغنية</string>
     <string name="audio_lyrics_disabled">فعّل «الكلمات المتزامنة» في إعدادات الصوت للسماح بالكلمات المحلية.</string>
@@ -172,7 +171,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="toast_click_device_to_explore">اضغط على جهاز لاستعراضه.</string>
     <string name="scan_in_progress">جارٍ المسح…</string>
     <string name="scan_complete">اكتمل المسح</string>
-    <string name="audio_scan_deferred_playback">التشغيل نشط: تم تأجيل فحص الصوت لتجنّب الانقطاع.</string>
     <string name="dialog_choose_share">اختر مشاركة</string>
     <string name="action_add_to_favorites">إضافة إلى المفضلة</string>
     <string name="toast_added_to_favorites">تمت إضافة %1$s إلى المفضلة</string>
@@ -209,10 +207,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="action_remove">إزالة</string>
     <string name="unknown_generic">غير معروف</string>
     <string name="sleep_timer_title">مؤقت النوم</string>
-    <string name="minutes_5">5 دقائق</string>
-    <string name="minutes_15">15 دقيقة</string>
-    <string name="minutes_30">30 دقيقة</string>
-    <string name="hour_1">ساعة واحدة</string>
     <string name="toast_list_already_empty">القائمة فارغة بالفعل</string>
     <string name="dialog_clean_list">تنظيف القائمة</string>
     <string name="action_remove_selection">إزالة المحدد</string>
@@ -223,18 +217,11 @@ Retro-Spare Dev / Anthony Gentil
     <string name="playlist_empty">(فارغة)</string>
     <string name="action_to_playlist">نسخ قائمة الانتظار إلى قائمة تشغيل</string>
     <string name="content_desc_queue_to_playlist">نسخ قائمة الانتظار إلى قائمة تشغيل</string>
-    <string name="playlist_existing_with_count">(موجودة — %1$s)</string>
-    <string name="dialog_playlist_not_empty_title">قائمة تشغيل موجودة</string>
-    <string name="dialog_playlist_not_empty_message">تحتوي قائمة التشغيل %1$d بالفعل على %2$s. هل تريد إضافة العناصر المحددة إليها رغم ذلك؟</string>
-    <string name="action_confirm_add_to_existing_playlist">إضافة على أي حال</string>
-    <string name="playlist_added_to_slot">%1$s إلى قائمة التشغيل %2$d</string>
-    <string name="playlist_added_partial">%1$s (%2$s)</string>
     <string name="dialog_playlist_empty_message">قائمة التشغيل هذه فارغة.
 
 في المتصفح، اختر الملفات ثم استخدم «إضافة إلى قائمة تشغيل» لملئها.</string>
     <string name="action_play_playlist">تشغيل قائمة التشغيل</string>
     <string name="action_empty_playlist">إفراغ</string>
-    <string name="toast_playlist_emptied">تم إفراغ قائمة التشغيل %1$d</string>
     <plurals name="playlist_item_count">
         <item quantity="one">%1$d عنصر واحد</item>
         <item quantity="other">%1$d عناصر</item>
@@ -273,14 +260,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="sort_size">الحجم</string>
     <string name="sort_album_order">ترتيب الألبوم</string>
     <string name="dialog_permission_needed">يلزم إذن</string>
-    <string name="dialog_permission_intro_title">الأذونات مطلوبة</string>
-    <string name="dialog_permission_intro_message">لكي يعمل Blaze Player بشكل صحيح، سيطلب بعض الأذونات دفعة واحدة:
-
-• الصور والموسيقى والفيديو: لعرض مكتبتك وBlaze Gallery
-• الإشعارات: لعناصر التحكم في التشغيل
-• الشبكة المحلية: لاكتشاف ضيوف Blaze Party
-• الميكروفون: فقط للمعادل المرئي الديناميكي — لا يتم تسجيل أي صوت</string>
-    <string name="action_continue">متابعة</string>
     <string name="dialog_permission_message">يحتاج Blaze Player إلى الوصول إلى ملفات الفيديو كي يعمل.</string>
     <string name="action_allow">سماح</string>
     <string name="action_ignore">تجاهل</string>
@@ -304,14 +283,10 @@ Retro-Spare Dev / Anthony Gentil
     <string name="history_empty_blaze_video_title">لا توجد فيديوهات شوهدت مؤخرًا</string>
     <string name="history_blaze_video">السجل</string>
     <string name="history_selection_active">التحديد نشط: تم تحديد %1$d صورة مصغرة.</string>
-    <string name="history_action_prompt">اختر إجراءً لهذا السجل.</string>
     <string name="history_delete_selection">حذف المحدد (%1$d)</string>
     <string name="history_finish_selection">إنهاء التحديد</string>
     <string name="history_select_thumbnails">تحديد الصور المصغرة</string>
-    <string name="history_delete_all">حذف السجل بالكامل</string>
     <string name="history_confirm_delete_items">هل تريد حذف %1$d عنصر من السجل؟</string>
-    <string name="history_confirm_delete_all_local">هل تريد حذف السجل المحلي بالكامل؟</string>
-    <string name="history_confirm_delete_all_network">هل تريد حذف سجل الشبكة بالكامل؟</string>
     <string name="history_toast_select_thumbnails">اختر الصور المصغرة التي تريد إزالتها من السجل</string>
     <string name="permission_gallery_required">اسمح بالوصول إلى الصور ومقاطع الفيديو لعرض Blaze Gallery.</string>
     <string name="browse_files_local">استعراض</string>
@@ -333,7 +308,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="settings_section_playback">التشغيل</string>
     <string name="settings_section_audio">الصوت</string>
     <string name="settings_section_blaze_audio">BLAZE AUDIO</string>
-    <string name="eq_preamp_compressor_section">المضخم الأولي والضاغط</string>
     <string name="eq_preamp_label">المضخم الأولي</string>
     <string name="eq_compressor_label">الضاغط</string>
     <string name="player_casting_in_progress">البث جارٍ</string>
@@ -354,8 +328,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="cast_dialog_status">يتم البث الآن</string>
     <string name="cast_dialog_stop">إيقاف البث</string>
     <string name="select_all">تحديد الكل</string>
-    <string name="deselect_all">إلغاء تحديد الكل</string>
-    <string name="cast_subtitles_unavailable">الترجمات غير متاحة أثناء البث</string>
     <string name="cast_audio_language_unavailable">تغيير لغة الصوت غير متاح أثناء البث</string>
     <string name="paywall_title">اختر إصدار Blaze المناسب</string>
     <string name="paywall_subtitle">استمتع بجميع مزايا Pro+ لمدة 15 يومًا، ثم اختر الإصدار المناسب لك.</string>
@@ -369,10 +341,8 @@ Retro-Spare Dev / Anthony Gentil
     <string name="paywall_pro_plus_desc">يتضمن جميع مزايا Pro ويفتح Blaze Audio، بما في ذلك Blaze Party وKaraoKast.</string>
     <string name="paywall_buy_pro">فتح Pro — 3.99 يورو</string>
     <string name="paywall_buy_pro_plus">فتح Pro+ — 5.99 يورو</string>
-    <string name="paywall_debug_unlocked">وضع التصحيح: تم فتح Pro وPro+ مؤقتًا.</string>
     <string name="paywall_restore">استعادة المشتريات</string>
     <string name="action_back">رجوع</string>
-    <string name="toast_billing_soon">المشتريات قادمة قريبًا</string>
     <string name="video_settings_title">إعدادات الفيديو</string>
     <string name="video_setting_brightness">السطوع</string>
     <string name="video_setting_contrast">التباين</string>
@@ -525,7 +495,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="crop_ratio_square">1:1</string>
     <string name="crop_ratio_4_3">4:3</string>
     <string name="crop_ratio_16_9">16:9</string>
-    <string name="action_compare_hold">اضغط مطولًا للمقارنة</string>
     <string name="content_desc_rotate_left">تدوير لليسار</string>
     <string name="content_desc_rotate_right">تدوير لليمين</string>
     <string name="toast_photo_save_failed">فشل الحفظ</string>
@@ -565,14 +534,12 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_library_subtitle">مكتبة الموسيقى Pro+ الخاصة بك</string>
     <string name="audio_loading_in_progress">جارٍ التحميل...</string>
     <string name="audio_search">بحث</string>
-    <string name="audio_tab_albums">الألبومات</string>
     <string name="audio_tab_artists">الفنانون</string>
     <string name="audio_tab_titles">المسارات</string>
     <string name="audio_tab_playlists">قوائم التشغيل</string>
     <string name="audio_resume_listening">استمعت إليها مؤخرًا</string>
     <string name="audio_recent_albums">ألبوماتي</string>
     <string name="audio_played_tracks">المسارات</string>
-    <string name="audio_all">إظهار الكل</string>
     <string name="audio_album_view_grid_3">شبكة 3</string>
     <string name="audio_album_view_grid_4">شبكة 4</string>
     <string name="audio_album_view_list">قائمة</string>
@@ -592,8 +559,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_replaygain_off">إيقاف</string>
     <string name="audio_replaygain_track">المسار</string>
     <string name="audio_replaygain_album">الألبوم</string>
-    <string name="audio_preamp_title">المضخم الأولي</string>
-    <string name="audio_preamp_subtitle">ضبط مستوى الإخراج</string>
     <string name="audio_output_mode_title">وضع الدقة</string>
     <string name="audio_output_mode_subtitle">يكيّف مسار PCM مع جودة الجهاز وتوافقه</string>
     <string name="audio_output_mode_auto">تلقائي</string>
@@ -628,7 +593,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_tag_artist">الفنان</string>
     <string name="audio_tag_album">الألبوم</string>
     <string name="audio_tag_reset">إعادة ضبط</string>
-    <string name="audio_tag_saved">تم حفظ بيانات الصوت الوصفية</string>
     <string name="audio_tag_reset_done">تم مسح البيانات الوصفية المحلية</string>
     <plurals name="audio_folder_count_compact">
         <item quantity="one">%d مجلد واحد</item>
@@ -650,7 +614,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_watched_folders_manage_info">اضغط على مجلد لإزالته من المراقبة. أضف مجلدات جديدة من قوائم المجلدات في متصفح الصوت.</string>
     <string name="audio_remove_watched_folder">إزالة</string>
     <string name="audio_add_to_watched">إضافة إلى المجلدات المراقبة</string>
-    <string name="audio_add_to_favorites">إضافة إلى المفضلة</string>
     <string name="audio_watched_folder_added">تمت إضافة المجلد إلى المجلدات المراقبة</string>
     <string name="audio_watched_folder_refresh_hint">تمت إضافة المجلد إلى المجلدات المراقبة. يبدأ تحديث كامل للمكتبة تلقائيًا عند العودة إليها.</string>
     <string name="audio_watched_folder_removed">تمت إزالة المجلد من المجلدات المراقبة</string>
@@ -667,20 +630,15 @@ Retro-Spare Dev / Anthony Gentil
     <string name="action_done">تم</string>
     <string name="audio_play_album">تشغيل الألبوم بالكامل</string>
     <string name="audio_add_album_queue">إضافة إلى قائمة الانتظار</string>
-    <string name="audio_select_tracks">اختيار المسارات</string>
     <string name="audio_add_playlist_blaze_party">إضافة قائمة التشغيل إلى Blaze Party</string>
     <string name="audio_add_playlist_queue">إضافة قائمة التشغيل إلى قائمة الانتظار</string>
-    <string name="audio_various_artists">فنانون متنوعون</string>
     <string name="queue_clear_all">مسح الكل</string>
     <string name="queue_clear_selection">مسح المحدد</string>
     <string name="queue_clear_hint">«مسح الكل» يزيل قائمة الانتظار كاملة. وإلا فحدّد فقط المسارات المراد إزالتها ثم امسح المحدد.</string>
     <string name="audio_track_more_options">خيارات المسار</string>
-    <string name="audio_album_more_options">خيارات الألبوم</string>
     <string name="audio_add_track_queue">إضافة إلى قائمة الانتظار</string>
     <string name="audio_add_track_playlist">إضافة إلى قائمة تشغيل</string>
     <string name="audio_add_track_blaze_party">إضافة إلى Blaze Party</string>
-    <string name="audio_back_to_albums">العودة إلى الألبومات</string>
-    <string name="audio_back_to_albums_hint">العودة إلى عرض المكتبة الكامل</string>
     <string name="action_refresh">تحديث</string>
     <string name="audio_watched_folders_empty_short">لا يوجد مجلد مراقب</string>
     <string name="audio_watched_folders_summary_mixed">%1$d محلي · %2$d %3$s</string>
@@ -688,11 +646,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_watched_folders_summary_local">%1$d مجلد محلي</string>
     <string name="audio_library_refresh_started">بدأ التحديث في الخلفية</string>
     <string name="audio_library_refresh_done">تم تحديث المكتبة</string>
-    <string name="audio_library_refresh_in_progress_message">تحديث المكتبة جارٍ. يُرجى الانتظار قبل بدء التشغيل.</string>
-    <string name="audio_library_refresh_failed">فشل التحديث</string>
-    <string name="audio_library_network_synced">تمت مزامنة الشبكة</string>
-    <string name="audio_album_sort_album">اسم الألبوم</string>
-    <string name="audio_album_sort_artist">اسم الفنان</string>
     <string name="close">إغلاق</string>
     <string name="eq_tab_tone">النغمة</string>
     <string name="eq_tab_dynamics">الديناميكية</string>
@@ -721,11 +674,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="eq_equalizer_unavailable">معادل الجهاز غير متاح على هذا الإخراج. تظل عناصر تحكم القنوات فعّالة.</string>
     <string name="action_play_pause">تشغيل / إيقاف مؤقت</string>
     <string name="action_stop">إيقاف</string>
-    <string name="cast_remote_title">جهاز تحكم Cast</string>
-    <string name="cast_remote_subtitle">تحكّم في الفيديو على التلفزيون</string>
     <string name="cast_remote_power">توصيل Chromecast أو فصله</string>
-    <string name="cast_remote_not_connected">لا يوجد بث نشط</string>
-    <string name="cast_remote_connected">البث متصل</string>
     <string name="cast_remote_no_media">لا يتم بث أي فيديو حاليًا</string>
     <string name="cast_remote_control_label">جهاز تحكم BLAZE</string>
     <string name="cast_remote_volume_up">رفع مستوى الصوت</string>
@@ -880,11 +829,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="slideshow_export_failed">تعذر إنشاء عرض الشرائح.</string>
     <string name="slideshow_need_two_photos">اختر صورتين على الأقل.</string>
     <string name="slideshow_photo_number">صورة %1$d</string>
-    <string name="slideshow_annotation_title">تعليق الصورة</string>
     <string name="slideshow_annotation_hint">أضف تعليقًا قصيرًا…</string>
-    <string name="slideshow_annotation_style_glass">زجاج داكن</string>
-    <string name="slideshow_annotation_style_accent">لمسة Blaze</string>
-    <string name="slideshow_annotation_style_minimal">بسيط</string>
     <string name="slideshow_no_annotation">بدون تعليق</string>
     <string name="slideshow_annotation_short">تعليق</string>
     <string name="slideshow_select_hint">اضغط على الصور المراد تضمينها ثم اختر إنشاء عرض شرائح.</string>

@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="22dp"
-    android:background="@drawable/bg_cast_status_card">
+    android:background="@drawable/bg_dialog_rounded">
 
     <LinearLayout
         android:layout_width="match_parent"

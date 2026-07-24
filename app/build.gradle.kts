@@ -4,10 +4,8 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.hilt)
-    // REMOVED: alias(libs.plugins.google.services)
 }
 
 val localProperties = Properties().apply {
@@ -74,16 +72,9 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 57
-        versionName = "0.9.90-Beta RC1"
+        versionCode = 67
+        versionName = "0.9.99-Beta RC7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // Clé API YouTube Data v3 : lue depuis local.properties (jamais commité), à ajouter
-        // toi-même sous la forme YOUTUBE_API_KEY=ta_cle dans ce fichier à la racine du projet.
-        buildConfigField(
-            "String",
-            "YOUTUBE_API_KEY",
-            "\"${localProperties.getProperty("YOUTUBE_API_KEY", "")}\""
-        )
         // Clé publique RevenueCat (Google Play), spécifique au projet "Blaze Player" du dashboard
         // RevenueCat : Project settings > API keys > Public app-specific key (Google Play).
         // À ajouter toi-même sous la forme REVENUECAT_API_KEY=goog_xxx dans local.properties,
@@ -115,7 +106,6 @@ android {
     }
 
     buildFeatures {
-        compose = true
         viewBinding = true
         buildConfig = true
     }
@@ -130,13 +120,6 @@ android {
 }
 
 dependencies {
-    // Compose BOM
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.activity.compose)
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
@@ -146,7 +129,6 @@ dependencies {
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.lifecycle.livedata.ktx)
 
     // Navigation
     implementation(libs.androidx.navigation.fragment)
@@ -154,7 +136,6 @@ dependencies {
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.play.services)
 
     // Media3 / ExoPlayer
     implementation(libs.media3.exoplayer)
@@ -172,22 +153,10 @@ dependencies {
     // nécessaires, dont LAME et Shine.
     implementation("com.mrljdx:ffmpeg-kit-full:6.1.4")
     implementation("com.google.android.gms:play-services-cast-framework:22.1.0")
-    // Bibliothèque éprouvée pour la lecture YouTube embarquée — gère en interne la configuration
-    // WebView/referrer que trois tentatives maison n'ont pas réussi à reproduire fiablement
-    // (erreurs 150/152/153 systématiques).
-    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0")
     implementation("org.nanohttpd:nanohttpd:2.3.1")
     // RevenueCat : wrapper autour de Google Play Billing pour les achats Pro / Pro+.
     implementation("com.revenuecat.purchases:purchases:10.10.0")
     implementation("androidx.mediarouter:mediarouter:1.7.0")
-    implementation("androidx.media:media:1.7.0")
-    // REMOVED: implementation("com.google.android.gms:play-services-cast-framework:21.5.0")
-    // LibVLC pour codecs legacy (AVI, XVID, DIVX, FLAC, DTS, etc.)
-    // implementation("androidx.media3:media3-exoplayer:1.5.1")
-    // implementation("androidx.media3:media3-exoplayer-hls:1.5.1")
-    // implementation("androidx.media3:media3-exoplayer-dash:1.5.1")
-    // implementation("androidx.media3:media3-datasource-okhttp:1.5.1")
-    // implementation("androidx.media3:media3-session:1.5.1")
 
     // Hilt
     implementation(libs.hilt.android)
@@ -226,20 +195,8 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation(libs.appcompat)
 
-    // Google Sign-In (Credential Manager)
-    implementation(libs.credentials)
-    implementation(libs.credentials.play.services)
-    implementation(libs.googleid)
-
-    // Hilt Navigation
-    implementation(libs.hilt.navigation.fragment)
-
     // Tests
     testImplementation(libs.junit)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
-    debugImplementation(libs.androidx.compose.ui.tooling)
 }

@@ -299,9 +299,6 @@ class BrowserViewModel @Inject constructor(
         fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorateList(context, applySortMode(merged))
     }
 
-    @Deprecated("Use searchNetworkVideos() for the unified Blaze Video browser search.")
-    suspend fun searchCurrentNetworkVideos(query: String): List<MediaItem> = searchNetworkVideos(query)
-
     private fun applySortMode(items: List<MediaItem>): List<MediaItem> {
         val folders = items.filter { it.mimeType == "folder" || it.mimeType == "share" || it.mimeType == "network" }
         val files = items.filter { it.mimeType != "folder" && it.mimeType != "share" && it.mimeType != "network" }

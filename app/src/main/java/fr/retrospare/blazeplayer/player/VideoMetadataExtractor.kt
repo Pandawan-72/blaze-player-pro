@@ -176,11 +176,6 @@ object VideoMetadataExtractor {
         }
     }
 
-    /** Ancien point d'entrée, conservé pour compatibilité avec le code existant — équivaut à
-     *  [extractFull]. Préférer [extractLight] pour un usage en liste. */
-    suspend fun extract(context: Context, path: String, knownSizeBytes: Long = 0L): VideoTechnicalInfo =
-        extractFull(context, path, knownSizeBytes)
-
     fun getCached(path: String, knownSizeBytes: Long = 0L): VideoTechnicalInfo? =
         cache[cacheKey(path, knownSizeBytes)] ?: if (knownSizeBytes > 0L) cache[path] else null
 

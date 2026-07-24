@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:versionCode="12"
-    android:versionName="v.0.8.1-beta">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Réseau -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -24,10 +21,6 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-
-    <!-- Luminosité -->
-    <uses-permission android:name="android.permission.WRITE_SETTINGS"
-        tools:ignore="ProtectedPermissions" />
 
     <!-- Visualiseur audio : analyse FFT de la session de lecture -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -303,40 +296,35 @@
             android:name="androidx.mediarouter.media.MediaTransferReceiver"
             android:exported="false" />
 
-    <activity
-        android:name=".player.NetworkVideoBrowserActivity"
-        android:exported="false"
-        android:theme="@style/Theme.BlazePlayer" />
+        <activity
+            android:name=".gallery.slideshow.SlideshowActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
 
-    <activity
-        android:name=".gallery.slideshow.SlideshowActivity"
-        android:exported="false"
-        android:screenOrientation="portrait"
-        android:theme="@style/Theme.BlazePlayer" />
+        <activity
+            android:name=".gallery.slideshow.SlideshowPhotoPickerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
 
-    <activity
-        android:name=".gallery.slideshow.SlideshowPhotoPickerActivity"
-        android:exported="false"
-        android:screenOrientation="portrait"
-        android:theme="@style/Theme.BlazePlayer" />
+        <activity
+            android:name=".gallery.slideshow.AnnotationEditorActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
 
-    <activity
-        android:name=".gallery.slideshow.AnnotationEditorActivity"
-        android:exported="false"
-        android:screenOrientation="portrait"
-        android:theme="@style/Theme.BlazePlayer" />
+        <activity
+            android:name=".gallery.edit.PhotoEditorActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
 
-    <activity
-        android:name=".gallery.edit.PhotoEditorActivity"
-        android:exported="false"
-        android:screenOrientation="portrait"
-        android:theme="@style/Theme.BlazePlayer" />
-
-    <activity
-        android:name=".gallery.edit.VideoTrimActivity"
-        android:exported="false"
-        android:screenOrientation="portrait"
-        android:theme="@style/Theme.BlazePlayer" />
+        <activity
+            android:name=".gallery.edit.VideoTrimActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BlazePlayer" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

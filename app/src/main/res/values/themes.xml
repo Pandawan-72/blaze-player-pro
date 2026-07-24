@@ -109,7 +109,7 @@
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.BlazePlayer.Dialog</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>
-        <item name="android:windowBackground">@drawable/bg_modal_video_style</item>
+        <item name="android:windowBackground">@drawable/bg_dialog_rounded</item>
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:backgroundDimAmount">0.72</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
