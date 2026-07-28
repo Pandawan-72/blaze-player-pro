@@ -248,31 +248,6 @@
                             android:layout_width="0dp"
                             android:layout_height="0dp" />
 
-                        <TextView
-                            android:id="@+id/btnPlaylistNetwork1"
-                            android:layout_width="0dp"
-                            android:layout_height="0dp" />
-
-                        <TextView
-                            android:id="@+id/btnPlaylistNetwork2"
-                            android:layout_width="0dp"
-                            android:layout_height="0dp" />
-
-                        <TextView
-                            android:id="@+id/btnPlaylistNetwork3"
-                            android:layout_width="0dp"
-                            android:layout_height="0dp" />
-
-                        <TextView
-                            android:id="@+id/btnPlaylistNetwork4"
-                            android:layout_width="0dp"
-                            android:layout_height="0dp" />
-
-                        <TextView
-                            android:id="@+id/btnPlaylistNetwork5"
-                            android:layout_width="0dp"
-                            android:layout_height="0dp" />
-
                         <ImageButton
                             android:id="@+id/btnVideoQueueNetwork"
                             android:layout_width="0dp"
@@ -460,7 +435,20 @@
                         android:paddingStart="4dp"
                         android:paddingEnd="8dp">
 
+                        <ImageButton
+                            android:id="@+id/btnGalleryBack"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginEnd="6dp"
+                            android:background="@drawable/bg_header_action_button"
+                            android:contentDescription="@string/action_back"
+                            android:padding="8dp"
+                            android:src="@drawable/ic_arrow_back"
+                            android:tint="@color/on_surface"
+                            android:visibility="gone" />
+
                         <ImageView
+                            android:id="@+id/ivSectionGallery"
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:src="@drawable/ic_gallery"
@@ -470,8 +458,9 @@
 
                         <TextView
                             android:id="@+id/tvSectionGallery"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_weight="1"
                             android:text="@string/gallery_folders"
                             android:textColor="@color/on_surface"
                             android:textSize="16sp"
@@ -656,7 +645,7 @@
 
     </LinearLayout>
 
-    <FrameLayout android:id="@+id/audioContainer" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone"/>
+    <FrameLayout android:id="@+id/audioContainer" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToOutline="false" android:visibility="gone"/>
 
     <!-- Placeholder conservé pour compatibilité avec le code existant -->
     <TextView android:id="@+id/tabAll" android:visibility="gone" android:layout_width="0dp" android:layout_height="0dp"/>
@@ -665,11 +654,11 @@
     <LinearLayout android:id="@+id/bottomNavBar" android:layout_width="match_parent" android:layout_height="60dp" android:layout_gravity="bottom" android:orientation="horizontal" android:background="@drawable/bg_bottom_nav" android:elevation="16dp" android:paddingTop="4dp" android:paddingBottom="3dp">
 
         <!-- Tab Local -->
-        <LinearLayout android:id="@+id/tabLocal" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="6dp" android:layout_marginVertical="2dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_tab_active" android:clickable="true" android:focusable="true">
+        <LinearLayout android:id="@+id/tabLocal" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="6dp" android:layout_marginVertical="2dp" android:orientation="vertical" android:gravity="center" android:background="@drawable/bg_tab_inactive" android:clickable="true" android:focusable="true">
 
             <ImageView android:id="@+id/tabLocalIcon" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_movie_clap" android:tint="@color/green_accent" android:layout_marginBottom="4dp" android:contentDescription="@null"/>
 
-            <TextView android:id="@+id/tabLocalText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/tab_blaze_video" android:textColor="@color/green_accent" android:textSize="12sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:includeFontPadding="false"/>
+            <TextView android:id="@+id/tabLocalText" android:tag="skip_button_text_fitter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/tab_blaze_video" android:textColor="@color/green_accent" android:textSize="@dimen/bottom_navigation_label_text_size" android:textAppearance="@style/TextAppearance.BlazePlayer.NavigationLabel" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:letterSpacing="0" android:textScaleX="1" android:includeFontPadding="false"/>
 
         </LinearLayout>
 
@@ -678,7 +667,7 @@
 
             <ImageView android:id="@+id/tabNetworkIcon" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_network" android:tint="@color/on_surface_variant" android:layout_marginBottom="4dp" android:contentDescription="@null"/>
 
-            <TextView android:id="@+id/tabNetworkText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/tab_network" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:includeFontPadding="false"/>
+            <TextView android:id="@+id/tabNetworkText" android:tag="skip_button_text_fitter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/tab_network" android:textColor="@color/on_surface_variant" android:textSize="@dimen/bottom_navigation_label_text_size" android:textAppearance="@style/TextAppearance.BlazePlayer.NavigationLabel" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:letterSpacing="0" android:textScaleX="1" android:includeFontPadding="false"/>
 
         </LinearLayout>
 
@@ -687,7 +676,7 @@
 
             <ImageView android:id="@+id/tabGalleryIcon" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_gallery" android:tint="@color/on_surface_variant" android:layout_marginBottom="4dp" android:contentDescription="@null"/>
 
-            <TextView android:id="@+id/tabGalleryText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/app_name_gallery" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:includeFontPadding="false"/>
+            <TextView android:id="@+id/tabGalleryText" android:tag="skip_button_text_fitter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/app_name_gallery" android:textColor="@color/on_surface_variant" android:textSize="@dimen/bottom_navigation_label_text_size" android:textAppearance="@style/TextAppearance.BlazePlayer.NavigationLabel" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:letterSpacing="0" android:textScaleX="1" android:includeFontPadding="false"/>
 
         </LinearLayout>
 
@@ -696,7 +685,7 @@
 
             <ImageView android:id="@+id/tabAudioIcon" android:layout_width="22dp" android:layout_height="22dp" android:src="@drawable/ic_music_note_large" android:tint="@color/on_surface_variant" android:layout_marginBottom="4dp" android:contentDescription="@null"/>
 
-            <TextView android:id="@+id/tabAudioText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Blaze Audio" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:includeFontPadding="false"/>
+            <TextView android:id="@+id/tabAudioText" android:tag="skip_button_text_fitter" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Blaze Audio" android:textColor="@color/on_surface_variant" android:textSize="@dimen/bottom_navigation_label_text_size" android:textAppearance="@style/TextAppearance.BlazePlayer.NavigationLabel" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:letterSpacing="0" android:textScaleX="1" android:includeFontPadding="false"/>
 
         </LinearLayout>
 

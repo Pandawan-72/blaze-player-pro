@@ -10,7 +10,6 @@ import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2CreateOptions
 import com.hierynomus.mssmb2.SMB2ShareAccess
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.EnumSet
@@ -31,7 +30,7 @@ object AudioTagWriter {
         val disc: String = ""
     )
 
-    suspend fun write(context: Context, path: String, tags: EditableTags): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun write(context: Context, path: String, tags: EditableTags): Result<Unit> = withContext(AudioLibraryBackgroundDispatchers.io) {
         runCatching {
             if (path.startsWith("http://", true) || path.startsWith("https://", true)) {
                 error(context.getString(fr.retrospare.blazeplayer.R.string.audio_tag_network_not_supported))

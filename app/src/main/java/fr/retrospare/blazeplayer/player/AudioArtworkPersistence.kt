@@ -87,10 +87,13 @@ object AudioArtworkPersistence {
         cleanupLegacyOnce(appContext)
         val tmp = File(parent, ".$FILE_NAME.${Thread.currentThread().id}.${System.nanoTime()}.tmp")
 
+        var prepared: Bitmap? = null
         return try {
-            val scaled = scaleForPersistence(bitmap)
+            val source = prepareForPersistence(bitmap)
+                ?: throw IllegalStateException("Unable to create a software artwork bitmap")
+            prepared = source
             FileOutputStream(tmp).use { output ->
-                if (!scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)) {
+                if (!source.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)) {
                     throw IllegalStateException("Bitmap compression failed")
                 }
                 output.fd.sync()
@@ -103,6 +106,8 @@ object AudioArtworkPersistence {
             runCatching { tmp.delete() }
             Log.w("AudioArtworkPersist", "Unable to persist artwork", error)
             null
+        } finally {
+            prepared?.takeIf { it !== bitmap && !it.isRecycled }?.recycle()
         }
     }
 
@@ -162,16 +167,23 @@ object AudioArtworkPersistence {
         runCatching { File(context.filesDir, LEGACY_DIRECTORY_NAME).deleteRecursively() }
     }
 
-    private fun scaleForPersistence(bitmap: Bitmap): Bitmap {
-        val largest = maxOf(bitmap.width, bitmap.height)
-        if (largest <= MAX_DIMENSION) return bitmap
+    private fun prepareForPersistence(bitmap: Bitmap): Bitmap? {
+        val software = if (bitmap.config == Bitmap.Config.HARDWARE || bitmap.config == null) {
+            runCatching { bitmap.copy(Bitmap.Config.ARGB_8888, false) }.getOrNull() ?: return null
+        } else {
+            bitmap
+        }
+        val largest = maxOf(software.width, software.height)
+        if (largest <= MAX_DIMENSION) return software
         val ratio = MAX_DIMENSION.toFloat() / largest.toFloat()
-        return Bitmap.createScaledBitmap(
-            bitmap,
-            (bitmap.width * ratio).toInt().coerceAtLeast(1),
-            (bitmap.height * ratio).toInt().coerceAtLeast(1),
+        val scaled = Bitmap.createScaledBitmap(
+            software,
+            (software.width * ratio).toInt().coerceAtLeast(1),
+            (software.height * ratio).toInt().coerceAtLeast(1),
             true
         )
+        if (software !== bitmap && scaled !== software && !software.isRecycled) software.recycle()
+        return scaled
     }
 
     private fun fileFor(context: Context, audioPath: String): File =

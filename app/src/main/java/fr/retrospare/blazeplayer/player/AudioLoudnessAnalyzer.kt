@@ -10,7 +10,7 @@ import com.hierynomus.msfscc.fileinformation.FileStandardInformation
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2CreateOptions
 import com.hierynomus.mssmb2.SMB2ShareAccess
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -18,7 +18,6 @@ import org.json.JSONObject
 import java.io.File
 import java.security.MessageDigest
 import java.util.EnumSet
-import kotlin.math.max
 
 /** Analyse de loudness locale pour rendre ReplayGain réellement exploitable même si le fichier
  *  ne contient pas de tags ReplayGain. Le résultat est mis en cache par chemin, pour éviter de
@@ -39,9 +38,16 @@ object AudioLoudnessAnalyzer {
         val trackGainDb: Float
     )
 
-    suspend fun getOrAnalyze(context: Context, path: String, albumKey: String = ""): LoudnessInfo? = withContext(Dispatchers.IO) {
+    suspend fun getOrAnalyze(context: Context, path: String, albumKey: String = ""): LoudnessInfo? =
+        withContext(AudioLibraryBackgroundDispatchers.io) {
         if (path.isBlank()) return@withContext null
         load(context, path)?.let { return@withContext it }
+
+        // ReplayGain par analyse FFmpeg est un enrichissement, jamais une condition de lecture.
+        // Il attend une vraie accalmie et ne démarre pas pendant la reprise du service/player.
+        AudioLibraryWorkState.awaitPlaybackIdle()
+        delay(1_200L)
+        if (AudioLibraryWorkState.isPlaybackProtected()) return@withContext null
 
         val lock = analysisLocks.computeIfAbsent(path) { Mutex() }
         try {
@@ -51,8 +57,8 @@ object AudioLoudnessAnalyzer {
                 // deuxième copie intégrale du même fichier NAS.
                 load(context, path)?.let { return@withLock it }
 
-                if (path.startsWith("smb://", ignoreCase = true) && BlazePlayerService.isAudioPlaybackActive) {
-                    Log.i("AudioLoudnessAnalyzer", "ReplayGain SMB différé pendant la lecture")
+                if (AudioLibraryWorkState.isPlaybackProtected()) {
+                    Log.i("AudioLoudnessAnalyzer", "ReplayGain différé pendant la lecture")
                     return@withLock null
                 }
 

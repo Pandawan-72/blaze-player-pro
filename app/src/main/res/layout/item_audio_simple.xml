@@ -37,7 +37,8 @@
         android:textColor="@color/on_surface_variant"
         android:fontFamily="sans-serif-condensed"
         android:layout_marginStart="8dp"
-        android:visibility="gone" />
+        android:visibility="gone"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/tvAudioSimpleFormatBadge"
@@ -50,7 +51,8 @@
         android:textColor="@color/on_surface_variant"
         android:fontFamily="sans-serif-condensed"
         android:layout_marginStart="4dp"
-        android:visibility="gone" />
+        android:visibility="gone"
+        android:textStyle="bold" />
 
     <ImageView
         android:layout_width="16dp"

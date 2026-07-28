@@ -17,7 +17,6 @@ import fr.retrospare.blazeplayer.browser.BrowserAdapter
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentSearchBinding
 import fr.retrospare.blazeplayer.player.PlayerRouter
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

@@ -134,8 +134,13 @@ class BlazePlayerService : MediaLibraryService() {
         /** Signal léger lu par la bibliothèque audio : quand une piste joue, les scans
          *  métadonnées/covers doivent rester strictement non prioritaires pour éviter
          *  toute coupure, surtout avec des fichiers sur NAS. */
-        @Volatile var isAudioPlaybackActive: Boolean = false
-            private set
+        @Volatile
+        var isAudioPlaybackActive: Boolean = false
+            private set(value) {
+                if (field == value) return
+                field = value
+                AudioLibraryWorkState.onPlaybackStateChanged(value)
+            }
 
         /** Vrai uniquement quand le service possède réellement une file audio. MainActivity s'en
          * sert pour ne jamais démarrer ce service à froid uniquement afin d'afficher le mini player. */
@@ -237,7 +242,9 @@ class BlazePlayerService : MediaLibraryService() {
             scheduleCrossfadeCheck()
         }
     }
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val serviceScope = CoroutineScope(
+        SupervisorJob() + AudioPlaybackDispatchers.service
+    )
     // Serveur HTTP local Blaze Party : vit ici (et non dans AudioPlayerFragment) précisément pour
     // continuer à répondre aux invités même quand l'utilisateur quitte l'écran audio, tant que la
     // lecture — donc ce service — tourne toujours en arrière-plan.
@@ -256,6 +263,11 @@ class BlazePlayerService : MediaLibraryService() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Le service peut être recréé/relié pendant qu'une session audio est restaurée. Cette
+        // courte fenêtre maintient Room, les scans et l'hydratation à l'écart du démarrage de
+        // l'AudioTrack, même avant le premier callback isPlaying de Media3.
+        AudioLibraryWorkState.beginPlaybackCriticalWindow(3_500L)
 
         // Aucun accès DataStore bloquant ici : onCreate() est exécuté sur le thread principal.
         // Le contrôle Pro+ est lancé après la création de la session et reste entièrement asynchrone.
@@ -465,16 +477,16 @@ class BlazePlayerService : MediaLibraryService() {
                 }
         }
 
-        // La voiture consulte uniquement l'index Room déjà construit. Quand un scan téléphone
-        // met cet index à jour, les catégories abonnées sont invalidées sans rescanner le NAS.
+        // La voiture consulte le même snapshot mémoire que l'écran téléphone. Quand un scan le
+        // met à jour, les catégories abonnées sont invalidées sans rescanner le NAS côté voiture.
         serviceScope.launch {
             audioLibraryRepository.observeLibrary(applicationContext)
                 .map { tracks ->
                     tracks.size to tracks.maxOfOrNull { maxOf(it.modifiedAt, it.addedAt) }
                 }
                 .distinctUntilChanged()
-                // Un scan progressif peut écrire des dizaines de lots Room. Une notification par
-                // lot force certains hôtes Android Auto à reconstruire la liste pendant le scroll.
+                // Un scan progressif peut publier plusieurs lots. Une notification par lot force
+                // certains hôtes Android Auto à reconstruire la liste pendant le scroll.
                 .debounce(2_500L)
                 .collect { (trackCount, _) ->
                     androidAutoLibrary.invalidate()
@@ -1074,7 +1086,7 @@ class BlazePlayerService : MediaLibraryService() {
                 prepareReplayGainForItem(mediaItem)
                 val lyricsPath = mediaItem?.let { BlazePartyQueue.originalPathOf(it) }.orEmpty()
                 if (lyricsPath.isNotBlank() && audioProValues.syncedLyrics) {
-                    serviceScope.launch {
+                    serviceScope.launch(AudioPlaybackDispatchers.lyrics) {
                         AudioLocalEnhancements.findLocalLyricsData(applicationContext, lyricsPath)
                     }
                 }
@@ -1159,8 +1171,16 @@ class BlazePlayerService : MediaLibraryService() {
                     isLossless = lossless
                 )
                 AudioMetadataExtractor.putMemoryCached(path, technicalInfo)
-                serviceScope.launch(Dispatchers.IO) {
+                serviceScope.launch(AudioPlaybackDispatchers.compute) {
+                    AudioLibraryMemoryStore.updateMetadata(mapOf(path to technicalInfo))
+                }
+                serviceScope.launch(AudioPlaybackDispatchers.io) {
                     AudioMetadataExtractor.putCached(applicationContext, path, technicalInfo)
+                    AudioLibraryRoomStore.upsertMetadataInfo(
+                        applicationContext,
+                        path,
+                        technicalInfo
+                    )
                 }
             }
 
@@ -1735,7 +1755,7 @@ class BlazePlayerService : MediaLibraryService() {
 
     private fun enrichExternalAudioMetadataAsync(path: String, fallbackName: String, artworkPath: String = "") {
         if (path.isBlank()) return
-        serviceScope.launch {
+        serviceScope.launch(AudioPlaybackDispatchers.io) {
             val enriched = try {
                 // Seule la pochette est extraite hors thread principal. Les textes de la
                 // notification restent dérivés du nom de fichier et des dossiers.
@@ -1779,6 +1799,10 @@ class BlazePlayerService : MediaLibraryService() {
         if (currentMeta.artist?.toString() != enrichedMeta.artist?.toString()) return true
         if (currentMeta.albumTitle?.toString() != enrichedMeta.albumTitle?.toString()) return true
         if (currentMeta.artworkUri != enrichedMeta.artworkUri) return true
+        if (
+            currentMeta.extras?.getString(AudioRepository.EXTRA_ARTWORK_PATH).orEmpty() !=
+            enrichedMeta.extras?.getString(AudioRepository.EXTRA_ARTWORK_PATH).orEmpty()
+        ) return true
 
         val currentArtwork = currentMeta.artworkData
         val enrichedArtwork = enrichedMeta.artworkData
@@ -2252,7 +2276,9 @@ class BlazePlayerService : MediaLibraryService() {
                             showAndroidAutoQueue(browser)
                             androidAutoQueueItems()
                         }
-                        else -> androidAutoLibrary.children(parentId)
+                        else -> withContext(AudioLibraryBackgroundDispatchers.compute) {
+                            androidAutoLibrary.children(parentId)
+                        }
                     }
                     future.set(LibraryResult.ofItemList(items.androidAutoPage(page, pageSize), params))
                 } catch (error: Throwable) {
@@ -2581,8 +2607,12 @@ class BlazePlayerService : MediaLibraryService() {
         ): ListenableFuture<SessionResult> {
             if (customCommand.customAction == COMMAND_GET_AUDIO_SESSION_ID) {
                 return runSessionActionWhenAllowed(COMMAND_GET_AUDIO_SESSION_ID) {
+                    val rawSessionId = player?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
+                    val validSessionId = rawSessionId.takeIf {
+                        it > 0 && it != C.AUDIO_SESSION_ID_UNSET
+                    } ?: 0
                     val resultExtras = Bundle().apply {
-                        putInt(EXTRA_AUDIO_SESSION_ID, player?.audioSessionId ?: 0)
+                        putInt(EXTRA_AUDIO_SESSION_ID, validSessionId)
                     }
                     SessionResult(SessionResult.RESULT_SUCCESS, resultExtras)
                 }

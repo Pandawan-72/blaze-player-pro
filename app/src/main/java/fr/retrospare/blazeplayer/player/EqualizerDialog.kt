@@ -84,17 +84,36 @@ class EqualizerDialog(
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // La première frame doit rester légère. Le contenu est initialisé par petits lots sur des
+        // frames successives afin qu'aucune construction de contrôles ne puisse bloquer l'UI.
         setupDynamicBackground()
         selectedPreset = eqManager.getSavedPreset()
         setupHeader()
-        setupBands()
-        setupPresets()
         setupAdvancedTabs()
-        setupToneControls()
-        setupDynamicsControls()
-        setupAmbienceControls()
-        setupReplayGainControls()
-        applyCapabilityVisibility()
+        applyCapabilityVisibility(eqManager.loadCapabilities())
+
+        view.postOnAnimation {
+            if (_binding == null) return@postOnAnimation
+            setupBands()
+            view.postOnAnimation {
+                if (_binding == null) return@postOnAnimation
+                setupPresets()
+                view.postOnAnimation {
+                    if (_binding == null) return@postOnAnimation
+                    setupToneControls()
+                    view.postOnAnimation {
+                        if (_binding == null) return@postOnAnimation
+                        setupDynamicsControls()
+                        view.postOnAnimation {
+                            if (_binding == null) return@postOnAnimation
+                            setupAmbienceControls()
+                            setupReplayGainControls()
+                        }
+                    }
+                }
+            }
+        }
     }
 
 
@@ -107,7 +126,9 @@ class EqualizerDialog(
 
     private fun resolveDynamicAccent(prefs: SharedPreferences): Int {
         return if (AudioProSettings.read(requireContext()).dynamicTheme) {
-            prefs.getInt(KEY_DYNAMIC_ACCENT, AudioDynamicColor.DEFAULT_ACCENT)
+            AudioDynamicColor.ensureReadableAccent(
+                prefs.getInt(KEY_DYNAMIC_ACCENT, AudioDynamicColor.DEFAULT_ACCENT)
+            )
         } else {
             AudioDynamicColor.DEFAULT_ACCENT
         }
@@ -208,6 +229,7 @@ class EqualizerDialog(
         bandViews.clear()
         bandLabels.clear()
 
+        val initialLevels = eqManager.getAllBandLevels()
         for (band in 0 until eqManager.numBands) {
             val container = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
@@ -216,7 +238,7 @@ class EqualizerDialog(
             }
 
             val tvDb = TextView(requireContext()).apply {
-                text = compactDb(eqManager.getBandLevel(band))
+                text = compactDb(initialLevels.getOrElse(band) { 0 })
                 textSize = 9f
                 setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
                 gravity = Gravity.CENTER
@@ -230,7 +252,7 @@ class EqualizerDialog(
             val bandView = EqBandView(requireContext()).apply {
                 minLevel = eqManager.minLevel
                 maxLevel = eqManager.maxLevel
-                currentLevel = eqManager.getBandLevel(band)
+                currentLevel = initialLevels.getOrElse(band) { 0 }
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     0,
@@ -552,8 +574,8 @@ class EqualizerDialog(
         }
     }
 
-    private fun applyCapabilityVisibility() {
-        val nativeEqAvailable = eqManager.isEqualizerAvailable()
+    private fun applyCapabilityVisibility(capabilities: EqualizerManager.Capabilities) {
+        val nativeEqAvailable = capabilities.equalizer
         val eqVisibility = if (nativeEqAvailable) View.VISIBLE else View.GONE
         binding.eqBandsCard.visibility = eqVisibility
         binding.tvPresetTitle.visibility = eqVisibility
@@ -565,9 +587,7 @@ class EqualizerDialog(
         binding.switchAutoHeadroom.visibility = eqVisibility
         binding.tvAutoHeadroomSummary.visibility = eqVisibility
         binding.tvToneUnavailable.visibility = if (nativeEqAvailable) View.GONE else View.VISIBLE
-
-        val loudnessAvailable = eqManager.isLoudnessAvailable()
-        binding.loudnessContainer.visibility = if (loudnessAvailable) View.VISIBLE else View.GONE
+        binding.loudnessContainer.visibility = if (capabilities.loudness) View.VISIBLE else View.GONE
     }
 
     private fun refreshSurroundEnabledState(enabled: Boolean) {
@@ -659,9 +679,10 @@ class EqualizerDialog(
     }
 
     private fun refreshBands() {
+        val levels = eqManager.getAllBandLevels()
         for (band in 0 until eqManager.numBands) {
             if (band >= bandViews.size || band >= bandLabels.size) continue
-            val level = eqManager.getBandLevel(band)
+            val level = levels.getOrElse(band) { 0 }
             bandViews[band].silent = true
             bandViews[band].currentLevel = level
             bandViews[band].silent = false

@@ -38,7 +38,6 @@
     <string name="queue">WACHTRIJ</string>
     <string name="queue_short">Wachtrij</string>
     <string name="add">Toevoegen</string>
-    <string name="lyrics">Songteksten</string>
     <string name="audio_lyrics_title">Songteksten</string>
     <string name="audio_lyrics_disabled">Schakel “Gesynchroniseerde songteksten” in de audio-instellingen in om lokale songteksten toe te staan.</string>
     <string name="audio_lyrics_none">Geen lokale songtekst gevonden voor dit nummer.</string>
@@ -234,10 +233,6 @@
     <string name="dialog_video_info_message">Pad: %1$s\n\nContainer: %2$s\nResolutie: %3$s\nDuur: %4$s\nGrootte: %5$s</string>
     <string name="dialog_video_info_video_codec">Videocodec: %1$s</string>
     <string name="dialog_video_info_audio_codec">Audiocodec: %1$s</string>
-    <plurals name="video_count">
-        <item quantity="one">%1$d video</item>
-        <item quantity="other">%1$d video\'s</item>
-    </plurals>
     <string name="toast_cannot_open_screen_cast_settings">Kan schermcast-instellingen niet openen</string>
     <string name="toast_share_not_found">Gedeelde map niet gevonden voor deze favoriet</string>
     <string name="action_remove_from_history">Verwijderen uit geschiedenis</string>
@@ -301,7 +296,6 @@
     <string name="player_speed_label_short">Snelheid</string>
     <string name="player_ratio_label">Beeldverhouding</string>
     <string name="content_desc_close_playlist">Afspeellijst sluiten</string>
-    <string name="content_desc_clean">Opschonen</string>
     <string name="content_desc_playlist">Afspeellijst</string>
     <string name="content_desc_shuffle">Willekeurig</string>
     <string name="content_desc_previous">Vorige</string>
@@ -352,7 +346,6 @@
     <string name="gallery_trash_empty_message">De prullenbak is leeg</string>
     <string name="gallery_type_photo">Foto\'s</string>
     <string name="gallery_type_video">Video\'s</string>
-    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Sorteren</string>
     <string name="gallery_sort_date_desc">Nieuwste eerst</string>
     <string name="gallery_sort_date_asc">Oudste eerst</string>
@@ -377,17 +370,10 @@
     <string name="confirm_empty_trash_message">Prullenbak permanent legen? Deze actie kan niet ongedaan worden gemaakt.</string>
     <string name="confirm_permanent_delete_message">Deze foto permanent uit de prullenbak verwijderen?</string>
     <string name="action_confirm_delete">Verwijderen</string>
-    <plurals name="gallery_photo_count">
-        <item quantity="one">%d foto</item>
-        <item quantity="other">%d foto’s</item>
-    </plurals>
-    <plurals name="gallery_video_count">
-        <item quantity="one">%d video</item>
-        <item quantity="other">%d video\'s</item>
-    </plurals>
     <string name="settings_audio_spectrum">Visueel spectrum inschakelen</string>
     <string name="settings_audio_spectrum_desc">Toon de geanimeerde audiovisualizer in Blaze Audio.</string>
     <string name="blaze_party_short">Party</string>
+    <string name="audio_party_queue_short">Partywachtrij</string>
     <string name="add_to_blaze_party">Toevoegen aan Blaze Party</string>
     <string name="blaze_party_playlist_title">Blaze Party-afspeellijst</string>
     <string name="blaze_party_playlist_empty_message">Geen nummers in de Blaze Party-afspeellijst. Voeg nummers toe vanuit de audiobrowser met “Toevoegen aan Blaze Party”.</string>
@@ -515,7 +501,6 @@ Token: %2$s</string>
     <string name="app_name_audio">Blaze Audio</string>
     <string name="blaze_party_network_error">Kan geen verbinding maken met de host. Controleer of je op hetzelfde wifi-netwerk zit.</string>
     <string name="video_queue_title">VIDEOWACHTRIJ</string>
-    <string name="video_queue_title_with_category">VIDEOWACHTRIJ — %1$s (%2$d)</string>
     <string name="video_queue_empty_message">Geen video’s in deze wachtrij. Selecteer video’s in de browser en gebruik “+ wachtrij”.</string>
     <string name="toast_video_queue_added">%1$d video(s) toegevoegd aan de wachtrij</string>
     <string name="toast_video_queue_added_partial">%1$d video(s) toegevoegd, %2$d al aanwezig</string>
@@ -525,12 +510,12 @@ Token: %2$s</string>
     <string name="content_desc_video_queue">Videowachtrij</string>
     <string name="content_desc_close_video_queue">Videowachtrij sluiten</string>
     <string name="audio_library_title">Bibliotheek</string>
+    <string name="audio_open_full_player">Audiospeler openen</string>
     <string name="audio_library_subtitle">Je Pro+ muziekbibliotheek</string>
-    <string name="audio_loading_in_progress">Laden...</string>
     <string name="audio_search">Zoeken</string>
+    <string name="audio_tab_albums">Albums</string>
     <string name="audio_tab_artists">Artiesten</string>
     <string name="audio_tab_titles">Nummers</string>
-    <string name="audio_tab_playlists">Playlists</string>
     <string name="audio_resume_listening">Recent beluisterd</string>
     <string name="audio_recent_albums">Mijn albums</string>
     <string name="audio_played_tracks">Nummers</string>
@@ -571,12 +556,6 @@ Token: %2$s</string>
     <string name="audio_section_interface">Interface</string>
     <string name="audio_dynamic_theme">Dynamisch thema</string>
     <string name="audio_dynamic_theme_subtitle">Standaard Blaze-groen, coverkleuren wanneer ingeschakeld</string>
-    <string name="audio_cover_border">Gekleurde coverrand</string>
-    <string name="audio_cover_border_subtitle">Dynamisch accent rond artwork</string>
-    <string name="audio_artwork_size">Covergrootte</string>
-    <string name="audio_size_small">Klein</string>
-    <string name="audio_size_medium">Gemiddeld</string>
-    <string name="audio_size_large">Groot</string>
     <string name="audio_section_lyrics_metadata">Songteksten en metadata</string>
     <string name="audio_synced_lyrics">Gesynchroniseerde songteksten</string>
     <string name="audio_synced_lyrics_subtitle">Hoofdschakelaar voor lokale LRC/TXT-songteksten</string>
@@ -604,12 +583,9 @@ Token: %2$s</string>
         <item quantity="one">%d artiest</item>
         <item quantity="other">%d artiesten</item>
     </plurals>
-    <string name="audio_watched_folders_empty_info">Nog geen bewaakte map. Open in de audiobrowser het menu van een map en kies “Toevoegen aan bewaakte mappen”.</string>
-    <string name="audio_watched_folders_manage_info">Tik op een map om die niet meer te bewaken. Voeg nieuwe toe via de mapmenu’s in de audiobrowser.</string>
     <string name="audio_remove_watched_folder">Verwijderen</string>
     <string name="audio_add_to_watched">Toevoegen aan bewaakte mappen</string>
     <string name="audio_watched_folder_added">Map toegevoegd aan bewaakte mappen</string>
-    <string name="audio_watched_folder_refresh_hint">De map is toegevoegd aan bewaakte mappen. Bij terugkeer naar de bibliotheek start automatisch een volledige vernieuwing.</string>
     <string name="audio_watched_folder_removed">Map verwijderd uit bewaakte mappen</string>
     <string name="audio_watched_folder_already">Deze map wordt al bewaakt</string>
     <string name="audio_tag_genre">Genre</string>
@@ -624,6 +600,7 @@ Token: %2$s</string>
     <string name="action_done">Klaar</string>
     <string name="audio_play_album">Hele album afspelen</string>
     <string name="audio_add_album_queue">Aan wachtrij toevoegen</string>
+    <string name="audio_album_queue_button">Wachtrij</string>
     <string name="audio_add_playlist_blaze_party">Playlist aan Blaze Party toevoegen</string>
     <string name="audio_add_playlist_queue">Playlist aan wachtrij toevoegen</string>
     <string name="queue_clear_all">Alles leegmaken</string>
@@ -864,4 +841,28 @@ Token: %2$s</string>
     <string name="slideshow_font_bebas">Bebas Neue</string>
     <string name="slideshow_font_caveat">Caveat</string>
     <string name="slideshow_font_cinzel">Cinzel</string>
+
+    <!-- Page artiste et photographie Wikimedia -->
+    <string name="audio_artist_page_title">Artiest</string>
+    <string name="audio_album_page_title">Album</string>
+    <string name="audio_my_artists">Mijn artiesten</string>
+    <string name="audio_artist_play_all">Alles afspelen</string>
+    <string name="audio_library_empty_hint">Probeer een andere zoekopdracht of scan je bibliotheek.</string>
+    <string name="audio_artist_photo_credit">Foto: %1$s • %2$s</string>
+    <string name="audio_artist_photo_credit_author">Foto: %1$s</string>
+    <string name="audio_artist_photo_source">Fotobron</string>
+    <string name="audio_artist_photo_author">Auteur: %1$s</string>
+    <string name="audio_artist_photo_license">Licentie: %1$s</string>
+    <string name="audio_artist_photo_credits_title">Fotocredits</string>
+    <string name="audio_artist_photo_open_source">Bron bekijken</string>
+
+    <!-- Photo d’artiste : source automatique + choix manuel persistant. -->
+    <string name="audio_artist_change_photo">Foto wijzigen</string>
+    <string name="audio_artist_photo_actions_title">Artiestenfoto</string>
+    <string name="audio_artist_photo_choose_device">Kies een afbeelding op dit apparaat</string>
+    <string name="audio_artist_photo_restore_auto">Automatische foto herstellen</string>
+    <string name="audio_artist_photo_updated">Artiestenfoto bijgewerkt</string>
+    <string name="audio_artist_photo_restored">Automatische foto hersteld</string>
+    <string name="audio_artist_photo_update_failed">Deze afbeelding kan niet worden gebruikt</string>
+    <string name="audio_now_playing">Wordt afgespeeld</string>
 </resources>

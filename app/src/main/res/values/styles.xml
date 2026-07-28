@@ -28,6 +28,14 @@
     </style>
 
     <style name="Widget.BlazePlayer.DialogButton" parent="Widget.BlazePlayer.Button.Outlined">
+        <item name="autoSizeTextType">uniform</item>
+        <item name="autoSizeMinTextSize">7sp</item>
+        <item name="autoSizeMaxTextSize">16sp</item>
+        <item name="autoSizeStepGranularity">1sp</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">none</item>
+
         <item name="android:textColor">@color/green_accent</item>
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>
@@ -73,6 +81,82 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">1dp</item>
         <item name="android:background">#18FFFFFF</item>
+    </style>
+
+    <!-- Case circulaire commune aux sélections multiples de Blaze. -->
+    <style name="Widget.BlazePlayer.MultiSelectCheckBox" parent="@android:style/Widget.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/bg_multi_select_checkbox</item>
+        <item name="android:buttonTint">@null</item>
+        <item name="android:minWidth">32dp</item>
+        <item name="android:minHeight">32dp</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
+    <!-- Typographie commune aux onglets du menu général et aux actions supérieures audio.
+         La taille reste définie par chaque vue afin de conserver le réglage paysage du lecteur. -->
+    <style name="TextAppearance.BlazePlayer.NavigationLabel" parent="@android:style/TextAppearance">
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineSpacingExtra">0dp</item>
+        <item name="android:lineSpacingMultiplier">1.0</item>
+        <item name="android:textScaleX">1.0</item>
+    </style>
+
+    <!-- Style appliqué directement lors de l'inflation des quatre actions supérieures du lecteur.
+         Il ne dépend pas du materialButtonStyle global en pilule : aucune ancienne forme arrondie,
+         élévation ou foreground ne peut donc apparaître pendant la première frame. -->
+    <style name="Widget.BlazePlayer.AudioTopAction" parent="Widget.Material3.Button.TextButton">
+        <item name="autoSizeTextType">none</item>
+        <item name="android:autoSizeTextType">none</item>
+        <item name="android:textAppearance">@style/TextAppearance.BlazePlayer.NavigationLabel</item>
+        <item name="android:textSize">@dimen/audio_player_top_action_text_size</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">none</item>
+
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="fontFamily">sans-serif-condensed</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:lineSpacingExtra">0dp</item>
+        <item name="android:lineSpacingMultiplier">1.0</item>
+        <item name="android:textScaleX">1.0</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="cornerRadius">0dp</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.BlazePlayer.AudioTopAction</item>
+        <item name="android:foreground">@null</item>
+        <item name="android:clipToOutline">false</item>
+        <item name="android:outlineProvider">none</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:translationZ">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="rippleColor">@color/premium_pill_ripple</item>
+    </style>
+
+    <style name="ShapeAppearance.BlazePlayer.AudioTopAction" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">0dp</item>
+    </style>
+
+
+    <style name="Widget.BlazePlayer.PlatformButton" parent="Widget.AppCompat.Button">
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="autoSizeTextType">uniform</item>
+        <item name="autoSizeMinTextSize">7sp</item>
+        <item name="autoSizeMaxTextSize">16sp</item>
+        <item name="autoSizeStepGranularity">1sp</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">none</item>
     </style>
 
 </resources>

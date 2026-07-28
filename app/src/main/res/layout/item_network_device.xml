@@ -63,8 +63,10 @@
         android:paddingVertical="3dp"
         android:textSize="10sp"
         android:fontFamily="sans-serif-condensed"
+        android:textColor="@color/blue_accent"
         android:background="@drawable/bg_badge_blue"
-        android:layout_marginStart="8dp" />
+        android:layout_marginStart="8dp"
+        android:textStyle="bold" />
 
     <!-- Chevron -->
     <ImageView

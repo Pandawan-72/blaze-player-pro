@@ -2,7 +2,7 @@ package fr.retrospare.blazeplayer.network
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -25,16 +25,19 @@ class DiscoveredDeviceAdapter(
                 ShareType.SMB -> {
                     binding.tvBadge.text = "SMB"
                     binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_blue)
+                    binding.tvBadge.setTextColor(ContextCompat.getColor(binding.root.context, R.color.blue_accent))
                     binding.ivIcon.setImageResource(R.drawable.ic_folder)
                 }
                 ShareType.UPNP -> {
                     binding.tvBadge.text = "UPnP"
                     binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_green)
+                    binding.tvBadge.setTextColor(ContextCompat.getColor(binding.root.context, R.color.green_accent))
                     binding.ivIcon.setImageResource(R.drawable.ic_cast)
                 }
                 else -> {
                     binding.tvBadge.text = "NET"
                     binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_gray)
+                    binding.tvBadge.setTextColor(ContextCompat.getColor(binding.root.context, R.color.on_surface_variant))
                 }
             }
 

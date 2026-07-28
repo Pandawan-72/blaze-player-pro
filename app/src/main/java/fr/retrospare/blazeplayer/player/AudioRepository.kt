@@ -1,6 +1,7 @@
 package fr.retrospare.blazeplayer.player
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import androidx.media3.common.MediaItem
@@ -160,8 +161,6 @@ object AudioRepository {
         else -> "audio/*"
     }
 
-    private fun mimeTypeForPath(path: String): String = mimeTypeForExtension(extensionForAudio(path))
-
 
 
     fun isSupportedAudioPath(path: String): Boolean {
@@ -222,12 +221,64 @@ object AudioRepository {
         val folder = folderMetadata(path, fileName)
         val cachedTechnical = AudioMediaCache.getCachedMetadata(context, path)
         val extension = extensionForAudio(path, fileName).ifBlank { cachedTechnical?.extension.orEmpty() }
+        val playbackProtected = AudioLibraryWorkState.isPlaybackProtected()
         val artwork = AudioArtworkResolver.cachedJpegBytes(context, path, artworkPath)
-            ?: runCatching {
-                AudioArtworkResolver.resolveJpegBytesBlocking(context, path, artworkPath)
-            }.getOrNull()
             ?: AudioMediaCache.getCachedArtworkJpegBytes(context, path)
-            ?: runCatching { AudioMediaCache.extractArtworkJpegBytesBlocking(context, path) }.getOrNull()
+            ?: if (!playbackProtected) {
+                runCatching {
+                    AudioArtworkResolver.resolveJpegBytesBlocking(context, path, artworkPath)
+                }.getOrNull()
+                    ?: runCatching {
+                        AudioMediaCache.extractArtworkJpegBytesBlocking(context, path)
+                    }.getOrNull()
+            } else {
+                null
+            }
+
+        // Les extras Media3 doivent pointer vers le JPEG persistant réellement affiché. Sans cela,
+        // un ancien chemin externe ou une ancienne embedded pouvait revenir après navigation et
+        // produire une autre couleur dynamique que la vue album.
+        val stableArtworkPath = AudioArtworkPersistence.existingPath(context, path)
+            ?: artworkPath.takeIf {
+                AudioArtworkPersistence.isPersistedPath(context, it)
+            }
+            ?: if (!playbackProtected) {
+                artwork?.let { bytes ->
+                    runCatching {
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { bitmap ->
+                            try {
+                                AudioArtworkPersistence.persist(context, path, bitmap)
+                            } finally {
+                                if (!bitmap.isRecycled) bitmap.recycle()
+                            }
+                        }
+                    }.getOrNull()
+                }
+            } else {
+                null
+            }
+            ?: artworkPath.takeIf { it.isNotBlank() }
+            ?: ""
+        if (stableArtworkPath.isNotBlank()) {
+            val snapshot = AudioLibraryMemoryStore.current()
+            val canonicalPath = AudioLibraryHeuristics.canonicalPathKey(path)
+            val track = snapshot.tracksByPath[path]
+                ?: snapshot.trackIndexByCanonicalPath[canonicalPath]?.let(snapshot.tracks::get)
+            val albumPaths = track?.let {
+                snapshot.albumTracksByKey[AudioLibraryHeuristics.albumKey(it)]
+                    ?.map(LibraryTrack::path)
+            }.orEmpty()
+            AudioArtworkResolver.rememberPersistedArtworkPaths(
+                albumPaths.ifEmpty { listOf(path) },
+                stableArtworkPath
+            )
+            // Pendant une lecture/reprise, ne publie pas une nouvelle révision complète du
+            // snapshot depuis le pipeline du player. Le cache du résolveur suffit pour l'UI ; le
+            // repository persistera/propagera la pochette lors de sa prochaine fenêtre d'hydratation.
+            if (!playbackProtected && track?.artworkPath != stableArtworkPath) {
+                AudioLibraryMemoryStore.updateArtwork(path, stableArtworkPath)
+            }
+        }
         return MediaItem.Builder()
             .setMediaId(path)
             .setUri(localPlaybackUri(path))
@@ -238,7 +289,7 @@ object AudioRepository {
                     .setArtist(folder.artist)
                     .setAlbumTitle(folder.album)
                     .setArtworkData(artwork, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                    .setExtras(localExtras(path, extension, fileName, artworkPath))
+                    .setExtras(localExtras(path, extension, fileName, stableArtworkPath))
                     .build()
             )
             .build()

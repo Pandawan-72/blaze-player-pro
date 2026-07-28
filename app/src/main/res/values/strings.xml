@@ -39,7 +39,6 @@
     <string name="queue">FILE D\'ATTENTE</string>
     <string name="queue_short">File d’attente</string>
     <string name="add">Ajouter</string>
-    <string name="lyrics">Paroles</string>
     <string name="audio_lyrics_title">Paroles</string>
     <string name="audio_lyrics_disabled">Activez “Paroles synchronisées” dans les paramètres audio pour autoriser les paroles locales.</string>
     <string name="audio_lyrics_none">Aucune parole locale trouvée pour ce titre.</string>
@@ -266,10 +265,6 @@
     <string name="dialog_video_info_message">Chemin : %1$s\n\nConteneur : %2$s\nRésolution : %3$s\nDurée : %4$s\nTaille : %5$s</string>
     <string name="dialog_video_info_video_codec">Codec vidéo : %1$s</string>
     <string name="dialog_video_info_audio_codec">Codec audio : %1$s</string>
-    <plurals name="video_count">
-        <item quantity="one">%1$d vidéo</item>
-        <item quantity="other">%1$d vidéos</item>
-    </plurals>
     <string name="toast_cannot_open_screen_cast_settings">Impossible d\'ouvrir les paramètres de diffusion d\'écran</string>
     <string name="toast_share_not_found">Partage introuvable pour ce favori</string>
     <string name="action_remove_from_history">Retirer de l\'historique</string>
@@ -333,7 +328,6 @@
     <string name="player_speed_label_short">Vitesse</string>
     <string name="player_ratio_label">Ratio</string>
     <string name="content_desc_close_playlist">Fermer la playlist</string>
-    <string name="content_desc_clean">Nettoyer</string>
     <string name="content_desc_playlist">Playlist</string>
     <string name="content_desc_shuffle">Aléatoire</string>
     <string name="content_desc_previous">Précédent</string>
@@ -384,7 +378,6 @@
     <string name="gallery_trash_empty_message">La corbeille est vide</string>
     <string name="gallery_type_photo">Photos</string>
     <string name="gallery_type_video">Vidéos</string>
-    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Tri</string>
     <string name="gallery_sort_date_desc">Date décroissante</string>
     <string name="gallery_sort_date_asc">Date croissante</string>
@@ -418,14 +411,6 @@
     <string name="confirm_empty_trash_message">Vider définitivement la corbeille ? Cette action est irréversible.</string>
     <string name="confirm_permanent_delete_message">Supprimer définitivement cette photo de la corbeille ?</string>
     <string name="action_confirm_delete">Supprimer</string>
-    <plurals name="gallery_photo_count">
-        <item quantity="one">%d photo</item>
-        <item quantity="other">%d photos</item>
-    </plurals>
-    <plurals name="gallery_video_count">
-        <item quantity="one">%d vidéo</item>
-        <item quantity="other">%d vidéos</item>
-    </plurals>
     <string name="action_custom_thumbnail">Miniature personnalisée</string>
     <string name="action_delete_thumbnail">Supprimer miniature</string>
     <string name="custom_thumbnail_pick_folder">Choisir une capture dans Blaze Gallery</string>
@@ -451,6 +436,7 @@ Code : %2$s</string>
     <string name="blaze_party_scan_unavailable">Scanner QR indisponible. Installe un scanner QR ou saisis le code manuellement.</string>
     <string name="blaze_party_joined">Session Blaze Party rejointe</string>
     <string name="blaze_party_short">Party</string>
+    <string name="audio_party_queue_short">File Party</string>
     <string name="add_to_blaze_party">Ajouter à Blaze Party</string>
     <string name="blaze_party_playlist_title">Playlist Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">Aucun morceau dans la playlist Blaze Party. Ajoutez des morceaux depuis le navigateur audio avec « Ajouter à Blaze Party ».</string>
@@ -546,7 +532,6 @@ Code : %2$s</string>
     <string name="gallery_menu_cut">Découper</string>
     <string name="add_to_video_queue_short">file d’attente</string>
     <string name="video_queue_title">FILE D’ATTENTE VIDÉO</string>
-    <string name="video_queue_title_with_category">FILE D’ATTENTE VIDÉO — %1$s (%2$d)</string>
     <string name="video_queue_empty_message">Aucune vidéo dans cette file d’attente. Sélectionne des vidéos dans le navigateur, puis utilise « + file d’attente ».</string>
     <string name="toast_video_queue_added">%1$d vidéo(s) ajoutée(s) à la file d’attente</string>
     <string name="toast_video_queue_added_partial">%1$d vidéo(s) ajoutée(s), %2$d déjà présente(s)</string>
@@ -556,12 +541,12 @@ Code : %2$s</string>
     <string name="content_desc_video_queue">File d’attente vidéo</string>
     <string name="content_desc_close_video_queue">Fermer la file d’attente vidéo</string>
     <string name="audio_library_title">Bibliothèque</string>
+    <string name="audio_open_full_player">Ouvrir le lecteur audio</string>
     <string name="audio_library_subtitle">Votre bibliothèque musicale Pro+</string>
-    <string name="audio_loading_in_progress">Chargement en cours...</string>
     <string name="audio_search">Rechercher</string>
+    <string name="audio_tab_albums">Albums</string>
     <string name="audio_tab_artists">Artistes</string>
     <string name="audio_tab_titles">Titres</string>
-    <string name="audio_tab_playlists">Playlists</string>
     <string name="audio_resume_listening">Écouté récemment</string>
     <string name="audio_recent_albums">Mes albums</string>
     <string name="audio_played_tracks">Titres</string>
@@ -602,12 +587,6 @@ Code : %2$s</string>
     <string name="audio_section_interface">Interface</string>
     <string name="audio_dynamic_theme">Thème dynamique</string>
     <string name="audio_dynamic_theme_subtitle">Vert Blaze par défaut, couleurs de la cover quand activé</string>
-    <string name="audio_cover_border">Liseret coloré de la cover</string>
-    <string name="audio_cover_border_subtitle">Accent dynamique autour de la pochette</string>
-    <string name="audio_artwork_size">Taille des jaquettes</string>
-    <string name="audio_size_small">Petite</string>
-    <string name="audio_size_medium">Moyenne</string>
-    <string name="audio_size_large">Grande</string>
     <string name="audio_section_lyrics_metadata">Paroles et métadonnées</string>
     <string name="audio_synced_lyrics">Paroles synchronisées</string>
     <string name="audio_synced_lyrics_subtitle">Interrupteur principal des paroles locales LRC/TXT</string>
@@ -635,12 +614,9 @@ Code : %2$s</string>
         <item quantity="one">%d artiste</item>
         <item quantity="other">%d artistes</item>
     </plurals>
-    <string name="audio_watched_folders_empty_info">Aucun dossier surveillé. Dans le navigateur audio, ouvrez le menu d’un dossier puis choisissez “Ajouter aux dossiers surveillés”.</string>
-    <string name="audio_watched_folders_manage_info">Touchez un dossier pour le retirer de la surveillance. Ajoutez-en de nouveaux depuis le menu des dossiers dans le navigateur audio.</string>
     <string name="audio_remove_watched_folder">Retirer</string>
     <string name="audio_add_to_watched">Ajouter aux dossiers surveillés</string>
     <string name="audio_watched_folder_added">Dossier ajouté aux dossiers surveillés</string>
-    <string name="audio_watched_folder_refresh_hint">Le dossier a été ajouté aux dossiers surveillés. Le rafraîchissement complet de la bibliothèque démarre automatiquement au retour dans la bibliothèque.</string>
     <string name="audio_watched_folder_removed">Dossier retiré des dossiers surveillés</string>
     <string name="audio_watched_folder_already">Ce dossier est déjà surveillé</string>
     <string name="audio_tag_genre">Genre</string>
@@ -659,6 +635,7 @@ Code : %2$s</string>
     <string name="audio_add_track_blaze_party">Ajouter à Blaze Party</string>
     <string name="audio_play_album">Jouer tout l’album</string>
     <string name="audio_add_album_queue">Ajouter à la file d’attente</string>
+    <string name="audio_album_queue_button">File d’attente</string>
     <string name="audio_add_playlist_blaze_party">Ajouter la playlist à Blaze Party</string>
     <string name="audio_add_playlist_queue">Ajouter la playlist à la file d’attente</string>
     <string name="queue_clear_all">Tout vider</string>
@@ -863,4 +840,28 @@ Code : %2$s</string>
     <string name="slideshow_added_count">%1$d photo(s) ajoutée(s) au diapo</string>
 
     <string name="slideshow_picker_folders">Dossiers</string>
+
+    <!-- Page artiste et photographie Wikimedia -->
+    <string name="audio_artist_page_title">Artiste</string>
+    <string name="audio_album_page_title">Album</string>
+    <string name="audio_my_artists">Mes artistes</string>
+    <string name="audio_artist_play_all">Tout lire</string>
+    <string name="audio_library_empty_hint">Essayez une autre recherche ou lancez une analyse.</string>
+    <string name="audio_artist_photo_credit">Photo : %1$s • %2$s</string>
+    <string name="audio_artist_photo_credit_author">Photo : %1$s</string>
+    <string name="audio_artist_photo_source">Source de la photo</string>
+    <string name="audio_artist_photo_author">Auteur : %1$s</string>
+    <string name="audio_artist_photo_license">Licence : %1$s</string>
+    <string name="audio_artist_photo_credits_title">Crédits de la photo</string>
+    <string name="audio_artist_photo_open_source">Voir la source</string>
+
+    <!-- Photo d’artiste : source automatique + choix manuel persistant. -->
+    <string name="audio_artist_change_photo">Changer la photo</string>
+    <string name="audio_artist_photo_actions_title">Photo de l’artiste</string>
+    <string name="audio_artist_photo_choose_device">Choisir une image sur l’appareil</string>
+    <string name="audio_artist_photo_restore_auto">Rétablir la photo automatique</string>
+    <string name="audio_artist_photo_updated">Photo de l’artiste mise à jour</string>
+    <string name="audio_artist_photo_restored">Photo automatique rétablie</string>
+    <string name="audio_artist_photo_update_failed">Impossible d’utiliser cette image</string>
+    <string name="audio_now_playing">Lecture en cours</string>
 </resources>

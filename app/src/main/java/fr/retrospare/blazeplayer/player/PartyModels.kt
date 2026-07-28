@@ -155,12 +155,13 @@ data class PartyConnection(
  *    "intent://join?host=<ip>&port=<port>&token=<token>#Intent;scheme=blazeparty;package=...;end"
  *  - lien profond direct: "blazeparty://join?host=<ip>&port=<port>&token=<token>"
  *  - compact historique : "bp://<ip>[:<port>]/<token>"
- *  - fallback URL       : "https://blazeparty.local/join?host=<ip>&port=<port>&token=<token>"
+ *  - fallback navigateur: fiche Google Play de Blaze Player si l’application n’est pas installée.
  */
 object PartyProtocol {
     const val DEFAULT_PORT = 57931
     private const val ANDROID_PACKAGE = "fr.retrospare.blazeplayer"
-    private const val WEB_HOST = "blazeparty.local"
+    private const val PLAY_STORE_FALLBACK =
+        "https://play.google.com/store/apps/details?id=fr.retrospare.blazeplayer"
 
     /**
      * Payload QR principal : Android Intent URI ciblée sur le package Blaze Player.
@@ -184,7 +185,7 @@ object PartyProtocol {
         alternateHosts: List<String> = emptyList()
     ): String {
         val hosts = normalizeHosts(ip, alternateHosts)
-        val fallback = Uri.encode(buildWebPayload(ip, token, port, alternateHosts))
+        val fallback = Uri.encode(PLAY_STORE_FALLBACK)
         return appendJoinParams(Uri.Builder().scheme("intent").authority("join"), ip, token, port, hosts)
             .encodedFragment(
                 "Intent;" +
@@ -208,15 +209,6 @@ object PartyProtocol {
         .build()
         .toString()
 
-    fun buildWebPayload(
-        ip: String,
-        token: String,
-        port: Int = DEFAULT_PORT,
-        alternateHosts: List<String> = emptyList()
-    ): String = appendJoinParams(Uri.Builder().scheme("https").authority(WEB_HOST).appendPath("join"), ip, token, port, normalizeHosts(ip, alternateHosts))
-        .build()
-        .toString()
-
     fun parse(payload: String?): PartyConnection? {
         if (payload.isNullOrBlank()) return null
         val uri = try { Uri.parse(payload.trim()) } catch (_: Exception) { return null }
@@ -229,10 +221,6 @@ object PartyProtocol {
                     PartyConnection(host, port, token)
                 }
                 "blazeparty", "intent" -> parseJoinQuery(uri)
-                "https", "http" -> {
-                    if (uri.host != WEB_HOST || uri.pathSegments.firstOrNull() != "join") return null
-                    parseJoinQuery(uri)
-                }
                 else -> null
             }
         } catch (_: Exception) {
@@ -255,7 +243,7 @@ object PartyProtocol {
         }
 
     private fun parseJoinQuery(uri: Uri): PartyConnection? {
-        if (uri.host != "join" && uri.host != WEB_HOST) return null
+        if (uri.host != "join") return null
         val host = uri.getQueryParameter("host")?.takeIf { it.isNotBlank() } ?: return null
         val port = uri.getQueryParameter("port")?.toIntOrNull() ?: DEFAULT_PORT
         val token = uri.getQueryParameter("token")?.takeIf { it.isNotBlank() } ?: return null

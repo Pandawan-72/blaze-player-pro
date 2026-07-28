@@ -21,11 +21,11 @@
 
         <!-- Checkbox dans la carte -->
         <CheckBox
+        style="@style/Widget.BlazePlayer.MultiSelectCheckBox"
             android:id="@+id/checkAudio"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:buttonTint="@color/green_accent"
-            android:layout_marginEnd="10dp" />
+                android:layout_marginEnd="10dp" />
 
         <!-- Cover artwork -->
         <FrameLayout
@@ -97,7 +97,8 @@
                     android:textColor="@color/on_surface_variant"
                     android:fontFamily="sans-serif-condensed"
                     android:layout_marginEnd="4dp"
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvAudioBitrate"
@@ -109,7 +110,8 @@
                     android:textSize="10sp"
                     android:textColor="@color/on_surface_variant"
                     android:fontFamily="sans-serif-condensed"
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    android:textStyle="bold" />
 
             </LinearLayout>
 

@@ -13,8 +13,7 @@ import fr.retrospare.blazeplayer.playlist.PlaylistTrackRef
 class VideoQueueAdapter(
     tracks: List<PlaylistTrackRef>,
     private val currentPath: String? = null,
-    private val onItemClick: (Int) -> Unit,
-    private val onRemove: (PlaylistTrackRef) -> Unit
+    private val onItemClick: (Int) -> Unit
 ) : RecyclerView.Adapter<VideoQueueAdapter.ViewHolder>() {
 
     private var tracks: MutableList<PlaylistTrackRef> = tracks.toMutableList()

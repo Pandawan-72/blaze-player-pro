@@ -39,7 +39,6 @@
     <string name="queue">कतार</string>
     <string name="queue_short">कतार</string>
     <string name="add">जोड़ें</string>
-    <string name="lyrics">गीत के बोल</string>
     <string name="audio_lyrics_title">गीत के बोल</string>
     <string name="audio_lyrics_disabled">स्थानीय बोलों के लिए ऑडियो सेटिंग्स में “सिंक किए गए बोल” चालू करें।</string>
     <string name="audio_lyrics_none">इस ट्रैक के लिए स्थानीय बोल नहीं मिले।</string>
@@ -248,10 +247,6 @@ Android के लिए आपका मीडिया प्लेयर</str
 आकार: %5$s</string>
     <string name="dialog_video_info_video_codec">वीडियो कोडेक: %1$s</string>
     <string name="dialog_video_info_audio_codec">ऑडियो कोडेक: %1$s</string>
-    <plurals name="video_count">
-        <item quantity="one">%1$d वीडियो</item>
-        <item quantity="other">%1$d वीडियो</item>
-    </plurals>
     <string name="toast_cannot_open_screen_cast_settings">स्क्रीन कास्ट सेटिंग्स नहीं खोली जा सकीं</string>
     <string name="toast_share_not_found">इस पसंदीदा के लिए शेयर नहीं मिला</string>
     <string name="action_remove_from_history">इतिहास से हटाएँ</string>
@@ -315,7 +310,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="player_speed_label_short">गति</string>
     <string name="player_ratio_label">अनुपात</string>
     <string name="content_desc_close_playlist">प्लेलिस्ट बंद करें</string>
-    <string name="content_desc_clean">साफ़ करें</string>
     <string name="content_desc_playlist">प्लेलिस्ट</string>
     <string name="content_desc_shuffle">शफ़ल</string>
     <string name="content_desc_previous">पिछला</string>
@@ -358,7 +352,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="gallery_trash_empty_message">ट्रैश खाली है</string>
     <string name="gallery_type_photo">फ़ोटो</string>
     <string name="gallery_type_video">वीडियो</string>
-    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">क्रमबद्ध करें</string>
     <string name="gallery_sort_date_desc">नवीनतम पहले</string>
     <string name="gallery_sort_date_asc">सबसे पुराने पहले</string>
@@ -383,14 +376,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="confirm_empty_trash_message">ट्रैश को स्थायी रूप से खाली करें? इसे वापस नहीं किया जा सकता।</string>
     <string name="confirm_permanent_delete_message">इस फ़ोटो को ट्रैश से स्थायी रूप से हटाएँ?</string>
     <string name="action_confirm_delete">हटाएँ</string>
-    <plurals name="gallery_photo_count">
-        <item quantity="one">%d फ़ोटो</item>
-        <item quantity="other">%d फ़ोटो</item>
-    </plurals>
-    <plurals name="gallery_video_count">
-        <item quantity="one">%d वीडियो</item>
-        <item quantity="other">%d वीडियो</item>
-    </plurals>
     <string name="settings_audio_spectrum">विज़ुअल स्पेक्ट्रम चालू करें</string>
     <string name="settings_audio_spectrum_desc">Blaze Audio में एनिमेटेड ऑडियो विज़ुअलाइज़र दिखाएँ।</string>
     <string name="blaze_party">Blaze Party</string>
@@ -408,6 +393,7 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="blaze_party_scan_unavailable">QR स्कैनर उपलब्ध नहीं है। QR स्कैनर इंस्टॉल करें या कोड मैन्युअली दर्ज करें।</string>
     <string name="blaze_party_joined">Blaze Party सत्र में शामिल हो गए</string>
     <string name="blaze_party_short">Party</string>
+    <string name="audio_party_queue_short">Party कतार</string>
     <string name="add_to_blaze_party">Blaze Party में जोड़ें</string>
     <string name="blaze_party_playlist_title">Blaze Party प्लेलिस्ट</string>
     <string name="blaze_party_playlist_empty_message">Blaze Party प्लेलिस्ट में कोई ट्रैक नहीं है। ऑडियो ब्राउज़र से “Blaze Party में जोड़ें” का उपयोग करके ट्रैक जोड़ें।</string>
@@ -518,7 +504,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="gallery_menu_cut">ट्रिम</string>
     <string name="add_to_video_queue_short">कतार</string>
     <string name="video_queue_title">वीडियो कतार</string>
-    <string name="video_queue_title_with_category">वीडियो कतार — %1$s (%2$d)</string>
     <string name="video_queue_empty_message">इस कतार में कोई वीडियो नहीं है। ब्राउज़र में वीडियो चुनें, फिर “+ कतार” का उपयोग करें।</string>
     <string name="toast_video_queue_added">कतार में %1$d वीडियो जोड़े गए</string>
     <string name="toast_video_queue_added_partial">%1$d वीडियो जोड़े गए, %2$d पहले से मौजूद</string>
@@ -531,12 +516,12 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="app_name_audio">Blaze Audio</string>
     <string name="blaze_party_network_error">होस्ट से कनेक्ट नहीं हो सका। सुनिश्चित करें कि आप उसी Wi‑Fi पर हैं।</string>
     <string name="audio_library_title">लाइब्रेरी</string>
+    <string name="audio_open_full_player">ऑडियो प्लेयर खोलें</string>
     <string name="audio_library_subtitle">आपकी Pro+ संगीत लाइब्रेरी</string>
-    <string name="audio_loading_in_progress">लोड हो रहा है...</string>
     <string name="audio_search">खोजें</string>
+    <string name="audio_tab_albums">एल्बम</string>
     <string name="audio_tab_artists">कलाकार</string>
     <string name="audio_tab_titles">ट्रैक</string>
-    <string name="audio_tab_playlists">प्लेलिस्ट</string>
     <string name="audio_resume_listening">हाल में सुना गया</string>
     <string name="audio_recent_albums">मेरे एल्बम</string>
     <string name="audio_played_tracks">ट्रैक</string>
@@ -577,12 +562,6 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_section_interface">इंटरफ़ेस</string>
     <string name="audio_dynamic_theme">डायनेमिक थीम</string>
     <string name="audio_dynamic_theme_subtitle">डिफ़ॉल्ट रूप से Blaze हरा, चालू होने पर कवर के रंग</string>
-    <string name="audio_cover_border">रंगीन कवर बॉर्डर</string>
-    <string name="audio_cover_border_subtitle">आर्टवर्क के चारों ओर डायनेमिक एक्सेंट</string>
-    <string name="audio_artwork_size">आर्टवर्क आकार</string>
-    <string name="audio_size_small">छोटा</string>
-    <string name="audio_size_medium">मध्यम</string>
-    <string name="audio_size_large">बड़ा</string>
     <string name="audio_section_lyrics_metadata">बोल और मेटाडेटा</string>
     <string name="audio_synced_lyrics">सिंक किए गए बोल</string>
     <string name="audio_synced_lyrics_subtitle">स्थानीय LRC/TXT बोलों के लिए मुख्य स्विच</string>
@@ -610,12 +589,9 @@ Android के लिए आपका मीडिया प्लेयर</str
         <item quantity="one">%d कलाकार</item>
         <item quantity="other">%d कलाकार</item>
     </plurals>
-    <string name="audio_watched_folders_empty_info">अभी कोई निगरानी वाला फ़ोल्डर नहीं है। ऑडियो ब्राउज़र में फ़ोल्डर मेनू खोलें और “निगरानी वाले फ़ोल्डरों में जोड़ें” चुनें।</string>
-    <string name="audio_watched_folders_manage_info">निगरानी हटाने के लिए फ़ोल्डर पर टैप करें। ऑडियो ब्राउज़र के फ़ोल्डर मेनू से नए फ़ोल्डर जोड़ें।</string>
     <string name="audio_remove_watched_folder">हटाएँ</string>
     <string name="audio_add_to_watched">निगरानी वाले फ़ोल्डरों में जोड़ें</string>
     <string name="audio_watched_folder_added">फ़ोल्डर निगरानी वाले फ़ोल्डरों में जोड़ा गया</string>
-    <string name="audio_watched_folder_refresh_hint">फ़ोल्डर निगरानी वाले फ़ोल्डरों में जोड़ा गया। लाइब्रेरी पर लौटने पर पूरा रिफ़्रेश अपने-आप शुरू होगा।</string>
     <string name="audio_watched_folder_removed">फ़ोल्डर निगरानी वाले फ़ोल्डरों से हटाया गया</string>
     <string name="audio_watched_folder_already">इस फ़ोल्डर की पहले से निगरानी हो रही है</string>
     <string name="audio_tag_genre">शैली</string>
@@ -630,6 +606,7 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="action_done">पूर्ण</string>
     <string name="audio_play_album">पूरा एल्बम चलाएँ</string>
     <string name="audio_add_album_queue">कतार में जोड़ें</string>
+    <string name="audio_album_queue_button">कतार</string>
     <string name="audio_add_playlist_blaze_party">प्लेलिस्ट को Blaze Party में जोड़ें</string>
     <string name="audio_add_playlist_queue">प्लेलिस्ट को कतार में जोड़ें</string>
     <string name="queue_clear_all">सभी साफ़ करें</string>
@@ -878,4 +855,28 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="slideshow_font_bebas">Bebas Neue</string>
     <string name="slideshow_font_caveat">Caveat</string>
     <string name="slideshow_font_cinzel">Cinzel</string>
+
+    <!-- Page artiste et photographie Wikimedia -->
+    <string name="audio_artist_page_title">कलाकार</string>
+    <string name="audio_album_page_title">एल्बम</string>
+    <string name="audio_my_artists">मेरे कलाकार</string>
+    <string name="audio_artist_play_all">सभी चलाएँ</string>
+    <string name="audio_library_empty_hint">कोई दूसरी खोज आज़माएँ या अपनी लाइब्रेरी स्कैन करें।</string>
+    <string name="audio_artist_photo_credit">फ़ोटो: %1$s • %2$s</string>
+    <string name="audio_artist_photo_credit_author">फ़ोटो: %1$s</string>
+    <string name="audio_artist_photo_source">फ़ोटो स्रोत</string>
+    <string name="audio_artist_photo_author">लेखक: %1$s</string>
+    <string name="audio_artist_photo_license">लाइसेंस: %1$s</string>
+    <string name="audio_artist_photo_credits_title">फ़ोटो श्रेय</string>
+    <string name="audio_artist_photo_open_source">स्रोत देखें</string>
+
+    <!-- Photo d’artiste : source automatique + choix manuel persistant. -->
+    <string name="audio_artist_change_photo">फ़ोटो बदलें</string>
+    <string name="audio_artist_photo_actions_title">कलाकार की फ़ोटो</string>
+    <string name="audio_artist_photo_choose_device">इस डिवाइस से चित्र चुनें</string>
+    <string name="audio_artist_photo_restore_auto">स्वचालित फ़ोटो बहाल करें</string>
+    <string name="audio_artist_photo_updated">कलाकार की फ़ोटो अपडेट की गई</string>
+    <string name="audio_artist_photo_restored">स्वचालित फ़ोटो बहाल की गई</string>
+    <string name="audio_artist_photo_update_failed">इस चित्र का उपयोग नहीं किया जा सकता</string>
+    <string name="audio_now_playing">अभी चल रहा है</string>
 </resources>

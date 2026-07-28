@@ -1,175 +1,303 @@
 package fr.retrospare.blazeplayer.player
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import kotlin.math.abs
+import kotlin.math.sqrt
 
 /**
  * Calcul de la couleur dynamique (accent + fond) à partir de la pochette d'un morceau.
- * Extrait d'AudioPlayerFragment pour être partagé avec le mini player (MiniPlayerViewModel),
- * afin que le mini player affiche exactement la même couleur que l'écran Blaze Audio pour un
- * même morceau, sans dépendre du fait que l'écran complet ait déjà été ouvert ou non.
+ *
+ * Le même moteur est utilisé par le lecteur complet, la bibliothèque et le mini-player. Il doit
+ * donc fonctionner avec toutes les provenances de pochettes : fichier externe, cache disque,
+ * albumArtURI réseau et image embarquée dans le fichier audio.
  */
 object AudioDynamicColor {
 
     val DEFAULT_ACCENT: Int = Color.rgb(63, 215, 143)
     val DEFAULT_BACKGROUND: Int = Color.rgb(10, 12, 14)
 
-    private const val MIN_ALPHA = 32
-    private const val STRICT_MIN_SATURATION = 0.26f
-    private const val STRICT_MIN_VALUE = 0.42f
-    private const val RELAXED_MIN_SATURATION = 0.10f
-    private const val RELAXED_MIN_VALUE = 0.24f
-    private const val MIN_ACCEPTED_PIXELS = 3
+    private const val MIN_ALPHA = 28
+    private const val SAMPLE_MAX_SIDE = 72
+    private const val HUE_BUCKETS = 30
+    private const val SATURATION_BUCKETS = 4
+    private const val VALUE_BUCKETS = 4
     private const val GLACIER_HUE = 205f
+    private const val MIN_SOURCE_VALUE = 0.34f
+    private const val MIN_SOURCE_BRIGHTNESS = 0.24f
+    private const val MIN_OUTPUT_VALUE = 0.66f
+    private const val MIN_OUTPUT_BRIGHTNESS = 0.42f
 
-    /** Couleur dominante robuste de la pochette.
+    /**
+     * Extrait une couleur dominante stable de la pochette.
      *
-     * La version précédente rejetait encore certaines pochettes très sombres, très claires,
-     * monochromes ou peu saturées. Ici on applique plusieurs passes : couleurs vives, couleurs
-     * mutées, neutres/gris/bruns, puis repli tonal basé sur la moyenne de la pochette. Ainsi toute
-     * pochette non vide produit une couleur exploitable au lieu de retomber sur l'accent par défaut.
+     * Deux problèmes sont traités explicitement :
+     * - les images externes chargées par les moteurs d'image peuvent être des bitmaps HARDWARE ;
+     *   getPixels() et le rendu sur un Canvas logiciel y échouent. Une copie ARGB_8888 est donc
+     *   créée avant toute analyse ;
+     * - une moyenne globale produit souvent un brun/gris terne à cause des fonds noirs, blancs ou
+     *   des bordures. Une quantification HSV pondérée sélectionne plutôt la famille de couleur
+     *   réellement dominante, puis un repli tonal garantit une couleur pour toute image valide.
      */
     fun accentFromBitmap(bitmap: Bitmap): Int {
-        return try {
-            val maxSide = 56
-            val scale = minOf(1f, maxSide.toFloat() / maxOf(bitmap.width, bitmap.height).coerceAtLeast(1))
-            val scaled = if (scale < 1f) {
-                Bitmap.createScaledBitmap(
-                    bitmap,
-                    (bitmap.width * scale).toInt().coerceAtLeast(1),
-                    (bitmap.height * scale).toInt().coerceAtLeast(1),
-                    true
-                )
-            } else bitmap
-            val pixels = IntArray(scaled.width * scaled.height)
-            scaled.getPixels(pixels, 0, scaled.width, 0, 0, scaled.width, scaled.height)
+        if (bitmap.isRecycled || bitmap.width <= 0 || bitmap.height <= 0) return DEFAULT_ACCENT
 
-            val strict = Accumulator()
-            val relaxed = Accumulator()
-            val muted = Accumulator()
-            val neutral = Accumulator()
-            val allVisible = Accumulator()
-            var bestColor = 0
-            var bestScore = -1f
-            var visiblePixels = 0
+        val sample = runCatching { createSoftwareSample(bitmap) }.getOrNull()
+            ?: return DEFAULT_ACCENT
+        return try {
+            val width = sample.width
+            val height = sample.height
+            val pixels = IntArray(width * height)
+            sample.getPixels(pixels, 0, width, 0, 0, width, height)
+
+            val colorful = Array(HUE_BUCKETS * SATURATION_BUCKETS * VALUE_BUCKETS) { ColorCluster() }
+            val muted = ColorCluster()
+            val neutral = ColorCluster()
+            val allVisible = ColorCluster()
             val hsv = FloatArray(3)
 
-            for (px in pixels) {
-                if (Color.alpha(px) < MIN_ALPHA) continue
-                visiblePixels++
-                Color.colorToHSV(px, hsv)
-                val score = vividScore(hsv)
-                allVisible.add(px, (score + 0.25f).coerceAtLeast(0.10f))
+            var visibleCount = 0
+            var index = 0
+            for (y in 0 until height) {
+                val normalizedY = ((y + 0.5f) / height.toFloat()) - 0.5f
+                for (x in 0 until width) {
+                    val px = pixels[index++]
+                    val alpha = Color.alpha(px)
+                    if (alpha < MIN_ALPHA) continue
+                    visibleCount++
 
-                if (score > bestScore) {
-                    bestScore = score
-                    bestColor = px
-                }
+                    Color.colorToHSV(px, hsv)
+                    val saturation = hsv[1].coerceIn(0f, 1f)
+                    val value = hsv[2].coerceIn(0f, 1f)
+                    val normalizedX = ((x + 0.5f) / width.toFloat()) - 0.5f
+                    val distance = (sqrt(normalizedX * normalizedX + normalizedY * normalizedY) / 0.7072f)
+                        .coerceIn(0f, 1f)
+                    val centerWeight = 1.16f - (distance * 0.34f)
+                    val alphaWeight = (alpha / 255f).coerceIn(0.15f, 1f)
+                    val toneBalance = (1f - abs(value - 0.58f) * 1.55f).coerceIn(0.08f, 1f)
+                    val baseWeight = centerWeight * alphaWeight
 
-                when {
-                    isStrictCandidate(hsv) -> strict.add(px, score + 0.55f)
-                    isRelaxedCandidate(hsv) -> relaxed.add(px, score + 0.34f)
-                    isMutedCandidate(hsv) -> muted.add(px, score + 0.22f)
-                    isUsableNeutralCandidate(hsv) -> neutral.add(px, score + 0.16f)
+                    // Repli toujours disponible, y compris pour une cover presque noire/blanche.
+                    allVisible.add(px, baseWeight * (0.30f + toneBalance * 0.70f))
+
+                    when {
+                        saturation >= 0.10f && value >= 0.10f -> {
+                            val hue = hsv[0].let { if (it >= 360f) 0f else it.coerceAtLeast(0f) }
+                            val hueBucket = ((hue / 360f) * HUE_BUCKETS).toInt()
+                                .coerceIn(0, HUE_BUCKETS - 1)
+                            val saturationBucket = (saturation * SATURATION_BUCKETS).toInt()
+                                .coerceIn(0, SATURATION_BUCKETS - 1)
+                            val valueBucket = (value * VALUE_BUCKETS).toInt()
+                                .coerceIn(0, VALUE_BUCKETS - 1)
+                            val bucketIndex =
+                                (hueBucket * SATURATION_BUCKETS * VALUE_BUCKETS) +
+                                    (saturationBucket * VALUE_BUCKETS) + valueBucket
+
+                            // La saturation doit compter davantage que la luminosité afin qu'un
+                            // petit sujet coloré ne soit pas noyé par un grand fond noir ou blanc.
+                            val chromaWeight = 0.34f + saturation * 1.86f
+                            val valueWeight = 0.32f + toneBalance * 0.92f + value * 0.18f
+                            colorful[bucketIndex].add(px, baseWeight * chromaWeight * valueWeight)
+                        }
+
+                        saturation >= 0.035f && value >= 0.07f -> {
+                            muted.add(px, baseWeight * (0.28f + saturation * 1.20f) * (0.42f + toneBalance))
+                        }
+
+                        else -> {
+                            // Les pixels totalement noirs/blancs restent des replis de dernier
+                            // niveau ; les gris moyens sont plus représentatifs d'une vraie cover.
+                            val neutralToneWeight = when {
+                                value in 0.16f..0.88f -> 0.72f + toneBalance
+                                else -> 0.18f + toneBalance * 0.35f
+                            }
+                            neutral.add(px, baseWeight * neutralToneWeight)
+                        }
+                    }
                 }
             }
 
-            if (scaled !== bitmap && !scaled.isRecycled) scaled.recycle()
+            if (visibleCount == 0) return DEFAULT_ACCENT
 
-            val base = when {
-                strict.count >= MIN_ACCEPTED_PIXELS -> strict.color()
-                relaxed.count >= MIN_ACCEPTED_PIXELS -> relaxed.color()
-                muted.count >= MIN_ACCEPTED_PIXELS -> muted.color()
-                neutral.count >= MIN_ACCEPTED_PIXELS -> neutral.color()
-                bestColor != 0 -> bestColor
-                allVisible.count > 0 -> allVisible.color()
-                visiblePixels > 0 -> tonalFallback(allVisible.color())
-                else -> DEFAULT_ACCENT
-            }
-            boostAccent(base)
-        } catch (_: Exception) {
+            val colorfulClusters = colorful
+                .asSequence()
+                .filter { it.count > 0 }
+                .toList()
+
+            // Une grande zone noire, bleu marine ou brun très sombre ne doit jamais gagner face à
+            // un élément plus petit mais réellement coloré et lisible. On privilégie donc d'abord
+            // les familles dont la luminosité est suffisante. Les couleurs sombres ne servent que
+            // de dernier repli pour récupérer une teinte, qui sera ensuite éclaircie.
+            val dominantColor = colorfulClusters
+                .asSequence()
+                .filter { isUsableSourceAccent(it.color()) }
+                .maxByOrNull(::clusterScore)
+                ?.takeIf { it.totalWeight >= 0.38f }
+                ?.color()
+                ?: muted.takeIf { it.count > 0 && isUsableSourceAccent(it.color()) }?.color()
+                ?: neutral.takeIf { it.count > 0 && isUsableSourceAccent(it.color()) }?.color()
+                ?: colorfulClusters.maxByOrNull(::clusterScore)?.color()
+                ?: muted.takeIf { it.count > 0 }?.color()
+                ?: neutral.takeIf { it.count > 0 }?.color()
+                ?: allVisible.takeIf { it.count > 0 }?.color()
+                ?: DEFAULT_ACCENT
+
+            boostAccent(dominantColor)
+        } catch (_: Throwable) {
             DEFAULT_ACCENT
+        } finally {
+            if (sample !== bitmap && !sample.isRecycled) sample.recycle()
         }
     }
 
-    private fun isStrictCandidate(hsv: FloatArray): Boolean = when {
-        isNeutralGrey(hsv) -> hsv[2] >= 0.52f
-        isBrownHue(hsv[0]) -> hsv[2] >= 0.44f && hsv[1] >= 0.16f
-        else -> hsv[1] >= STRICT_MIN_SATURATION && hsv[2] >= STRICT_MIN_VALUE
+    /** Extrait directement une couleur depuis artworkData Media3 / une image embarquée. */
+    fun accentFromArtworkBytes(bytes: ByteArray?): Int? {
+        if (bytes == null || bytes.isEmpty()) return null
+        val bitmap = decodeArtworkBytes(bytes) ?: return null
+        return try {
+            accentFromBitmap(bitmap)
+        } finally {
+            if (!bitmap.isRecycled) bitmap.recycle()
+        }
     }
 
-    private fun isRelaxedCandidate(hsv: FloatArray): Boolean = when {
-        isNeutralGrey(hsv) -> hsv[2] >= 0.38f
-        isBrownHue(hsv[0]) -> hsv[2] >= 0.34f && hsv[1] >= 0.10f
-        else -> hsv[1] >= RELAXED_MIN_SATURATION && hsv[2] >= RELAXED_MIN_VALUE
+    /**
+     * Produit un petit bitmap logiciel, même lorsque la source est HARDWARE ou dans un espace de
+     * couleur inhabituel. La source originale n'est jamais recyclée ni modifiée.
+     */
+    private fun createSoftwareSample(bitmap: Bitmap): Bitmap? {
+        val softwareSource = when (bitmap.config) {
+            Bitmap.Config.ARGB_8888 -> bitmap
+            else -> runCatching { bitmap.copy(Bitmap.Config.ARGB_8888, false) }.getOrNull()
+        } ?: return null
+
+        val scale = minOf(
+            1f,
+            SAMPLE_MAX_SIDE.toFloat() / maxOf(softwareSource.width, softwareSource.height).coerceAtLeast(1)
+        )
+        val targetWidth = (softwareSource.width * scale).toInt().coerceAtLeast(1)
+        val targetHeight = (softwareSource.height * scale).toInt().coerceAtLeast(1)
+
+        if (
+            softwareSource.config == Bitmap.Config.ARGB_8888 &&
+            softwareSource.width == targetWidth &&
+            softwareSource.height == targetHeight &&
+            softwareSource !== bitmap
+        ) {
+            return softwareSource
+        }
+
+        val scaled = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+        return try {
+            Canvas(scaled).drawBitmap(
+                softwareSource,
+                null,
+                Rect(0, 0, targetWidth, targetHeight),
+                Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            )
+            scaled
+        } catch (_: Throwable) {
+            if (!scaled.isRecycled) scaled.recycle()
+            null
+        } finally {
+            if (softwareSource !== bitmap && softwareSource !== scaled && !softwareSource.isRecycled) {
+                softwareSource.recycle()
+            }
+        }
     }
 
-    private fun isMutedCandidate(hsv: FloatArray): Boolean = hsv[2] >= 0.18f && hsv[1] >= 0.045f
-
-    private fun isUsableNeutralCandidate(hsv: FloatArray): Boolean = hsv[2] >= 0.16f
-
-    private fun isNeutralGrey(hsv: FloatArray): Boolean = hsv[1] < 0.10f
-
-    private fun isBrownHue(hue: Float): Boolean = hue in 10f..55f
-
-    private fun vividScore(hsv: FloatArray): Float {
-        val neutralPenalty = if (isNeutralGrey(hsv)) 0.16f else 0f
-        val brownPenalty = if (isBrownHue(hsv[0]) && hsv[2] < 0.56f) 0.06f else 0f
-        // Les pochettes sombres mais colorées gardent une chance : la saturation compte un peu
-        // plus que la luminosité, puis boostAccent() se charge de rendre la couleur lisible.
-        return (hsv[1] * 1.42f) + (hsv[2] * 0.92f) - neutralPenalty - brownPenalty
+    private fun decodeArtworkBytes(bytes: ByteArray): Bitmap? {
+        return try {
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                null
+            } else {
+                var sample = 1
+                while (
+                    bounds.outWidth / sample > SAMPLE_MAX_SIDE * 2 ||
+                    bounds.outHeight / sample > SAMPLE_MAX_SIDE * 2
+                ) {
+                    sample *= 2
+                }
+                android.graphics.BitmapFactory.decodeByteArray(
+                    bytes,
+                    0,
+                    bytes.size,
+                    android.graphics.BitmapFactory.Options().apply {
+                        inSampleSize = sample.coerceAtLeast(1)
+                        inPreferredConfig = Bitmap.Config.ARGB_8888
+                    }
+                )
+            }
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     fun boostAccent(color: Int): Int {
         val hsv = FloatArray(3)
         Color.colorToHSV(color, hsv)
 
-        // Repli pour les pochettes noires/blanches/grises : on conserve une sensation premium
-        // froide au lieu de retourner l'accent vert par défaut.
-        if (hsv[2] < 0.12f || (hsv[1] < 0.035f && hsv[2] < 0.34f)) {
-            return Color.HSVToColor(floatArrayOf(GLACIER_HUE, 0.32f, 0.58f))
-        }
-
-        if (isNeutralGrey(hsv)) {
+        // Une cover achromatique ne possède pas de teinte exploitable. On conserve sa tonalité,
+        // mais on lui donne une légère orientation glacier afin d'éviter le noir et le gris foncé.
+        if (hsv[1] < 0.055f) {
+            val originalValue = hsv[2]
             hsv[0] = GLACIER_HUE
-            hsv[1] = 0.16f + (1f - hsv[2]).coerceIn(0f, 1f) * 0.12f
-            hsv[2] = (hsv[2] * 1.10f + 0.14f).coerceIn(0.52f, 0.86f)
-            return Color.HSVToColor(hsv)
+            hsv[1] = (0.13f + (1f - originalValue) * 0.15f).coerceIn(0.13f, 0.28f)
+            hsv[2] = (originalValue * 0.78f + 0.28f).coerceIn(0.50f, 0.84f)
+            return ensureReadableAccent(Color.HSVToColor(hsv))
         }
 
-        if (isBrownHue(hsv[0])) {
-            hsv[1] = (hsv[1] * 1.10f + 0.05f).coerceIn(0.16f, 0.80f)
-            hsv[2] = (hsv[2] * 1.18f + 0.12f).coerceIn(0.48f, 0.90f)
-            return Color.HSVToColor(hsv)
+        val isBrown = hsv[0] in 10f..55f
+        hsv[1] = if (isBrown) {
+            (hsv[1] * 1.10f + 0.06f).coerceIn(0.18f, 0.84f)
+        } else {
+            (hsv[1] * 1.18f + 0.07f).coerceIn(0.20f, 1f)
         }
-
-        // Couleurs réellement présentes mais trop sombres/mutées : on les rend lisibles sans les
-        // remplacer par une couleur arbitraire.
-        hsv[1] = (hsv[1] * 1.22f + 0.08f).coerceIn(0.18f, 1f)
-        hsv[2] = (hsv[2] * 1.22f + 0.12f).coerceIn(0.48f, 1f)
-        return Color.HSVToColor(hsv)
-    }
-
-    private fun tonalFallback(color: Int): Int {
-        val hsv = FloatArray(3)
-        Color.colorToHSV(color, hsv)
-        if (hsv[1] < 0.06f) {
-            hsv[0] = GLACIER_HUE
-            hsv[1] = 0.22f
-        }
-        hsv[2] = hsv[2].coerceIn(0.48f, 0.78f)
-        return Color.HSVToColor(hsv)
+        hsv[2] = (hsv[2] * 1.16f + 0.13f).coerceIn(0.50f, 0.96f)
+        return ensureReadableAccent(Color.HSVToColor(hsv))
     }
 
     /**
-     * Fond sombre teinté par l'accent, avec une intensité volontairement plus douce.
+     * Garantit que la couleur utilisée par l'interface n'est jamais noire ou trop sombre.
      *
-     * L'accent extrait de la pochette peut être très vif pour les contrôles, mais le fond doit
-     * rester confortable sur toute la durée d'écoute. On désature donc légèrement la couleur avant
-     * de la mélanger au socle sombre, puis on réduit le taux de mélange.
+     * La teinte extraite reste conservée, mais les bleus marine, bruns profonds, verts sombres et
+     * gris foncés sont remontés vers une variante claire. Le contrôle de luminosité perceptuelle
+     * est volontairement ajouté au simple canal HSV : un bleu très saturé peut avoir une valeur
+     * HSV élevée tout en paraissant encore beaucoup trop sombre à l'écran.
      */
+    fun ensureReadableAccent(color: Int): Int {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+
+        if (hsv[1] < 0.055f) {
+            hsv[0] = GLACIER_HUE
+            hsv[1] = 0.18f
+        }
+
+        val hueMinimumValue = when (hsv[0]) {
+            in 190f..285f -> 0.76f // bleus et violets : visuellement plus sombres
+            in 285f..360f, in 0f..18f -> 0.72f
+            else -> MIN_OUTPUT_VALUE
+        }
+        hsv[2] = hsv[2].coerceAtLeast(hueMinimumValue)
+
+        var result = Color.HSVToColor(hsv)
+        var attempts = 0
+        while (perceivedBrightness(result) < MIN_OUTPUT_BRIGHTNESS && attempts < 8) {
+            result = mix(result, Color.rgb(255, 255, 255), 0.12f)
+            attempts++
+        }
+        return result
+    }
+
+    /** Fond sombre teinté par l'accent, avec une intensité confortable pendant l'écoute. */
     fun backgroundFromAccent(accent: Int): Int {
-        val softAccent = softenAccentForBackground(accent)
+        val softAccent = softenAccentForBackground(ensureReadableAccent(accent))
         return mix(Color.rgb(5, 13, 17), softAccent, 0.24f)
     }
 
@@ -190,29 +318,45 @@ object AudioDynamicColor {
         )
     }
 
-    private class Accumulator {
+    private fun clusterScore(cluster: ColorCluster): Float =
+        cluster.totalWeight * (1f + cluster.count.coerceAtMost(20) * 0.035f)
+
+    private fun isUsableSourceAccent(color: Int): Boolean {
+        val hsv = FloatArray(3)
+        Color.colorToHSV(color, hsv)
+        return hsv[2] >= MIN_SOURCE_VALUE && perceivedBrightness(color) >= MIN_SOURCE_BRIGHTNESS
+    }
+
+    private fun perceivedBrightness(color: Int): Float = (
+        0.299f * Color.red(color) +
+            0.587f * Color.green(color) +
+            0.114f * Color.blue(color)
+        ) / 255f
+
+    private class ColorCluster {
         var count: Int = 0
             private set
-        private var totalWeight = 0.0
-        private var r = 0.0
-        private var g = 0.0
-        private var b = 0.0
+        var totalWeight: Float = 0f
+            private set
+        private var red = 0.0
+        private var green = 0.0
+        private var blue = 0.0
 
-        fun add(color: Int, score: Float) {
-            val weight = score.coerceAtLeast(0.10f).toDouble()
-            r += Color.red(color) * weight
-            g += Color.green(color) * weight
-            b += Color.blue(color) * weight
+        fun add(color: Int, rawWeight: Float) {
+            val weight = rawWeight.coerceAtLeast(0.01f)
+            red += Color.red(color) * weight
+            green += Color.green(color) * weight
+            blue += Color.blue(color) * weight
             totalWeight += weight
             count++
         }
 
         fun color(): Int {
-            if (count <= 0 || totalWeight <= 0.0) return DEFAULT_ACCENT
+            if (count <= 0 || totalWeight <= 0f) return DEFAULT_ACCENT
             return Color.rgb(
-                (r / totalWeight).toInt().coerceIn(0, 255),
-                (g / totalWeight).toInt().coerceIn(0, 255),
-                (b / totalWeight).toInt().coerceIn(0, 255)
+                (red / totalWeight).toInt().coerceIn(0, 255),
+                (green / totalWeight).toInt().coerceIn(0, 255),
+                (blue / totalWeight).toInt().coerceIn(0, 255)
             )
         }
     }

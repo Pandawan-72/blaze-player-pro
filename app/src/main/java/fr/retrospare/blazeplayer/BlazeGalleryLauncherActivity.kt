@@ -15,6 +15,8 @@ import android.os.Bundle
 class BlazeGalleryLauncherActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        BlazeStartupWarmup.requestGalleryPriority(this)
         // Marque la demande dans un stockage persistant : quand Blaze Player est déjà
         // en tâche de fond, certains launchers/ROM peuvent simplement ramener la tâche
         // existante au premier plan et perdre/ignorer l'extra de l'intent. MainActivity

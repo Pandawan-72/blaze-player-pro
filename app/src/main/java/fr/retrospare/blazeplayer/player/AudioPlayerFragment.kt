@@ -8,9 +8,7 @@ import android.animation.ValueAnimator
 import android.Manifest
 import android.app.Activity
 import android.app.Dialog
-import android.text.InputType
 import android.view.Gravity
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -46,16 +44,19 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.LayoutInflater
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.SeekBar
 import androidx.core.content.ContextCompat
+import androidx.core.widget.TextViewCompat
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -78,12 +79,18 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import org.json.JSONArray
 import org.json.JSONObject
 
 @AndroidEntryPoint
 class AudioPlayerFragment : Fragment() {
+
+    /** Clé propre à cette instance. Plusieurs fragments peuvent être restaurés brièvement par
+     * FragmentManager ; une clé globale faisait alors pointer la FFT vers une vue hors écran. */
+    private val audioVisualizerListenerTag: String =
+        "audio-player-fullscreen@${System.identityHashCode(this)}"
 
     @Inject lateinit var mediaRepository: MediaRepository
     @Inject lateinit var dataStore: DataStore<Preferences>
@@ -123,11 +130,11 @@ class AudioPlayerFragment : Fragment() {
     private var isSeekBarTracking = false
     private var sleepTimerIndicatorJob: Job? = null
     private var eqManager: EqualizerManager? = null
-    private var dancerFrame = 0
     private var currentDynamicBgColor: Int = Color.rgb(10, 12, 14)
     private var currentAccentColor: Int = Color.rgb(63, 215, 143)
     private var bgAnimator: ValueAnimator? = null
     private var currentVisualizerSessionId: Int = 0
+    private var lastKnownVisualizerSessionId: Int = 0
     private var pendingVisualizerSessionId: Int = 0
     private var audioSpectrumEnabled: Boolean = true
     private var visualizerRequestGeneration: Int = 0
@@ -137,6 +144,71 @@ class AudioPlayerFragment : Fragment() {
     private var lastVisualizerRestartAtMs: Long = 0L
     private var visualizerPlaybackStartAtMs: Long = 0L
     private var visualizerStartupVerificationAttempts: Int = 0
+    private var visualizerFailureCount: Int = 0
+    private var visualizerFreshStartEpoch: Long = 0L
+    private var visualizerFreshStartRunnable: Runnable? = null
+    private var visualizerFreshStartReason: String = ""
+
+    /**
+     * Vrai jusqu'à la première trame FFT reçue après la création de cet écran. Ce cas est
+     * particulièrement important après restauration d'une file/position : ExoPlayer peut être
+     * READY alors que son AudioTrack — donc son audioSessionId — n'est pas encore recréé.
+     */
+    private var visualizerColdResumePending: Boolean = true
+    private var visualizerColdResumeRecoveryStarted: Boolean = false
+    private var visualizerColdResumeAttempts: Int = 0
+    private val visualizerColdResumeRunnable = object : Runnable {
+        override fun run() {
+            if (!visualizerColdResumePending || !canRunAudioVisualizerRecovery()) return
+
+            // La santé de la capture doit être évaluée depuis le thread FFT, jamais depuis le
+            // callback UI : un rafraîchissement de bibliothèque peut retarder le thread principal
+            // sans que le Visualizer soit réellement en panne.
+            val receivedCaptureForCurrentPlayback =
+                visualizerPlaybackStartAtMs > 0L &&
+                    AudioFftStream.hasCapturedSince(visualizerPlaybackStartAtMs)
+
+            if (receivedCaptureForCurrentPlayback) {
+                visualizerColdResumePending = false
+                visualizerColdResumeRecoveryStarted = false
+                visualizerColdResumeAttempts = 0
+                handler.removeCallbacks(this)
+                startVisualizerWatchdog()
+                return
+            }
+
+            visualizerColdResumeAttempts++
+            val sessionId = currentVisualizerSessionId
+            val streamRunning = isValidAudioSessionId(sessionId) &&
+                AudioFftStream.isRunning(sessionId)
+            val frameStale = AudioFftStream.millisSinceLastCapture() >
+                VISUALIZER_COLD_RESUME_FRAME_TIMEOUT_MS
+
+            // Tant qu'aucune vraie trame de la lecture restaurée n'est arrivée, redemander la
+            // session. Si un Visualizer existe mais reste muet, le recréer réellement.
+            ensureAudioVisualizer(forceRestart = streamRunning && frameStale)
+            scheduleVisualizerStartupVerification()
+
+            val retryDelay = VISUALIZER_COLD_RESUME_DELAYS_MS[
+                (visualizerColdResumeAttempts - 1)
+                    .coerceIn(0, VISUALIZER_COLD_RESUME_DELAYS_MS.lastIndex)
+            ]
+            handler.postDelayed(this, retryDelay)
+        }
+    }
+
+    private val visualizerRecoveryRunnable = Runnable {
+        if (canRunAudioVisualizerRecovery()) {
+            ensureAudioVisualizer(forceRestart = shouldForceVisualizerRestart())
+            scheduleVisualizerStartupVerification()
+        }
+    }
+    private val visualizerUiRecoveryRunnable = Runnable {
+        if (canRunAudioVisualizerRecovery()) {
+            ensureAudioVisualizer(forceRestart = shouldForceVisualizerRestart())
+            scheduleVisualizerStartupVerification()
+        }
+    }
     private val visualizerWatchdogRunnable = object : Runnable {
         override fun run() {
             val ctrl = controller
@@ -144,10 +216,12 @@ class AudioPlayerFragment : Fragment() {
                 return
             }
 
-            // Ne jamais libérer/recréer android.media.audiofx.Visualizer pendant KaraoKast.
-            // Sur certains appareils, cette opération touche brièvement l'AudioTrack et produit
-            // une coupure audible, surtout pendant la rotation ou le mirroring.
-            if (karaokeLandscapeActive || karaokeMirroringActive) {
+            // Pendant un mirroring actif, ne jamais recréer l'effet afin d'éviter une coupure dans
+            // le flux capturé. En simple vue paroles/KaraoKast locale, le watchdog reste actif :
+            // c'est précisément lors de ces changements de disposition que certains appareils
+            // interrompent silencieusement les callbacks FFT.
+            if (karaokeMirroringActive) {
+                handler.postDelayed(this, VISUALIZER_WATCHDOG_INTERVAL_MS)
                 return
             }
 
@@ -164,7 +238,9 @@ class AudioPlayerFragment : Fragment() {
             if ((streamUnavailable || callbacksStale) &&
                 now - lastVisualizerRestartAtMs >= VISUALIZER_RESTART_COOLDOWN_MS
             ) {
-                lastVisualizerRestartAtMs = now
+                // lastVisualizerRestartAtMs n'est mis à jour qu'au moment où une nouvelle instance
+                // est réellement attachée. Le renseigner ici ferait bloquer la requête elle-même
+                // par le garde-fou anti-redémarrages rapprochés.
                 ensureAudioVisualizer(forceRestart = true)
             }
             handler.postDelayed(this, VISUALIZER_WATCHDOG_INTERVAL_MS)
@@ -175,9 +251,17 @@ class AudioPlayerFragment : Fragment() {
             // Après un démarrage/changement de titre, certains appareils conservent le même
             // audioSessionId tout en arrêtant silencieusement les callbacks FFT. Si aucune trame
             // n'est arrivée depuis le début de cette lecture, on recrée réellement le Visualizer.
-            val receivedFrameForThisPlayback = visualizerPlaybackStartAtMs > 0L &&
-                lastVisualizerFrameAtMs >= visualizerPlaybackStartAtMs
-            ensureAudioVisualizer(forceRestart = !receivedFrameForThisPlayback)
+            val receivedCaptureForThisPlayback = visualizerPlaybackStartAtMs > 0L &&
+                AudioFftStream.hasCapturedSince(visualizerPlaybackStartAtMs)
+            val sessionId = currentVisualizerSessionId
+            val streamHealthy = isValidAudioSessionId(sessionId) &&
+                AudioFftStream.isHealthy(sessionId, VISUALIZER_TRACK_HEALTH_WINDOW_MS)
+            // Ne jamais recréer un Visualizer qui capture correctement uniquement parce que le
+            // thread principal n'a pas encore dessiné la trame. C'était la cause de l'alternance
+            // visible « figé / redémarré » pendant les publications de bibliothèque.
+            ensureAudioVisualizer(
+                forceRestart = !streamHealthy && !receivedCaptureForThisPlayback
+            )
             scheduleVisualizerStartupVerification()
         }
     }
@@ -187,32 +271,46 @@ class AudioPlayerFragment : Fragment() {
             if (!audioSpectrumEnabled || _binding == null || isHidden || !isResumed || ctrl?.isPlaying != true) {
                 return
             }
-            // KaraoKast garde volontairement son Visualizer intact pour éviter toute micro-coupure
-            // pendant le mirroring. Le watchdog normal reprendra dès la sortie du mode.
-            if (karaokeLandscapeActive || karaokeMirroringActive) return
+            // Seul le mirroring interdit une recréation. La vue paroles locale doit au contraire
+            // pouvoir récupérer automatiquement une FFT devenue muette après le changement de layout.
+            if (karaokeMirroringActive) return
 
             val now = SystemClock.elapsedRealtime()
             val sessionId = currentVisualizerSessionId
-            val streamHealthy = sessionId > 0 &&
-                AudioFftStream.isRunning(sessionId) &&
+            val expectedCaptureAfterMs = maxOf(
+                visualizerAttachedAtMs,
+                visualizerPlaybackStartAtMs
+            )
+            val receivedCurrentCapture = expectedCaptureAfterMs > 0L &&
+                AudioFftStream.hasCapturedSince(expectedCaptureAfterMs)
+            val streamRunning = sessionId > 0 && AudioFftStream.isRunning(sessionId)
+            val streamHealthy = streamRunning &&
+                receivedCurrentCapture &&
                 AudioFftStream.millisSinceLastCapture(now) <= VISUALIZER_STARTUP_FRAME_TIMEOUT_MS
             if (streamHealthy) {
                 visualizerStartupVerificationAttempts = 0
-                startVisualizerWatchdog()
-                return
-            }
-
-            if (visualizerStartupVerificationAttempts >= VISUALIZER_STARTUP_MAX_RETRIES) {
-                // Ne boucle jamais agressivement : le watchdog périodique reste le dernier filet
-                // de sécurité si la session audio tarde exceptionnellement à devenir disponible.
+                visualizerColdResumePending = false
+                visualizerColdResumeRecoveryStarted = false
                 startVisualizerWatchdog()
                 return
             }
 
             visualizerStartupVerificationAttempts++
-            visualizerPlaybackStartAtMs = now
-            ensureAudioVisualizer(forceRestart = true)
-            handler.postDelayed(this, VISUALIZER_STARTUP_RETRY_DELAY_MS)
+            val captureActuallyStale = streamRunning &&
+                now - visualizerAttachedAtMs >= VISUALIZER_ATTACH_GRACE_MS &&
+                AudioFftStream.millisSinceLastCapture(now) > VISUALIZER_STARTUP_FRAME_TIMEOUT_MS
+            ensureAudioVisualizer(forceRestart = captureActuallyStale)
+
+            // Après la rafale initiale, continuer à vérifier à cadence douce au lieu d'abandonner.
+            // L'utilisateur ne doit jamais avoir à désactiver/réactiver l'option pour repartir.
+            val retryDelay = if (
+                visualizerStartupVerificationAttempts <= VISUALIZER_STARTUP_MAX_RETRIES
+            ) {
+                VISUALIZER_STARTUP_RETRY_DELAY_MS
+            } else {
+                VISUALIZER_LONG_RECOVERY_DELAY_MS
+            }
+            handler.postDelayed(this, retryDelay)
         }
     }
     private var currentLyrics: List<AudioLocalEnhancements.LyricLine> = emptyList()
@@ -228,11 +326,14 @@ class AudioPlayerFragment : Fragment() {
     private var karaoKastSyncOffsetMs: Long = AudioProSettings.DEFAULT_KARAOKAST_SYNC_OFFSET_MS.toLong()
     private var screenMirrorStateMonitor: fr.retrospare.blazeplayer.cast.SystemScreenMirrorStateMonitor? = null
     private var artworkLoadJob: Job? = null
+    private var dynamicColorJob: Job? = null
     private var currentArtworkPath: String = ""
+    private var currentDynamicArtworkKey: String = ""
+    private var lastAppliedDynamicArtworkKey: String = ""
     private val mediaItemReplacementMutex = Mutex()
     private var lastMediaItemReplacementAtMs: Long = 0L
     private val audioProPrefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (isAdded && (key == AudioProSettings.KEY_SYNCED_LYRICS || key == AudioProSettings.KEY_LYRICS_PLAYER)) {
+        if (isAdded && key == AudioProSettings.KEY_SYNCED_LYRICS) {
             var masterSettingChanged = false
             if (key == AudioProSettings.KEY_SYNCED_LYRICS) {
                 masterSettingChanged = true
@@ -255,13 +356,14 @@ class AudioPlayerFragment : Fragment() {
             }
             view?.post {
                 val settings = AudioProSettings.read(requireContext())
-                if (masterSettingChanged && settings.syncedLyrics && settings.lyricsPlayer) {
+                if (masterSettingChanged && settings.syncedLyrics) {
                     val path = controller?.currentMediaItem?.let { originalPathOf(it) }.orEmpty()
                     if (path.isNotBlank()) loadLyricsForCurrentTrack(path, force = true)
                 }
                 updateKaraokeAvailability()
                 applyAudioProInterfaceSettings()
                 updateLyricsLine(controller?.currentPosition ?: 0L)
+                scheduleVisualizerUiRecovery(forceRestart = false)
             }
         }
     }
@@ -320,18 +422,21 @@ class AudioPlayerFragment : Fragment() {
     private val requestAudioVisualizerPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) startAudioVisualizer(pendingVisualizerSessionId, forceRestart = true)
-        else setAudioSpectrumIdle()
+        if (granted) {
+            val sessionId = pendingVisualizerSessionId.takeIf { it > 0 }
+                ?: lastKnownVisualizerSessionId
+            if (sessionId > 0) {
+                startAudioVisualizer(sessionId, forceRestart = true)
+            } else {
+                scheduleVisualizerUiRecovery(forceRestart = true)
+            }
+            scheduleVisualizerStartupVerification()
+            startVisualizerWatchdog()
+        } else {
+            setAudioSpectrumIdle()
+        }
     }
 
-    private val dancerFrames = listOf(
-        fr.retrospare.blazeplayer.R.drawable.pixel_dancer_1,
-        fr.retrospare.blazeplayer.R.drawable.pixel_dancer_2
-    )
-    private val dancerFFrames = listOf(
-        fr.retrospare.blazeplayer.R.drawable.pixel_dancer_f1,
-        fr.retrospare.blazeplayer.R.drawable.pixel_dancer_f2
-    )
 
     // ── Ajout de fichiers depuis le navigateur ─────────────────────────────────
     private val pickAudio = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -380,7 +485,10 @@ class AudioPlayerFragment : Fragment() {
             // Enrichissement metadonnees + cover en arriere-plan, sans bloquer la lecture.
             // En mode Party, on enrichit seulement la copie locale affichée, sans toucher au
             // MediaController pour ne pas modifier/couper la lecture Party.
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.io) {
+                // L'enrichissement de toute une sélection peut ouvrir de nombreuses covers SMB.
+                // Il n'est jamais prioritaire sur le flux audio qui vient de démarrer.
+                AudioLibraryWorkState.awaitPlaybackIdle()
                 paths.forEachIndexed { i, path ->
                     try {
                         val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), path, names[i])
@@ -431,8 +539,19 @@ class AudioPlayerFragment : Fragment() {
         }
         // Bouton retour supprimé visuellement : le lecteur audio reste accessible via la navigation principale.
         binding.btnBack.visibility = android.view.View.GONE
-        binding.artworkMetadataOverlay.radiusDp = 23f
-        binding.ivArtwork.radiusDp = 23f
+        binding.artworkMetadataOverlay.radiusDp = 0f
+        binding.lyricsOverlay.clipToOutline = false
+        binding.lyricsOverlay.outlineProvider = null
+        binding.artworkTopRightInfo.bringToFront()
+        binding.artworkFrame.clipToOutline = false
+        binding.artworkFrame.outlineProvider = null
+        binding.artworkFrame.foreground = null
+        binding.ivArtwork.clipToOutline = false
+        binding.ivArtwork.outlineProvider = null
+        binding.ivArtwork.background = null
+        binding.ivArtwork.foreground = null
+        binding.ivArtwork.elevation = 0f
+        binding.ivArtwork.translationZ = 0f
         binding.ivArtwork.setLayerType(View.LAYER_TYPE_HARDWARE, null)
         binding.karaokeArtworkFrame.radiusDp = 23f
         binding.karaokeArtworkOverlay.radiusDp = 23f
@@ -440,6 +559,7 @@ class AudioPlayerFragment : Fragment() {
         binding.ivKaraokeArtwork.setLayerType(View.LAYER_TYPE_HARDWARE, null)
         binding.karaokeLyricsView.setAccentColor(currentAccentColor)
         setupSquareArtwork()
+        setupCompactMetadataAutoFit()
         restoreStaticAudioControlColors()
         restorePersistedDynamicAudioColors()
         AudioProSettings.prefs(requireContext()).registerOnSharedPreferenceChangeListener(audioProPrefsListener)
@@ -460,10 +580,24 @@ class AudioPlayerFragment : Fragment() {
             if (active) {
                 stopVisualizerWatchdog()
             } else if (audioSpectrumEnabled && controller?.isPlaying == true) {
+                scheduleVisualizerUiRecovery()
                 startVisualizerWatchdog()
             }
         }
-        binding.root.post { ButtonTextFitter.fitRecursively(binding.root, minSp = 9, maxSp = 13) }
+        binding.root.post {
+            ButtonTextFitter.fitRecursively(
+                binding.root,
+                minSp = 9,
+                maxSp = 13,
+                excludedViewIds = setOf(
+                    R.id.btnBlazeParty,
+                    R.id.btnAudioPlaylistParty,
+                    R.id.btnAudioLibrary,
+                    R.id.btnPlaylistSheet
+                )
+            )
+            applyCompactTopMenuTypography()
+        }
         setupSeekBar()
         startProgressUpdate()
         startLyricsClockSync()
@@ -490,9 +624,25 @@ class AudioPlayerFragment : Fragment() {
         screenMirrorStateMonitor?.start()
         screenMirrorStateMonitor?.refresh()
         updateKaraokeCastButtonState()
-        if (audioSpectrumEnabled && controller?.isPlaying == true) {
-            ensureAudioVisualizer()
-            startVisualizerWatchdog()
+        val resumedPlaybackActive = controller?.isPlaying == true
+        if (resumedPlaybackActive) {
+            // Le retour dans le fragment ne doit pas coïncider avec une promotion de Room, du
+            // snapshot ou des covers de bibliothèque. Les contrôles, LRC et visualiseurs disposent
+            // déjà de leurs propres pools ; cette fenêtre couvre le rebind MediaController/UI.
+            AudioLibraryWorkState.beginPlaybackCriticalWindow(4_000L)
+        }
+        _binding?.audioEqualizerView?.setPlaybackActive(resumedPlaybackActive)
+        _binding?.karaokeEqualizerView?.setPlaybackActive(resumedPlaybackActive)
+        _binding?.artworkFrame?.post {
+            lastPortraitEqualizerArtworkSize = 0
+            syncPortraitEqualizerGeometry()
+        }
+        if (audioSpectrumEnabled && resumedPlaybackActive) {
+            // Une activité recréée peut se rattacher à un Visualizer déjà valide tout en conservant
+            // une enveloppe d'affichage minuscule. Le changement d'onglet corrigeait le problème
+            // parce qu'il forçait implicitement cette recalibration. On la déclenche désormais à
+            // chaque retour visible, sans détacher l'effet et sans toucher au flux audio.
+            recalibrateVisualizerForVisibleResume()
         }
     }
 
@@ -520,12 +670,23 @@ class AudioPlayerFragment : Fragment() {
             screenMirrorStateMonitor?.start()
             screenMirrorStateMonitor?.refresh()
             updateKaraokeCastButtonState()
-            if (audioSpectrumEnabled && controller?.isPlaying == true) {
-                ensureAudioVisualizer()
-                startVisualizerWatchdog()
+            val resumedPlaybackActive = controller?.isPlaying == true
+            if (resumedPlaybackActive) {
+                AudioLibraryWorkState.beginPlaybackCriticalWindow(4_000L)
+            }
+            _binding?.audioEqualizerView?.setPlaybackActive(resumedPlaybackActive)
+            _binding?.karaokeEqualizerView?.setPlaybackActive(resumedPlaybackActive)
+            _binding?.artworkFrame?.post {
+                lastPortraitEqualizerArtworkSize = 0
+                syncPortraitEqualizerGeometry()
+            }
+            if (audioSpectrumEnabled && resumedPlaybackActive) {
+                recalibrateVisualizerForVisibleResume()
             }
         } else {
             screenMirrorStateMonitor?.stop()
+            _binding?.audioEqualizerView?.setPlaybackActive(false)
+            _binding?.karaokeEqualizerView?.setPlaybackActive(false)
             stopVisualizerWatchdog()
             stopAudioVisualizer()
             setAudioSpectrumIdle()
@@ -545,6 +706,7 @@ class AudioPlayerFragment : Fragment() {
         screenMirrorStateMonitor?.stop()
         screenMirrorStateMonitor = null
         artworkLoadJob?.cancel()
+        dynamicColorJob?.cancel()
         setKaraokeLandscapeUi(false)
         lockAudioPlayerToPortrait()
         stopVisualizerWatchdog()
@@ -565,6 +727,9 @@ class AudioPlayerFragment : Fragment() {
         squareArtworkListener?.let { squareArtworkContainer?.viewTreeObserver?.removeOnGlobalLayoutListener(it) }
         squareArtworkListener = null
         squareArtworkContainer = null
+        lastPortraitEqualizerArtworkSize = 0
+        compactMetadataFitPosted = false
+        lastCompactMetadataFitKey = ""
         _binding = null
         super.onDestroyView()
     }
@@ -579,7 +744,7 @@ class AudioPlayerFragment : Fragment() {
     private fun updateKaraokeAvailability() {
         val b = _binding ?: return
         val settings = AudioProSettings.read(requireContext())
-        karaokeAvailable = settings.syncedLyrics && settings.lyricsPlayer && hasUsableKaraokeLyrics(currentLyricsData)
+        karaokeAvailable = settings.syncedLyrics && hasUsableKaraokeLyrics(currentLyricsData)
         b.karaokeLyricsView.setLyrics(if (karaokeAvailable) currentLyrics else emptyList())
         b.karaokeLyricsView.setAccentColor(currentAccentColor)
         b.standardLyricsView.setLyrics(currentLyrics)
@@ -651,13 +816,16 @@ class AudioPlayerFragment : Fragment() {
         val insetsController = androidx.core.view.WindowInsetsControllerCompat(requireActivity().window, requireActivity().window.decorView)
         insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         if (active) {
-            // Le flux FFT existant reste attaché, mais aucun watchdog ne peut le recréer pendant
-            // KaraoKast. Le changement de disposition devient ainsi purement visuel.
-            stopVisualizerWatchdog()
             insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
         } else {
             insetsController.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-            if (audioSpectrumEnabled && controller?.isPlaying == true) startVisualizerWatchdog()
+        }
+        if (audioSpectrumEnabled && controller?.isPlaying == true) {
+            if (karaokeMirroringActive) stopVisualizerWatchdog()
+            else {
+                scheduleVisualizerUiRecovery()
+                startVisualizerWatchdog()
+            }
         }
     }
 
@@ -680,8 +848,10 @@ class AudioPlayerFragment : Fragment() {
                     setAudioSpectrumOverlayVisible(enabled)
                     if (enabled) {
                         if (controller?.isPlaying == true) {
-                            ensureAudioVisualizer(forceRestart = true)
-                            startVisualizerWatchdog()
+                            requestFreshVisualizerForCurrentTrack(
+                                reason = "spectrum-enabled",
+                                delayMs = VISUALIZER_FRESH_START_DELAY_MS
+                            )
                         } else {
                             setAudioSpectrumIdle()
                         }
@@ -697,12 +867,15 @@ class AudioPlayerFragment : Fragment() {
     private fun setAudioSpectrumOverlayVisible(enabled: Boolean) {
         val b = _binding ?: return
         val settings = AudioProSettings.read(requireContext())
-        val hasVisibleLyrics = settings.syncedLyrics && settings.lyricsPlayer && currentLyrics.isNotEmpty()
-        b.artworkMetadataOverlay.visibility = if (enabled || hasVisibleLyrics) View.VISIBLE else View.GONE
+        val lyricsEnabled = settings.syncedLyrics
+        b.artworkMetadataOverlay.visibility = if (enabled || lyricsEnabled) View.VISIBLE else View.GONE
         b.audioEqualizerView.visibility = if (enabled) View.VISIBLE else View.GONE
         b.karaokeEqualizerView.visibility = if (enabled) View.VISIBLE else View.GONE
-        b.lyricsOverlay.visibility = if (hasVisibleLyrics) View.VISIBLE else View.GONE
-        if (hasVisibleLyrics) b.lyricsOverlay.bringToFront()
+        val playbackActive = enabled && controller?.isPlaying == true
+        b.audioEqualizerView.setPlaybackActive(playbackActive)
+        b.karaokeEqualizerView.setPlaybackActive(playbackActive)
+        updatePortraitLyricsOverlayState(lyricsEnabled)
+        if (enabled && controller?.isPlaying == true) scheduleVisualizerUiRecovery()
     }
 
 
@@ -723,6 +896,10 @@ class AudioPlayerFragment : Fragment() {
     private fun onControllerReady() {
         val ctrl = controller ?: return
 
+        if (ctrl.isPlaying || (ctrl.playWhenReady && ctrl.playbackState != Player.STATE_IDLE)) {
+            AudioLibraryWorkState.beginPlaybackCriticalWindow(4_500L)
+        }
+
         // Garde-fou d'isolation : si une ancienne version a laissé un MediaItem vidéo/cast dans la
         // session audio, on l'élimine immédiatement avant que l'UI ou Play/Pause ne puisse le piloter.
         purgeNonAudioItems(ctrl)
@@ -740,7 +917,7 @@ class AudioPlayerFragment : Fragment() {
         // déjà d'être chargé en priorité. Le Player reste la seule source de verite ;
         // AudioRepository ne sert qu'a la persistance disque entre lancements de l'app.
         if (priorityExternalTrack == null && ctrl.mediaItemCount == 0) {
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.io) {
                 val savedState = AudioRepository.loadState(requireContext())
                 val savedItems = savedState.items
                 if (savedItems.isNotEmpty()) {
@@ -768,6 +945,9 @@ class AudioPlayerFragment : Fragment() {
                     val ordered = savedItems.indices
                         .sortedBy { if (it == savedState.index) 0 else 1 }
                     ordered.forEach { i ->
+                        if (i != savedState.index) {
+                            AudioLibraryWorkState.awaitPlaybackIdle()
+                        }
                         val item = savedItems[i]
                         try {
                             val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), item.path, item.name, item.artworkPath)
@@ -825,8 +1005,12 @@ class AudioPlayerFragment : Fragment() {
             savePlaylistFromController()
 
             if (newTracks.isNotEmpty()) {
-                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.io) {
                     newTracks.forEach { track ->
+                        val currentPath = controller?.currentMediaItem?.let(::originalPathOf).orEmpty()
+                        if (track.path != currentPath) {
+                            AudioLibraryWorkState.awaitPlaybackIdle()
+                        }
                         try {
                             val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), track.path, track.name)
                             launch(Dispatchers.Main) {
@@ -854,7 +1038,12 @@ class AudioPlayerFragment : Fragment() {
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) {
+                    AudioLibraryWorkState.beginPlaybackCriticalWindow(1_500L)
+                }
                 syncButtons()
+                _binding?.audioEqualizerView?.setPlaybackActive(isPlaying && audioSpectrumEnabled)
+                _binding?.karaokeEqualizerView?.setPlaybackActive(isPlaying && audioSpectrumEnabled)
                 val idx = ctrl.currentMediaItemIndex
                 if (playlistAdapter.hasOverrideItems()) playlistAdapter.setPlayingIndex(-1)
                 else if (isPlaying) playlistAdapter.setPlayingIndex(idx)
@@ -866,10 +1055,13 @@ class AudioPlayerFragment : Fragment() {
                     stopAudioVisualizer()
                     setAudioSpectrumIdle()
                 } else if (isPlaying) {
-                    // Démarre immédiatement avec la session disponible, puis vérifie quelques
-                    // centaines de ms plus tard qu'une vraie trame FFT est bien arrivée.
-                    ensureAudioVisualizer()
-                    scheduleVisualizerRestartForTrack()
+                    // Toute reprise doit produire une nouvelle trame FFT. Après une relance de
+                    // l'application, il faut en plus attendre la nouvelle session AudioTrack au lieu
+                    // de réutiliser AUDIO_SESSION_ID_UNSET ou une ancienne session libérée.
+                    requestFreshVisualizerForCurrentTrack(
+                        reason = "playback-start",
+                        delayMs = VISUALIZER_FRESH_START_DELAY_MS
+                    )
                 } else {
                     stopVisualizerWatchdog()
                     stopAudioVisualizer()
@@ -885,11 +1077,32 @@ class AudioPlayerFragment : Fragment() {
                 // Seek utilisateur, changement de morceau ou correction interne Media3 : recaler
                 // immédiatement l'horloge des paroles au lieu d'attendre le prochain polling UI.
                 syncLyricsPlaybackClock(ctrl.currentPosition)
+
+                // Un clic sur le titre déjà courant peut simplement le relancer à zéro sans
+                // déclencher onMediaItemTransition ni onIsPlayingChanged. Ce redémarrage logique
+                // doit lui aussi obtenir une instance Visualizer neuve.
+                if (
+                    audioSpectrumEnabled &&
+                    ctrl.isPlaying &&
+                    reason == Player.DISCONTINUITY_REASON_SEEK &&
+                    oldPosition.mediaItemIndex == newPosition.mediaItemIndex &&
+                    newPosition.positionMs <= 1_500L &&
+                    oldPosition.positionMs - newPosition.positionMs >= 2_500L
+                ) {
+                    requestFreshVisualizerForCurrentTrack(
+                        reason = "current-track-restarted",
+                        delayMs = VISUALIZER_FRESH_TRACK_DELAY_MS
+                    )
+                }
             }
 
             override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
                 // Une variation de vitesse change la pente de l'horloge extrapolée par la vue.
                 syncLyricsPlaybackClock(ctrl.currentPosition)
+            }
+
+            override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                syncMetadata()
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -918,22 +1131,33 @@ class AudioPlayerFragment : Fragment() {
                 }
                 partyPlaylistAdapter.setCurrentPath(if (ctrl.isPlaying) newPartyPath else null)
                 if (audioSpectrumEnabled && ctrl.isPlaying) {
-                    scheduleVisualizerRestartForTrack()
+                    requestFreshVisualizerForCurrentTrack(
+                        reason = "media-item-transition",
+                        delayMs = VISUALIZER_FRESH_TRACK_DELAY_MS
+                    )
                 } else {
                     setAudioSpectrumIdle()
                 }
             }
 
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                if (audioSpectrumEnabled && ctrl.isPlaying && audioSessionId > 0) {
-                    // Ne recrée l'effet que si Media3 fournit réellement une nouvelle session.
-                    // Un rappel avec le même identifiant peut arriver pendant une rotation.
-                    visualizerRequestGeneration++
-                    visualizerRequestInFlight = false
-                    handler.removeCallbacks(visualizerTrackRestartRunnable)
-                    val sessionChanged = audioSessionId != currentVisualizerSessionId
-                    startAudioVisualizer(audioSessionId, forceRestart = sessionChanged)
-                    startVisualizerWatchdog()
+                if (isValidAudioSessionId(audioSessionId)) {
+                    lastKnownVisualizerSessionId = audioSessionId
+                }
+                if (
+                    audioSpectrumEnabled &&
+                    ctrl.isPlaying &&
+                    isValidAudioSessionId(audioSessionId)
+                ) {
+                    // Toute nouvelle notification de session associée à une lecture active
+                    // invalide l'ancienne instance Visualizer. Même si Media3 réutilise le même
+                    // audioSessionId, la capture FFT doit repartir d'une instance neuve pour le
+                    // morceau/reprise en cours.
+                    requestFreshVisualizerForCurrentTrack(
+                        reason = "audio-session-changed",
+                        preferredSessionId = audioSessionId,
+                        delayMs = VISUALIZER_FRESH_SESSION_DELAY_MS
+                    )
                 }
             }
 
@@ -958,16 +1182,103 @@ class AudioPlayerFragment : Fragment() {
             }
         })
 
+        _binding?.audioEqualizerView?.setPlaybackActive(ctrl.isPlaying && audioSpectrumEnabled)
+        _binding?.karaokeEqualizerView?.setPlaybackActive(ctrl.isPlaying && audioSpectrumEnabled)
         if (audioSpectrumEnabled && ctrl.isPlaying) {
-            ensureAudioVisualizer()
-            startVisualizerWatchdog()
+            requestFreshVisualizerForCurrentTrack(
+                reason = "controller-ready-resume",
+                delayMs = VISUALIZER_FRESH_RESUME_DELAY_MS
+            )
         } else {
             setAudioSpectrumIdle()
         }
     }
 
-    private fun ensureAudioVisualizer(forceRestart: Boolean = false) {
-        if (!audioSpectrumEnabled || _binding == null) {
+    private fun isValidAudioSessionId(sessionId: Int): Boolean =
+        sessionId > 0 && sessionId != C.AUDIO_SESSION_ID_UNSET
+
+    /**
+     * Au retour visible, recrée réellement l'instance Visualizer sur la session audio courante.
+     * C'est le même cycle propre que lors d'un nouveau morceau, y compris si Media3 conserve le
+     * même audioSessionId pendant la lecture en arrière-plan.
+     */
+    private fun recalibrateVisualizerForVisibleResume() {
+        requestFreshVisualizerForCurrentTrack(
+            reason = "visible-resume",
+            delayMs = VISUALIZER_FRESH_RESUME_DELAY_MS
+        )
+    }
+
+    /**
+     * Chaque démarrage logique de morceau possède sa propre instance Visualizer. Media3 peut garder
+     * le même audioSessionId entre deux titres ou après recréation de l'activité ; cela ne doit plus
+     * entraîner la réutilisation de l'ancienne capture ni de son ancienne normalisation.
+     *
+     * Les événements très proches (transition, isPlaying, audioSessionId) sont coalescés afin de ne
+     * créer qu'une seule instance neuve pour le morceau réellement courant.
+     */
+    private fun requestFreshVisualizerForCurrentTrack(
+        reason: String,
+        preferredSessionId: Int = 0,
+        delayMs: Long = VISUALIZER_FRESH_START_DELAY_MS
+    ) {
+        if (!audioSpectrumEnabled || _binding == null || !isAdded || controller?.isPlaying != true) {
+            return
+        }
+
+        visualizerFreshStartReason = reason
+        val epoch = ++visualizerFreshStartEpoch
+        visualizerFreshStartRunnable?.let { handler.removeCallbacks(it) }
+        visualizerFreshStartRunnable = null
+
+        // Invalide les réponses de session demandées pour le titre précédent.
+        visualizerRequestGeneration++
+        visualizerRequestInFlight = false
+        visualizerPlaybackStartAtMs = SystemClock.elapsedRealtime()
+        visualizerStartupVerificationAttempts = 0
+        visualizerFailureCount = 0
+        visualizerColdResumePending = true
+        visualizerColdResumeRecoveryStarted = true
+        visualizerColdResumeAttempts = 0
+
+        // La vue repart sur la géométrie et l'enveloppe définies avant d'accepter les nouvelles FFT.
+        _binding?.audioEqualizerView?.prepareForFreshVisualizerSession()
+        _binding?.karaokeEqualizerView?.prepareForFreshVisualizerSession()
+        lastPortraitEqualizerArtworkSize = 0
+        _binding?.artworkFrame?.post { syncPortraitEqualizerGeometry() }
+
+        val runnable = Runnable {
+            if (
+                epoch != visualizerFreshStartEpoch ||
+                !audioSpectrumEnabled ||
+                _binding == null ||
+                !isAdded ||
+                controller?.isPlaying != true
+            ) {
+                return@Runnable
+            }
+            visualizerFreshStartRunnable = null
+
+            if (isValidAudioSessionId(preferredSessionId)) {
+                startAudioVisualizer(preferredSessionId, forceRestart = true)
+            } else {
+                ensureAudioVisualizer(
+                    forceRestart = true,
+                    bypassRestartThrottle = true
+                )
+            }
+            scheduleVisualizerStartupVerification()
+            startVisualizerWatchdog()
+        }
+        visualizerFreshStartRunnable = runnable
+        handler.postDelayed(runnable, delayMs.coerceAtLeast(0L))
+    }
+
+    private fun ensureAudioVisualizer(
+        forceRestart: Boolean = false,
+        bypassRestartThrottle: Boolean = false
+    ) {
+        if (!audioSpectrumEnabled || _binding == null || !isAdded) {
             stopVisualizerWatchdog()
             stopAudioVisualizer()
             setAudioSpectrumIdle()
@@ -981,12 +1292,42 @@ class AudioPlayerFragment : Fragment() {
             return
         }
 
+        val now = SystemClock.elapsedRealtime()
         val existingSessionId = currentVisualizerSessionId
-        if (!forceRestart && existingSessionId > 0 && AudioFftStream.isRunning(existingSessionId)) {
+        val streamRunning = isValidAudioSessionId(existingSessionId) &&
+            AudioFftStream.isRunning(existingSessionId)
+        val streamHealthy = streamRunning && AudioFftStream.isHealthy(
+            existingSessionId,
+            VISUALIZER_HEALTHY_CAPTURE_WINDOW_MS,
+            now
+        )
+        val inStartupGrace = streamRunning && visualizerAttachedAtMs > 0L &&
+            now - visualizerAttachedAtMs < VISUALIZER_ATTACH_GRACE_MS
+
+        if (!forceRestart && streamHealthy) {
+            visualizerFailureCount = 0
+            handler.removeCallbacks(visualizerRecoveryRunnable)
             startVisualizerWatchdog()
             return
         }
-        if (visualizerRequestInFlight && !forceRestart) return
+        if (!forceRestart && inStartupGrace) {
+            scheduleVisualizerStartupVerification()
+            startVisualizerWatchdog()
+            return
+        }
+
+        val effectiveForceRestart = forceRestart || (streamRunning && !streamHealthy)
+        if (effectiveForceRestart &&
+            !bypassRestartThrottle &&
+            now - lastVisualizerRestartAtMs < VISUALIZER_MIN_RESTART_GAP_MS
+        ) {
+            scheduleVisualizerRecovery(incrementFailure = false)
+            return
+        }
+        if (visualizerRequestInFlight) {
+            scheduleVisualizerRecovery(incrementFailure = false)
+            return
+        }
 
         val requestGeneration = ++visualizerRequestGeneration
         visualizerRequestInFlight = true
@@ -1004,24 +1345,34 @@ class AudioPlayerFragment : Fragment() {
 
             val sessionId = try {
                 future.get().extras.getInt(BlazePlayerService.EXTRA_AUDIO_SESSION_ID, 0)
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                CrashReporter.log(requireContext(), "Audio visualizer session request failed", error)
                 0
             }
-            if (sessionId != 0) {
-                startAudioVisualizer(sessionId, forceRestart)
-                startVisualizerWatchdog()
+            if (isValidAudioSessionId(sessionId)) {
+                lastKnownVisualizerSessionId = sessionId
+                // AudioFftStream sait distinguer seul une nouvelle session d'une session déjà
+                // active. Ne pas transformer chaque retour d'écran en redémarrage forcé.
+                startAudioVisualizer(sessionId, effectiveForceRestart)
             } else {
-                setAudioSpectrumIdle()
-                // L'AudioTrack peut ne pas encore être créé juste après une transition. Le
-                // watchdog redemandera la session sans nécessiter de basculer le réglage.
+                val fallbackSessionId = lastKnownVisualizerSessionId
+                if (isValidAudioSessionId(fallbackSessionId)) {
+                    // Media3 peut renvoyer brièvement 0 pendant une transition alors que l'ancienne
+                    // session reste valide. La tenter évite un visualiseur vide jusqu'au watchdog.
+                    startAudioVisualizer(fallbackSessionId, forceRestart = false)
+                } else {
+                    setAudioSpectrumIdle()
+                }
+                scheduleVisualizerRecovery(incrementFailure = true)
                 startVisualizerWatchdog()
             }
         }, executor)
     }
 
     private fun startAudioVisualizer(sessionId: Int, forceRestart: Boolean = false) {
-        if (sessionId == 0 || _binding == null || !audioSpectrumEnabled) return
+        if (!isValidAudioSessionId(sessionId) || _binding == null || !audioSpectrumEnabled) return
         pendingVisualizerSessionId = sessionId
+        lastKnownVisualizerSessionId = sessionId
         if (android.os.Build.VERSION.SDK_INT >= 23 &&
             ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -1044,17 +1395,40 @@ class AudioPlayerFragment : Fragment() {
             val attachedAt = SystemClock.elapsedRealtime()
             if (forceRestart) lastVisualizerRestartAtMs = attachedAt
             AudioFftStream.attach(
-                tag = "audio-player-fullscreen",
+                tag = audioVisualizerListenerTag,
                 sessionId = sessionId,
-                onFft = { fft ->
-                    if (fft != null) lastVisualizerFrameAtMs = SystemClock.elapsedRealtime()
+                onSpectrum = { spectrum ->
+                    if (spectrum != null && spectrum.isNotEmpty()) {
+                        val callbackAt = SystemClock.elapsedRealtime()
+                        val firstFrameForAttach = lastVisualizerFrameAtMs <= 0L
+                        lastVisualizerFrameAtMs = callbackAt
+                        if (firstFrameForAttach) {
+                        }
+                        visualizerFailureCount = 0
+                        handler.removeCallbacks(visualizerRecoveryRunnable)
+
+                        if (
+                            visualizerColdResumePending &&
+                            visualizerPlaybackStartAtMs > 0L &&
+                            lastVisualizerFrameAtMs >= visualizerPlaybackStartAtMs
+                        ) {
+                            visualizerColdResumePending = false
+                            visualizerColdResumeRecoveryStarted = false
+                            visualizerColdResumeAttempts = 0
+                            handler.removeCallbacks(visualizerColdResumeRunnable)
+                        }
+                    }
                     _binding?.let { b ->
                         // Un seul visualiseur reçoit la FFT. Envoyer chaque trame aux deux vues
                         // doublerait les calculs et les invalidations pendant le screen mirroring.
                         if (karaokeLandscapeActive) {
-                            b.karaokeEqualizerView.takeIf { it.isShown }?.updateFft(fft)
+                            b.karaokeEqualizerView
+                                .takeIf { it.isShown }
+                                ?.updateSpectrum(spectrum)
                         } else {
-                            b.audioEqualizerView.takeIf { it.isShown }?.updateFft(fft)
+                            b.audioEqualizerView
+                                .takeIf { it.isShown }
+                                ?.updateSpectrum(spectrum)
                         }
                     }
                 },
@@ -1063,25 +1437,22 @@ class AudioPlayerFragment : Fragment() {
             currentVisualizerSessionId = sessionId
             visualizerAttachedAtMs = attachedAt
             lastVisualizerFrameAtMs = 0L
+            scheduleVisualizerStartupVerification()
             startVisualizerWatchdog()
         } catch (e: Exception) {
             currentVisualizerSessionId = 0
             visualizerAttachedAtMs = 0L
             lastVisualizerFrameAtMs = 0L
-            CrashReporter.log(requireContext(), "Audio visualizer failed", e)
-            AudioFftStream.detach("audio-player-fullscreen")
+            CrashReporter.log(
+                requireContext(),
+                "Audio visualizer failed during $visualizerFreshStartReason",
+                e
+            )
+            AudioFftStream.detach(audioVisualizerListenerTag)
             setAudioSpectrumIdle()
+            scheduleVisualizerRecovery(incrementFailure = true)
             startVisualizerWatchdog()
         }
-    }
-
-    private fun scheduleVisualizerRestartForTrack() {
-        handler.removeCallbacks(visualizerTrackRestartRunnable)
-        handler.removeCallbacks(visualizerStartupVerifyRunnable)
-        visualizerPlaybackStartAtMs = SystemClock.elapsedRealtime()
-        visualizerStartupVerificationAttempts = 0
-        handler.postDelayed(visualizerTrackRestartRunnable, VISUALIZER_TRACK_RESTART_DELAY_MS)
-        startVisualizerWatchdog()
     }
 
     private fun scheduleVisualizerStartupVerification() {
@@ -1091,7 +1462,6 @@ class AudioPlayerFragment : Fragment() {
             !isHidden &&
             isResumed &&
             controller?.isPlaying == true &&
-            !karaokeLandscapeActive &&
             !karaokeMirroringActive
         ) {
             handler.postDelayed(visualizerStartupVerifyRunnable, VISUALIZER_STARTUP_VERIFY_DELAY_MS)
@@ -1105,30 +1475,92 @@ class AudioPlayerFragment : Fragment() {
             !isHidden &&
             isResumed &&
             controller?.isPlaying == true &&
-            !karaokeLandscapeActive &&
             !karaokeMirroringActive
         ) {
             handler.postDelayed(visualizerWatchdogRunnable, VISUALIZER_WATCHDOG_INTERVAL_MS)
         }
     }
 
+    private fun canRunAudioVisualizerRecovery(): Boolean =
+        audioSpectrumEnabled &&
+            _binding != null &&
+            isAdded &&
+            !isHidden &&
+            isResumed &&
+            controller?.isPlaying == true &&
+            !karaokeMirroringActive
+
+    private fun shouldForceVisualizerRestart(): Boolean {
+        val sessionId = currentVisualizerSessionId
+        if (sessionId <= 0) return false
+        val now = SystemClock.elapsedRealtime()
+        val attachedLongEnough = visualizerAttachedAtMs <= 0L ||
+            now - visualizerAttachedAtMs >= VISUALIZER_ATTACH_GRACE_MS
+        return attachedLongEnough && !AudioFftStream.isHealthy(
+            sessionId,
+            VISUALIZER_HEALTHY_CAPTURE_WINDOW_MS,
+            now
+        )
+    }
+
+    private fun scheduleVisualizerUiRecovery(forceRestart: Boolean = false) {
+        handler.removeCallbacks(visualizerUiRecoveryRunnable)
+        if (!canRunAudioVisualizerRecovery()) return
+
+        if (forceRestart) {
+            handler.postDelayed({
+                if (canRunAudioVisualizerRecovery()) {
+                    ensureAudioVisualizer(forceRestart = true)
+                    scheduleVisualizerStartupVerification()
+                }
+            }, VISUALIZER_UI_RECOVERY_DELAY_MS)
+        } else {
+            handler.postDelayed(
+                visualizerUiRecoveryRunnable,
+                VISUALIZER_UI_RECOVERY_DELAY_MS
+            )
+        }
+    }
+
+    private fun scheduleVisualizerRecovery(incrementFailure: Boolean) {
+        if (incrementFailure) {
+            visualizerFailureCount = (visualizerFailureCount + 1).coerceAtMost(VISUALIZER_RECOVERY_DELAYS_MS.size)
+        }
+        handler.removeCallbacks(visualizerRecoveryRunnable)
+        if (!canRunAudioVisualizerRecovery()) return
+        val delayIndex = (visualizerFailureCount - 1)
+            .coerceIn(0, VISUALIZER_RECOVERY_DELAYS_MS.lastIndex)
+        handler.postDelayed(visualizerRecoveryRunnable, VISUALIZER_RECOVERY_DELAYS_MS[delayIndex])
+    }
+
     private fun stopVisualizerWatchdog() {
         handler.removeCallbacks(visualizerWatchdogRunnable)
         handler.removeCallbacks(visualizerTrackRestartRunnable)
         handler.removeCallbacks(visualizerStartupVerifyRunnable)
+        handler.removeCallbacks(visualizerRecoveryRunnable)
+        handler.removeCallbacks(visualizerUiRecoveryRunnable)
+        handler.removeCallbacks(visualizerColdResumeRunnable)
         visualizerStartupVerificationAttempts = 0
     }
 
     private fun stopAudioVisualizer() {
+        visualizerFreshStartEpoch++
+        visualizerFreshStartRunnable?.let { handler.removeCallbacks(it) }
+        visualizerFreshStartRunnable = null
         visualizerRequestGeneration++
         visualizerRequestInFlight = false
-        AudioFftStream.detach("audio-player-fullscreen")
+        AudioFftStream.detach(audioVisualizerListenerTag)
         currentVisualizerSessionId = 0
         pendingVisualizerSessionId = 0
         visualizerAttachedAtMs = 0L
         lastVisualizerFrameAtMs = 0L
         visualizerPlaybackStartAtMs = 0L
         visualizerStartupVerificationAttempts = 0
+        visualizerFailureCount = 0
+        visualizerColdResumeRecoveryStarted = false
+        handler.removeCallbacks(visualizerRecoveryRunnable)
+        handler.removeCallbacks(visualizerUiRecoveryRunnable)
+        handler.removeCallbacks(visualizerColdResumeRunnable)
     }
 
     // ── Sync UI depuis MediaController (source unique) ─────────────────────────
@@ -1189,6 +1621,10 @@ class AudioPlayerFragment : Fragment() {
         if (currentMeta.artist?.toString() != enrichedMeta.artist?.toString()) return true
         if (currentMeta.albumTitle?.toString() != enrichedMeta.albumTitle?.toString()) return true
         if (currentMeta.artworkUri != enrichedMeta.artworkUri) return true
+        if (
+            currentMeta.extras?.getString(AudioRepository.EXTRA_ARTWORK_PATH).orEmpty() !=
+            enrichedMeta.extras?.getString(AudioRepository.EXTRA_ARTWORK_PATH).orEmpty()
+        ) return true
 
         val currentArtwork = currentMeta.artworkData
         val enrichedArtwork = enrichedMeta.artworkData
@@ -1251,8 +1687,11 @@ class AudioPlayerFragment : Fragment() {
             originalName = originalName,
             fallbackExtension = safeExt,
             codecTextColor = currentAccentColor,
-            knownDurationMs = ctrl.duration.takeIf { it > 0L } ?: 0L
+            knownDurationMs = ctrl.duration.takeIf { it > 0L } ?: 0L,
+            textOnly = true
         )
+        scheduleCompactMetadataFit()
+        syncPortraitEqualizerTechnicalSpacing()
 
         applyAudioProInterfaceSettings()
 
@@ -1269,36 +1708,87 @@ class AudioPlayerFragment : Fragment() {
             currentArtworkPath = artworkKey
             artworkLoadJob?.cancel()
         }
+        val mediaArtworkData = meta.artworkData
+        // Le thread UI ne lit jamais le disque, Room, le NAS ou le fichier audio. La RAM puis les
+        // octets déjà présents dans Media3 suffisent pour la première frame ; le cache disque local
+        // est consulté sur BlazePlaybackIo juste après.
         val immediateBitmap = AudioArtworkResolver.memoryCachedBitmap(path, preferredArtworkPath)
-            ?: AudioArtworkResolver.cachedBitmap(requireContext(), path, preferredArtworkPath)
+            ?: mediaArtworkData?.let(::decodePlayerArtworkBytes)
         if (immediateBitmap != null) {
             _binding?.ivArtwork?.setImageBitmap(immediateBitmap)
             _binding?.ivKaraokeArtwork?.setImageBitmap(immediateBitmap)
-            applyDynamicBackgroundFromBitmap(immediateBitmap)
+            applyDynamicBackgroundFromBitmap(immediateBitmap, artworkKey)
         } else if (pathChanged) {
-            _binding?.ivArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_thumbnail)
+            dynamicColorJob?.cancel()
+            currentDynamicArtworkKey = ""
+            lastAppliedDynamicArtworkKey = ""
+            _binding?.ivArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_audio_artwork_placeholder_square)
             _binding?.ivKaraokeArtwork?.setImageResource(fr.retrospare.blazeplayer.R.drawable.bg_thumbnail)
             resetDynamicBackground()
         }
 
         if (path.isNotEmpty() && (pathChanged || (immediateBitmap == null && artworkLoadJob?.isActive != true))) {
-            artworkLoadJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                val bytes = AudioArtworkResolver.resolveJpegBytes(requireContext(), path, preferredArtworkPath)
-                if (bytes != null) {
-                    launch(Dispatchers.Main) {
-                        val c = controller ?: return@launch
-                        val current = c.currentMediaItem ?: return@launch
-                        if (originalPathOf(current) != path || currentArtworkPath != artworkKey) return@launch
-                        val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@launch
-                        _binding?.ivArtwork?.setImageBitmap(bitmap)
-                        _binding?.ivKaraokeArtwork?.setImageBitmap(bitmap)
-                        applyDynamicBackgroundFromBitmap(bitmap)
-                        val enrichedMeta = current.mediaMetadata.buildUpon()
-                            .setArtworkData(bytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                            .build()
-                        val enriched = current.buildUpon().setMediaMetadata(enrichedMeta).build()
-                        replaceMediaItemRateLimited(c, c.currentMediaItemIndex, enriched)
+            artworkLoadJob = viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.io) {
+                // Étape 1 : cache local uniquement. Elle ne liste aucun dossier et n'ouvre jamais le
+                // morceau SMB/UPnP en cours de lecture.
+                val cachedBytes = AudioArtworkResolver.cachedJpegBytes(
+                    requireContext(),
+                    path,
+                    preferredArtworkPath
+                )
+                val firstBytes = cachedBytes ?: mediaArtworkData
+                if (firstBytes != null) {
+                    val firstBitmap = decodePlayerArtworkBytes(firstBytes)
+                    if (firstBitmap != null) {
+                        launch(Dispatchers.Main) {
+                            val current = controller?.currentMediaItem ?: return@launch
+                            if (originalPathOf(current) != path || currentArtworkPath != artworkKey) return@launch
+                            _binding?.ivArtwork?.setImageBitmap(firstBitmap)
+                            _binding?.ivKaraokeArtwork?.setImageBitmap(firstBitmap)
+                            applyDynamicBackgroundFromBitmap(firstBitmap, artworkKey)
+                        }
                     }
+                }
+
+                // Étape 2 : une vraie recherche cover.jpg -> embedded n'est autorisée que hors
+                // lecture. Si Media3 possède déjà l'embedded, elle reste affichée sans concurrencer
+                // le flux audio ; la cover externe prioritaire sera adoptée à la prochaine pause.
+                if (cachedBytes != null) return@launch
+                if (AudioLibraryWorkState.isPlaybackProtected()) {
+                    AudioLibraryWorkState.awaitPlaybackIdle()
+                } else {
+                    AudioLibraryWorkState.awaitPlaybackCriticalWindowEnd()
+                }
+                val resolvedBytes = AudioArtworkResolver.resolveJpegBytes(
+                    requireContext(),
+                    path,
+                    preferredArtworkPath
+                ) ?: return@launch
+                val bitmap = decodePlayerArtworkBytes(resolvedBytes) ?: return@launch
+                launch(Dispatchers.Main) {
+                    val c = controller ?: return@launch
+                    val current = c.currentMediaItem ?: return@launch
+                    if (originalPathOf(current) != path || currentArtworkPath != artworkKey) return@launch
+                    _binding?.ivArtwork?.setImageBitmap(bitmap)
+                    _binding?.ivKaraokeArtwork?.setImageBitmap(bitmap)
+                    applyDynamicBackgroundFromBitmap(bitmap, artworkKey)
+                    val stableArtworkPath = AudioArtworkPersistence.existingPath(
+                        requireContext(),
+                        path
+                    ).orEmpty().ifBlank { preferredArtworkPath }
+                    val enrichedExtras = android.os.Bundle(
+                        current.mediaMetadata.extras ?: android.os.Bundle()
+                    ).apply {
+                        if (stableArtworkPath.isNotBlank()) {
+                            putString(AudioRepository.EXTRA_ARTWORK_PATH, stableArtworkPath)
+                        }
+                    }
+                    val enrichedMeta = current.mediaMetadata.buildUpon()
+                        .setArtworkData(resolvedBytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                        .setExtras(enrichedExtras)
+                        .build()
+                    val enriched = current.buildUpon().setMediaMetadata(enrichedMeta).build()
+                    replaceMediaItemRateLimited(c, c.currentMediaItemIndex, enriched)
                 }
             }
         }
@@ -1339,6 +1829,7 @@ class AudioPlayerFragment : Fragment() {
         }
         b.tvTitleArtist.setTextColor(primary)
         b.tvTitleArtist.text = line
+        scheduleCompactMetadataFit()
 
         // Le mode karaoké reprend exactement les métadonnées déjà normalisées par
         // AudioLibraryHeuristics pour le player portrait : morceau d'abord, artiste ensuite.
@@ -1350,7 +1841,89 @@ class AudioPlayerFragment : Fragment() {
         b.tvKaraokeArtist.visibility = if (artist.isBlank()) View.GONE else View.VISIBLE
 
         b.tvAlbum.setTextColor(secondary)
-        b.tvAlbum.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.NORMAL)
+        b.tvAlbum.setTypeface(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL))
+    }
+
+
+    private var compactMetadataFitPosted = false
+    private var lastCompactMetadataFitKey = ""
+
+    /** Centre le titre et l'artiste et réduit leur taille jusqu'à affichage complet. */
+    private fun setupCompactMetadataAutoFit() {
+        val b = _binding ?: return
+        val requestFit = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            scheduleCompactMetadataFit()
+        }
+        b.audioTrackPrimaryRow.gravity = android.view.Gravity.CENTER
+        b.audioTrackPrimaryRow.addOnLayoutChangeListener(requestFit)
+        b.tvTitleArtist.ellipsize = null
+        b.tvTitleArtist.maxLines = 1
+        b.tvTitleArtist.gravity = android.view.Gravity.CENTER
+        scheduleCompactMetadataFit()
+    }
+
+    private fun scheduleCompactMetadataFit() {
+        val b = _binding ?: return
+        if (compactMetadataFitPosted) return
+        compactMetadataFitPosted = true
+        b.audioTrackPrimaryRow.post {
+            compactMetadataFitPosted = false
+            fitCompactMetadataLine()
+        }
+    }
+
+    private fun fitCompactMetadataLine() {
+        val b = _binding ?: return
+        val row = b.audioTrackPrimaryRow
+        if (row.width <= 0) return
+
+        val availableWidth = (row.width - row.paddingLeft - row.paddingRight)
+            .coerceAtLeast(dp(44f).toInt())
+        val textView = b.tvTitleArtist
+        val text = textView.text?.toString().orEmpty()
+        val fitKey = "${row.width}|$availableWidth|$text"
+        if (fitKey == lastCompactMetadataFitKey) return
+        lastCompactMetadataFitKey = fitKey
+
+        textView.ellipsize = null
+        textView.maxLines = 1
+        textView.maxWidth = availableWidth
+        textView.textScaleX = 1f
+        textView.gravity = android.view.Gravity.CENTER
+
+        if (text.isBlank()) {
+            textView.layoutParams = textView.layoutParams.apply { width = 0 }
+            return
+        }
+
+        val scaledDensity = resources.displayMetrics.scaledDensity
+        val maxPx = 18f * scaledDensity
+        val minPx = 7f * scaledDensity
+        val probe = android.text.TextPaint(textView.paint)
+
+        var low = minPx
+        var high = maxPx
+        repeat(14) {
+            val mid = (low + high) / 2f
+            probe.textSize = mid
+            if (probe.measureText(text) <= availableWidth) low = mid else high = mid
+        }
+        val chosenPx = low.coerceIn(minPx, maxPx)
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_PX, chosenPx)
+
+        val naturalWidth = textView.paint.measureText(text).coerceAtLeast(1f)
+        val horizontalScale = if (naturalWidth > availableWidth) {
+            (availableWidth / naturalWidth).coerceIn(0.30f, 1f)
+        } else 1f
+        textView.textScaleX = horizontalScale
+
+        val exactWidth = kotlin.math.ceil(naturalWidth * horizontalScale + dp(2f)).toInt()
+            .coerceIn(1, availableWidth)
+        val params = textView.layoutParams
+        if (params.width != exactWidth) {
+            params.width = exactWidth
+            textView.layoutParams = params
+        }
     }
 
 
@@ -1359,17 +1932,69 @@ class AudioPlayerFragment : Fragment() {
      * dominante robuste depuis la pochette, puis on renforce légèrement saturation/luminosité.
      * Le fond reste sombre via un dégradé noir -> accent afin de garder les contrôles lisibles.
      */
-    private fun applyDynamicBackgroundFromBitmap(bitmap: Bitmap?) {
-        if (!AudioProSettings.read(requireContext()).dynamicTheme) return resetDynamicBackground()
-        bitmap ?: return resetDynamicBackground()
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
+    private fun applyDynamicBackgroundFromBitmap(bitmap: Bitmap?, artworkKey: String = currentArtworkPath) {
+        if (!AudioProSettings.read(requireContext()).dynamicTheme) {
+            dynamicColorJob?.cancel()
+            currentDynamicArtworkKey = ""
+            lastAppliedDynamicArtworkKey = ""
+            return resetDynamicBackground()
+        }
+        bitmap ?: run {
+            dynamicColorJob?.cancel()
+            currentDynamicArtworkKey = ""
+            lastAppliedDynamicArtworkKey = ""
+            return resetDynamicBackground()
+        }
+
+        // generationId distingue une embedded temporaire d'une cover.jpg résolue plus tard, même
+        // quand elles correspondent au même morceau/chemin. Une ancienne extraction ne peut donc
+        // plus appliquer sa couleur après l'arrivée de la véritable pochette affichée.
+        val colorKey = "$artworkKey:${bitmap.width}x${bitmap.height}:${bitmap.generationId}"
+        if (lastAppliedDynamicArtworkKey == colorKey) {
+            applyAudioPlayerBackground(currentDynamicBgColor)
+            return
+        }
+        if (currentDynamicArtworkKey == colorKey && dynamicColorJob?.isActive == true) return
+
+        currentDynamicArtworkKey = colorKey
+        dynamicColorJob?.cancel()
+        dynamicColorJob = viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.compute) {
             val accent = AudioDynamicColor.accentFromBitmap(bitmap)
             val bg = AudioDynamicColor.backgroundFromAccent(accent)
-            launch(Dispatchers.Main) { animateDynamicBackground(bg, accent) }
+            launch(Dispatchers.Main) {
+                if (_binding == null || currentDynamicArtworkKey != colorKey || currentArtworkPath != artworkKey) {
+                    return@launch
+                }
+                lastAppliedDynamicArtworkKey = colorKey
+                animateDynamicBackground(bg, accent)
+            }
         }
     }
 
-    private fun boostAudioAccent(color: Int): Int = AudioDynamicColor.boostAccent(color)
+    /** Décodage borné pour les artworkData Media3/embedded afin de ne jamais allouer une cover
+     *  gigantesque uniquement pour l'affichage et l'extraction de couleur. */
+    private fun decodePlayerArtworkBytes(bytes: ByteArray): Bitmap? {
+        if (bytes.isEmpty()) return null
+        return try {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            var sample = 1
+            val maxSide = 1_280
+            while (bounds.outWidth / sample > maxSide || bounds.outHeight / sample > maxSide) sample *= 2
+            BitmapFactory.decodeByteArray(
+                bytes,
+                0,
+                bytes.size,
+                BitmapFactory.Options().apply {
+                    inSampleSize = sample.coerceAtLeast(1)
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                }
+            )
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     private fun mixColors(a: Int, b: Int, amount: Float): Int = AudioDynamicColor.mix(a, b, amount)
 
@@ -1389,6 +2014,11 @@ class AudioPlayerFragment : Fragment() {
 
     private fun applyAudioPlayerBackground(color: Int) {
         val b = _binding ?: return
+        // Aucun outline arrondi ne doit être réintroduit par le fond dynamique.
+        b.root.clipToOutline = false
+        b.root.outlineProvider = null
+        b.playerPanel.clipToOutline = false
+        b.playerPanel.outlineProvider = null
         // Sur tablette, playerPanel est volontairement centré dans une colonne via une marge
         // horizontale. Le dégradé doit donc être posé aussi sur le root plein écran, sinon les
         // marges restent noires et donnent deux bandes de chaque côté du lecteur.
@@ -1431,7 +2061,7 @@ class AudioPlayerFragment : Fragment() {
         _binding?.karaokeEqualizerView?.setAccentColor(accentColor)
         _binding?.karaokeLyricsView?.setAccentColor(accentColor)
         _binding?.standardLyricsView?.setAccentColor(accentColor)
-        applyArtworkAccentBorder(accentColor)
+        clearArtworkAccentBorders()
         restoreStaticAudioControlColors()
         persistDynamicAudioColors(targetColor, accentColor)
         // Le titre/artiste du lecteur suit immédiatement la nouvelle couleur de pochette.
@@ -1444,7 +2074,9 @@ class AudioPlayerFragment : Fragment() {
             resetDynamicBackground()
             return
         }
-        val accent = prefs.getInt(KEY_DYNAMIC_ACCENT, AudioDynamicColor.DEFAULT_ACCENT)
+        val accent = AudioDynamicColor.ensureReadableAccent(
+            prefs.getInt(KEY_DYNAMIC_ACCENT, AudioDynamicColor.DEFAULT_ACCENT)
+        )
         // Recalcule le fond depuis l'accent au lieu de reprendre un ancien cache : cela applique
         // immédiatement le nouveau dosage plus doux, même si une couleur avait été persistée par
         // une version précédente plus saturée.
@@ -1464,7 +2096,7 @@ class AudioPlayerFragment : Fragment() {
         _binding?.karaokeEqualizerView?.setAccentColor(accent)
         _binding?.karaokeLyricsView?.setAccentColor(accent)
         _binding?.standardLyricsView?.setAccentColor(accent)
-        applyArtworkAccentBorder(accent)
+        clearArtworkAccentBorders()
         restoreStaticAudioControlColors()
         updateCombinedTitleArtist()
     }
@@ -1479,86 +2111,93 @@ class AudioPlayerFragment : Fragment() {
         } catch (_: Exception) { }
     }
 
-    private fun applyArtworkAccentBorder(accentColor: Int) {
+    private fun clearArtworkAccentBorders() {
         val b = _binding ?: return
-        if (!AudioProSettings.read(requireContext()).coverBorder) {
-            b.artworkFrame.foreground = null
-            b.karaokeArtworkFrame.foreground = null
-            return
-        }
-        b.artworkFrame.foreground = buildArtworkAccentBorder(accentColor)
-        b.artworkFrame.foregroundGravity = Gravity.FILL
-        b.karaokeArtworkFrame.foreground = buildArtworkAccentBorder(accentColor)
-        b.karaokeArtworkFrame.foregroundGravity = Gravity.FILL
+        // La cover reste propre et sans liseré, dans le lecteur portrait comme dans KaraoKast.
+        // La couleur dynamique est désormais portée par le fond, les contrôles et le VU-mètre.
+        b.artworkFrame.foreground = null
+        b.karaokeArtworkFrame.foreground = null
     }
 
-    private fun buildArtworkAccentBorder(accentColor: Int): LayerDrawable {
-        val bright = mixColors(accentColor, Color.WHITE, 0.44f)
-        val shifted = rotateHue(accentColor, 28f)
-        val deep = mixColors(accentColor, Color.BLACK, 0.22f)
-        val outer = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(24f)
-            setColor(Color.TRANSPARENT)
-            setStroke(dp(2.4f).toInt().coerceAtLeast(2), bright)
-        }
-        val colorRing = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(22.5f)
-            setColor(Color.TRANSPARENT)
-            setStroke(dp(1.4f).toInt().coerceAtLeast(1), withAlpha(shifted, 220))
-        }
-        val innerShade = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(21f)
-            setColor(Color.TRANSPARENT)
-            setStroke(dp(1f).toInt().coerceAtLeast(1), withAlpha(deep, 150))
-        }
-        return LayerDrawable(arrayOf(outer, colorRing, innerShade)).apply {
-            val one = dp(1f).toInt().coerceAtLeast(1)
-            val two = dp(2f).toInt().coerceAtLeast(2)
-            setLayerInset(1, one, one, one, one)
-            setLayerInset(2, two, two, two, two)
+
+    /**
+     * Les quatre actions du haut doivent avoir exactement la même taille que les onglets du
+     * menu général. Elles sont volontairement exclues de ButtonTextFitter : le style Material
+     * leur attribue d'abord une taille plus grande et l'ancien fitter la réutilisait ensuite
+     * comme plafond, annulant visuellement la réduction déclarée dans le XML.
+     */
+    private fun applyCompactTopMenuTypography() {
+        if (resources.configuration.orientation != android.content.res.Configuration.ORIENTATION_PORTRAIT) return
+
+        listOf(
+            binding.btnBlazeParty,
+            binding.btnAudioPlaylistParty,
+            binding.btnAudioLibrary,
+            binding.btnPlaylistSheet
+        ).forEach { button ->
+            // Même métrique réelle que les TextView du menu général inférieur.
+            button.tag = "skip_button_text_fitter"
+            TextViewCompat.setAutoSizeTextTypeWithDefaults(
+                button,
+                TextViewCompat.AUTO_SIZE_TEXT_TYPE_NONE
+            )
+            TextViewCompat.setTextAppearance(
+                button,
+                fr.retrospare.blazeplayer.R.style.TextAppearance_BlazePlayer_NavigationLabel
+            )
+            button.typeface = android.graphics.Typeface.create(
+                "sans-serif-condensed",
+                android.graphics.Typeface.BOLD
+            )
+            button.includeFontPadding = false
+            button.letterSpacing = 0f
+            button.textScaleX = 1f
+            button.setLineSpacing(0f, 1f)
+            button.setTextSize(
+                TypedValue.COMPLEX_UNIT_PX,
+                resources.getDimension(fr.retrospare.blazeplayer.R.dimen.bottom_navigation_label_text_size)
+            )
+            button.requestLayout()
         }
     }
-
-    private fun appGreenColor(): Int = try {
-        androidx.core.content.ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.green_accent)
-    } catch (_: Exception) {
-        Color.rgb(63, 215, 143)
-    }
-
 
     private fun restoreStaticAudioControlColors(accentColor: Int = currentAccentColor) {
         val b = _binding ?: return
         val yellow = try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.yellow_accent) } catch (_: Exception) { Color.rgb(255, 193, 7) }
         val muted = try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.on_surface_variant) } catch (_: Exception) { Color.rgb(175, 178, 198) }
         b.tvCodec.setTextColor(accentColor)
-        b.tvBitrate.setTextColor(muted)
+        b.tvBitrate.setTextColor(Color.WHITE)
         updateCombinedTitleArtist()
-        b.btnBlazeParty.setIconResource(fr.retrospare.blazeplayer.R.drawable.ic_equalizer)
-        b.btnBlazeParty.iconTint = ColorStateList.valueOf(Color.WHITE)
-        b.btnBlazeParty.strokeColor = ColorStateList.valueOf(yellow)
-        b.btnBlazeParty.setTextColor(Color.WHITE)
-        b.btnBlazeParty.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        b.btnBlazeParty.compoundDrawableTintList = ColorStateList.valueOf(Color.WHITE)
-        b.btnBlazeParty.backgroundTintList = ColorStateList.valueOf(try { ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.surface_variant) } catch (_: Exception) { Color.rgb(31, 34, 48) })
-        // Conserve la couleur d’accentuation jaune de l’icône, tout en laissant
-        // le fond de bouton défini dans le layout identique à celui des paramètres.
-        b.btnAudioPlaylistParty.imageTintList = ColorStateList.valueOf(yellow)
+        // La rangée supérieure reprend exactement le langage visuel de la rangée inférieure :
+        // icône au-dessus, libellé centré et cinq zones de largeur identique.
+        b.btnBlazeParty.setIconResource(fr.retrospare.blazeplayer.R.drawable.ic_group_people)
+        b.btnBlazeParty.iconTint = ColorStateList.valueOf(yellow)
+        b.btnBlazeParty.setTextColor(yellow)
+        b.btnBlazeParty.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+        b.btnBlazeParty.strokeWidth = 0
+
+        b.btnAudioPlaylistParty.setIconResource(fr.retrospare.blazeplayer.R.drawable.ic_layout_list)
+        b.btnAudioPlaylistParty.iconTint = ColorStateList.valueOf(yellow)
+        b.btnAudioPlaylistParty.setTextColor(yellow)
+        b.btnAudioPlaylistParty.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+        b.btnAudioPlaylistParty.strokeWidth = 0
+
+        listOf(b.btnAudioLibrary, b.btnPlaylistSheet).forEach { button ->
+            button.iconTint = ColorStateList.valueOf(muted)
+            button.setTextColor(muted)
+            button.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+            button.strokeWidth = 0
+        }
+        b.btnBottomAudioSettings.alpha = 1f
+        b.btnBottomAudioSettings.isSelected = false
+        b.btnBottomAudioSettings.isActivated = false
+        (b.btnBottomAudioSettings.getChildAt(0) as? ImageView)?.setColorFilter(muted)
+        (b.btnBottomAudioSettings.getChildAt(1) as? TextView)?.setTextColor(muted)
     }
 
     /** Halo lumineux dynamique affiché derrière la pochette (ivArtworkGlow, sous artworkFrame).
      *  Important : la cover masque le centre du halo. On dessine donc surtout une couronne
      *  lumineuse vers les bords visibles, sinon le dégradé radial reste caché derrière la pochette. */
-    private fun buildArtworkGlow(accentColor: Int): Drawable {
-        val accentBright = mixColors(accentColor, Color.WHITE, 0.24f)
-        val accentDeep = mixColors(accentColor, Color.BLACK, 0.12f)
-        val secondary = rotateHue(accentColor, 34f)
-        val secondaryBright = mixColors(secondary, Color.WHITE, 0.20f)
-        return ArtworkGlowDrawable(accentBright, secondaryBright, accentDeep)
-    }
-
     private inner class ArtworkGlowDrawable(
         private val accentBright: Int,
         private val secondaryBright: Int,
@@ -1618,15 +2257,6 @@ class AudioPlayerFragment : Fragment() {
         Color.blue(color)
     )
 
-    private fun rotateHue(color: Int, degrees: Float): Int {
-        val hsv = FloatArray(3)
-        Color.colorToHSV(color, hsv)
-        hsv[0] = (hsv[0] + degrees) % 360f
-        hsv[1] = (hsv[1] * 1.08f).coerceIn(0f, 1f)
-        hsv[2] = (hsv[2] * 1.12f).coerceIn(0.35f, 1f)
-        return Color.HSVToColor(hsv)
-    }
-
     private fun buildPlayButtonBackground(accentColor: Int): LayerDrawable {
         val glow = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
@@ -1681,49 +2311,34 @@ class AudioPlayerFragment : Fragment() {
 
     // ── Playlist UI ───────────────────────────────────────────────────────────
 
-    /** Force la pochette à rester parfaitement carrée : sa taille = le plus petit des deux côtés
-     *  disponibles dans son conteneur, recalculé à chaque passage de layout (rotation, ajout de
-     *  la rangée playlists en dessous...) au lieu d'un simple match_parent qui l'étirait. */
+    /**
+     * La pochette portrait est mesurée directement par SquareFrameLayout : sa hauteur
+     * égale toujours sa largeur dès la première passe de mesure. Aucun redimensionnement différé
+     * n'est nécessaire, ce qui garantit un rendu bord à bord stable et sans coins arrondis.
+     */
     private var squareArtworkListener: android.view.ViewTreeObserver.OnGlobalLayoutListener? = null
     private var squareArtworkContainer: View? = null
+    private var lastPortraitEqualizerArtworkSize: Int = 0
 
     private fun setupSquareArtwork() {
-        // artworkFrame -> FrameLayout englobant (fixe 342dp, juste là pour superposer le halo) ->
-        // la vraie rangée dont la taille reflète l'espace réellement disponible à l'écran.
-        val container = binding.artworkFrame.parent?.parent as? View ?: return
+        val artwork = binding.artworkFrame
         val listener = android.view.ViewTreeObserver.OnGlobalLayoutListener {
             val b = _binding ?: return@OnGlobalLayoutListener
-            val availableWidth = container.width - container.paddingLeft - container.paddingRight
-            val availableHeight = container.height - container.paddingTop - container.paddingBottom
-            if (availableWidth <= 0 || availableHeight <= 0) return@OnGlobalLayoutListener
-            val sizeScale = when (AudioProSettings.read(requireContext()).artworkSize) {
-                AudioProSettings.ARTWORK_SMALL -> 0.86f
-                AudioProSettings.ARTWORK_LARGE -> 1.0f
-                else -> 0.94f
-            }
-            val size = (minOf(availableWidth, availableHeight) * sizeScale).toInt()
-            // La cover reste strictement carrée et occupe maintenant l'espace libéré
-            // par la barre d'onglets plus compacte. Le halo est supprimé : aucun dessin,
-            // aucun blur et aucune animation derrière la pochette.
-            val params = b.artworkFrame.layoutParams
-            if (params.width != size || params.height != size) {
-                params.width = size
-                params.height = size
-                b.artworkFrame.layoutParams = params
-            }
+            val size = b.artworkFrame.width
+            if (size <= 0) return@OnGlobalLayoutListener
 
-            // Le FrameLayout parent n'a plus besoin de surface de débordement pour le glow.
-            val artworkContainer = b.artworkFrame.parent as? View
-            artworkContainer?.layoutParams?.let { containerParams ->
-                if (containerParams.width != size || containerParams.height != size) {
-                    containerParams.width = size
-                    containerParams.height = size
-                    artworkContainer.layoutParams = containerParams
-                }
-            }
-
-            b.artworkFrame.elevation = dp(18f)
-            b.artworkFrame.translationZ = dp(12f)
+            b.artworkFrame.clipToOutline = false
+            b.artworkFrame.outlineProvider = null
+            b.artworkFrame.foreground = null
+            b.artworkFrame.elevation = 0f
+            b.artworkFrame.translationZ = 0f
+            b.ivArtwork.clipToOutline = false
+            b.ivArtwork.outlineProvider = null
+            b.ivArtwork.background = null
+            b.ivArtwork.foreground = null
+            b.ivArtwork.elevation = 0f
+            b.ivArtwork.translationZ = 0f
+            b.artworkMetadataOverlay.radiusDp = 0f
 
             val glowParams = b.ivArtworkGlow.layoutParams
             if (glowParams.width != 0 || glowParams.height != 0) {
@@ -1733,10 +2348,77 @@ class AudioPlayerFragment : Fragment() {
             }
             b.ivArtworkGlow.visibility = View.GONE
             b.ivArtworkGlow.alpha = 0f
+
+            syncPortraitEqualizerGeometry(size)
+            syncPortraitEqualizerTechnicalSpacing()
         }
-        container.viewTreeObserver.addOnGlobalLayoutListener(listener)
+        artwork.viewTreeObserver.addOnGlobalLayoutListener(listener)
         squareArtworkListener = listener
-        squareArtworkContainer = container
+        squareArtworkContainer = artwork
+    }
+
+    private fun syncPortraitEqualizerGeometry(artworkSizePx: Int = _binding?.artworkFrame?.height ?: 0) {
+        val b = _binding ?: return
+        if (artworkSizePx <= 0 || artworkSizePx == lastPortraitEqualizerArtworkSize) return
+        lastPortraitEqualizerArtworkSize = artworkSizePx
+
+        // Le visualiseur portrait reprend exactement la géométrie de KaraoKast :
+        // conteneur de 112 dp et 14 dp de marge verticale, soit une zone de barres de 84 dp.
+        // Les amplitudes ont ainsi strictement la même hauteur visuelle dans les deux vues.
+        val desiredHeight = dp(112f).toInt()
+        val params = b.audioEqualizerContainer.layoutParams
+        if (params.height != desiredHeight) {
+            params.height = desiredHeight
+            b.audioEqualizerContainer.layoutParams = params
+        }
+
+        val horizontalPadding = dp(16f).toInt()
+        val verticalPadding = dp(14f).toInt()
+        b.audioEqualizerContainer.setPadding(
+            horizontalPadding,
+            verticalPadding,
+            horizontalPadding,
+            verticalPadding
+        )
+        b.audioEqualizerView.requestLayout()
+        b.audioEqualizerView.invalidate()
+        b.audioEqualizerContainer.post {
+        }
+    }
+
+    /**
+     * Positionne le VU-mètre et les informations codec/bitrate avec deux espaces
+     * visuellement identiques : VU-mètre → badges et badges → bas de la cover.
+     * Le calcul repose sur la hauteur réellement mesurée des textes, afin de rester
+     * correct quelle que soit la densité ou la taille de police de l'appareil.
+     */
+    private fun syncPortraitEqualizerTechnicalSpacing() {
+        val b = _binding ?: return
+        val edgeGap = dp(10f).toInt()
+
+        val technicalParams = b.artworkBottomTechnicalInfo.layoutParams as? android.widget.FrameLayout.LayoutParams
+        if (technicalParams != null && technicalParams.bottomMargin != edgeGap) {
+            technicalParams.bottomMargin = edgeGap
+            b.artworkBottomTechnicalInfo.layoutParams = technicalParams
+        }
+
+        b.artworkBottomTechnicalInfo.post {
+            val current = _binding ?: return@post
+            val technicalHeight = current.artworkBottomTechnicalInfo.height
+                .takeIf { it > 0 }
+                ?: dp(14f).toInt()
+            val desiredBottomMargin = (
+                technicalHeight + (edgeGap * 2) - current.audioEqualizerContainer.paddingBottom
+            ).coerceAtLeast(dp(8f).toInt())
+
+            val equalizerParams = current.audioEqualizerContainer.layoutParams
+                as? android.widget.FrameLayout.LayoutParams
+                ?: return@post
+            if (equalizerParams.bottomMargin != desiredBottomMargin) {
+                equalizerParams.bottomMargin = desiredBottomMargin
+                current.audioEqualizerContainer.layoutParams = equalizerParams
+            }
+        }
     }
 
     private fun configureSmoothQueueRecycler(
@@ -1930,6 +2612,14 @@ class AudioPlayerFragment : Fragment() {
         ctrl.play()
     }
 
+    private fun updateAudioQueueTitle() {
+        val count = when {
+            ::playlistAdapter.isInitialized -> playlistAdapter.itemCount
+            else -> controller?.mediaItemCount ?: 0
+        }
+        _binding?.tvAudioQueueTitle?.text = "${getString(fr.retrospare.blazeplayer.R.string.queue)} ($count)"
+    }
+
     private fun initPlaylistUi() {
         playlistAdapter = PlaylistAdapter({ controller }) { index ->
             if (isPlayingBlazePartyQueue && playlistAdapter.hasOverrideItems()) {
@@ -1938,6 +2628,14 @@ class AudioPlayerFragment : Fragment() {
                 playStandardQueueItemFromStart(index)
             }
         }
+        playlistAdapter.registerAdapterDataObserver(object : androidx.recyclerview.widget.RecyclerView.AdapterDataObserver() {
+            private fun refreshCount() {
+                _binding?.root?.post { updateAudioQueueTitle() }
+            }
+            override fun onChanged() = refreshCount()
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) = refreshCount()
+            override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) = refreshCount()
+        })
         binding.recyclerPlaylist.apply {
             // Une seule ligne pleine largeur par titre pour maximiser la lisibilité.
             layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
@@ -1947,6 +2645,7 @@ class AudioPlayerFragment : Fragment() {
             }
             attachStandardAudioQueueDragAndDrop(this)
         }
+        updateAudioQueueTitle()
         partyPlaylistAdapter = PartyPlaylistAdapter(
             voteCountProvider = { path -> voteCountFor(path) },
             onItemClick = { track -> showBlazePartyTrackVotes(track) }
@@ -1993,11 +2692,8 @@ class AudioPlayerFragment : Fragment() {
             // l'écran audio est créé ; on évite donc de déclencher une lecture cache au moment du tap.
             startActivity(android.content.Intent(requireContext(), AudioLibraryActivity::class.java))
         }
-        binding.btnAudioSettings.setOnClickListener {
-            startActivity(android.content.Intent(requireContext(), AudioProSettingsActivity::class.java))
-        }
-
         fun openPlaylist() {
+            updateAudioQueueTitle()
             binding.ivArtworkGlow.visibility = View.GONE
             binding.playlistSheet.visibility = android.view.View.VISIBLE
             binding.playlistSheet.translationY = binding.playlistSheet.height.toFloat().takeIf { it > 0 } ?: resources.displayMetrics.heightPixels.toFloat()
@@ -2079,9 +2775,9 @@ class AudioPlayerFragment : Fragment() {
             }
         }
 
-        val partyBtn = binding.root.findViewById<android.widget.ImageButton>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylistParty)
-        partyBtn?.isSelected = fr.retrospare.blazeplayer.playlist.PlaylistManager.getBlazePartyPlaylist(ctx).isNotEmpty()
-        partyBtn?.setOnClickListener { openBlazePartyAudioPlaylist() }
+        val partyBtn = binding.btnAudioPlaylistParty
+        partyBtn.isSelected = fr.retrospare.blazeplayer.playlist.PlaylistManager.getBlazePartyPlaylist(ctx).isNotEmpty()
+        partyBtn.setOnClickListener { openBlazePartyAudioPlaylist() }
     }
 
 
@@ -2117,14 +2813,16 @@ class AudioPlayerFragment : Fragment() {
         val useLocalQueue = usesLocalBlazePartyQueue(ctx)
         val tracks = if (useLocalQueue) sortedBlazePartyTracks(ctx) else sortedGuestPartyTracks()
         partyPlaylistAdapter.submitList(tracks)
+        _binding?.tvPartyQueueTitle?.text =
+            "${getString(fr.retrospare.blazeplayer.R.string.blaze_party_playlist_title)} (${tracks.size})"
         val sharedCurrentPath = if (useLocalQueue) currentBlazePartyPath else guestPartyState?.currentPath
         partyPlaylistAdapter.setCurrentPath(sharedCurrentPath)
         // Boutons Lancer/Vider : visibles pour la file locale de ce téléphone. Côté invité réseau,
         // seul le vote a un sens puisque les fichiers appartiennent à l'hôte.
         _binding?.btnLaunchPartyPlaylist?.visibility = if (useLocalQueue) android.view.View.VISIBLE else android.view.View.GONE
         _binding?.btnClearPartyPlaylist?.visibility = if (useLocalQueue) android.view.View.VISIBLE else android.view.View.GONE
-        val partyBtn = binding.root.findViewById<android.widget.ImageButton>(fr.retrospare.blazeplayer.R.id.btnAudioPlaylistParty)
-        partyBtn?.isSelected = if (useLocalQueue) {
+        val partyBtn = binding.btnAudioPlaylistParty
+        partyBtn.isSelected = if (useLocalQueue) {
             fr.retrospare.blazeplayer.playlist.PlaylistManager.getBlazePartyPlaylist(ctx).isNotEmpty()
         } else {
             tracks.isNotEmpty()
@@ -2543,46 +3241,6 @@ class AudioPlayerFragment : Fragment() {
         }, 200L)
     }
 
-    private fun playExternalTrackOnController(ctrl: MediaController, path: String, name: String) {
-        // Cas critique "Ouvrir avec" depuis un navigateur de fichiers.
-        // Quand le lecteur audio est déjà ouvert, le second ACTION_VIEW arrive ici via onNewIntent().
-        // Ne pas utiliser startService() en priorité dans ce cas : sur certains appareils l'intent
-        // explicite du service est retardé/ignoré alors que la MediaSession existe déjà, ce qui
-        // laisse l'ancien morceau actif. On envoie donc une commande MediaSession directe au
-        // BlazePlayerService existant. Le service fait ensuite le remplacement strict de sa file.
-        val args = Bundle().apply {
-            putString(BlazePlayerService.EXTRA_EXTERNAL_AUDIO_PATH, path)
-            putString(BlazePlayerService.EXTRA_EXTERNAL_AUDIO_NAME, name)
-        }
-        try {
-            val future = ctrl.sendCustomCommand(
-                SessionCommand(BlazePlayerService.COMMAND_PLAY_EXTERNAL_AUDIO, Bundle.EMPTY),
-                args
-            )
-            future.addListener({
-                try {
-                    val result = future.get()
-                    if (result.resultCode != androidx.media3.session.SessionResult.RESULT_SUCCESS) {
-                        startExternalAudioServiceFallback(path, name)
-                    }
-                } catch (e: Exception) {
-                    CrashReporter.log(requireContext(), "External audio session command failed for $path", e)
-                    startExternalAudioServiceFallback(path, name)
-                }
-                handler.post {
-                    if (_binding == null) return@post
-                    playlistAdapter.refresh()
-                    syncSelection()
-                    syncMetadata()
-                    syncButtons()
-                }
-            }, MoreExecutors.directExecutor())
-        } catch (e: Exception) {
-            CrashReporter.log(requireContext(), "Send external audio session command failed for $path", e)
-            startExternalAudioServiceFallback(path, name)
-        }
-    }
-
     private fun startExternalAudioServiceFallback(path: String, name: String) {
         try {
             requireContext().startService(android.content.Intent(requireContext(), BlazePlayerService::class.java).apply {
@@ -2640,7 +3298,7 @@ class AudioPlayerFragment : Fragment() {
         syncButtons()
         savePlaylistFromController()
 
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+        viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.io) {
             try {
                 val enriched = AudioRepository.buildMediaItemWithMetadata(requireContext(), path, name)
                 launch(Dispatchers.Main) {
@@ -2847,24 +3505,39 @@ class AudioPlayerFragment : Fragment() {
         }
 
         binding.btnEq.setOnClickListener {
-            // Ce bouton ouvre le panneau DSP complet (10 bandes, basses, balance,
-            // dynamique et réverbération), pas la page générale des paramètres audio.
-            // Le service audio est propriétaire des AudioEffect et applique en direct les
-            // préférences : le gestionnaire de l'UI reste donc volontairement détaché de
-            // l'audioSessionId, ce qui rend l'ouverture immédiate même avant la lecture.
-            val manager = eqManager ?: EqualizerManager(
-                audioSessionId = 0,
-                context = requireContext().applicationContext,
-                attachToAudioSession = false
-            ).also { eqManager = it }
-            EqualizerDialog(manager).show(parentFragmentManager, "eq")
+            if (parentFragmentManager.findFragmentByTag("eq") != null) return@setOnClickListener
+            binding.btnEq.isEnabled = false
+            val existingManager = eqManager
+            val appContext = requireContext().applicationContext
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    val manager = existingManager ?: withContext(AudioPlaybackDispatchers.io) {
+                        EqualizerManager(
+                            audioSessionId = 0,
+                            context = appContext,
+                            attachToAudioSession = false
+                        ).also { it.warmUpForUi() }
+                    }
+                    if (!isAdded || _binding == null) {
+                        if (existingManager == null) manager.release()
+                        return@launch
+                    }
+                    eqManager = manager
+                    EqualizerDialog(manager).show(parentFragmentManager, "eq")
+                } catch (error: Throwable) {
+                    if (isAdded) {
+                        CrashReporter.log(requireContext(), "Open sound settings failed", error)
+                    }
+                } finally {
+                    _binding?.btnEq?.isEnabled = true
+                }
+            }
         }
 
-        binding.btnInfos?.setOnClickListener { showLyricsDialog() }
-        binding.btnInfos?.setOnLongClickListener {
-            toggleLyricsOverlayFromPlayer()
-            true
+        binding.btnBottomAudioSettings.setOnClickListener {
+            startActivity(android.content.Intent(requireContext(), AudioProSettingsActivity::class.java))
         }
+        binding.btnLyricsDownload.setOnClickListener { showLyricsDialog() }
         binding.btnSleepTimer.setOnClickListener { showSleepTimerEditor() }
         refreshSleepTimerIndicator()
     }
@@ -3027,22 +3700,16 @@ class AudioPlayerFragment : Fragment() {
     private fun applyAudioProInterfaceSettings() {
         val b = _binding ?: return
         val settings = AudioProSettings.read(requireContext())
-        val lyricsMasterEnabled = settings.syncedLyrics
-        val lyricsEnabled = lyricsMasterEnabled && settings.lyricsPlayer
-        val hasLyrics = lyricsEnabled && currentLyrics.isNotEmpty()
-        b.artworkMetadataOverlay.visibility = if (audioSpectrumEnabled || hasLyrics) View.VISIBLE else View.GONE
+        val lyricsEnabled = settings.syncedLyrics
+        val hasLyrics = lyricsEnabled && currentLyrics.any { it.text.isNotBlank() }
+        b.artworkMetadataOverlay.visibility = if (audioSpectrumEnabled || lyricsEnabled) View.VISIBLE else View.GONE
         b.audioEqualizerView.visibility = if (audioSpectrumEnabled) View.VISIBLE else View.GONE
         b.karaokeEqualizerView.visibility = if (audioSpectrumEnabled) View.VISIBLE else View.GONE
-        if (!settings.coverBorder) {
-            b.artworkFrame.foreground = null
-            b.karaokeArtworkFrame.foreground = null
-        } else applyArtworkAccentBorder(currentAccentColor)
-        b.lyricsOverlay.visibility = if (hasLyrics) View.VISIBLE else View.GONE
-        if (hasLyrics) b.lyricsOverlay.bringToFront()
+        clearArtworkAccentBorders()
+        updatePortraitLyricsOverlayState(lyricsEnabled)
         if (!lyricsEnabled) {
             lastLyricsLine = null
             lastLyricsOverlayKey = null
-            b.standardLyricsView.visibility = View.GONE
             updateLyricsKeepScreenOn(false)
         } else if (hasLyrics) {
             updateLyricsLine(controller?.currentPosition ?: 0L)
@@ -3050,23 +3717,36 @@ class AudioPlayerFragment : Fragment() {
             updateLyricsKeepScreenOn(false)
         }
         val muted = ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.on_surface_variant)
-        val lyricsAccent = when {
-            !lyricsMasterEnabled -> muted
-            settings.lyricsPlayer -> currentAccentColor
-            else -> muted
-        }
-        // Le bouton du player est autonome : même si le réglage maître a été coupé dans les
-        // préférences, un appui peut réactiver les paroles et lancer leur chargement.
-        b.btnInfos?.isEnabled = true
-        b.btnInfos?.isClickable = true
-        val lyricsButtonEnabled = lyricsMasterEnabled && settings.lyricsPlayer
-        b.btnInfos?.isSelected = lyricsButtonEnabled
-        b.btnInfos?.isActivated = lyricsButtonEnabled
-        b.btnInfos?.contentDescription = getString(R.string.audio_lyrics_button_description)
-        b.btnInfos?.alpha = if (lyricsButtonEnabled) 1f else 0.58f
-        (b.btnInfos?.getChildAt(0) as? ImageView)?.setColorFilter(lyricsAccent)
-        (b.btnInfos?.getChildAt(1) as? TextView)?.setTextColor(lyricsAccent)
+        b.btnLyricsDownload.isEnabled = lyricsEnabled
+        b.btnLyricsDownload.isClickable = lyricsEnabled
+        b.btnLyricsDownload.contentDescription = getString(R.string.audio_lyrics_button_description)
+        b.btnLyricsDownload.alpha = if (lyricsEnabled) 1f else 0.48f
+        b.btnLyricsDownload.imageTintList = ColorStateList.valueOf(if (lyricsEnabled) currentAccentColor else muted)
         squareArtworkContainer?.requestLayout()
+        if (audioSpectrumEnabled && controller?.isPlaying == true) scheduleVisualizerUiRecovery()
+    }
+
+    /**
+     * Laisse le bouton de gestion/téléchargement des paroles disponible lorsque l'option est
+     * activée, mais n'assombrit la pochette que lorsqu'un vrai flux LRC est présent à l'écran.
+     * L'absence de paroles ne doit donc plus poser un grand dégradé sombre inutile sur la cover.
+     */
+    private fun updatePortraitLyricsOverlayState(lyricsEnabled: Boolean, forceHidden: Boolean = false) {
+        val b = _binding ?: return
+        val showContainer = lyricsEnabled && !forceHidden && !karaokeLandscapeActive
+        val hasScrollingLyrics = showContainer && currentLyrics.any { it.text.isNotBlank() }
+
+        b.lyricsOverlay.visibility = if (showContainer) View.VISIBLE else View.GONE
+        b.btnLyricsDownload.visibility = if (showContainer) View.VISIBLE else View.GONE
+        b.lyricsOverlay.clipToOutline = false
+        b.lyricsOverlay.outlineProvider = null
+        b.lyricsOverlay.background = if (hasScrollingLyrics) {
+            ContextCompat.getDrawable(requireContext(), R.drawable.bg_audio_lyrics_top_overlay)
+        } else {
+            null
+        }
+        b.standardLyricsView.visibility = if (hasScrollingLyrics) View.VISIBLE else View.INVISIBLE
+        if (showContainer) b.lyricsOverlay.bringToFront()
     }
 
 
@@ -3082,40 +3762,6 @@ class AudioPlayerFragment : Fragment() {
         }
     }
 
-
-    private fun toggleLyricsOverlayFromPlayer() {
-        val ctx = context ?: return
-        val prefs = AudioProSettings.prefs(ctx)
-        val masterEnabled = prefs.getBoolean(AudioProSettings.KEY_SYNCED_LYRICS, true)
-        val playerEnabled = prefs.getBoolean(AudioProSettings.KEY_LYRICS_PLAYER, true)
-        val next = !(masterEnabled && playerEnabled)
-
-        // Un appui sur l'icône du lecteur doit toujours pouvoir activer les paroles. Si le réglage
-        // maître était coupé, on le réactive en même temps ; un second appui masque uniquement
-        // l'overlay du player sans jeter le .LRC déjà préchargé.
-        val edit = prefs.edit().putBoolean(AudioProSettings.KEY_LYRICS_PLAYER, next)
-        if (next && !masterEnabled) edit.putBoolean(AudioProSettings.KEY_SYNCED_LYRICS, true)
-        edit.apply()
-
-        lastLyricsLine = null
-        lastLyricsOverlayKey = null
-
-        if (next) {
-            val position = controller?.currentPosition ?: 0L
-            val path = controller?.currentMediaItem?.let { originalPathOf(it) }.orEmpty()
-            if (currentLyrics.isEmpty() && path.isNotBlank()) {
-                // Si le réglage maître était déjà actif, le bouton pilote directement le lookup.
-                // Sinon le callback KEY_SYNCED_LYRICS ci-dessus le lancera une seule fois.
-                if (masterEnabled) loadLyricsForCurrentTrack(path, force = true)
-            } else {
-                updateLyricsLine(position)
-            }
-        } else {
-            updateLyricsLine(controller?.currentPosition ?: 0L)
-        }
-
-        applyAudioProInterfaceSettings()
-    }
 
     private fun loadLyricsForCurrentTrack(path: String, force: Boolean = false) {
         val settings = AudioProSettings.read(requireContext())
@@ -3151,7 +3797,7 @@ class AudioPlayerFragment : Fragment() {
 
         val appContext = requireContext().applicationContext
         val expectedPath = path
-        lyricsJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+        lyricsJob = viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.lyrics) {
             val loaded = AudioLocalEnhancements.findLocalLyricsData(appContext, expectedPath)
             launch(Dispatchers.Main) {
                 val currentPath = controller?.currentMediaItem?.let { originalPathOf(it) }.orEmpty()
@@ -3183,9 +3829,8 @@ class AudioPlayerFragment : Fragment() {
         }
 
         val settings = AudioProSettings.read(requireContext())
-        if (!settings.syncedLyrics || !settings.lyricsPlayer || currentLyrics.isEmpty()) {
-            if (b.lyricsOverlay.visibility != View.GONE) b.lyricsOverlay.visibility = View.GONE
-            b.standardLyricsView.visibility = View.GONE
+        if (!settings.syncedLyrics) {
+            updatePortraitLyricsOverlayState(lyricsEnabled = false)
             lastLyricsLine = null
             lastLyricsOverlayKey = null
             updateLyricsKeepScreenOn(false)
@@ -3193,52 +3838,18 @@ class AudioPlayerFragment : Fragment() {
         }
 
         if (karaokeLandscapeActive) {
-            b.standardLyricsView.visibility = View.GONE
-            b.lyricsOverlay.visibility = View.GONE
+            updatePortraitLyricsOverlayState(lyricsEnabled = true, forceHidden = true)
+            updateLyricsKeepScreenOn(currentLyrics.any { it.text.isNotBlank() })
         } else {
-            b.standardLyricsView.visibility = View.VISIBLE
-            b.standardLyricsView.setAccentColor(currentAccentColor)
-            b.lyricsOverlay.visibility = View.VISIBLE
-            b.lyricsOverlay.bringToFront()
+            updatePortraitLyricsOverlayState(lyricsEnabled = true)
+            if (currentLyrics.any { it.text.isNotBlank() }) {
+                b.standardLyricsView.setAccentColor(currentAccentColor)
+            }
+            updateLyricsKeepScreenOn(currentLyrics.any { it.text.isNotBlank() })
         }
-        updateLyricsKeepScreenOn(true)
-    }
-
-    private fun lyricsOverlayPairForPosition(positionMs: Long): Pair<String, String> {
-        val data = currentLyricsData
-        if (data?.isSynced != true) {
-            val plain = data?.displayText
-                ?.lineSequence()
-                ?.map { it.trim() }
-                ?.filter { it.isNotBlank() }
-                ?.take(2)
-                ?.toList()
-                .orEmpty()
-            if (plain.isNotEmpty()) return plain[0] to plain.getOrNull(1).orEmpty()
-        }
-
-        if (currentLyrics.isEmpty()) return "" to ""
-        var index = 0
-        for (i in currentLyrics.indices) {
-            if (currentLyrics[i].timeMs <= positionMs + 250L) index = i else break
-        }
-        val current = currentLyrics.getOrNull(index)?.text.orEmpty()
-        val next = currentLyrics.drop(index + 1).firstOrNull { it.text.isNotBlank() }?.text.orEmpty()
-        return current to next
     }
 
     // ── Dancer ─────────────────────────────────────────────────────────────────
-
-    private fun startDancerAnimation() {
-        handler.post(object : Runnable {
-            override fun run() {
-                if (controller?.isPlaying == true) {
-                    dancerFrame = (dancerFrame + 1) % dancerFrames.size
-                }
-                handler.postDelayed(this, 300)
-            }
-        })
-    }
 
     // ── Utils ──────────────────────────────────────────────────────────────────
 
@@ -3262,7 +3873,7 @@ class AudioPlayerFragment : Fragment() {
         val artistName = metadata?.artist?.toString().orEmpty()
         val albumName = metadata?.albumTitle?.toString().orEmpty()
         val trackDurationMs = ctrl?.duration?.takeIf { it > 0L } ?: 0L
-        val lyrics = if (settings.lyricsPlayer) currentLyricsData else null
+        val lyrics = if (settings.syncedLyrics) currentLyricsData else null
 
         val dialog = Dialog(ctx)
         dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
@@ -3306,7 +3917,7 @@ class AudioPlayerFragment : Fragment() {
 
         val status = TextView(ctx).apply {
             text = when {
-                !settings.lyricsPlayer -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_disabled)
+                !settings.syncedLyrics -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_disabled)
                 lyrics == null -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_none)
                 lyrics.isSynced -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_synced)
                 else -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_static)
@@ -3320,7 +3931,7 @@ class AudioPlayerFragment : Fragment() {
         root.addView(status)
 
         val bodyText = when {
-            !settings.lyricsPlayer -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_hint)
+            !settings.syncedLyrics -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_hint)
             lyrics?.displayText?.isNotBlank() == true -> lyrics.displayText
             else -> getString(fr.retrospare.blazeplayer.R.string.audio_lyrics_hint)
         }
@@ -3368,7 +3979,7 @@ class AudioPlayerFragment : Fragment() {
                     AudioLocalEnhancements.invalidateLyrics(path)
                     completedLyricsLookupPath = ""
                     loadLyricsForCurrentTrack(path, force = true)
-                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.io) {
                         val fresh = AudioLocalEnhancements.findLocalLyricsData(ctx.applicationContext, path)
                         launch(Dispatchers.Main) {
                             if (!dialog.isShowing) return@launch
@@ -3415,9 +4026,9 @@ class AudioPlayerFragment : Fragment() {
         dialog.show()
         fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
 
-        if (settings.lyricsPlayer && path.isNotBlank() && lyrics == null) {
+        if (settings.syncedLyrics && path.isNotBlank() && lyrics == null) {
             val appContext = ctx.applicationContext
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.io) {
                 val fresh = AudioLocalEnhancements.findLocalLyricsData(appContext, path)
                 launch(Dispatchers.Main) {
                     val currentPath = controller?.currentMediaItem?.let { originalPathOf(it) }.orEmpty()
@@ -3833,8 +4444,6 @@ class AudioPlayerFragment : Fragment() {
             .showPremium()
     }
 
-    private fun getLocalIpv4Address(): String? = getLocalIpv4Addresses().firstOrNull()
-
     @Suppress("DEPRECATION")
     private fun getLocalIpv4Addresses(): List<String> {
         // Blaze Party doit annoncer une adresse réellement joignable par les invités sur le LAN.
@@ -4060,7 +4669,10 @@ class AudioPlayerFragment : Fragment() {
                 typeface = android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL)
                 maxLines = 3
                 ellipsize = android.text.TextUtils.TruncateAt.END
-                buttonTintList = ColorStateList.valueOf(accent)
+                buttonTintList = null
+                setButtonDrawable(fr.retrospare.blazeplayer.R.drawable.bg_multi_select_checkbox)
+                minimumWidth = dp(32)
+                minimumHeight = dp(32)
                 setPadding(0, dp(8), 0, dp(8))
                 setOnCheckedChangeListener { _, isChecked -> checked[index] = isChecked }
             }
@@ -4147,14 +4759,27 @@ class AudioPlayerFragment : Fragment() {
 
     companion object {
         private const val LYRICS_CLOCK_SYNC_INTERVAL_MS = 120L
-        private const val VISUALIZER_WATCHDOG_INTERVAL_MS = 2_000L
-        private const val VISUALIZER_STALE_AFTER_MS = 8_000L
-        private const val VISUALIZER_RESTART_COOLDOWN_MS = 10_000L
-        private const val VISUALIZER_TRACK_RESTART_DELAY_MS = 350L
-        private const val VISUALIZER_STARTUP_VERIFY_DELAY_MS = 900L
-        private const val VISUALIZER_STARTUP_FRAME_TIMEOUT_MS = 1_200L
-        private const val VISUALIZER_STARTUP_RETRY_DELAY_MS = 900L
-        private const val VISUALIZER_STARTUP_MAX_RETRIES = 3
+        private const val VISUALIZER_WATCHDOG_INTERVAL_MS = 1_500L
+        private const val VISUALIZER_STALE_AFTER_MS = 5_500L
+        private const val VISUALIZER_RESTART_COOLDOWN_MS = 6_000L
+        private const val VISUALIZER_MIN_RESTART_GAP_MS = 4_500L
+        private const val VISUALIZER_ATTACH_GRACE_MS = 2_500L
+        private const val VISUALIZER_HEALTHY_CAPTURE_WINDOW_MS = 4_500L
+        private const val VISUALIZER_TRACK_HEALTH_WINDOW_MS = 3_500L
+        private const val VISUALIZER_STARTUP_VERIFY_DELAY_MS = 1_400L
+        private const val VISUALIZER_STARTUP_FRAME_TIMEOUT_MS = 3_500L
+        private const val VISUALIZER_STARTUP_RETRY_DELAY_MS = 1_600L
+        private const val VISUALIZER_STARTUP_MAX_RETRIES = 5
+        private const val VISUALIZER_LONG_RECOVERY_DELAY_MS = 6_000L
+        private const val VISUALIZER_UI_RECOVERY_DELAY_MS = 180L
+        private const val VISUALIZER_FRESH_SESSION_DELAY_MS = 40L
+        private const val VISUALIZER_FRESH_TRACK_DELAY_MS = 90L
+        private const val VISUALIZER_FRESH_START_DELAY_MS = 120L
+        private const val VISUALIZER_FRESH_RESUME_DELAY_MS = 160L
+        private const val VISUALIZER_COLD_RESUME_FRAME_TIMEOUT_MS = 3_500L
+        private val VISUALIZER_COLD_RESUME_DELAYS_MS =
+            longArrayOf(700L, 1_100L, 1_700L, 2_500L, 3_500L)
+        private val VISUALIZER_RECOVERY_DELAYS_MS = longArrayOf(350L, 700L, 1_400L, 2_500L, 4_000L)
         private const val DYNAMIC_AUDIO_PREFS = "blaze_audio_dynamic_colors"
         private const val KEY_DYNAMIC_BG = "dynamic_bg"
         private const val KEY_DYNAMIC_ACCENT = "dynamic_accent"

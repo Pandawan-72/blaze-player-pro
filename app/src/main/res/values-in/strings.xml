@@ -39,7 +39,6 @@ Ketuk Pindai untuk mendeteksi perangkat.</string>
     <string name="queue">ANTREAN</string>
     <string name="queue_short">Antrean</string>
     <string name="add">Tambahkan</string>
-    <string name="lyrics">Lirik</string>
     <string name="audio_lyrics_title">Lirik</string>
     <string name="audio_lyrics_disabled">Aktifkan “Lirik tersinkron” di pengaturan audio untuk mengizinkan lirik lokal.</string>
     <string name="audio_lyrics_none">Tidak ada lirik lokal untuk trek ini.</string>
@@ -248,10 +247,6 @@ Durasi: %4$s
 Ukuran: %5$s</string>
     <string name="dialog_video_info_video_codec">Codec video: %1$s</string>
     <string name="dialog_video_info_audio_codec">Codec audio: %1$s</string>
-    <plurals name="video_count">
-        <item quantity="one">%1$d video</item>
-        <item quantity="other">%1$d video</item>
-    </plurals>
     <string name="toast_cannot_open_screen_cast_settings">Tidak dapat membuka pengaturan transmisi layar</string>
     <string name="toast_share_not_found">Berbagi tidak ditemukan untuk favorit ini</string>
     <string name="action_remove_from_history">Hapus dari riwayat</string>
@@ -315,7 +310,6 @@ Ukuran: %5$s</string>
     <string name="player_speed_label_short">Kecepatan</string>
     <string name="player_ratio_label">Rasio</string>
     <string name="content_desc_close_playlist">Tutup daftar putar</string>
-    <string name="content_desc_clean">Bersihkan</string>
     <string name="content_desc_playlist">Daftar putar</string>
     <string name="content_desc_shuffle">Acak</string>
     <string name="content_desc_previous">Sebelumnya</string>
@@ -358,7 +352,6 @@ Ukuran: %5$s</string>
     <string name="gallery_trash_empty_message">Sampah kosong</string>
     <string name="gallery_type_photo">Foto</string>
     <string name="gallery_type_video">Video</string>
-    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Urutkan</string>
     <string name="gallery_sort_date_desc">Terbaru lebih dulu</string>
     <string name="gallery_sort_date_asc">Terlama lebih dulu</string>
@@ -383,14 +376,6 @@ Ukuran: %5$s</string>
     <string name="confirm_empty_trash_message">Kosongkan sampah secara permanen? Tindakan ini tidak dapat dibatalkan.</string>
     <string name="confirm_permanent_delete_message">Hapus foto ini secara permanen dari sampah?</string>
     <string name="action_confirm_delete">Hapus</string>
-    <plurals name="gallery_photo_count">
-        <item quantity="one">%d foto</item>
-        <item quantity="other">%d foto</item>
-    </plurals>
-    <plurals name="gallery_video_count">
-        <item quantity="one">%d video</item>
-        <item quantity="other">%d video</item>
-    </plurals>
     <string name="settings_audio_spectrum">Aktifkan spektrum visual</string>
     <string name="settings_audio_spectrum_desc">Tampilkan visualizer audio animasi di Blaze Audio.</string>
     <string name="blaze_party">Blaze Party</string>
@@ -408,6 +393,7 @@ Token: %2$s</string>
     <string name="blaze_party_scan_unavailable">Pemindai QR tidak tersedia. Instal pemindai QR atau masukkan kode secara manual.</string>
     <string name="blaze_party_joined">Bergabung dengan sesi Blaze Party</string>
     <string name="blaze_party_short">Party</string>
+    <string name="audio_party_queue_short">Antrean Party</string>
     <string name="add_to_blaze_party">Tambahkan ke Blaze Party</string>
     <string name="blaze_party_playlist_title">Daftar putar Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">Tidak ada trek dalam daftar putar Blaze Party. Tambahkan trek dari browser audio dengan “Tambahkan ke Blaze Party”.</string>
@@ -518,7 +504,6 @@ Token: %2$s</string>
     <string name="gallery_menu_cut">Pangkas</string>
     <string name="add_to_video_queue_short">antrean</string>
     <string name="video_queue_title">ANTREAN VIDEO</string>
-    <string name="video_queue_title_with_category">ANTREAN VIDEO — %1$s (%2$d)</string>
     <string name="video_queue_empty_message">Tidak ada video dalam antrean ini. Pilih video di browser, lalu gunakan “+ antrean”.</string>
     <string name="toast_video_queue_added">%1$d video ditambahkan ke antrean</string>
     <string name="toast_video_queue_added_partial">%1$d video ditambahkan, %2$d sudah ada</string>
@@ -531,12 +516,12 @@ Token: %2$s</string>
     <string name="app_name_audio">Blaze Audio</string>
     <string name="blaze_party_network_error">Tidak dapat terhubung ke host. Pastikan Anda berada di Wi‑Fi yang sama.</string>
     <string name="audio_library_title">Pustaka</string>
+    <string name="audio_open_full_player">Buka pemutar audio</string>
     <string name="audio_library_subtitle">Pustaka musik Pro+ Anda</string>
-    <string name="audio_loading_in_progress">Memuat...</string>
     <string name="audio_search">Cari</string>
+    <string name="audio_tab_albums">Album</string>
     <string name="audio_tab_artists">Artis</string>
     <string name="audio_tab_titles">Trek</string>
-    <string name="audio_tab_playlists">Daftar putar</string>
     <string name="audio_resume_listening">Baru didengarkan</string>
     <string name="audio_recent_albums">Album saya</string>
     <string name="audio_played_tracks">Trek</string>
@@ -577,12 +562,6 @@ Token: %2$s</string>
     <string name="audio_section_interface">Antarmuka</string>
     <string name="audio_dynamic_theme">Tema dinamis</string>
     <string name="audio_dynamic_theme_subtitle">Hijau Blaze secara default, warna sampul saat diaktifkan</string>
-    <string name="audio_cover_border">Bingkai sampul berwarna</string>
-    <string name="audio_cover_border_subtitle">Aksen dinamis di sekitar sampul</string>
-    <string name="audio_artwork_size">Ukuran sampul</string>
-    <string name="audio_size_small">Kecil</string>
-    <string name="audio_size_medium">Sedang</string>
-    <string name="audio_size_large">Besar</string>
     <string name="audio_section_lyrics_metadata">Lirik dan metadata</string>
     <string name="audio_synced_lyrics">Lirik tersinkron</string>
     <string name="audio_synced_lyrics_subtitle">Sakelar utama untuk lirik LRC/TXT lokal</string>
@@ -610,12 +589,9 @@ Token: %2$s</string>
         <item quantity="one">%d artis</item>
         <item quantity="other">%d artis</item>
     </plurals>
-    <string name="audio_watched_folders_empty_info">Belum ada folder yang dipantau. Di browser audio, buka menu folder lalu pilih “Tambahkan ke folder yang dipantau”.</string>
-    <string name="audio_watched_folders_manage_info">Ketuk folder untuk berhenti memantaunya. Tambahkan folder baru dari menu folder di browser audio.</string>
     <string name="audio_remove_watched_folder">Hapus</string>
     <string name="audio_add_to_watched">Tambahkan ke folder yang dipantau</string>
     <string name="audio_watched_folder_added">Folder ditambahkan ke folder yang dipantau</string>
-    <string name="audio_watched_folder_refresh_hint">Folder ditambahkan ke folder yang dipantau. Penyegaran pustaka penuh dimulai otomatis saat Anda kembali ke pustaka.</string>
     <string name="audio_watched_folder_removed">Folder dihapus dari folder yang dipantau</string>
     <string name="audio_watched_folder_already">Folder ini sudah dipantau</string>
     <string name="audio_tag_genre">Genre</string>
@@ -630,6 +606,7 @@ Token: %2$s</string>
     <string name="action_done">Selesai</string>
     <string name="audio_play_album">Putar seluruh album</string>
     <string name="audio_add_album_queue">Tambahkan ke antrean</string>
+    <string name="audio_album_queue_button">Antrean</string>
     <string name="audio_add_playlist_blaze_party">Tambahkan daftar putar ke Blaze Party</string>
     <string name="audio_add_playlist_queue">Tambahkan daftar putar ke antrean</string>
     <string name="queue_clear_all">Hapus semua</string>
@@ -878,4 +855,28 @@ Token: %2$s</string>
     <string name="slideshow_font_bebas">Bebas Neue</string>
     <string name="slideshow_font_caveat">Caveat</string>
     <string name="slideshow_font_cinzel">Cinzel</string>
+
+    <!-- Page artiste et photographie Wikimedia -->
+    <string name="audio_artist_page_title">Artis</string>
+    <string name="audio_album_page_title">Album</string>
+    <string name="audio_my_artists">Artis saya</string>
+    <string name="audio_artist_play_all">Putar semua</string>
+    <string name="audio_library_empty_hint">Coba pencarian lain atau pindai koleksi Anda.</string>
+    <string name="audio_artist_photo_credit">Foto: %1$s • %2$s</string>
+    <string name="audio_artist_photo_credit_author">Foto: %1$s</string>
+    <string name="audio_artist_photo_source">Sumber foto</string>
+    <string name="audio_artist_photo_author">Pembuat: %1$s</string>
+    <string name="audio_artist_photo_license">Lisensi: %1$s</string>
+    <string name="audio_artist_photo_credits_title">Kredit foto</string>
+    <string name="audio_artist_photo_open_source">Lihat sumber</string>
+
+    <!-- Photo d’artiste : source automatique + choix manuel persistant. -->
+    <string name="audio_artist_change_photo">Ubah foto</string>
+    <string name="audio_artist_photo_actions_title">Foto artis</string>
+    <string name="audio_artist_photo_choose_device">Pilih gambar dari perangkat ini</string>
+    <string name="audio_artist_photo_restore_auto">Pulihkan foto otomatis</string>
+    <string name="audio_artist_photo_updated">Foto artis diperbarui</string>
+    <string name="audio_artist_photo_restored">Foto otomatis dipulihkan</string>
+    <string name="audio_artist_photo_update_failed">Gambar ini tidak dapat digunakan</string>
+    <string name="audio_now_playing">Sedang diputar</string>
 </resources>

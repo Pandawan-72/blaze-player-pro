@@ -21,7 +21,7 @@ import java.nio.charset.StandardCharsets
 
 /**
  * Arborescence audio exposée aux clients MediaLibrarySession (Android Auto, Android Automotive,
- * Assistant et MediaBrowser). Elle lit uniquement l'index Room déjà disponible : aucun scan SMB,
+ * Assistant et MediaBrowser). Elle lit le snapshot partagé déjà disponible : aucun scan SMB,
  * UPnP ou stockage local n'est déclenché depuis la voiture.
  */
 class AndroidAutoLibrary(
@@ -77,7 +77,7 @@ class AndroidAutoLibrary(
     }
 
     /**
-     * Fige l'instantané tant qu'Android Auto parcourt une liste. Recharger Room entre deux pages
+     * Fige l'instantané tant qu'Android Auto parcourt une liste. Le remplacer entre deux pages
      * peut déplacer les éléments pendant un scan progressif et fait revenir le DHU en haut.
      * Les changements reçus pendant la connexion sont appliqués au prochain raccordement.
      */
@@ -476,9 +476,21 @@ class AndroidAutoLibrary(
         val cacheKey = AudioLibraryHeuristics.canonicalPathKey(track.artworkPath.ifBlank { track.path })
         artworkCache.get(cacheKey)?.let { return it }
         val compact = runCatching {
-            val source = AudioArtworkResolver.cachedJpegBytes(appContext, track.path, track.artworkPath)
-                ?.takeIf { it.isNotEmpty() }
-                ?: return@runCatching null
+            // Android Auto peut demander plusieurs pages pendant la lecture. Dans cette situation,
+            // ne touche ni au disque ni au fichier/NAS : seule une image déjà en RAM est acceptée.
+            // Le callback est exécuté sur BlazeLibraryCompute par le service.
+            val source = if (AudioLibraryWorkState.isPlaybackProtected()) {
+                val bitmap = AudioArtworkResolver.memoryCachedBitmap(track.path, track.artworkPath)
+                    ?: return@runCatching null
+                ByteArrayOutputStream().use { output ->
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 78, output)
+                    output.toByteArray()
+                }
+            } else {
+                AudioArtworkResolver.cachedJpegBytes(appContext, track.path, track.artworkPath)
+                    ?.takeIf { it.isNotEmpty() }
+                    ?: return@runCatching null
+            }
             if (source.size <= MAX_ARTWORK_BYTES) return@runCatching source
 
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

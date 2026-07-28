@@ -28,7 +28,7 @@ class ArtworkMetadataOverlayLayout @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
     /** Radius des coins bas, en dp. Doit correspondre au radius de la cover. */
-    var radiusDp: Float = 23f
+    var radiusDp: Float = 0f
         set(value) {
             field = value
             rebuild(width, height)

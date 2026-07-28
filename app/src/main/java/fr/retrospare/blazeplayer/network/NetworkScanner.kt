@@ -1,11 +1,11 @@
 package fr.retrospare.blazeplayer.network
 
 import android.content.Context
+import fr.retrospare.blazeplayer.player.AudioLibraryBackgroundDispatchers
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fr.retrospare.blazeplayer.data.model.ShareType
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -62,7 +62,7 @@ class NetworkScanner @Inject constructor(
         val semaphore = Semaphore(MAX_CONCURRENT_SCANS)
         coroutineScope {
             (1..254).map { i ->
-                async(Dispatchers.IO) {
+                async(AudioLibraryBackgroundDispatchers.network) {
                     semaphore.withPermit {
                         val ip = "$subnet.$i"
                         try {
@@ -78,7 +78,7 @@ class NetworkScanner @Inject constructor(
     }
 
 
-    private suspend fun discoverUpnpDevices(): List<DiscoveredDevice> = withContext(Dispatchers.IO) {
+    private suspend fun discoverUpnpDevices(): List<DiscoveredDevice> = withContext(AudioLibraryBackgroundDispatchers.network) {
         val targets = listOf(
             "urn:schemas-upnp-org:service:ContentDirectory:1",
             "urn:schemas-upnp-org:device:MediaServer:1",
@@ -258,7 +258,7 @@ class NetworkScanner @Inject constructor(
     }
 
     suspend fun listShares(host: String, username: String?, password: String?): List<String> =
-        withContext(Dispatchers.IO) {
+        withContext(AudioLibraryBackgroundDispatchers.network) {
             try {
                 val client = com.hierynomus.smbj.SMBClient()
                 val auth = if (!username.isNullOrEmpty()) {

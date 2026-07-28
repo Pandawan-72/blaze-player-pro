@@ -77,6 +77,8 @@ object HapticFeedbackManager {
     /** Attache aussi les Dialog/BottomSheet créés hors de la fenêtre principale de l'Activity. */
     fun attachToWindow(window: Window?) {
         window ?: return
+        // Le même point d'entrée couvre déjà toutes les Activity, Dialog et BottomSheet Blaze.
+        AdaptiveButtonTextManager.attachToWindow(window)
         synchronized(attachedWindows) {
             if (attachedWindows.containsKey(window)) return
             val callback = window.callback ?: return

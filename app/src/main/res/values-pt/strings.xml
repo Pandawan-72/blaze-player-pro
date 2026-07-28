@@ -38,7 +38,6 @@
     <string name="queue">FILA</string>
     <string name="queue_short">Fila</string>
     <string name="add">Adicionar</string>
-    <string name="lyrics">Letras</string>
     <string name="audio_lyrics_title">Letras</string>
     <string name="audio_lyrics_disabled">Ative “Letras sincronizadas” nas definições de áudio para permitir letras locais.</string>
     <string name="audio_lyrics_none">Nenhuma letra local encontrada para esta faixa.</string>
@@ -234,10 +233,6 @@
     <string name="dialog_video_info_message">Caminho: %1$s\n\nContêiner: %2$s\nResolução: %3$s\nDuração: %4$s\nTamanho: %5$s</string>
     <string name="dialog_video_info_video_codec">Codec de vídeo: %1$s</string>
     <string name="dialog_video_info_audio_codec">Codec de áudio: %1$s</string>
-    <plurals name="video_count">
-        <item quantity="one">%1$d vídeo</item>
-        <item quantity="other">%1$d vídeos</item>
-    </plurals>
     <string name="toast_cannot_open_screen_cast_settings">Não foi possível abrir as configurações de transmissão de tela</string>
     <string name="toast_share_not_found">Compartilhamento não encontrado para este favorito</string>
     <string name="action_remove_from_history">Remover do histórico</string>
@@ -301,7 +296,6 @@
     <string name="player_speed_label_short">Velocidade</string>
     <string name="player_ratio_label">Proporção</string>
     <string name="content_desc_close_playlist">Fechar lista</string>
-    <string name="content_desc_clean">Limpar</string>
     <string name="content_desc_playlist">Lista de reprodução</string>
     <string name="content_desc_shuffle">Aleatório</string>
     <string name="content_desc_previous">Anterior</string>
@@ -352,7 +346,6 @@
     <string name="gallery_trash_empty_message">A lixeira está vazia</string>
     <string name="gallery_type_photo">Fotos</string>
     <string name="gallery_type_video">Vídeos</string>
-    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Ordenar</string>
     <string name="gallery_sort_date_desc">Mais recentes primeiro</string>
     <string name="gallery_sort_date_asc">Mais antigas primeiro</string>
@@ -377,14 +370,6 @@
     <string name="confirm_empty_trash_message">Esvaziar a lixeira definitivamente? Esta ação não pode ser desfeita.</string>
     <string name="confirm_permanent_delete_message">Excluir definitivamente esta foto da lixeira?</string>
     <string name="action_confirm_delete">Excluir</string>
-    <plurals name="gallery_photo_count">
-        <item quantity="one">%d foto</item>
-        <item quantity="other">%d fotos</item>
-    </plurals>
-    <plurals name="gallery_video_count">
-        <item quantity="one">%d vídeo</item>
-        <item quantity="other">%d vídeos</item>
-    </plurals>
     <string name="settings_audio_spectrum">Ativar espectro visual</string>
     <string name="settings_audio_spectrum_desc">Mostrar o visualizador de áudio animado no Blaze Audio.</string>
     <string name="blaze_party">Blaze Party</string>
@@ -402,6 +387,7 @@ Token: %2$s</string>
     <string name="blaze_party_scan_unavailable">Leitor QR indisponível. Instala um leitor QR ou introduz o código manualmente.</string>
     <string name="blaze_party_joined">Entraste na sessão Blaze Party</string>
     <string name="blaze_party_short">Party</string>
+    <string name="audio_party_queue_short">Fila Party</string>
     <string name="add_to_blaze_party">Adicionar à Blaze Party</string>
     <string name="blaze_party_playlist_title">Playlist Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">Nenhuma faixa na playlist Blaze Party. Adicione faixas pelo navegador de áudio com “Adicionar à Blaze Party”.</string>
@@ -515,7 +501,6 @@ Token: %2$s</string>
     <string name="app_name_audio">Blaze Audio</string>
     <string name="blaze_party_network_error">Não foi possível ligar ao anfitrião. Verifique se está na mesma rede Wi‑Fi.</string>
     <string name="video_queue_title">FILA DE VÍDEO</string>
-    <string name="video_queue_title_with_category">FILA DE VÍDEO — %1$s (%2$d)</string>
     <string name="video_queue_empty_message">Nenhum vídeo nesta fila. Selecione vídeos no explorador e use «+ fila».</string>
     <string name="toast_video_queue_added">%1$d vídeo(s) adicionado(s) à fila</string>
     <string name="toast_video_queue_added_partial">%1$d vídeo(s) adicionado(s), %2$d já existente(s)</string>
@@ -525,12 +510,12 @@ Token: %2$s</string>
     <string name="content_desc_video_queue">Fila de vídeo</string>
     <string name="content_desc_close_video_queue">Fechar a fila de vídeo</string>
     <string name="audio_library_title">Biblioteca</string>
+    <string name="audio_open_full_player">Abrir o leitor de áudio</string>
     <string name="audio_library_subtitle">Sua biblioteca musical Pro+</string>
-    <string name="audio_loading_in_progress">Carregando...</string>
     <string name="audio_search">Pesquisar</string>
+    <string name="audio_tab_albums">Álbuns</string>
     <string name="audio_tab_artists">Artistas</string>
     <string name="audio_tab_titles">Faixas</string>
-    <string name="audio_tab_playlists">Playlists</string>
     <string name="audio_resume_listening">Ouvido recentemente</string>
     <string name="audio_recent_albums">Meus álbuns</string>
     <string name="audio_played_tracks">Faixas</string>
@@ -571,12 +556,6 @@ Token: %2$s</string>
     <string name="audio_section_interface">Interface</string>
     <string name="audio_dynamic_theme">Tema dinâmico</string>
     <string name="audio_dynamic_theme_subtitle">Verde Blaze por padrão, cores da capa quando ativado</string>
-    <string name="audio_cover_border">Borda colorida da capa</string>
-    <string name="audio_cover_border_subtitle">Acento dinâmico ao redor da capa</string>
-    <string name="audio_artwork_size">Tamanho das capas</string>
-    <string name="audio_size_small">Pequena</string>
-    <string name="audio_size_medium">Média</string>
-    <string name="audio_size_large">Grande</string>
     <string name="audio_section_lyrics_metadata">Letras e metadados</string>
     <string name="audio_synced_lyrics">Letras sincronizadas</string>
     <string name="audio_synced_lyrics_subtitle">Interruptor principal para letras locais LRC/TXT</string>
@@ -604,12 +583,9 @@ Token: %2$s</string>
         <item quantity="one">%d artista</item>
         <item quantity="other">%d artistas</item>
     </plurals>
-    <string name="audio_watched_folders_empty_info">Ainda não há pastas monitorizadas. No navegador de áudio, abra o menu de uma pasta e escolha “Adicionar às pastas monitorizadas”.</string>
-    <string name="audio_watched_folders_manage_info">Toque numa pasta para removê-la da monitorização. Adicione novas a partir dos menus de pasta no navegador de áudio.</string>
     <string name="audio_remove_watched_folder">Remover</string>
     <string name="audio_add_to_watched">Adicionar às pastas monitorizadas</string>
     <string name="audio_watched_folder_added">Pasta adicionada às pastas monitorizadas</string>
-    <string name="audio_watched_folder_refresh_hint">A pasta foi adicionada às pastas monitorizadas. Ao regressar à biblioteca, é iniciada automaticamente uma atualização completa.</string>
     <string name="audio_watched_folder_removed">Pasta removida das pastas monitorizadas</string>
     <string name="audio_watched_folder_already">Esta pasta já está monitorizada</string>
     <string name="audio_tag_genre">Género</string>
@@ -624,6 +600,7 @@ Token: %2$s</string>
     <string name="action_done">Concluído</string>
     <string name="audio_play_album">Reproduzir o álbum inteiro</string>
     <string name="audio_add_album_queue">Adicionar à fila</string>
+    <string name="audio_album_queue_button">Fila</string>
     <string name="audio_add_playlist_blaze_party">Adicionar playlist ao Blaze Party</string>
     <string name="audio_add_playlist_queue">Adicionar playlist à fila</string>
     <string name="queue_clear_all">Limpar tudo</string>
@@ -864,4 +841,28 @@ Token: %2$s</string>
     <string name="slideshow_font_bebas">Bebas Neue</string>
     <string name="slideshow_font_caveat">Caveat</string>
     <string name="slideshow_font_cinzel">Cinzel</string>
+
+    <!-- Page artiste et photographie Wikimedia -->
+    <string name="audio_artist_page_title">Artista</string>
+    <string name="audio_album_page_title">Álbum</string>
+    <string name="audio_my_artists">Os meus artistas</string>
+    <string name="audio_artist_play_all">Reproduzir tudo</string>
+    <string name="audio_library_empty_hint">Tente outra pesquisa ou analise a sua biblioteca.</string>
+    <string name="audio_artist_photo_credit">Foto: %1$s • %2$s</string>
+    <string name="audio_artist_photo_credit_author">Foto: %1$s</string>
+    <string name="audio_artist_photo_source">Fonte da fotografia</string>
+    <string name="audio_artist_photo_author">Autor: %1$s</string>
+    <string name="audio_artist_photo_license">Licença: %1$s</string>
+    <string name="audio_artist_photo_credits_title">Créditos da fotografia</string>
+    <string name="audio_artist_photo_open_source">Ver fonte</string>
+
+    <!-- Photo d’artiste : source automatique + choix manuel persistant. -->
+    <string name="audio_artist_change_photo">Alterar fotografia</string>
+    <string name="audio_artist_photo_actions_title">Fotografia do artista</string>
+    <string name="audio_artist_photo_choose_device">Escolher uma imagem do dispositivo</string>
+    <string name="audio_artist_photo_restore_auto">Restaurar a fotografia automática</string>
+    <string name="audio_artist_photo_updated">Fotografia do artista atualizada</string>
+    <string name="audio_artist_photo_restored">Fotografia automática restaurada</string>
+    <string name="audio_artist_photo_update_failed">Não é possível utilizar esta imagem</string>
+    <string name="audio_now_playing">Em reprodução</string>
 </resources>

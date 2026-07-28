@@ -138,22 +138,6 @@ class PartyPlaylistAdapter(
         private fun fallbackExt(track: PlaylistTrackRef): String =
             track.extension.ifBlank { track.name.substringAfterLast('.', "").ifBlank { track.path.substringBefore('?').substringAfterLast('.', "") } }
 
-        private fun applyTechnicalMeta(meta: AudioTechnicalInfo?, fallbackExt: String, isCurrent: Boolean) {
-            val ext = meta?.extension?.ifBlank { fallbackExt }?.uppercase() ?: fallbackExt.uppercase()
-            if (ext.isNotEmpty()) {
-                fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
-                tvCodec?.visibility = View.VISIBLE
-            } else tvCodec?.visibility = View.GONE
-            val lossless = meta?.isLossless == true || ext in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF", "WV")
-            when {
-                lossless -> { tvFormatBadge?.text = itemView.context.getString(R.string.lossless_label); tvFormatBadge?.visibility = View.VISIBLE }
-                (meta?.bitrate ?: 0L) > 0L -> { tvFormatBadge?.text = "${meta!!.bitrate / 1000} kbps"; tvFormatBadge?.visibility = View.VISIBLE }
-                else -> tvFormatBadge?.visibility = View.GONE
-            }
-            boundDurationMs = (meta?.duration ?: 0L) * 1000L
-            applyTimeBadge(isCurrent)
-        }
-
         fun updateTimeBadge(isCurrent: Boolean) { applyTimeBadge(isCurrent) }
 
         private fun applyTimeBadge(isCurrent: Boolean) {

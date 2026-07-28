@@ -146,7 +146,7 @@ object LrclibLyricsDialog {
             activeJob?.cancel()
             setBusy(true)
             status.setText(R.string.lrclib_downloading)
-            activeJob = fragment.viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            activeJob = fragment.viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.lyrics) {
                 val saved = runCatching {
                     LyricsFileStorage.saveBesideTrack(context.applicationContext, audioPath, result.bestLyrics)
                 }
@@ -228,7 +228,7 @@ object LrclibLyricsDialog {
             resultsContainer.removeAllViews()
             status.setTextColor(context.getColor(R.color.on_surface_variant))
             status.setText(R.string.lrclib_searching)
-            activeJob = fragment.viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            activeJob = fragment.viewLifecycleOwner.lifecycleScope.launch(AudioPlaybackDispatchers.lyrics) {
                 val result = runCatching {
                     LrclibClient.searchSmart(
                         trackName = queryTitle,

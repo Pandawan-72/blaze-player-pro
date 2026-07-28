@@ -1,13 +1,11 @@
 package fr.retrospare.blazeplayer.player
 
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
@@ -20,12 +18,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.settings.SettingsViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,7 +60,8 @@ class AudioProSettingsActivity : AppCompatActivity() {
         AudioPremiumUi.applyDynamicHero(findViewById<View>(R.id.audioSettingsHero), heroAccentColor)
         findViewById<TextView>(R.id.badgeSettingsPro)?.let {
             it.setTextColor(heroAccentColor)
-            it.backgroundTintList = ColorStateList.valueOf(AudioDynamicColor.mix(0xFF111A28.toInt(), heroAccentColor, 0.18f))
+            it.setBackgroundResource(R.drawable.bg_pro_badge)
+            it.setTypeface(it.typeface, android.graphics.Typeface.BOLD)
         }
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
@@ -106,10 +103,6 @@ class AudioProSettingsActivity : AppCompatActivity() {
         })
         container.addView(section(R.string.audio_section_interface).apply {
             addView(switchRow(AudioProSettings.KEY_DYNAMIC_THEME, R.drawable.ic_flame, R.string.audio_dynamic_theme, R.string.audio_dynamic_theme_subtitle, true))
-            addView(separator())
-            addView(switchRow(AudioProSettings.KEY_COVER_BORDER, R.drawable.ic_shape_square, R.string.audio_cover_border, R.string.audio_cover_border_subtitle, true))
-            addView(separator())
-            addView(choiceRow(AudioProSettings.KEY_ARTWORK_SIZE, R.drawable.ic_layout, R.string.audio_artwork_size, arrayOf(getString(R.string.audio_size_small), getString(R.string.audio_size_medium), getString(R.string.audio_size_large)), AudioProSettings.ARTWORK_MEDIUM))
         })
         container.addView(section(R.string.audio_section_lyrics_metadata).apply {
             addView(switchRow(AudioProSettings.KEY_SYNCED_LYRICS, R.drawable.ic_lyrics, R.string.audio_synced_lyrics, R.string.audio_synced_lyrics_subtitle, true))
@@ -257,30 +250,6 @@ class AudioProSettingsActivity : AppCompatActivity() {
         return root
     }
 
-    private fun choiceRow(key: String, iconRes: Int, titleRes: Int, choices: Array<String>, defaultIndex: Int): View {
-        val root = baseRow(iconRes)
-        root.addView(textColumn(getString(titleRes), null), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(14) })
-        val index = prefs.getInt(key, defaultIndex).coerceIn(0, choices.lastIndex)
-        val chip = TextView(this).apply {
-            text = choices[index]
-            setTextColor(textMuted)
-            textSize = 13f
-            gravity = Gravity.CENTER
-            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
-            setPadding(dp(12), 0, dp(12), 0)
-            background = ContextCompat.getDrawable(this@AudioProSettingsActivity, R.drawable.bg_audio_pro_chip)
-            setOnClickListener {
-                val next = (prefs.getInt(key, defaultIndex) + 1) % choices.size
-                prefs.edit().putInt(key, next).apply()
-                text = choices[next]
-                setTextColor(if (next == defaultIndex) accentColor else textMuted)
-            }
-            setTextColor(if (index == defaultIndex) accentColor else textMuted)
-        }
-        root.addView(chip, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(34)))
-        return root
-    }
-
     private fun outputPrecisionRow(): View {
         val root = baseRow(R.drawable.ic_audio)
         root.addView(
@@ -402,42 +371,6 @@ class AudioProSettingsActivity : AppCompatActivity() {
         return resources.getQuantityString(R.plurals.audio_folder_count_compact, count, count)
     }
 
-    private fun showWatchedFoldersDialog() {
-        val folders = AudioProSettings.watchedFolders(this)
-        if (folders.isEmpty()) {
-            android.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.audio_watched_folders))
-                .setMessage(getString(R.string.audio_watched_folders_empty_info))
-                .setPositiveButton(getString(R.string.action_ok), null)
-                .show()
-                .also { fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(it) }
-            return
-        }
-        val labels = folders.map { folder ->
-            val source = if (folder.isNetwork) folder.shareName.ifBlank { getString(R.string.tab_network) } else getString(R.string.tab_local)
-            "$source • ${folder.name}"
-        }.toTypedArray()
-        android.app.AlertDialog.Builder(this)
-            .setTitle(getString(R.string.audio_watched_folders))
-            .setItems(labels) { _, which ->
-                val folder = folders[which]
-                android.app.AlertDialog.Builder(this)
-                    .setTitle(folder.name)
-                    .setMessage(folder.path)
-                    .setNegativeButton(getString(R.string.action_cancel), null)
-                    .setPositiveButton(getString(R.string.audio_remove_watched_folder)) { _, _ ->
-                        AudioProSettings.removeWatchedFolder(this, folder)
-                        recreate()
-                    }
-                    .show()
-                    .also { fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(it) }
-            }
-            .setMessage(getString(R.string.audio_watched_folders_manage_info))
-            .setPositiveButton(getString(R.string.action_ok), null)
-            .show()
-            .also { fr.retrospare.blazeplayer.ui.DialogButtonStyler.style(it) }
-    }
-
     private fun showTagEditorDialog() {
         val state = AudioRepository.loadState(this)
         val item = state.items.getOrNull(state.index)
@@ -492,7 +425,7 @@ class AudioProSettingsActivity : AppCompatActivity() {
                             disc = disc.text.toString()
                         )
                         lifecycleScope.launch {
-                            val result = withContext(Dispatchers.IO) { AudioTagWriter.write(this@AudioProSettingsActivity, item.path, tags) }
+                            val result = withContext(AudioLibraryBackgroundDispatchers.io) { AudioTagWriter.write(this@AudioProSettingsActivity, item.path, tags) }
                             dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)?.isEnabled = true
                             result.onSuccess {
                                 android.widget.Toast.makeText(this@AudioProSettingsActivity, R.string.audio_tag_saved_hard, android.widget.Toast.LENGTH_SHORT).show()
@@ -521,9 +454,6 @@ class AudioProSettingsActivity : AppCompatActivity() {
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
-    companion object {
-        private const val PREFS = "blaze_audio_pro_settings"
-    }
     @Suppress("DEPRECATION")
     private fun applySystemBarColors(color: Int) {
         window.statusBarColor = color

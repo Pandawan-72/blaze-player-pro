@@ -10,13 +10,18 @@ import android.os.Build
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.LruCache
+import android.util.Base64
 import android.widget.ImageView
 import fr.retrospare.blazeplayer.R
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Semaphore
@@ -24,10 +29,14 @@ import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.Locale
 import java.io.File
 import java.io.FileOutputStream
 import java.io.RandomAccessFile
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.LinkedHashMap
 import java.nio.ByteBuffer
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -38,13 +47,16 @@ import kotlin.random.Random
 object ThumbnailUtils {
 
     private val audioExtensions = setOf(
-        "mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka",
-        "wv","aiff","alac"
+        "mp3","flac","aac","ogg","oga","opus","wav","m4a","m4b","wma","ape",
+        "dts","ac3","mka","wv","aiff","alac"
     )
 
-    private val folderCoverImageExtensions = setOf("jpg", "jpeg", "png")
-    private val preferredFolderCoverExtensions = listOf("jpg", "png", "jpeg")
-    private val preferredFolderCoverBaseNames = listOf("cover")
+    private val folderCoverImageExtensions = setOf("jpg", "jpeg", "png", "webp")
+    private val preferredFolderCoverExtensions = listOf("jpg", "png", "jpeg", "webp")
+    private val preferredFolderCoverBaseNames = listOf(
+        "cover", "folder", "front", "poster", "default", "jacket",
+        "album", "albumart", "album art", "artwork", "jaquette", "pochette"
+    )
     private val fastExactCoverFileNames = preferredFolderCoverBaseNames.flatMap { base ->
         preferredFolderCoverExtensions.flatMap { ext ->
             val capitalized = base.replaceFirstChar { it.uppercaseChar() }
@@ -71,12 +83,23 @@ object ThumbnailUtils {
 
     private fun isFolderCoverImagePath(path: String): Boolean = extensionOf(path) in folderCoverImageExtensions
 
-    private fun isAllowedAudioFolderCoverName(path: String): Boolean =
-        path.substringBefore('?')
+    private fun isAllowedAudioFolderCoverName(path: String): Boolean {
+        val fileName = path.substringBefore('?')
             .substringBefore('#')
             .substringAfterLast('/')
             .substringAfterLast('\\')
-            .lowercase(Locale.ROOT) in setOf("cover.jpg", "cover.jpeg", "cover.png")
+            .lowercase(Locale.ROOT)
+        val extension = fileName.substringAfterLast('.', "")
+        if (extension !in folderCoverImageExtensions) return false
+
+        val base = fileName.substringBeforeLast('.', fileName)
+            .replace('_', ' ')
+            .replace('-', ' ')
+            .trim()
+        return preferredFolderCoverBaseNames.any {
+            base == it || base.startsWith("$it ")
+        }
+    }
 
     private fun isNetworkVideoPath(path: String): Boolean =
         path.startsWith("smb://", true) || path.startsWith("http://", true) || path.startsWith("https://", true)
@@ -103,6 +126,36 @@ object ThumbnailUtils {
     private fun promoteVideoHotCache(key: String, bitmap: Bitmap) {
         videoThumbnailHotCache.put(key, bitmap)
     }
+
+    // Cache RAM exclusivement réservé à Blaze Gallery. Il est volontairement séparé des caches
+    // vidéo et audio : le défilement de centaines de photos ne doit plus évincer les pochettes
+    // d'albums, et inversement. Le budget conserve plusieurs écrans de tuiles 4 colonnes afin que
+    // le retour arrière et les flings rapides soient servis de façon strictement synchrone.
+    private val galleryImageHotCacheBytes = (Runtime.getRuntime().maxMemory() / 8)
+        .coerceIn(32L * 1024L * 1024L, 96L * 1024L * 1024L)
+        .toInt()
+    private val galleryImageHotCache = object : LruCache<String, Bitmap>(galleryImageHotCacheBytes) {
+        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+    }
+    private fun gallerySizeBucket(maxSize: Int): Int = when {
+        maxSize <= 280 -> 280
+        maxSize <= 512 -> 512
+        else -> maxSize
+    }
+    private fun galleryHotKey(path: String, maxSize: Int): String =
+        "gallery-image-hot-v3:${gallerySizeBucket(maxSize)}:$path"
+    private fun promoteGalleryHotCache(path: String, maxSize: Int, bitmap: Bitmap) {
+        val key = galleryHotKey(path, maxSize)
+        galleryImageHotCache.put(key, bitmap)
+        cache.put(key, bitmap)
+    }
+
+    /** Lecture RAM pure, sûre depuis onBindViewHolder. Aucun accès MediaStore/disque. */
+    fun peekMemoryImageThumbnailBitmap(path: String, maxSize: Int = 360): Bitmap? {
+        val key = galleryHotKey(path, maxSize)
+        galleryImageHotCache.get(key)?.let { return it }
+        return cache.get(key)?.also { galleryImageHotCache.put(key, it) }
+    }
     // Cache RAM dédié, exclusivement pour les pochettes de la bibliothèque audio, séparé du cache
     // partagé ci-dessus (partagé avec la Galerie photo/vidéo). Une bibliothèque de plusieurs
     // centaines/milliers de titres peut faire défiler beaucoup plus de pochettes distinctes que les
@@ -121,8 +174,10 @@ object ThumbnailUtils {
     }
     private val inFlight = ConcurrentHashMap<String, Deferred<Bitmap?>>()
     private val audioArtworkInFlight = ConcurrentHashMap<String, Deferred<Bitmap?>>()
+    private val embeddedArtworkInFlight = ConcurrentHashMap<String, Deferred<Bitmap?>>()
     private val networkThumbnailSemaphore = Semaphore(2)
-    private val audioArtworkSemaphore = Semaphore(1)
+    private val audioArtworkSemaphore = Semaphore(4)
+    private val embeddedArtworkSemaphore = Semaphore(3)
     // Valeur = (dernière modification du dossier au moment du scan, chemin de la cover trouvée
     // ou "" si aucune). Se rebase automatiquement sur lastModified() du dossier : si un fichier
     // est ajouté/renommé/supprimé dedans, l'horodatage change et on relance un simple listFiles()
@@ -131,14 +186,44 @@ object ThumbnailUtils {
     // jamais tant que le processus de l'app restait vivant.
     private val folderCoverPathCache = ConcurrentHashMap<String, Pair<Long, List<String>>>()
     private val audioFolderCoverEpoch = AtomicLong(0L)
-    private val audioArtworkDispatcher = Executors.newSingleThreadExecutor { runnable ->
+    /**
+     * Les images de dossier sont des lectures courtes et peuvent être décodées en parallèle.
+     * L'ancienne file mono-thread en priorité minimale expliquait l'arrêt apparent après quelques
+     * centaines d'albums : les demandes continuaient simplement à s'empiler pendant des heures.
+     */
+    private val audioArtworkDispatcher = Executors.newFixedThreadPool(4) { runnable ->
         Thread {
-            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_LOWEST) } catch (_: Exception) {}
+            try {
+                android.os.Process.setThreadPriority(
+                    android.os.Process.THREAD_PRIORITY_BACKGROUND
+                )
+            } catch (_: Exception) {
+            }
             runnable.run()
         }.apply {
-            name = "BlazeAudioArtworkBg"
+            name = "BlazeAudioArtworkExternal"
             isDaemon = true
-            priority = Thread.MIN_PRIORITY
+            priority = Thread.NORM_PRIORITY
+        }
+    }.asCoroutineDispatcher()
+
+    /**
+     * Extraction embarquée séparée. Trois workers au maximum évitent de saturer un NAS tout en
+     * permettant à plusieurs albums indépendants d'avancer réellement en parallèle.
+     */
+    private val embeddedArtworkDispatcher = Executors.newFixedThreadPool(3) { runnable ->
+        Thread {
+            try {
+                android.os.Process.setThreadPriority(
+                    android.os.Process.THREAD_PRIORITY_BACKGROUND
+                )
+            } catch (_: Exception) {
+            }
+            runnable.run()
+        }.apply {
+            name = "BlazeAudioArtworkEmbedded"
+            isDaemon = true
+            priority = Thread.NORM_PRIORITY
         }
     }.asCoroutineDispatcher()
 
@@ -146,7 +231,7 @@ object ThumbnailUtils {
     // une requête MediaStore dans onBindViewHolder suffit à créer des micro-saccades pendant le
     // scroll de l'accueil Galerie, surtout avec 4 aperçus par dossier. Deux workers bas-priorité
     // gardent les vignettes visibles réactives sans saturer l'I/O ni le GPU.
-    private val imageThumbnailDispatcher = Executors.newFixedThreadPool(2) { runnable ->
+    private val imageThumbnailDispatcher = Executors.newFixedThreadPool(4) { runnable ->
         Thread {
             try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND + 5) } catch (_: Exception) {}
             runnable.run()
@@ -157,12 +242,15 @@ object ThumbnailUtils {
         }
     }.asCoroutineDispatcher()
 
+    private val galleryWarmupScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val galleryWarmupStarted = AtomicBoolean(false)
+
     // Cache DISQUE persistant (survit aux redémarrages de l'app) : c'est lui qui évite de
     // devoir rouvrir une connexion SMB et re-décoder une frame vidéo / une pochette audio à
     // chaque fois qu'on revient sur l'accueil ou qu'on rouvre l'app — particulièrement lent sur
     // fichiers réseau. Plafonné en taille avec une purge des plus anciens fichiers au besoin.
     private const val DISK_CACHE_DIR_NAME = "thumb_cache"
-    private const val DISK_CACHE_MAX_BYTES = 300L * 1024 * 1024 // 300 Mo
+    private const val DISK_CACHE_MAX_BYTES = 512L * 1024 * 1024 // 512 Mo
     private const val DISK_CACHE_JPEG_QUALITY = 95
 
     private fun diskCacheDir(context: Context): File =
@@ -382,7 +470,6 @@ object ThumbnailUtils {
         ?.takeIf { it.exists() }
         ?.let { ":${it.lastModified()}:${it.length()}" }
         .orEmpty()
-    private fun videoKey(path: String): String = "video:$path"
     private fun customVideoKey(path: String): String = "custom-video-thumb:$path"
     // Les miniatures vidéo automatiques viennent d'une extraction légère et cachée : miniature
     // personnalisée en priorité, puis thumbnail système MediaStore quand Android l'a déjà indexée,
@@ -561,32 +648,187 @@ object ThumbnailUtils {
         } catch (_: Exception) { null }
     }
 
-    /** Extraction audio dédupliquée et bridée. Sur NAS/FLAC lourds, lancer trop de
-     *  retrievers en parallèle provoque des freezes I/O et des ANR indirects. */
-    suspend fun getAudioArtworkBitmap(context: Context, path: String): Bitmap? = coroutineScope {
-        if (!isAudioPath(path)) getCachedAudioArtworkBitmap(context, path)?.let { return@coroutineScope it }
-        val key = audioKey(path)
-        audioArtworkInFlight[key]?.let { return@coroutineScope it.await() }
+    /**
+     * Décode explicitement une référence d'image. Contrairement à getAudioArtworkBitmap(), une URL
+     * HTTP sans extension est ici volontairement considérée comme une albumArtURI.
+     */
+    suspend fun getExplicitArtworkBitmap(
+        context: Context,
+        path: String
+    ): Bitmap? = coroutineScope {
+        if (path.isBlank()) return@coroutineScope null
+        val key = "explicit:${audioKey(path)}"
+        audioArtworkInFlight[key]?.let {
+            return@coroutineScope it.await()
+        }
+
         val deferred = async(audioArtworkDispatcher) {
-            // Le réseau (SMB) avait moins de budget que le local alors qu'il en faut structurellement
-            // PLUS (latence par aller-retour, image de cover parfois volumineuse à transférer) : un
-            // MP3 sans cover embarquée qui doit chercher son cover.jpg voisin sur le NAS n'avait
-            // souvent pas le temps de terminer avant timeout, alors qu'un fichier local ou une image
-            // déjà résolue passait toujours largement.
             val timeoutMs = when {
-                isFolderCoverImagePath(path) && path.startsWith("smb://", true) -> 6_000L
-                isFolderCoverImagePath(path) -> 3_000L
-                path.startsWith("smb://", true) -> 7_000L
-                else -> 5_000L
+                path.startsWith("smb://", true) -> 35_000L
+                path.startsWith("http://", true) ||
+                    path.startsWith("https://", true) -> 30_000L
+                else -> 12_000L
             }
             withTimeoutOrNull(timeoutMs) {
                 audioArtworkSemaphore.withPermit {
-                    extractAudioArtworkInternal(context.applicationContext, path)
+                    getCachedAudioArtworkBitmapNoFolderProbe(
+                        context.applicationContext,
+                        path
+                    ) ?: decodeFolderCoverBitmap(
+                        context.applicationContext,
+                        path
+                    )?.let {
+                        val scaled =
+                            scaleBitmap(it, AUDIO_ARTWORK_MAX_PX)
+                        cacheResolvedAudioArtworkBitmap(
+                            context.applicationContext,
+                            path,
+                            scaled
+                        )
+                        scaled
+                    }
                 }
             }
         }
         audioArtworkInFlight[key] = deferred
-        try { deferred.await() } finally { audioArtworkInFlight.remove(key, deferred) }
+        try {
+            deferred.await()
+        } finally {
+            audioArtworkInFlight.remove(key, deferred)
+        }
+    }
+
+    /**
+     * Force l'extraction embarquée, même pour une URL UPnP sans extension. L'extension déclarée
+     * provient du conteneur ou du chemin logique Artiste/Album/Titre.
+     */
+    suspend fun getEmbeddedAudioArtworkBitmap(
+        context: Context,
+        path: String,
+        declaredExtension: String = ""
+    ): Bitmap? = coroutineScope {
+        if (path.isBlank()) return@coroutineScope null
+        getCachedAudioArtworkBitmapNoFolderProbe(
+            context.applicationContext,
+            path
+        )?.let { return@coroutineScope it }
+
+        val normalizedExtension = declaredExtension
+            .trim()
+            .removePrefix(".")
+            .lowercase(Locale.ROOT)
+            .ifBlank { extensionOf(path) }
+        val key =
+            "embedded:${audioKey(path)}:$normalizedExtension"
+        embeddedArtworkInFlight[key]?.let {
+            return@coroutineScope it.await()
+        }
+
+        val deferred = async(embeddedArtworkDispatcher) {
+            if (
+                (
+                    path.startsWith("smb://", true) ||
+                        path.startsWith("http://", true) ||
+                        path.startsWith("https://", true)
+                    ) &&
+                fr.retrospare.blazeplayer.player.BlazePlayerService
+                    .isAudioPlaybackActive
+            ) {
+                return@async null
+            }
+
+            val timeoutMs = when {
+                path.startsWith("smb://", true) -> 90_000L
+                path.startsWith("http://", true) ||
+                    path.startsWith("https://", true) -> 90_000L
+                path.startsWith("content://", true) -> 45_000L
+                else -> 35_000L
+            }
+
+            withTimeoutOrNull(timeoutMs) {
+                embeddedArtworkSemaphore.withPermit {
+                    val bitmap = extractEmbeddedArtworkInternal(
+                        context.applicationContext,
+                        path,
+                        normalizedExtension
+                    ) ?: return@withPermit null
+                    val scaled =
+                        scaleBitmap(bitmap, AUDIO_ARTWORK_MAX_PX)
+                    putAudioArtworkAliases(
+                        context.applicationContext,
+                        path,
+                        audioKey(path),
+                        scaled
+                    )
+                    scaled
+                }
+            }
+        }
+        embeddedArtworkInFlight[key] = deferred
+        try {
+            deferred.await()
+        } finally {
+            embeddedArtworkInFlight.remove(key, deferred)
+        }
+    }
+
+    /** Résolution historique complète, désormais fondée sur les deux voies explicites ci-dessus. */
+    suspend fun getAudioArtworkBitmap(
+        context: Context,
+        path: String
+    ): Bitmap? {
+        if (path.isBlank()) return null
+        if (isFolderCoverImagePath(path)) {
+            return getExplicitArtworkBitmap(context, path)
+        }
+        return getCachedAudioArtworkBitmapNoFolderProbe(
+            context.applicationContext,
+            path
+        ) ?: getEmbeddedAudioArtworkBitmap(
+            context,
+            path,
+            extensionOf(path)
+        )
+    }
+
+    private fun extractEmbeddedArtworkInternal(
+        context: Context,
+        path: String,
+        declaredExtension: String
+    ): Bitmap? {
+        val extension = declaredExtension
+            .trim()
+            .removePrefix(".")
+            .lowercase(Locale.ROOT)
+            .ifBlank { extensionOf(path) }
+
+        // Pour MP3, le parseur ID3 est prioritaire même en local. MediaMetadataRetriever varie
+        // beaucoup selon le constructeur et ignore régulièrement APIC, notamment avec plusieurs
+        // images, une désynchronisation de frame ID3v2.4 ou un en-tête étendu.
+        val preferBoundedParser =
+            extension == "mp3" ||
+                path.startsWith("smb://", true) ||
+                path.startsWith("http://", true) ||
+                path.startsWith("https://", true)
+        return if (preferBoundedParser) {
+            extractEmbeddedArtworkFallback(
+                context,
+                path,
+                extension
+            ) ?: tryExtractEmbeddedArtworkWithRetriever(
+                context,
+                path
+            )
+        } else {
+            tryExtractEmbeddedArtworkWithRetriever(
+                context,
+                path
+            ) ?: extractEmbeddedArtworkFallback(
+                context,
+                path,
+                extension
+            )
+        }
     }
 
     private fun localFileForImagePath(path: String): File? {
@@ -631,6 +873,42 @@ object ThumbnailUtils {
     fun preferredFolderCoverPathForAudioPath(path: String): String? =
         preferredLocalFolderCoverCandidatesForAudioPath(path).firstOrNull()
 
+    /**
+     * Retourne tous les candidats externes du dossier album, dans l'ordre de préférence.
+     * Une image quelconque du dossier est conservée en dernier recours : de nombreuses collections
+     * utilisent le nom de l'album plutôt que cover.jpg.
+     */
+    suspend fun folderArtworkCandidatesForAudioPath(
+        context: Context,
+        path: String
+    ): List<String> = withContext(Dispatchers.IO) {
+        when {
+            path.startsWith("smb://", true) ->
+                (
+                    smbFolderArtworkCandidates(path) +
+                        smbFolderCoverCandidatePaths(path)
+                ).distinct()
+
+            path.startsWith("http://", true) ||
+                path.startsWith("https://", true) ||
+                path.startsWith("upnp://", true) ->
+                emptyList()
+
+            else ->
+                (
+                    preferredLocalFolderCoverCandidatesForAudioPath(
+                        path
+                    ) +
+                        listOfNotNull(
+                            preferredMediaStoreFolderCoverPathForAudioPath(
+                                context.applicationContext,
+                                path
+                            )
+                        )
+                ).distinct()
+        }
+    }
+
     /** Liste ordonnée et validée des pochettes de dossier locales. On garde plusieurs candidats
      *  au lieu d'un seul : un cover.jpg présent mais illisible ne doit pas empêcher le repli vers
      *  cover.png. Le lookup est insensible à la casse pour les volumes dont le nom réel est
@@ -659,36 +937,44 @@ object ThumbnailUtils {
             .distinctBy { it.absolutePath }
     }
 
-    private fun preferredCoverImageInDirectory(directory: File): File? =
-        preferredCoverImagesInDirectory(directory).firstOrNull()
-
     private fun preferredCoverImagesInDirectory(directory: File): List<File> {
         val key = directory.absolutePath
         val dirStamp = directory.lastModified()
         folderCoverPathCache[key]?.let { (stamp, coverPaths) ->
             if (stamp == dirStamp) {
-                val cached = coverPaths.map { File(it) }.filter { it.exists() && it.isFile }
+                val cached = coverPaths
+                    .map(::File)
+                    .filter { it.exists() && it.isFile }
                 if (cached.isNotEmpty()) return cached
             }
         }
-        val filesByName = runCatching {
+
+        val covers = runCatching {
             directory.listFiles()
                 ?.asSequence()
-                ?.filter { it.isFile }
-                ?.associateBy { it.name.lowercase(Locale.ROOT) }
+                ?.filter { file ->
+                    file.isFile &&
+                        !file.name.startsWith(".") &&
+                        extensionOf(file.name) in folderCoverImageExtensions &&
+                        file.length() in 1L..MAX_FOLDER_COVER_IMAGE_BYTES
+                }
+                ?.sortedWith(
+                    compareBy<File> { folderCoverPriority(it.name) }
+                        .thenByDescending { it.length() }
+                        .thenBy { it.name.lowercase(Locale.ROOT) }
+                )
+                ?.toList()
                 .orEmpty()
-        }.getOrDefault(emptyMap())
-        val covers = preferredFolderCoverExtensions.map { "cover.$it" }
-            .mapNotNull { expected ->
-                File(directory, expected).takeIf { it.exists() && it.isFile }
-                    ?: filesByName[expected]
-            }
-            .distinctBy { it.absolutePath.lowercase(Locale.ROOT) }
-        // Ne pas mémoriser durablement une absence : certains NAS/volumes externes ne mettent pas
-        // à jour lastModified() du dossier lors de l'ajout d'une image. Une prochaine demande doit
-        // donc pouvoir retenter immédiatement.
-        if (covers.isNotEmpty()) folderCoverPathCache[key] = dirStamp to covers.map { it.absolutePath }
-        else folderCoverPathCache.remove(key)
+        }.getOrDefault(emptyList())
+
+        // Une image nommée d'après l'album est un candidat valide même si elle ne s'appelle pas
+        // cover.jpg. Le tri conserve néanmoins cover/front/folder en priorité.
+        if (covers.isNotEmpty()) {
+            folderCoverPathCache[key] =
+                dirStamp to covers.map { it.absolutePath }
+        } else {
+            folderCoverPathCache.remove(key)
+        }
         return covers
     }
 
@@ -787,12 +1073,38 @@ object ThumbnailUtils {
 
     private fun isDiscFolderName(value: String): Boolean = Regex("^(?:cd|disc|disk|disque|vol(?:ume)?)\\s*\\d+", RegexOption.IGNORE_CASE).containsMatchIn(value.trim())
 
-    private fun decodeFolderCoverBitmap(context: Context, path: String): Bitmap? {
-        if (!isFolderCoverImagePath(path) && !path.startsWith("content://", true)) return null
+    private fun decodeFolderCoverBitmap(
+        context: Context,
+        path: String
+    ): Bitmap? {
+        val explicitRemoteImage =
+            path.startsWith("http://", true) ||
+                path.startsWith("https://", true)
+        if (
+            !isFolderCoverImagePath(path) &&
+            !path.startsWith("content://", true) &&
+            !explicitRemoteImage
+        ) {
+            return null
+        }
         return try {
             when {
                 path.startsWith("smb://", true) -> decodeSmbFolderCoverBitmap(path)
-                path.startsWith("http://", true) || path.startsWith("https://", true) -> null
+                path.startsWith("http://", true) ||
+                    path.startsWith("https://", true) -> {
+                    val bytes = readImageBytesBounded(
+                        context,
+                        path,
+                        MAX_FOLDER_COVER_IMAGE_BYTES.toInt()
+                    )
+                    bytes?.let {
+                        decodeByteArraySampledStrict(
+                            it,
+                            it.size,
+                            AUDIO_ARTWORK_MAX_PX
+                        )
+                    }
+                }
                 else -> {
                     // Pour une cover de dossier, on lit le fichier entier avant de décoder. Une
                     // image tronquée ne doit jamais être acceptée puis persistée comme une cover
@@ -864,7 +1176,8 @@ object ThumbnailUtils {
     // au cache local basé sur lastModified() : on ne peut pas "stat" un dossier réseau aussi
     // simplement, un TTL est le compromis le plus simple pour éviter de relister le dossier à
     // chaque miniature tout en restant à jour si une cover est ajoutée/changée sur le NAS).
-    private val smbFolderCoverCache = ConcurrentHashMap<String, Pair<Long, String>>()
+    private val smbFolderCoverCache =
+        ConcurrentHashMap<String, Pair<Long, List<String>>>()
     private const val SMB_FOLDER_COVER_CACHE_TTL_MS = 15_000L
 
     /** Construit les chemins directs cover.jpg/cover.png dans le dossier du titre, puis dans le
@@ -896,57 +1209,116 @@ object ThumbnailUtils {
      *  seule la pochette embarquée était tentée pour smb://, la recherche de cover-dossier était
      *  jusqu'ici entièrement absente pour ce protocole. Volontairement lent-tolérant (un seul
      *  listing réseau, mis en cache) plutôt qu'une extraction lourde. */
-    private fun preferredSmbFolderCoverPath(path: String): String? {
-        if (!path.startsWith("smb://", true)) return null
-        if (fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
+    private fun smbFolderArtworkCandidates(path: String): List<String> {
+        if (!path.startsWith("smb://", true)) return emptyList()
+        if (
+            fr.retrospare.blazeplayer.player.BlazePlayerService
+                .isAudioPlaybackActive
+        ) {
+            return emptyList()
+        }
+
         return try {
-            val parsed = fr.retrospare.blazeplayer.player.SmbDataSource.parseSmbUri(Uri.parse(path))
+            val parsed =
+                fr.retrospare.blazeplayer.player.SmbDataSource
+                    .parseSmbUri(Uri.parse(path))
             val normalized = parsed.filePath.replace('\\', '/')
             val fileDir = normalized.substringBeforeLast('/', "")
             val searchDirs = buildList {
                 add(fileDir)
-                val lastDirName = fileDir.substringAfterLast('/', fileDir)
+                val lastDirName =
+                    fileDir.substringAfterLast('/', fileDir)
                 if (isDiscFolderName(lastDirName)) {
-                    fileDir.substringBeforeLast('/', "").takeIf { it.isNotBlank() }?.let { add(it) }
+                    fileDir.substringBeforeLast('/', "")
+                        .takeIf { it.isNotBlank() }
+                        ?.let(::add)
                 }
             }.distinct()
             val now = System.currentTimeMillis()
+            val result = ArrayList<String>()
 
             for (dir in searchDirs) {
-                if (fr.retrospare.blazeplayer.player.BlazePlayerService.isAudioPlaybackActive) return null
-                val dirPath = dir.replace('/', '\\')
-                val cacheKey = "${parsed.host}:${parsed.port}:${parsed.shareName}:$dirPath"
-                val cached = smbFolderCoverCache[cacheKey]
-                if (cached != null && now - cached.first < SMB_FOLDER_COVER_CACHE_TTL_MS) {
-                    if (cached.second.isNotBlank()) return cached.second
-                    continue
+                if (
+                    fr.retrospare.blazeplayer.player.BlazePlayerService
+                        .isAudioPlaybackActive
+                ) {
+                    break
                 }
 
-                val share = fr.retrospare.blazeplayer.player.SmbSessionPool.getShare(
-                    parsed.host, parsed.port, parsed.username, parsed.password, parsed.shareName
-                )
-                val coverName = try {
-                    share.list(dirPath)
-                        .asSequence()
-                        .map { it.fileName }
-                        .filter { name -> !name.startsWith(".") && isAllowedAudioFolderCoverName(name) }
-                        .sortedWith(Comparator { a, b -> preferredCoverFileCompare(a, b) })
-                        .firstOrNull()
-                } finally {
-                    try { share.close() } catch (_: Exception) {}
+                val dirPath = dir.replace('/', '\\')
+                val cacheKey =
+                    "${parsed.host}:${parsed.port}:${parsed.shareName}:$dirPath"
+                val cached = smbFolderCoverCache[cacheKey]
+                val candidates = if (
+                    cached != null &&
+                    now - cached.first <
+                    SMB_FOLDER_COVER_CACHE_TTL_MS
+                ) {
+                    cached.second
+                } else {
+                    val share =
+                        fr.retrospare.blazeplayer.player.SmbSessionPool
+                            .getShare(
+                                parsed.host,
+                                parsed.port,
+                                parsed.username,
+                                parsed.password,
+                                parsed.shareName
+                            )
+                    val found = try {
+                        share.list(dirPath)
+                            .asSequence()
+                            .filter { info ->
+                                val name = info.fileName
+                                val extension = extensionOf(name)
+                                !name.startsWith(".") &&
+                                    extension in
+                                    folderCoverImageExtensions &&
+                                    info.endOfFile in
+                                    1L..MAX_FOLDER_COVER_IMAGE_BYTES
+                            }
+                            .sortedWith(
+                                compareBy<com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation> {
+                                    folderCoverPriority(it.fileName)
+                                }.thenByDescending {
+                                    it.endOfFile
+                                }.thenBy {
+                                    it.fileName.lowercase(Locale.ROOT)
+                                }
+                            )
+                            .map { info ->
+                                buildSmbCoverUri(
+                                    parsed,
+                                    if (dir.isBlank()) {
+                                        info.fileName
+                                    } else {
+                                        "$dir/${info.fileName}"
+                                    }
+                                )
+                            }
+                            .toList()
+                    } finally {
+                        runCatching { share.close() }
+                    }
+                    smbFolderCoverCache[cacheKey] = now to found
+                    found
                 }
-                val coverPath = coverName?.let { name ->
-                    buildSmbCoverUri(parsed, if (dir.isBlank()) name else "$dir/$name")
-                }
-                smbFolderCoverCache[cacheKey] = now to coverPath.orEmpty()
-                if (coverPath != null) return coverPath
+                result += candidates
             }
-            null
+            result.distinct()
         } catch (e: Exception) {
-            android.util.Log.w("ThumbnailUtils", "SMB folder cover search failed for ${safePathForLog(path)}", e)
-            null
+            android.util.Log.w(
+                "ThumbnailUtils",
+                "SMB folder cover search failed for " +
+                    safePathForLog(path),
+                e
+            )
+            emptyList()
         }
     }
+
+    private fun preferredSmbFolderCoverPath(path: String): String? =
+        smbFolderArtworkCandidates(path).firstOrNull()
 
     private fun buildSmbCoverUri(parsed: fr.retrospare.blazeplayer.player.SmbDataSource.ParsedSmbUri, cleanPath: String): String {
         return fr.retrospare.blazeplayer.player.SmbDataSource.buildSmbUri(
@@ -961,6 +1333,38 @@ object ThumbnailUtils {
 
     private fun extractAudioArtworkInternal(context: Context, path: String): Bitmap? {
         val key = audioKey(path)
+
+        // UPnP albumArtURI n'a pas toujours une extension .jpg/.png. Une URL explicitement
+        // fournie comme artwork doit être décodée comme image directement, sans passer par
+        // MediaMetadataRetriever comme s'il s'agissait d'un morceau audio.
+        if (
+            (path.startsWith("http://", true) || path.startsWith("https://", true)) &&
+            !isAudioPath(path)
+        ) {
+            cache.get(key)?.let { return it }
+            readFromDisk(context, key)?.let {
+                cache.put(key, it)
+                return it
+            }
+            val bytes = readImageBytesBounded(
+                context,
+                path,
+                MAX_FOLDER_COVER_IMAGE_BYTES.toInt()
+            )
+            return bytes?.let {
+                decodeByteArraySampledStrict(
+                    it,
+                    it.size,
+                    AUDIO_ARTWORK_MAX_PX
+                )
+            }?.let {
+                val scaled = scaleBitmap(it, AUDIO_ARTWORK_MAX_PX)
+                cache.put(key, scaled)
+                promoteAudioHotCache(key, scaled)
+                writeToDisk(context, key, scaled)
+                scaled
+            }
+        }
 
         if (isFolderCoverImagePath(path)) {
             cache.get(key)?.let { return it }
@@ -1047,9 +1451,20 @@ object ThumbnailUtils {
      *  arrive très souvent pour FLAC/MP4/APE/OGG selon l'appareil et la version d'Android, alors
      *  que l'image est bien présente dans le fichier. Un parseur binaire minimaliste et borné par
      *  format (pas de dépendance externe) plutôt qu'un simple retour null. */
-    private fun extractEmbeddedArtworkFallback(context: Context, path: String): Bitmap? {
+    private fun extractEmbeddedArtworkFallback(
+        context: Context,
+        path: String,
+        declaredExtension: String = extensionOf(path)
+    ): Bitmap? {
         val imageBytes = try {
-            extractEmbeddedArtworkBytes(context, path, extensionOf(path))
+            extractEmbeddedArtworkBytes(
+                context,
+                path,
+                declaredExtension
+                    .trim()
+                    .removePrefix(".")
+                    .lowercase(Locale.ROOT)
+            )
         } catch (e: Exception) {
             android.util.Log.w("ThumbnailUtils", "Embedded artwork fallback failed for ${safePathForLog(path)}", e)
             null
@@ -1061,18 +1476,34 @@ object ThumbnailUtils {
         }
     }
 
-    private fun extractEmbeddedArtworkBytes(context: Context, path: String, ext: String): ByteArray? {
+    private fun extractEmbeddedArtworkBytes(
+        context: Context,
+        path: String,
+        ext: String
+    ): ByteArray? {
+        // ID3 peut exister dans MP3, AAC, WAV, AIFF et même dans certains FLAC. On le vérifie donc
+        // pour tous les formats au lieu de le réserver à l'extension .mp3.
+        readId3TagBytes(context, path)
+            ?.let(::findImageBytesInId3Tag)
+            ?.let { return it }
+
         when (ext) {
-            "mp3" -> readId3TagBytes(context, path)?.let { findImageBytesInId3Tag(it) }?.let { return it }
-            "flac" -> extractFlacPictureBytes(context, path)?.let { return it }
-            "m4a", "mp4", "m4b", "aac", "alac" -> extractMp4CoverBytes(context, path)?.let { return it }
+            "flac" ->
+                extractFlacPictureBytes(context, path)?.let { return it }
+
+            "m4a", "mp4", "m4b", "aac", "alac" ->
+                extractMp4CoverBytes(context, path)?.let { return it }
+
+            "ogg", "opus", "oga" ->
+                extractVorbisCommentPictureBytes(context, path)
+                    ?.let { return it }
         }
-        // Tag APEv2 accroché en fin de fichier : le cas normal pour APE/WV, mais aussi rencontré en
-        // plus d'ID3 sur certains MP3/WAV/FLAC tagués par d'anciens outils.
+
+        // APEv2 couvre APE/WV et de nombreux fichiers historiques MP3/WAV/FLAC.
         extractApeV2PictureBytes(context, path)?.let { return it }
-        // Dernier recours, générique et volontairement simple : recherche d'une signature JPEG/PNG
-        // dans les premiers Mo du fichier. Couvre OGG/Opus/WMA/AIFF/MKA/AC3/DTS et tout tag non
-        // standard, sans avoir à écrire un parseur dédié pour chaque conteneur exotique.
+
+        // Dernier recours : signatures brutes au début ET à la fin du conteneur. Cela couvre les
+        // pièces jointes WMA/ASF, Matroska/MKA, WAV/AIFF et les tags non standards.
         return genericSignatureScanBytes(context, path)
     }
 
@@ -1120,12 +1551,192 @@ object ThumbnailUtils {
         override fun close() { try { source.close() } catch (_: Exception) {} }
     }
 
+    /**
+     * Accès aléatoire HTTP par requêtes Range, utilisé pour les URL UPnP/DLNA. Un petit cache LRU
+     * de blocs évite un aller-retour par lecture de champ lors de l'analyse MP4/FLAC/APEv2.
+     */
+    private class HttpRandomAccessSource(
+        private val url: String
+    ) : RandomAccessSource {
+        private val blockCache = object :
+            LinkedHashMap<Long, ByteArray>(HTTP_RANGE_CACHE_BLOCKS, 0.75f, true) {
+            override fun removeEldestEntry(
+                eldest: MutableMap.MutableEntry<Long, ByteArray>?
+            ): Boolean = size > HTTP_RANGE_CACHE_BLOCKS
+        }
+
+        override val size: Long = resolveSize()
+
+        private fun openConnection(start: Long, end: Long): HttpURLConnection {
+            return (URL(url).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 10_000
+                readTimeout = 15_000
+                instanceFollowRedirects = true
+                useCaches = false
+                setRequestProperty("Accept-Encoding", "identity")
+                setRequestProperty("Range", "bytes=$start-$end")
+            }
+        }
+
+        private fun resolveSize(): Long {
+            runCatching {
+                val connection = (URL(url).openConnection() as HttpURLConnection)
+                try {
+                    connection.requestMethod = "HEAD"
+                    connection.connectTimeout = 8_000
+                    connection.readTimeout = 8_000
+                    connection.instanceFollowRedirects = true
+                    connection.setRequestProperty("Accept-Encoding", "identity")
+                    connection.connect()
+                    val length = connection.contentLengthLong
+                    if (length > 0L) return length
+                } finally {
+                    connection.disconnect()
+                }
+            }
+
+            return runCatching {
+                val connection = openConnection(0L, 0L)
+                try {
+                    connection.connect()
+                    val contentRange = connection.getHeaderField("Content-Range")
+                        .orEmpty()
+                    contentRange.substringAfterLast('/', "")
+                        .toLongOrNull()
+                        ?.takeIf { it > 0L }
+                        ?: connection.contentLengthLong
+                } finally {
+                    connection.disconnect()
+                }
+            }.getOrDefault(-1L)
+        }
+
+        @Synchronized
+        private fun block(blockStart: Long): ByteArray? {
+            blockCache[blockStart]?.let { return it }
+            val blockEnd = if (size > 0L) {
+                minOf(
+                    size - 1L,
+                    blockStart + HTTP_RANGE_BLOCK_BYTES - 1L
+                )
+            } else {
+                blockStart + HTTP_RANGE_BLOCK_BYTES - 1L
+            }
+            if (blockEnd < blockStart) return null
+
+            val bytes = runCatching {
+                val connection = openConnection(blockStart, blockEnd)
+                try {
+                    connection.connect()
+                    val code = connection.responseCode
+                    if (
+                        code != HttpURLConnection.HTTP_PARTIAL &&
+                        code != HttpURLConnection.HTTP_OK
+                    ) {
+                        return@runCatching null
+                    }
+                    connection.inputStream.use { input ->
+                        if (
+                            code == HttpURLConnection.HTTP_OK &&
+                            blockStart > 0L
+                        ) {
+                            var toSkip = blockStart
+                            while (toSkip > 0L) {
+                                val skipped = input.skip(toSkip)
+                                if (skipped > 0L) {
+                                    toSkip -= skipped
+                                } else if (input.read() >= 0) {
+                                    toSkip--
+                                } else {
+                                    return@use ByteArray(0)
+                                }
+                            }
+                        }
+
+                        val maximum = (
+                            blockEnd - blockStart + 1L
+                        ).coerceAtMost(
+                            HTTP_RANGE_BLOCK_BYTES.toLong()
+                        ).toInt()
+                        val output = java.io.ByteArrayOutputStream(maximum)
+                        val buffer = ByteArray(32 * 1024)
+                        var total = 0
+                        while (total < maximum) {
+                            val read = input.read(
+                                buffer,
+                                0,
+                                minOf(buffer.size, maximum - total)
+                            )
+                            if (read <= 0) break
+                            output.write(buffer, 0, read)
+                            total += read
+                        }
+                        output.toByteArray()
+                    }
+                } finally {
+                    connection.disconnect()
+                }
+            }.getOrNull() ?: return null
+
+            if (bytes.isNotEmpty()) blockCache[blockStart] = bytes
+            return bytes.takeIf { it.isNotEmpty() }
+        }
+
+        override fun readAt(
+            position: Long,
+            buffer: ByteArray,
+            offset: Int,
+            length: Int
+        ): Int {
+            if (
+                position < 0L ||
+                length <= 0 ||
+                (size > 0L && position >= size)
+            ) {
+                return -1
+            }
+
+            var sourcePosition = position
+            var destinationOffset = offset
+            var remaining = length
+            var total = 0
+
+            while (remaining > 0 && (size <= 0L || sourcePosition < size)) {
+                val blockStart =
+                    (sourcePosition / HTTP_RANGE_BLOCK_BYTES) *
+                        HTTP_RANGE_BLOCK_BYTES
+                val bytes = block(blockStart) ?: break
+                val inBlock = (sourcePosition - blockStart).toInt()
+                if (inBlock >= bytes.size) break
+                val count = minOf(remaining, bytes.size - inBlock)
+                System.arraycopy(
+                    bytes,
+                    inBlock,
+                    buffer,
+                    destinationOffset,
+                    count
+                )
+                total += count
+                remaining -= count
+                destinationOffset += count
+                sourcePosition += count
+            }
+            return if (total > 0) total else -1
+        }
+
+        override fun close() {
+            synchronized(this) { blockCache.clear() }
+        }
+    }
+
     private fun openRandomAccessSource(context: Context, path: String): RandomAccessSource? = try {
         when {
             path.startsWith("smb://", true) -> SmbRandomAccessSource(fr.retrospare.blazeplayer.player.SmbMediaDataSource(path))
             path.startsWith("content://", true) -> context.contentResolver.openFileDescriptor(Uri.parse(path), "r")
                 ?.let { ContentRandomAccessSource(it) }
-            path.startsWith("http://", true) || path.startsWith("https://", true) -> null
+            path.startsWith("http://", true) ||
+                path.startsWith("https://", true) ->
+                HttpRandomAccessSource(path)
             path.startsWith("file://", true) -> localFileForImagePath(path)?.takeIf { it.exists() && it.isFile }?.let { LocalRandomAccessSource(it) }
             else -> File(path).takeIf { it.exists() && it.isFile }?.let { LocalRandomAccessSource(it) }
         }
@@ -1134,9 +1745,16 @@ object ThumbnailUtils {
         null
     }
 
-    private const val MAX_EMBEDDED_IMAGE_BYTES = 20 * 1024 * 1024 // 20 Mo, garde-fou anti-OOM
-    private const val MAX_METADATA_SCAN_BYTES = 24 * 1024 * 1024  // borne les blocs/tags parcourus
-    private const val GENERIC_SIGNATURE_SCAN_BYTES = 4 * 1024 * 1024 // dernier recours seulement
+    private const val MAX_EMBEDDED_IMAGE_BYTES =
+        32 * 1024 * 1024
+    private const val MAX_METADATA_SCAN_BYTES =
+        40 * 1024 * 1024
+    private const val GENERIC_SIGNATURE_SCAN_BYTES =
+        12 * 1024 * 1024
+    private const val VORBIS_COMMENT_SCAN_BYTES =
+        16 * 1024 * 1024
+    private const val HTTP_RANGE_BLOCK_BYTES = 512 * 1024L
+    private const val HTTP_RANGE_CACHE_BLOCKS = 8
 
     private fun readFully(source: RandomAccessSource, position: Long, length: Int): ByteArray? {
         if (length <= 0 || length > MAX_EMBEDDED_IMAGE_BYTES || position < 0) return null
@@ -1183,7 +1801,14 @@ object ThumbnailUtils {
             var offset = 4L
             var last = false
             var guard = 0
-            while (!last && offset + 4 <= source.size && guard < 256) {
+            while (
+                !last &&
+                (
+                    source.size <= 0L ||
+                        offset + 4 <= source.size
+                    ) &&
+                guard < 256
+            ) {
                 guard++
                 val header = readFully(source, offset, 4) ?: return null
                 last = (header[0].toInt() and 0x80) != 0
@@ -1304,6 +1929,94 @@ object ThumbnailUtils {
         return null
     }
 
+    // ---- OGG / Opus : METADATA_BLOCK_PICTURE ou COVERART encodé en Base64 ----
+
+    private fun extractVorbisCommentPictureBytes(
+        context: Context,
+        path: String
+    ): ByteArray? {
+        val source = openRandomAccessSource(context, path) ?: return null
+        return try {
+            val length = when {
+                source.size > 0L ->
+                    minOf(source.size, VORBIS_COMMENT_SCAN_BYTES.toLong()).toInt()
+                else -> VORBIS_COMMENT_SCAN_BYTES
+            }
+            val data = readFully(source, 0L, length) ?: return null
+
+            extractBase64CommentValue(data, "METADATA_BLOCK_PICTURE=")
+                ?.let { encoded ->
+                    runCatching {
+                        Base64.decode(encoded, Base64.DEFAULT)
+                    }.getOrNull()
+                }
+                ?.let(::parseFlacPictureBlock)
+                ?.let { return it }
+
+            extractBase64CommentValue(data, "COVERART=")
+                ?.let { encoded ->
+                    runCatching {
+                        Base64.decode(encoded, Base64.DEFAULT)
+                    }.getOrNull()
+                }
+                ?.let { imageBytesFromFramePayload(it, false) ?: it }
+        } catch (error: Throwable) {
+            android.util.Log.w(
+                "ThumbnailUtils",
+                "Vorbis picture parse failed for ${safePathForLog(path)}",
+                error
+            )
+            null
+        } finally {
+            runCatching { source.close() }
+        }
+    }
+
+    private fun extractBase64CommentValue(
+        bytes: ByteArray,
+        key: String
+    ): ByteArray? {
+        val keyBytes = key.toByteArray(Charsets.US_ASCII)
+        var start = -1
+        for (index in 0..(bytes.size - keyBytes.size).coerceAtLeast(-1)) {
+            var match = true
+            for (keyIndex in keyBytes.indices) {
+                val value = bytes[index + keyIndex]
+                if (
+                    value.toInt().toChar().uppercaseChar() !=
+                    keyBytes[keyIndex].toInt().toChar().uppercaseChar()
+                ) {
+                    match = false
+                    break
+                }
+            }
+            if (match) {
+                start = index + keyBytes.size
+                break
+            }
+        }
+        if (start < 0 || start >= bytes.size) return null
+
+        var end = start
+        while (end < bytes.size) {
+            val c = bytes[end].toInt().toChar()
+            if (
+                c.isLetterOrDigit() ||
+                c == '+' ||
+                c == '/' ||
+                c == '=' ||
+                c == '\r' ||
+                c == '\n'
+            ) {
+                end++
+            } else {
+                break
+            }
+        }
+        if (end <= start) return null
+        return bytes.copyOfRange(start, end)
+    }
+
     // ---- APEv2 : tag accroché en fin de fichier (APE, WavPack, et parfois MP3/WAV/FLAC) ----
 
     private const val APE_FOOTER_SIZE = 32
@@ -1352,9 +2065,27 @@ object ThumbnailUtils {
 
     // ---- Dernier recours : signature JPEG/PNG brute, pour les conteneurs sans parseur dédié ----
 
-    private fun genericSignatureScanBytes(context: Context, path: String): ByteArray? {
-        val bytes = readLeadingBytes(context, path, GENERIC_SIGNATURE_SCAN_BYTES) ?: return null
-        return imageBytesFromFramePayload(bytes, false)
+    private fun genericSignatureScanBytes(
+        context: Context,
+        path: String
+    ): ByteArray? {
+        readLeadingBytes(context, path, GENERIC_SIGNATURE_SCAN_BYTES)
+            ?.let { imageBytesFromFramePayload(it, false) }
+            ?.let { return it }
+
+        val source = openRandomAccessSource(context, path) ?: return null
+        return try {
+            if (source.size <= 0L) return null
+            val length = minOf(
+                GENERIC_SIGNATURE_SCAN_BYTES.toLong(),
+                source.size
+            ).toInt()
+            val start = (source.size - length).coerceAtLeast(0L)
+            readFully(source, start, length)
+                ?.let { imageBytesFromFramePayload(it, false) }
+        } finally {
+            runCatching { source.close() }
+        }
     }
 
     private fun readLeadingBytes(context: Context, path: String, maxBytes: Int): ByteArray? {
@@ -1383,7 +2114,21 @@ object ThumbnailUtils {
                         try { source.close() } catch (_: Exception) {}
                     }
                 }
-                path.startsWith("http://", true) || path.startsWith("https://", true) -> null
+                path.startsWith("http://", true) ||
+                    path.startsWith("https://", true) -> {
+                    val source = openRandomAccessSource(context, path)
+                        ?: return null
+                    try {
+                        val len = if (source.size > 0L) {
+                            minOf(maxBytes.toLong(), source.size).toInt()
+                        } else {
+                            maxBytes
+                        }
+                        readFully(source, 0L, len)
+                    } finally {
+                        runCatching { source.close() }
+                    }
+                }
                 else -> File(path).takeIf { it.exists() && it.isFile }?.inputStream()?.use(::fromStream)
             }
         } catch (e: Exception) {
@@ -1403,7 +2148,7 @@ object ThumbnailUtils {
             val header = readFully(source, 0L, 10) ?: return null
             if (header[0] != 'I'.code.toByte() || header[1] != 'D'.code.toByte() || header[2] != '3'.code.toByte()) return null
             val tagSize = synchsafeInt(header, 6).takeIf { it > 0 } ?: return null
-            val bounded = tagSize.coerceAtMost(16 * 1024 * 1024)
+            val bounded = tagSize.coerceAtMost(MAX_EMBEDDED_IMAGE_BYTES)
             val body = readFully(source, 10L, bounded) ?: return header
             val all = ByteArray(10 + body.size)
             System.arraycopy(header, 0, all, 0, 10)
@@ -1433,62 +2178,331 @@ object ThumbnailUtils {
             (bytes[offset + 3].toInt() and 0xFF)
     }
 
+    private data class Id3ImageCandidate(
+        val bytes: ByteArray,
+        val pictureType: Int,
+        val order: Int
+    )
+
     private fun findImageBytesInId3Tag(tag: ByteArray): ByteArray? {
-        if (tag.size < 10 || tag[0] != 'I'.code.toByte() || tag[1] != 'D'.code.toByte() || tag[2] != '3'.code.toByte()) return null
+        if (
+            tag.size < 10 ||
+            tag[0] != 'I'.code.toByte() ||
+            tag[1] != 'D'.code.toByte() ||
+            tag[2] != '3'.code.toByte()
+        ) {
+            return null
+        }
         val major = tag[3].toInt() and 0xFF
+        if (major !in 2..4) {
+            return imageBytesFromFramePayload(tag.copyOfRange(10, tag.size), false)
+        }
         val flags = tag[5].toInt() and 0xFF
-        val unsynchronised = flags and 0x80 != 0
+        val tagUnsynchronised = flags and 0x80 != 0
         val tagEnd = (10 + synchsafeInt(tag, 6)).coerceAtMost(tag.size)
         var offset = 10
         if (major >= 3 && flags and 0x40 != 0 && offset + 4 <= tagEnd) {
             val extSize = if (major == 4) synchsafeInt(tag, offset) else normalInt(tag, offset)
             if (extSize > 0) {
-                // ID3v2.4 inclut les 4 octets de taille dans extSize ; ID3v2.3 ne les inclut pas.
-                // Sans ce décalage correct, on peut commencer à lire au milieu de l'en-tête étendu
-                // et rater la frame APIC de certains MP3 parfaitement valides.
                 val headerBytes = if (major == 3) 4 else 0
                 offset = (offset + extSize + headerBytes).coerceAtMost(tagEnd)
             }
         }
 
-        while (offset + (if (major == 2) 6 else 10) <= tagEnd) {
-            if (major == 2) {
-                val id = String(tag, offset, 3, Charsets.ISO_8859_1)
-                val frameSize = ((tag[offset + 3].toInt() and 0xFF) shl 16) or
+        val candidates = mutableListOf<Id3ImageCandidate>()
+        var order = 0
+        val frameHeaderSize = if (major == 2) 6 else 10
+        while (offset + frameHeaderSize <= tagEnd) {
+            val frameStart = offset
+            val idLength = if (major == 2) 3 else 4
+            val id = String(tag, offset, idLength, Charsets.ISO_8859_1)
+            if (id.all { it == '\u0000' }) break
+            if (!id.all { it in 'A'..'Z' || it in '0'..'9' }) {
+                offset++
+                continue
+            }
+
+            val frameSize = if (major == 2) {
+                ((tag[offset + 3].toInt() and 0xFF) shl 16) or
                     ((tag[offset + 4].toInt() and 0xFF) shl 8) or
                     (tag[offset + 5].toInt() and 0xFF)
-                offset += 6
-                if (frameSize <= 0 || offset + frameSize > tagEnd) break
-                val payload = tag.copyOfRange(offset, offset + frameSize)
-                if (id == "PIC") imageBytesFromFramePayload(payload, unsynchronised)?.let { return it }
-                offset += frameSize
+            } else if (major == 4) {
+                synchsafeInt(tag, offset + 4)
             } else {
-                val id = String(tag, offset, 4, Charsets.ISO_8859_1)
-                val frameSize = if (major == 4) synchsafeInt(tag, offset + 4) else normalInt(tag, offset + 4)
-                offset += 10
-                if (frameSize <= 0 || offset + frameSize > tagEnd) break
-                val payload = tag.copyOfRange(offset, offset + frameSize)
-                if (id == "APIC") imageBytesFromFramePayload(payload, unsynchronised)?.let { return it }
-                offset += frameSize
+                normalInt(tag, offset + 4)
             }
+            val formatFlags = if (major >= 3) tag[offset + 9].toInt() and 0xFF else 0
+            offset += frameHeaderSize
+            if (frameSize <= 0 || offset + frameSize > tagEnd) {
+                // Un frame corrompu ne doit pas condamner les APIC suivants. On reprend juste après
+                // son en-tête et le scan global final récupérera aussi les tags très mal formés.
+                offset = (frameStart + 1).coerceAtMost(tagEnd)
+                continue
+            }
+
+            if (id == "APIC" || id == "PIC") {
+                val rawPayload = tag.copyOfRange(offset, offset + frameSize)
+                normaliseId3ArtworkPayload(
+                    rawPayload,
+                    major,
+                    formatFlags,
+                    tagUnsynchronised
+                )?.let { payload ->
+                    val pictureType = id3PictureType(payload, major)
+                    val imageSearchStart = id3ImageSearchStart(payload, major)
+                    imageByteCandidates(payload, imageSearchStart).forEach { image ->
+                        candidates += Id3ImageCandidate(image, pictureType, order++)
+                    }
+                }
+            }
+            offset += frameSize
         }
-        // Dernier recours : certains tags APIC mal formés gardent quand même les bytes JPEG/PNG.
-        return imageBytesFromFramePayload(tag.copyOfRange(10, tagEnd), unsynchronised)
+
+        // Les tailles de frame peuvent devenir fausses après désynchronisation sur certains tags
+        // historiques. Un scan borné du corps complet sert de filet de sécurité et récupère aussi
+        // une seconde APIC lorsque la première est une icône ou une image invalide.
+        val body = tag.copyOfRange(10, tagEnd)
+        val cleanBody = if (tagUnsynchronised) removeId3Unsynchronisation(body) else body
+        imageByteCandidates(cleanBody, 0).forEach { image ->
+            candidates += Id3ImageCandidate(image, 0, order++)
+        }
+
+        return candidates
+            .distinctBy { candidate ->
+                val bytes = candidate.bytes
+                buildString {
+                    append(bytes.size)
+                    append(':')
+                    repeat(minOf(16, bytes.size)) { index ->
+                        append((bytes[index].toInt() and 0xFF).toString(16))
+                    }
+                }
+            }
+            .maxWithOrNull(
+                compareBy<Id3ImageCandidate> { id3ImageCandidateScore(it) }
+                    .thenByDescending { it.order }
+            )
+            ?.bytes
     }
 
-    private fun imageBytesFromFramePayload(payload: ByteArray, unsynchronised: Boolean): ByteArray? {
-        val clean = if (unsynchronised) removeId3Unsynchronisation(payload) else payload
-        val starts = listOf(indexOfBytes(clean, byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())), indexOfBytes(clean, byteArrayOf(0x89.toByte(), 0x50.toByte(), 0x4E.toByte(), 0x47.toByte())))
-            .filter { it >= 0 }
-        val start = starts.minOrNull() ?: return null
-        val end = if (clean[start] == 0x89.toByte()) {
-            indexOfBytes(clean, byteArrayOf(0x49.toByte(), 0x45.toByte(), 0x4E.toByte(), 0x44.toByte(), 0xAE.toByte(), 0x42.toByte(), 0x60.toByte(), 0x82.toByte()), start)
-                .takeIf { it >= 0 }?.plus(8) ?: clean.size
-        } else {
-            indexOfBytes(clean, byteArrayOf(0xFF.toByte(), 0xD9.toByte()), start + 2)
-                .takeIf { it >= 0 }?.plus(2) ?: clean.size
+    private fun normaliseId3ArtworkPayload(
+        payload: ByteArray,
+        major: Int,
+        formatFlags: Int,
+        tagUnsynchronised: Boolean
+    ): ByteArray? {
+        var start = 0
+        var frameUnsynchronised = false
+        when (major) {
+            3 -> {
+                val compressed = formatFlags and 0x80 != 0
+                val encrypted = formatFlags and 0x40 != 0
+                if (compressed || encrypted) return null
+                if (formatFlags and 0x20 != 0) start += 1 // group identifier
+            }
+            4 -> {
+                val grouped = formatFlags and 0x40 != 0
+                val compressed = formatFlags and 0x08 != 0
+                val encrypted = formatFlags and 0x04 != 0
+                frameUnsynchronised = formatFlags and 0x02 != 0
+                val hasDataLengthIndicator = formatFlags and 0x01 != 0
+                if (compressed || encrypted) return null
+                if (grouped) start += 1
+                if (hasDataLengthIndicator) start += 4
+            }
         }
-        return clean.copyOfRange(start, end.coerceAtMost(clean.size)).takeIf { it.size > 16 }
+        if (start !in 0 until payload.size) return null
+        val trimmed = payload.copyOfRange(start, payload.size)
+        return if (tagUnsynchronised || frameUnsynchronised) {
+            removeId3Unsynchronisation(trimmed)
+        } else {
+            trimmed
+        }
+    }
+
+    private fun id3PictureType(payload: ByteArray, major: Int): Int {
+        if (payload.isEmpty()) return 0
+        return if (major == 2) {
+            payload.getOrNull(4)?.toInt()?.and(0xFF) ?: 0
+        } else {
+            var mimeEnd = 1
+            while (mimeEnd < payload.size && payload[mimeEnd] != 0.toByte()) mimeEnd++
+            payload.getOrNull(mimeEnd + 1)?.toInt()?.and(0xFF) ?: 0
+        }
+    }
+
+    private fun id3ImageSearchStart(payload: ByteArray, major: Int): Int {
+        if (payload.isEmpty()) return 0
+        return if (major == 2) {
+            5.coerceAtMost(payload.size)
+        } else {
+            var mimeEnd = 1
+            while (mimeEnd < payload.size && payload[mimeEnd] != 0.toByte()) mimeEnd++
+            (mimeEnd + 2).coerceAtMost(payload.size)
+        }
+    }
+
+    private fun id3ImageCandidateScore(candidate: Id3ImageCandidate): Long {
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        runCatching {
+            BitmapFactory.decodeByteArray(candidate.bytes, 0, candidate.bytes.size, options)
+        }
+        val valid = options.outWidth > 0 && options.outHeight > 0
+        if (!valid) return Long.MIN_VALUE + candidate.bytes.size
+        val typePriority = when (candidate.pictureType) {
+            3 -> 5L // front cover
+            1, 2 -> 1L // icône de fichier : jamais prioritaire face à une vraie pochette
+            4 -> 2L // back cover
+            0 -> 3L // autre / type inconnu
+            else -> 3L
+        }
+        val area = options.outWidth.toLong() * options.outHeight.toLong()
+        return typePriority * 1_000_000_000_000L +
+            area.coerceAtMost(999_999_999L) * 1_000L +
+            candidate.bytes.size.coerceAtMost(999).toLong()
+    }
+
+    private fun imageByteCandidates(payload: ByteArray, fromIndex: Int = 0): List<ByteArray> {
+        if (payload.size < 16) return emptyList()
+        val result = mutableListOf<ByteArray>()
+        var cursor = fromIndex.coerceIn(0, payload.size)
+        while (cursor < payload.size - 3) {
+            val jpeg = indexOfBytes(
+                payload,
+                byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()),
+                cursor
+            )
+            val png = indexOfBytes(
+                payload,
+                byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47),
+                cursor
+            )
+            val webp = findWebpStart(payload, cursor)
+            val start = listOf(jpeg, png, webp).filter { it >= 0 }.minOrNull() ?: break
+            val bytes = extractImageBytesAt(payload, start, png, webp)
+            if (bytes != null) result += bytes
+            cursor = (start + maxOf(bytes?.size ?: 0, 4)).coerceAtMost(payload.size)
+        }
+        return result
+    }
+
+    private fun extractImageBytesAt(
+        bytes: ByteArray,
+        start: Int,
+        pngStart: Int,
+        webpStart: Int
+    ): ByteArray? {
+        val end = when (start) {
+            pngStart -> indexOfBytes(
+                bytes,
+                byteArrayOf(0x49, 0x45, 0x4E, 0x44, 0xAE.toByte(), 0x42, 0x60, 0x82.toByte()),
+                start
+            ).takeIf { it >= 0 }?.plus(8) ?: bytes.size
+
+            webpStart -> {
+                val riffSize = leUInt32(bytes, start + 4)
+                (start.toLong() + riffSize + 8L)
+                    .coerceAtMost(bytes.size.toLong())
+                    .toInt()
+            }
+
+            else -> indexOfBytes(
+                bytes,
+                byteArrayOf(0xFF.toByte(), 0xD9.toByte()),
+                start + 2
+            ).takeIf { it >= 0 }?.plus(2) ?: bytes.size
+        }
+        return bytes.copyOfRange(start, end.coerceIn(start, bytes.size))
+            .takeIf { it.size > 16 }
+    }
+
+    private fun imageBytesFromFramePayload(
+        payload: ByteArray,
+        unsynchronised: Boolean
+    ): ByteArray? {
+        val clean = if (unsynchronised) {
+            removeId3Unsynchronisation(payload)
+        } else {
+            payload
+        }
+
+        val jpegStart = indexOfBytes(
+            clean,
+            byteArrayOf(
+                0xFF.toByte(),
+                0xD8.toByte(),
+                0xFF.toByte()
+            )
+        )
+        val pngStart = indexOfBytes(
+            clean,
+            byteArrayOf(
+                0x89.toByte(),
+                0x50,
+                0x4E,
+                0x47
+            )
+        )
+        val webpStart = findWebpStart(clean)
+        val start = listOf(jpegStart, pngStart, webpStart)
+            .filter { it >= 0 }
+            .minOrNull()
+            ?: return null
+
+        val end = when (start) {
+            pngStart -> indexOfBytes(
+                clean,
+                byteArrayOf(
+                    0x49,
+                    0x45,
+                    0x4E,
+                    0x44,
+                    0xAE.toByte(),
+                    0x42,
+                    0x60,
+                    0x82.toByte()
+                ),
+                start
+            ).takeIf { it >= 0 }?.plus(8) ?: clean.size
+
+            webpStart -> {
+                val riffSize = leUInt32(clean, start + 4)
+                (start.toLong() + riffSize + 8L)
+                    .coerceAtMost(clean.size.toLong())
+                    .toInt()
+            }
+
+            else -> indexOfBytes(
+                clean,
+                byteArrayOf(
+                    0xFF.toByte(),
+                    0xD9.toByte()
+                ),
+                start + 2
+            ).takeIf { it >= 0 }?.plus(2) ?: clean.size
+        }
+
+        return clean.copyOfRange(
+            start,
+            end.coerceIn(start, clean.size)
+        ).takeIf { it.size > 16 }
+    }
+
+    private fun findWebpStart(bytes: ByteArray, fromIndex: Int = 0): Int {
+        var index = fromIndex.coerceAtLeast(0)
+        while (index + 12 <= bytes.size) {
+            val riff = bytes[index] == 'R'.code.toByte() &&
+                bytes[index + 1] == 'I'.code.toByte() &&
+                bytes[index + 2] == 'F'.code.toByte() &&
+                bytes[index + 3] == 'F'.code.toByte()
+            val webp = bytes[index + 8] == 'W'.code.toByte() &&
+                bytes[index + 9] == 'E'.code.toByte() &&
+                bytes[index + 10] == 'B'.code.toByte() &&
+                bytes[index + 11] == 'P'.code.toByte()
+            if (riff && webp) return index
+            index++
+        }
+        return -1
     }
 
     private fun removeId3Unsynchronisation(bytes: ByteArray): ByteArray {
@@ -1851,45 +2865,159 @@ object ThumbnailUtils {
         context: Context,
         path: String,
         maxSize: Int = 360
-    ): Bitmap? = withContext(imageThumbnailDispatcher) {
-        val appContext = context.applicationContext
-        val key = imageThumbnailKey(appContext, path, maxSize)
+    ): Bitmap? {
+        peekMemoryImageThumbnailBitmap(path, maxSize)?.let { return it }
+        return withContext(imageThumbnailDispatcher) {
+            val appContext = context.applicationContext
+            peekMemoryImageThumbnailBitmap(path, maxSize)?.let { return@withContext it }
+            val key = imageThumbnailKey(appContext, path, maxSize)
 
-        cache.get(key)?.let { return@withContext it }
-        readFromDisk(appContext, key)?.let { fromDisk ->
-            cache.put(key, fromDisk)
-            return@withContext fromDisk
+            cache.get(key)?.let {
+                promoteGalleryHotCache(path, maxSize, it)
+                return@withContext it
+            }
+            readFromDisk(appContext, key)?.let { fromDisk ->
+                cache.put(key, fromDisk)
+                promoteGalleryHotCache(path, maxSize, fromDisk)
+                return@withContext fromDisk
+            }
+
+            val inFlightKey = galleryHotKey(path, maxSize)
+            val existing = inFlight[inFlightKey]
+            if (existing != null) return@withContext existing.await()
+
+            val deferred = kotlinx.coroutines.CompletableDeferred<Bitmap?>()
+            val winner = inFlight.putIfAbsent(inFlightKey, deferred)
+            if (winner != null) return@withContext winner.await()
+
+            try {
+                val result = extractImageThumbnailInternal(appContext, path, key, maxSize)
+                deferred.complete(result)
+                result
+            } catch (throwable: Throwable) {
+                deferred.completeExceptionally(throwable)
+                throw throwable
+            } finally {
+                inFlight.remove(inFlightKey, deferred)
+            }
         }
+    }
 
-        val existing = inFlight[key]
-        if (existing != null) return@withContext existing.await()
+    /** Réchauffe plusieurs miniatures en parallèle. Les premières tuiles sont appelées avant la
+     * pose de l'adapter ; le reste continue silencieusement dans le cache système/RAM/disque. */
+    suspend fun warmImageThumbnails(
+        context: Context,
+        paths: List<String>,
+        maxSize: Int = 360,
+        limit: Int = paths.size,
+        concurrency: Int = 6
+    ) = coroutineScope {
+        val semaphore = Semaphore(concurrency.coerceIn(1, 8))
+        paths.asSequence().filter { it.isNotBlank() }.distinct().take(limit.coerceAtLeast(0))
+            .map { path ->
+                async(Dispatchers.IO) {
+                    semaphore.withPermit { getImageThumbnailBitmap(context.applicationContext, path, maxSize) }
+                }
+            }.toList().forEach { it.await() }
+    }
 
-        val deferred = kotlinx.coroutines.CompletableDeferred<Bitmap?>()
-        val winner = inFlight.putIfAbsent(key, deferred)
-        if (winner != null) return@withContext winner.await()
+    suspend fun warmVideoThumbnails(
+        context: Context,
+        paths: List<String>,
+        limit: Int = paths.size,
+        concurrency: Int = 4
+    ) = coroutineScope {
+        val semaphore = Semaphore(concurrency.coerceIn(1, 6))
+        paths.asSequence().filter { it.isNotBlank() }.distinct().take(limit.coerceAtLeast(0))
+            .map { path ->
+                async(Dispatchers.IO) {
+                    semaphore.withPermit { getThumbnailBitmap(context.applicationContext, path) }
+                }
+            }.toList().forEach { it.await() }
+    }
 
-        try {
-            val result = extractImageThumbnailInternal(appContext, path, key, maxSize)
-            deferred.complete(result)
-            result
-        } catch (throwable: Throwable) {
-            deferred.completeExceptionally(throwable)
-            throw throwable
-        } finally {
-            inFlight.remove(key, deferred)
+    /** Prépare automatiquement les médias récents dès le lancement du processus, comme une galerie
+     * système : MediaStore fournit ses miniatures déjà indexées avant même l'ouverture de l'onglet. */
+    fun scheduleGalleryMediaStoreWarmup(context: Context, initialDelayMs: Long = 900L) {
+        if (!galleryWarmupStarted.compareAndSet(false, true)) return
+        val appContext = context.applicationContext
+        galleryWarmupScope.launch {
+            if (initialDelayMs > 0L) delay(initialDelayMs)
+            val recentImages = queryRecentMediaUris(appContext, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 160)
+            val recentVideos = queryRecentMediaUris(appContext, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, 72)
+            // Au tout premier lancement, les permissions peuvent ne pas encore être accordées.
+            // Autorise alors un nouvel appel depuis l'écran Galerie au lieu de considérer le warmup
+            // comme définitivement effectué avec une liste vide.
+            if (recentImages.isEmpty() && recentVideos.isEmpty()) {
+                galleryWarmupStarted.set(false)
+                return@launch
+            }
+            warmImageThumbnails(appContext, recentImages, maxSize = 280, concurrency = 6)
+            recentVideos.chunked(4).forEach { batch ->
+                batch.map { path -> async(Dispatchers.IO) { getThumbnailBitmap(appContext, path) } }
+                    .forEach { it.await() }
+                delay(20L)
+            }
+        }
+    }
+
+    private fun queryRecentMediaUris(context: Context, collection: Uri, limit: Int): List<String> {
+        return try {
+            val projection = arrayOf(MediaStore.MediaColumns._ID)
+            val out = ArrayList<String>(limit)
+            val queryArgs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.os.Bundle().apply {
+                    putStringArray(android.content.ContentResolver.QUERY_ARG_SORT_COLUMNS, arrayOf(MediaStore.MediaColumns.DATE_MODIFIED))
+                    putInt(android.content.ContentResolver.QUERY_ARG_SORT_DIRECTION, android.content.ContentResolver.QUERY_SORT_DIRECTION_DESCENDING)
+                    putInt(android.content.ContentResolver.QUERY_ARG_LIMIT, limit)
+                    putInt(MediaStore.QUERY_ARG_MATCH_TRASHED, MediaStore.MATCH_EXCLUDE)
+                }
+            } else null
+            val cursor = if (queryArgs != null) {
+                context.contentResolver.query(collection, projection, queryArgs, null)
+            } else {
+                context.contentResolver.query(collection, projection, null, null, "${MediaStore.MediaColumns.DATE_MODIFIED} DESC")
+            }
+            cursor?.use {
+                val idCol = it.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+                while (it.moveToNext() && out.size < limit) {
+                    out += ContentUris.withAppendedId(collection, it.getLong(idCol)).toString()
+                }
+            }
+            out
+        } catch (_: SecurityException) {
+            emptyList()
+        } catch (_: Exception) {
+            emptyList()
         }
     }
 
     private fun extractImageThumbnailInternal(context: Context, path: String, key: String, maxSize: Int): Bitmap? {
         return try {
-            cache.get(key)?.let { return it }
+            peekMemoryImageThumbnailBitmap(path, maxSize)?.let { return it }
+            cache.get(key)?.let {
+                promoteGalleryHotCache(path, maxSize, it)
+                return it
+            }
             readFromDisk(context, key)?.let { fromDisk ->
                 cache.put(key, fromDisk)
+                promoteGalleryHotCache(path, maxSize, fromDisk)
                 return fromDisk
             }
-            val decoded = decodeSampledImageBitmap(context, path, maxSize) ?: return null
+
+            // Android 10+ : ContentResolver.loadThumbnail() interroge directement le cache de
+            // miniatures MediaStore utilisé par les galeries système. C'est beaucoup plus rapide
+            // que rouvrir et redécoder le JPEG original à chaque bind.
+            val systemThumbnail = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && path.startsWith("content://", true)) {
+                runCatching {
+                    context.contentResolver.loadThumbnail(Uri.parse(path), android.util.Size(maxSize, maxSize), null)
+                }.getOrNull()
+            } else null
+
+            val decoded = systemThumbnail ?: decodeSampledImageBitmap(context, path, maxSize) ?: return null
             val scaled = scaleBitmap(decoded, maxSize)
             cache.put(key, scaled)
+            promoteGalleryHotCache(path, maxSize, scaled)
             writeToDisk(context, key, scaled)
             scaled
         } catch (e: Exception) {
@@ -1898,10 +3026,35 @@ object ThumbnailUtils {
         }
     }
 
-    private fun openImageInputStream(context: Context, path: String): java.io.InputStream? = when {
-        path.startsWith("content://", true) -> context.contentResolver.openInputStream(Uri.parse(path))
-        path.startsWith("file://", true) -> localFileForImagePath(path)?.takeIf { it.exists() && it.isFile }?.inputStream()
-        else -> localFileForImagePath(path)?.takeIf { it.exists() && it.isFile }?.inputStream()
+    private fun openImageInputStream(
+        context: Context,
+        path: String
+    ): java.io.InputStream? = when {
+        path.startsWith("content://", true) ->
+            context.contentResolver.openInputStream(Uri.parse(path))
+
+        path.startsWith("http://", true) || path.startsWith("https://", true) -> {
+            val connection = java.net.URL(path).openConnection() as java.net.HttpURLConnection
+            connection.connectTimeout = 5_000
+            connection.readTimeout = 8_000
+            connection.instanceFollowRedirects = true
+            val input = connection.inputStream
+            object : java.io.FilterInputStream(input) {
+                override fun close() {
+                    try {
+                        super.close()
+                    } finally {
+                        connection.disconnect()
+                    }
+                }
+            }
+        }
+
+        path.startsWith("file://", true) ->
+            localFileForImagePath(path)?.takeIf { it.exists() && it.isFile }?.inputStream()
+
+        else ->
+            localFileForImagePath(path)?.takeIf { it.exists() && it.isFile }?.inputStream()
     }
 
     private fun decodeSampledImageBitmap(context: Context, path: String, maxSize: Int): Bitmap? {
@@ -2009,6 +3162,19 @@ object ThumbnailUtils {
             )
             if (jpegEnd < 0) return null
             return data.copyOfRange(jpegStart, jpegEnd + 2)
+        }
+
+        val webpStart = findWebpStart(
+            data.copyOfRange(0, safeLength)
+        )
+        if (webpStart >= 0 && webpStart + 12 <= safeLength) {
+            val riffSize = leUInt32(data, webpStart + 4)
+            val webpEnd = (
+                webpStart.toLong() + riffSize + 8L
+            ).coerceAtMost(safeLength.toLong()).toInt()
+            if (webpEnd > webpStart + 12) {
+                return data.copyOfRange(webpStart, webpEnd)
+            }
         }
 
         val pngSignature = byteArrayOf(
@@ -2170,7 +3336,8 @@ object ThumbnailUtils {
         imageView: ImageView,
         maxSize: Int = 360
     ): Boolean {
-        val bitmap = getImageThumbnailBitmap(context, path, maxSize)
+        val bitmap = peekMemoryImageThumbnailBitmap(path, maxSize)
+            ?: getImageThumbnailBitmap(context, path, maxSize)
         return withContext(Dispatchers.Main) {
             if (imageView.getTag(R.id.ivThumbnail) != path) return@withContext false
             if (bitmap != null) {

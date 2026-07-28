@@ -72,7 +72,7 @@ android {
         applicationId = "fr.retrospare.blazeplayer"
         minSdk = 28
         targetSdk = 36
-        versionCode = 67
+        versionCode = 64
         versionName = "0.9.99-Beta RC7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Clé publique RevenueCat (Google Play), spécifique au projet "Blaze Player" du dashboard
@@ -84,6 +84,7 @@ android {
             "REVENUECAT_API_KEY",
             "\"${localProperties.getProperty("REVENUECAT_API_KEY", "")}\""
         )
+
     }
 
     lint {
@@ -165,7 +166,7 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
-    // Bibliothèque audio locale : Room est la source de vérité persistante de l’UI.
+    // Bibliothèque audio locale : Room persiste le cache, le rendu utilise un snapshot mémoire.
     implementation("androidx.room:room-runtime:2.8.3")
     implementation("androidx.room:room-ktx:2.8.3")
     ksp("androidx.room:room-compiler:2.8.3")

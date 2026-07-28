@@ -11,6 +11,8 @@ class BlazeAudioLauncherActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        BlazeStartupWarmup.requestAudioPriority(this)
+
         getSharedPreferences("launcher_requests", MODE_PRIVATE)
             .edit()
             .putBoolean("pendingOpenBlazeAudio", true)

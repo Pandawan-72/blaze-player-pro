@@ -89,7 +89,6 @@ class RotaryKnobView @JvmOverloads constructor(
     private val knobShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         color = Color.argb(205, 4, 7, 11)
-        setShadowLayer(8f * density, 0f, 4f * density, Color.argb(175, 0, 0, 0))
     }
     private val outerBezelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -119,7 +118,6 @@ class RotaryKnobView @JvmOverloads constructor(
         strokeCap = Paint.Cap.ROUND
         strokeWidth = 2.2f * density
         color = ContextCompat.getColor(context, R.color.on_background)
-        setShadowLayer(2.5f * density, 0f, 0f, Color.argb(155, 205, 235, 255))
     }
     private var shaderWidth = -1
     private var shaderHeight = -1
@@ -138,7 +136,9 @@ class RotaryKnobView @JvmOverloads constructor(
     init {
         isClickable = true
         isFocusable = true
-        setLayerType(LAYER_TYPE_SOFTWARE, null)
+        // Ne jamais forcer neuf calques logiciels à l'ouverture des paramètres son : leur
+        // allocation et leur rasterisation simultanées pouvaient bloquer plusieurs secondes.
+        setLayerType(LAYER_TYPE_NONE, null)
     }
 
     fun value(): Float = currentValue
@@ -188,9 +188,7 @@ class RotaryKnobView @JvmOverloads constructor(
         val defaultSweep = SWEEP_ANGLE * defaultFraction
         val activeSweep = currentSweep - defaultSweep
         if (abs(activeSweep) > 0.2f) {
-            activePaint.setShadowLayer(7f * density, 0f, 0f, activePaint.color)
             canvas.drawArc(arcRect, START_ANGLE + defaultSweep, activeSweep, false, activePaint)
-            activePaint.clearShadowLayer()
         }
 
         // Bague extérieure usinée, avec un seul chanfrein lisible.

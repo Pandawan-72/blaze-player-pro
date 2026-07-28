@@ -3,7 +3,6 @@ package fr.retrospare.blazeplayer.gallery.slideshow
 import android.app.Activity
 import android.content.ContentUris
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
@@ -115,9 +114,20 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
         title.text = getString(R.string.slideshow_picker_folders)
         addButton.visibility = View.GONE
         updateSelectionUi()
-        recycler.layoutManager = GridLayoutManager(this, 2)
+        recycler.setItemViewCacheSize(24)
+        recycler.recycledViewPool.setMaxRecycledViews(0, 32)
+        recycler.layoutManager = GridLayoutManager(this, 2).apply { initialPrefetchItemCount = 12 }
         lifecycleScope.launch {
             val folders = withContext(Dispatchers.IO) { loadFolders() }
+            val warmupJob = lifecycleScope.launch(Dispatchers.IO) {
+                ThumbnailUtils.warmImageThumbnails(
+                    applicationContext,
+                    folders.flatMap { it.previews }.take(18),
+                    maxSize = 260,
+                    concurrency = 6
+                )
+            }
+            kotlinx.coroutines.withTimeoutOrNull(220L) { warmupJob.join() }
             recycler.adapter = FolderAdapter(folders)
             setEmpty(folders.isEmpty(), R.string.gallery_empty_folders)
         }
@@ -129,9 +139,20 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
         title.text = folder.name
         addButton.visibility = View.VISIBLE
         updateSelectionUi()
-        recycler.layoutManager = GridLayoutManager(this, 3)
+        recycler.setItemViewCacheSize(72)
+        recycler.recycledViewPool.setMaxRecycledViews(0, 96)
+        recycler.layoutManager = GridLayoutManager(this, 4).apply { initialPrefetchItemCount = 32 }
         lifecycleScope.launch {
             val photos = withContext(Dispatchers.IO) { loadPhotos(folder.id) }
+            val warmupJob = lifecycleScope.launch(Dispatchers.IO) {
+                ThumbnailUtils.warmImageThumbnails(
+                    applicationContext,
+                    photos.take(36).map { it.path },
+                    maxSize = 420,
+                    concurrency = 6
+                )
+            }
+            kotlinx.coroutines.withTimeoutOrNull(260L) { warmupJob.join() }
             recycler.adapter = PhotoAdapter(photos)
             setEmpty(photos.isEmpty(), R.string.gallery_empty_photos)
         }
@@ -202,7 +223,7 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
                     Folder(bucket, cursor.getString(nameCol).orEmpty().ifBlank { getString(R.string.slideshow_picker_folders) })
                 }
                 folder.count++
-                if (folder.previews.size < 4) {
+                if (folder.previews.size < 3) {
                     val id = cursor.getLong(idCol)
                     folder.previews += ContentUris.withAppendedId(uri, id).toString()
                 }
@@ -248,15 +269,24 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: FolderHolder, position: Int) {
             val item = items[position]
             holder.name.text = item.name
-            holder.count.text = resources.getQuantityString(R.plurals.gallery_photo_count, item.count, item.count)
+            holder.count.text = item.count.toString()
+            holder.folderIcon.visibility = View.VISIBLE
             holder.more.visibility = View.GONE
             holder.previews.forEachIndexed { index, image ->
-                image.setImageDrawable(null)
                 val path = item.previews.getOrNull(index)
+                val previous = image.getTag(R.id.ivThumbnail) as? String
                 image.setTag(R.id.ivThumbnail, path)
                 image.visibility = if (path == null) View.INVISIBLE else View.VISIBLE
-                if (path != null) lifecycleScope.launch {
-                    ThumbnailUtils.loadImageThumbnail(this@SlideshowPhotoPickerActivity, path, image, 260)
+                if (path != null) {
+                    ThumbnailUtils.peekMemoryImageThumbnailBitmap(path, 260)?.let { bitmap ->
+                        image.setImageBitmap(bitmap)
+                        image.scaleType = ImageView.ScaleType.CENTER_CROP
+                    } ?: run {
+                        if (previous != path) image.setImageResource(R.drawable.bg_thumbnail)
+                        lifecycleScope.launch {
+                            ThumbnailUtils.loadImageThumbnail(this@SlideshowPhotoPickerActivity, path, image, 260)
+                        }
+                    }
                 }
             }
             holder.itemView.setOnClickListener { openFolder(item) }
@@ -264,10 +294,6 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
 
         override fun onViewRecycled(holder: FolderHolder) {
             super.onViewRecycled(holder)
-            holder.previews.forEach { image ->
-                image.setTag(R.id.ivThumbnail, null)
-                image.setImageDrawable(null)
-            }
         }
     }
 
@@ -275,11 +301,11 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
         val name: TextView = view.findViewById(R.id.tvFolderName)
         val count: TextView = view.findViewById(R.id.tvFolderCount)
         val more: ImageButton = view.findViewById(R.id.btnFolderMore)
+        val folderIcon: ImageView = view.findViewById(R.id.ivGalleryFolderIcon)
         val previews: List<ImageView> = listOf(
             view.findViewById(R.id.ivPreview1),
             view.findViewById(R.id.ivPreview2),
-            view.findViewById(R.id.ivPreview3),
-            view.findViewById(R.id.ivPreview4)
+            view.findViewById(R.id.ivPreview3)
         )
     }
 
@@ -291,17 +317,21 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: PhotoHolder, position: Int) {
             val item = items[position]
-            holder.name.text = item.name
-            holder.info.text = ""
             holder.more.visibility = View.GONE
             val checked = selected.containsKey(item.path) || pending.containsKey(item.path)
             holder.check.visibility = View.VISIBLE
             holder.check.setOnCheckedChangeListener(null)
             holder.check.isChecked = checked
-            holder.image.setImageDrawable(null)
+            val previous = holder.image.getTag(R.id.ivThumbnail) as? String
             holder.image.setTag(R.id.ivThumbnail, item.path)
-            lifecycleScope.launch {
-                ThumbnailUtils.loadImageThumbnail(this@SlideshowPhotoPickerActivity, item.path, holder.image, 420)
+            ThumbnailUtils.peekMemoryImageThumbnailBitmap(item.path, 420)?.let { bitmap ->
+                holder.image.setImageBitmap(bitmap)
+                holder.image.scaleType = ImageView.ScaleType.CENTER_CROP
+            } ?: run {
+                if (previous != item.path) holder.image.setImageResource(R.drawable.bg_thumbnail)
+                lifecycleScope.launch {
+                    ThumbnailUtils.loadImageThumbnail(this@SlideshowPhotoPickerActivity, item.path, holder.image, 420)
+                }
             }
             holder.itemView.setOnClickListener { toggle(item) }
             holder.check.setOnClickListener { toggle(item) }
@@ -309,8 +339,6 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
 
         override fun onViewRecycled(holder: PhotoHolder) {
             super.onViewRecycled(holder)
-            holder.image.setTag(R.id.ivThumbnail, null)
-            holder.image.setImageDrawable(null)
         }
 
         private fun toggle(item: Photo) {
@@ -326,8 +354,6 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
 
     private class PhotoHolder(view: View) : RecyclerView.ViewHolder(view) {
         val image: ImageView = view.findViewById(R.id.ivThumbnail)
-        val name: TextView = view.findViewById(R.id.tvFileName)
-        val info: TextView = view.findViewById(R.id.tvDuration)
         val more: ImageButton = view.findViewById(R.id.btnMore)
         val check: CheckBox = view.findViewById(R.id.cbSelected)
     }

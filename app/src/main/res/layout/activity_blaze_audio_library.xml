@@ -6,7 +6,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
-    android:fitsSystemWindows="true">
+    android:fitsSystemWindows="false"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
     <LinearLayout
         android:id="@+id/libraryScreenContainer"
@@ -71,7 +73,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="24dp"
                                     android:layout_marginStart="8dp"
-                                    android:background="@drawable/bg_audio_library_pill"
+                                    android:background="@drawable/bg_pro_badge"
                                     android:fontFamily="sans-serif-condensed"
                                     android:gravity="center"
                                     android:includeFontPadding="false"
@@ -109,6 +111,18 @@
                             android:tint="@color/on_surface" />
 
                         <ImageButton
+                            android:id="@+id/btnLibraryHome"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_audio_library_action_button"
+                            android:contentDescription="@string/audio_open_full_player"
+                            android:padding="9dp"
+                            android:src="@drawable/ic_home"
+                            android:tint="@color/on_surface"
+                            android:visibility="gone" />
+
+                        <ImageButton
                             android:id="@+id/btnSettings"
                             android:layout_width="40dp"
                             android:layout_height="40dp"
@@ -143,7 +157,7 @@
                     android:paddingTop="9dp"
                     android:paddingEnd="10dp"
                     android:paddingBottom="9dp"
-                    android:visibility="visible">
+                    android:visibility="gone">
 
                     <FrameLayout
                         android:layout_width="58dp"
@@ -385,10 +399,11 @@
                     android:layout_width="match_parent"
                     android:layout_height="44dp"
                     android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_audio_library_pill"
+                    android:background="@drawable/bg_audio_library_tabs_container"
+                    android:clipToOutline="true"
                     android:gravity="center"
                     android:orientation="horizontal"
-                    android:padding="4dp"
+                    android:padding="0dp"
                     android:visibility="gone" />
 
 <LinearLayout

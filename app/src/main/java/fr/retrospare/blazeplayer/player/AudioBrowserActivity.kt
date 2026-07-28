@@ -1,7 +1,6 @@
 package fr.retrospare.blazeplayer.player
 
 import fr.retrospare.blazeplayer.ui.showPremium
-import android.content.ContentUris
 import android.content.Intent
 import android.app.Dialog
 import android.graphics.Color
@@ -9,7 +8,6 @@ import android.graphics.drawable.ColorDrawable
 import android.view.WindowManager
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -29,7 +27,6 @@ import fr.retrospare.blazeplayer.network.SmbBrowser
 import fr.retrospare.blazeplayer.network.UpnpBrowser
 import fr.retrospare.blazeplayer.data.model.ShareType
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,6 +50,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         const val EXTRA_FAVORITE_SHARE_ID = "extra_favorite_share_id"
         /** Mode lancé depuis les paramètres audio : le navigateur sert à choisir les dossiers à surveiller. */
         const val EXTRA_WATCHED_FOLDERS_MODE = "extra_watched_folders_mode"
+        const val EXTRA_WATCHED_FOLDERS_CHANGED = "extra_watched_folders_changed"
 
         private const val PREFS_HELP_MODALS = "blaze_help_modals"
         private const val KEY_WATCHED_FOLDERS_HELP_SHOWN = "audio_watched_folders_help_shown"
@@ -61,11 +59,12 @@ class AudioBrowserActivity : AppCompatActivity() {
     @Inject lateinit var networkRepository: NetworkRepository
     @Inject lateinit var smbBrowser: SmbBrowser
     @Inject lateinit var upnpBrowser: UpnpBrowser
+    @Inject lateinit var audioLibraryRepository: AudioLibraryRepository
 
     private lateinit var binding: ActivityAudioBrowserBinding
     private val selectedItems = mutableListOf<Pair<String, String>>() // path, name
-    private var currentMode = Mode.LOCAL
     private var watchedFoldersMode = false
+    private var watchedFoldersChangedDuringSession = false
     private var currentLocalFolder: java.io.File? = null
 
     enum class Mode { LOCAL, NETWORK, FOLDER }
@@ -147,7 +146,16 @@ class AudioBrowserActivity : AppCompatActivity() {
         }
         binding.btnConfirm.setOnClickListener {
             if (watchedFoldersMode) {
-                setResult(android.app.Activity.RESULT_OK)
+                if (
+                    watchedFoldersChangedDuringSession ||
+                    AudioProSettings.isLibraryRefreshPending(this)
+                ) {
+                    requestImmediateWatchedFolderRefresh()
+                }
+                setResult(
+                    android.app.Activity.RESULT_OK,
+                    Intent().putExtra(EXTRA_WATCHED_FOLDERS_CHANGED, watchedFoldersChangedDuringSession)
+                )
                 finish()
                 return@setOnClickListener
             }
@@ -203,7 +211,7 @@ class AudioBrowserActivity : AppCompatActivity() {
             favoritePath != null && favoriteShareId != null -> {
                 setActiveTab(1)
                 lifecycleScope.launch {
-                    val share = withContext(Dispatchers.IO) { networkRepository.getShareById(favoriteShareId) }
+                    val share = withContext(AudioLibraryBackgroundDispatchers.network) { networkRepository.getShareById(favoriteShareId) }
                     if (share != null) {
                         browseNetworkShare(share, favoritePath)
                     } else {
@@ -433,28 +441,40 @@ class AudioBrowserActivity : AppCompatActivity() {
 
     private fun addWatchedFolder(folder: AudioProSettings.WatchedFolder) {
         val added = AudioProSettings.addWatchedFolder(this, folder)
+        if (added) {
+            watchedFoldersChangedDuringSession = true
+            requestImmediateWatchedFolderRefresh(folder)
+        }
         Toast.makeText(
             this,
-            if (added) getString(R.string.audio_watched_folder_added) else getString(R.string.audio_watched_folder_already),
+            if (added) getString(R.string.audio_watched_folder_added)
+            else getString(R.string.audio_watched_folder_already),
             Toast.LENGTH_SHORT
         ).show()
-        if (added) showWatchedFolderRefreshHint()
         renderCurrentAudioList()
-    }
-
-    private fun showWatchedFolderRefreshHint() {
-        if (isFinishing || isDestroyed) return
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.audio_watched_folder_added))
-            .setMessage(getString(R.string.audio_watched_folder_refresh_hint))
-            .setPositiveButton(getString(R.string.action_ok), null)
-            .showPremium()
     }
 
     private fun removeWatchedFolder(folder: AudioProSettings.WatchedFolder) {
         AudioProSettings.removeWatchedFolder(this, folder)
+        watchedFoldersChangedDuringSession = true
+        requestImmediateWatchedFolderRefresh()
         Toast.makeText(this, R.string.audio_watched_folder_removed, Toast.LENGTH_SHORT).show()
         renderCurrentAudioList()
+    }
+
+    /**
+     * Appel direct au singleton Hilt : contrairement au broadcast seul, cette demande ne peut pas
+     * être perdue si le repository n'avait pas encore terminé son initialisation.
+     */
+    private fun requestImmediateWatchedFolderRefresh(
+        folder: AudioProSettings.WatchedFolder? = null
+    ) {
+        audioLibraryRepository.setInteractiveLoading(true)
+        if (folder != null) {
+            audioLibraryRepository.requestWatchedFolderImport(folder)
+        } else {
+            audioLibraryRepository.requestWatchedFoldersRefresh()
+        }
     }
 
     private fun setWatchedFolder(folder: AudioProSettings.WatchedFolder, checked: Boolean) {
@@ -596,7 +616,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         updateWatchedModeControls()
         lifecycleScope.launch {
             binding.tvSelected.text = getString(R.string.loading)
-            val folders = withContext(Dispatchers.IO) {
+            val folders = withContext(AudioLibraryBackgroundDispatchers.network) {
                 android.os.Environment.getExternalStorageDirectory()
                     .listFiles()?.filter { it.isDirectory && !it.name.startsWith(".") }
                     ?.sortedBy { it.name } ?: emptyList()
@@ -621,11 +641,11 @@ class AudioBrowserActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             binding.tvSelected.text = getString(R.string.loading)
-            val subFolders = withContext(Dispatchers.IO) {
+            val subFolders = withContext(AudioLibraryBackgroundDispatchers.network) {
                 folder.listFiles()?.filter { it.isDirectory && !it.name.startsWith(".") }
                     ?.sortedBy { it.name } ?: emptyList()
             }
-            val audioItems = withContext(Dispatchers.IO) { scanFolderAudio(folder.absolutePath) }
+            val audioItems = withContext(AudioLibraryBackgroundDispatchers.network) { scanFolderAudio(folder.absolutePath) }
             showMixedList(subFolders, audioItems)
         }
     }
@@ -665,15 +685,6 @@ class AudioBrowserActivity : AppCompatActivity() {
     /**
      * Navigue dans un chemin réseau en gérant le mode multi-share (shareName vide = liste des partages)
      */
-    private fun browseNetworkPath(share: fr.retrospare.blazeplayer.data.model.NetworkShare, navPath: String) {
-        // Si shareName est vide, le navPath encode "nomPartage/sousChemin"
-        if (share.shareName.isBlank()) {
-            browseNetworkShare(share, navPath)
-        } else {
-            browseNetworkShare(share, navPath)
-        }
-    }
-
     private fun browseNetworkShare(share: NetworkShare, path: String) {
         currentLocalFolder = null
         currentNetworkShare = share
@@ -682,7 +693,7 @@ class AudioBrowserActivity : AppCompatActivity() {
         lifecycleScope.launch {
             binding.tvSelected.text = getString(R.string.loading)
             val browsePath = if (share.type == ShareType.UPNP) path.ifBlank { "0" } else path
-            val result = withContext(Dispatchers.IO) {
+            val result = withContext(AudioLibraryBackgroundDispatchers.network) {
                 if (share.type == ShareType.UPNP) upnpBrowser.listFiles(share, browsePath)
                 else smbBrowser.listFiles(share, browsePath)
             }
@@ -723,59 +734,6 @@ class AudioBrowserActivity : AppCompatActivity() {
                 binding.recyclerAudio.adapter = null
             }
         }
-    }
-
-    private fun showFileList(items: List<AudioFile>) {
-        audioListKind = AudioListKind.FILES
-        simpleAudioFiles = items
-        renderCurrentAudioList()
-    }
-
-    private suspend fun scanLocalAudio(): List<AudioFile> {
-        val items = mutableListOf<AudioFile>()
-        val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID,
-            MediaStore.Audio.Media.DISPLAY_NAME,
-            MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.BITRATE,
-            MediaStore.Audio.Media.SIZE,
-            MediaStore.Audio.Media.DATE_MODIFIED,
-            MediaStore.Audio.Media.DATA
-        )
-        contentResolver.query(collection, projection, null, null, MediaStore.Audio.Media.DISPLAY_NAME)?.use { cursor ->
-            val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
-            val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-            val bitrateCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.BITRATE) } catch (_: Exception) { -1 }
-            val sizeCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE) } catch (_: Exception) { -1 }
-            val modifiedCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED) } catch (_: Exception) { -1 }
-            val dataCol = try { cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA) } catch (_: Exception) { -1 }
-            while (cursor.moveToNext()) {
-                val id = cursor.getLong(idCol)
-                val name = cursor.getString(nameCol) ?: continue
-                val durationMs = cursor.getLong(durationCol)
-                val duration = durationMs / 1000
-                val dataPath = if (dataCol >= 0) cursor.getString(dataCol).orEmpty() else ""
-                val folderMeta = AudioLibraryHeuristics.folderMetadata(dataPath.ifBlank { name }, name)
-                val rawBitrate = if (bitrateCol >= 0) cursor.getInt(bitrateCol) else 0
-                val trackNumber = AudioLibraryHeuristics.inferTrackNo(name)
-                // La colonne BITRATE de MediaStore est très souvent vide pour l'audio (fiable
-                // surtout pour la vidéo) : on calcule un débit moyen de repli à partir de la
-                // taille et de la durée plutôt que de ne jamais afficher de badge.
-                val sizeBytes = if (sizeCol >= 0) cursor.getLong(sizeCol) else 0L
-                val modifiedAt = if (modifiedCol >= 0) cursor.getLong(modifiedCol) * 1000L else 0L
-                val bitrate = if (rawBitrate > 0) {
-                    rawBitrate
-                } else if (sizeBytes > 0L && durationMs > 0L) {
-                    ((sizeBytes * 8_000L) / durationMs).toInt()
-                } else 0
-                val uri = ContentUris.withAppendedId(collection, id).toString()
-                val playbackPath = dataPath.takeIf { it.isNotBlank() } ?: uri
-                items.add(AudioFile(folderMeta.title, playbackPath, duration, folderMeta.artist, bitrate, folderMeta.album, trackNumber, sizeBytes, modifiedAt))
-            }
-        }
-        return items
     }
 
     private fun updateCounter() {
@@ -835,8 +793,8 @@ class AudioBrowserActivity : AppCompatActivity() {
     private fun loadFolderBrowser(path: String) {
         folderHistory.add(path)
         lifecycleScope.launch {
-            val folders = withContext(Dispatchers.IO) { scanFolders(path) }
-            val audioFiles = withContext(Dispatchers.IO) { scanFolderAudio(path) }
+            val folders = withContext(AudioLibraryBackgroundDispatchers.network) { scanFolders(path) }
+            val audioFiles = withContext(AudioLibraryBackgroundDispatchers.network) { scanFolderAudio(path) }
             audioListKind = AudioListKind.FOLDER_BROWSER
             folderBrowserPath = path
             folderBrowserFolders = folders
@@ -877,18 +835,6 @@ class AudioBrowserActivity : AppCompatActivity() {
             ?: emptyList()
     }
 
-    private fun addAllVisible() {
-        // Ajoute toutes les pistes visibles dans la liste courante
-        val allItems = (binding.recyclerAudio.adapter as? AudioBrowserAdapter)?.getAllItems() ?: return
-        allItems.forEach { (path, name) ->
-            if (selectedItems.none { it.first == path }) {
-                selectedItems.add(Pair(path, name))
-            }
-        }
-        updateCounter()
-        confirmSelection()
-    }
-
     private fun confirmSelection() {
         if (selectedItems.isEmpty()) {
             finish()
@@ -911,18 +857,26 @@ private fun bindCachedAudioCover(row: android.view.View, path: String) {
     cover.setImageDrawable(null)
     cover.setTag(fr.retrospare.blazeplayer.R.id.ivAudioCover, path)
 
-    val cached = AudioMediaCache.getCachedArtworkJpegBytes(row.context, path)
-    if (cached != null) {
-        android.graphics.BitmapFactory.decodeByteArray(cached, 0, cached.size)?.let { cover.setImageBitmap(it) }
+    val memoryBitmap = AudioArtworkResolver.memoryCachedBitmap(path)
+    if (memoryBitmap != null) {
+        cover.setImageBitmap(memoryBitmap)
         return
     }
 
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
-        val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            AudioMediaCache.extractArtworkJpegBytes(row.context.applicationContext, path)
+        val bitmap = kotlinx.coroutines.withContext(AudioLibraryBackgroundDispatchers.visibleArtwork) {
+            AudioArtworkResolver.cachedBitmap(row.context.applicationContext, path)?.let {
+                return@withContext it
+            }
+            if (AudioLibraryWorkState.isPlaybackProtected()) {
+                AudioLibraryWorkState.awaitPlaybackIdle()
+            } else {
+                AudioLibraryWorkState.awaitPlaybackCriticalWindowEnd()
+            }
+            AudioArtworkResolver.resolveBitmap(row.context.applicationContext, path)
         }
-        if (cover.getTag(fr.retrospare.blazeplayer.R.id.ivAudioCover) != path || bytes == null) return@launch
-        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { cover.setImageBitmap(it) }
+        if (cover.getTag(fr.retrospare.blazeplayer.R.id.ivAudioCover) != path || bitmap == null) return@launch
+        cover.setImageBitmap(bitmap)
     }
 }
 
@@ -968,7 +922,6 @@ class AudioBrowserAdapter(
         private val tvArtist: TextView = view.findViewById(R.id.tvAudioArtist)
         private val tvDuration: TextView = view.findViewById(R.id.tvAudioDuration)
         private val checkbox: CheckBox = view.findViewById(R.id.checkAudio)
-        private val ivCover: android.widget.ImageView = view.findViewById(R.id.ivAudioCover)
         private val tvCodec: TextView = view.findViewById(R.id.tvAudioCodec)
         private val tvBitrate: TextView = view.findViewById(R.id.tvAudioBitrate)
 

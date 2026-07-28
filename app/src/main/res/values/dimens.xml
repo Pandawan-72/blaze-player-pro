@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Taille commune et verrouillée des libellés de navigation. -->
+    <dimen name="bottom_navigation_label_text_size">12sp</dimen>
     <!-- Écran audio plein écran : marge horizontale qui plafonne la largeur du contenu sur les
          grands écrans (tablettes) — voir values-sw600dp pour la valeur tablette. Sur téléphone,
          aucune marge : le contenu garde toute la largeur comme avant. -->
@@ -7,12 +9,13 @@
 
     <!-- Titre et nom d'artiste (même ligne, séparés par un tiret) : même taille pour les deux,
          plus grande sur tablette. -->
-    <dimen name="audio_player_title_text_size">24sp</dimen>
+<!-- Taille des libellés du menu supérieur du lecteur en portrait, alignée visuellement
+         sur la typographie compacte du menu général à onglets. -->
+    <dimen name="audio_player_top_action_text_size">@dimen/bottom_navigation_label_text_size</dimen>
 
-    <!-- Décale légèrement le bloc cover + commandes vers le bas pour aérer l'espace entre
-         la barre Party/file d'attente du haut et la pochette, en récupérant l'espace libre sous
-         les boutons EQ/minuteur/infos. -->
-    <dimen name="audio_player_top_padding">8dp</dimen>
-    <dimen name="audio_player_artwork_top_gap">14dp</dimen>
-    <dimen name="audio_player_bottom_padding">34dp</dimen>
+    <!-- La rangée supérieure reste proche de la barre système afin de préserver davantage
+         d'espace sous les commandes du lecteur et au-dessus des onglets de navigation. -->
+    <dimen name="audio_player_top_padding">4dp</dimen>
+    <dimen name="audio_player_artwork_top_gap">6dp</dimen>
+    <dimen name="audio_player_bottom_padding">28dp</dimen>
 </resources>

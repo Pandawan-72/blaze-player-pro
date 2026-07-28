@@ -38,15 +38,33 @@ object VideoQueueSheet {
         val recycler = view.findViewById<RecyclerView>(R.id.recyclerVideoQueue)
         val btnClose = view.findViewById<ImageButton>(R.id.btnCloseVideoQueue)
         val btnToPlaylist = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnVideoQueueToPlaylist)
-        val btnClear = view.findViewById<TextView>(R.id.btnClearVideoQueue)
+        val btnClear = view.findViewById<ImageButton>(R.id.btnClearVideoQueue)
+        val btnNewPlaylist = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnNewVideoQueuePlaylist)
+        val btnChoosePlaylist = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnChooseVideoQueuePlaylist)
         ButtonTextFitter.fitRecursively(view, minSp = 9, maxSp = 13)
 
         recycler.layoutManager = LinearLayoutManager(context)
         lateinit var adapter: VideoQueueAdapter
 
+        fun refreshSavedPlaylistButtons() {
+            val playlists = fr.retrospare.blazeplayer.playlist.PlaylistManager
+                .getNamedPlaylists(context, category)
+            btnChoosePlaylist.visibility = if (playlists.isEmpty()) View.GONE else View.VISIBLE
+        }
+
         fun refreshHeader(adapter: VideoQueueAdapter? = null) {
             tracks = VideoQueueManager.getQueue(context, category)
-            title.text = context.getString(R.string.video_queue_title_with_category, category.displayLabel(context), tracks.size)
+            title.text = buildString {
+                append(context.getString(R.string.video_queue_title))
+                append(" (")
+                append(tracks.size)
+                append(")")
+                val categoryLabel = category.displayLabel(context)
+                if (categoryLabel.isNotBlank()) {
+                    append(" — ")
+                    append(categoryLabel)
+                }
+            }
             recycler.visibility = if (tracks.isEmpty()) View.GONE else View.VISIBLE
             empty.visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
             btnClear.isEnabled = tracks.isNotEmpty()
@@ -54,6 +72,7 @@ object VideoQueueSheet {
             btnToPlaylist.isEnabled = tracks.isNotEmpty()
             btnToPlaylist.alpha = if (tracks.isNotEmpty()) 1f else 0.4f
             adapter?.submit(tracks)
+            refreshSavedPlaylistButtons()
             onChanged?.invoke()
         }
 
@@ -106,11 +125,6 @@ object VideoQueueSheet {
                     }
                     dialog.dismiss()
                 }
-            },
-            onRemove = { track ->
-                VideoQueueManager.removeFromQueue(context, category, track.path)
-                Toast.makeText(context, context.getString(R.string.toast_video_queue_item_removed), Toast.LENGTH_SHORT).show()
-                refreshHeader(adapter)
             }
         )
         recycler.adapter = adapter
@@ -173,10 +187,46 @@ object VideoQueueSheet {
                 context = context,
                 category = category,
                 tracks = queue,
-                onAdded = { onChanged?.invoke() }
+                onAdded = {
+                    refreshSavedPlaylistButtons()
+                    onChanged?.invoke()
+                }
             )
         }
         btnClear.setOnClickListener { showRemoveDialog() }
+        btnNewPlaylist.setOnClickListener {
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showCreatePlaylistDialog(
+                context = context,
+                category = category
+            ) {
+                refreshSavedPlaylistButtons()
+                onChanged?.invoke()
+            }
+        }
+        btnChoosePlaylist.setOnClickListener {
+            fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showChoosePlaylistForQueue(
+                context = context,
+                category = category,
+                onPlaylistsChanged = {
+                    refreshSavedPlaylistButtons()
+                    onChanged?.invoke()
+                }
+            ) { playlist, playlistTracks ->
+                val ordered = fr.retrospare.blazeplayer.playlist.PlaylistPlayOrder
+                    .sortedForPlayback(category, playlistTracks)
+                val added = VideoQueueManager.addToQueue(context, category, ordered)
+                val already = (ordered.distinctBy { it.path }.size - added).coerceAtLeast(0)
+                val message = if (already == 0) {
+                    context.getString(R.string.toast_named_playlist_sent_to_queue, playlist.name)
+                } else {
+                    context.getString(R.string.toast_video_queue_added_partial, added, already)
+                }
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                fr.retrospare.blazeplayer.playlist.PlaylistManager
+                    .setLastPlayedNamed(context, category, playlist.id)
+                refreshHeader(adapter)
+            }
+        }
         dialog.show()
         fr.retrospare.blazeplayer.ui.HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT)

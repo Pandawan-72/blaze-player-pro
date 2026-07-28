@@ -38,7 +38,6 @@
     <string name="queue">ОЧЕРЕДЬ</string>
     <string name="queue_short">Очередь</string>
     <string name="add">Добавить</string>
-    <string name="lyrics">Тексты</string>
     <string name="audio_lyrics_title">Тексты</string>
     <string name="audio_lyrics_disabled">Включите «Синхронные тексты» в настройках аудио, чтобы разрешить локальные тексты.</string>
     <string name="audio_lyrics_none">Локальный текст для этого трека не найден.</string>
@@ -246,12 +245,6 @@
     <string name="dialog_video_info_message">Путь: %1$s\n\nКонтейнер: %2$s\nРазрешение: %3$s\nДлительность: %4$s\nРазмер: %5$s</string>
     <string name="dialog_video_info_video_codec">Видеокодек: %1$s</string>
     <string name="dialog_video_info_audio_codec">Аудиокодек: %1$s</string>
-    <plurals name="video_count">
-        <item quantity="one">%1$d видео</item>
-        <item quantity="few">%1$d видео</item>
-        <item quantity="many">%1$d видео</item>
-        <item quantity="other">%1$d видео</item>
-    </plurals>
     <string name="toast_cannot_open_screen_cast_settings">Не удалось открыть настройки трансляции экрана</string>
     <string name="toast_share_not_found">Общий ресурс не найден для этого избранного</string>
     <string name="action_remove_from_history">Удалить из истории</string>
@@ -321,7 +314,6 @@
     <string name="player_speed_label_short">Скорость</string>
     <string name="player_ratio_label">Соотношение сторон</string>
     <string name="content_desc_close_playlist">Закрыть плейлист</string>
-    <string name="content_desc_clean">Очистить</string>
     <string name="content_desc_playlist">Плейлист</string>
     <string name="content_desc_shuffle">Перемешать</string>
     <string name="content_desc_previous">Предыдущий</string>
@@ -372,7 +364,6 @@
     <string name="gallery_trash_empty_message">Корзина пуста</string>
     <string name="gallery_type_photo">Фото</string>
     <string name="gallery_type_video">Видео</string>
-    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Сортировка</string>
     <string name="gallery_sort_date_desc">Сначала новые</string>
     <string name="gallery_sort_date_asc">Сначала старые</string>
@@ -397,14 +388,6 @@
     <string name="confirm_empty_trash_message">Очистить корзину окончательно? Это действие нельзя отменить.</string>
     <string name="confirm_permanent_delete_message">Окончательно удалить это фото из корзины?</string>
     <string name="action_confirm_delete">Удалить</string>
-    <plurals name="gallery_photo_count">
-        <item quantity="one">%d фото</item>
-        <item quantity="other">%d фото</item>
-    </plurals>
-    <plurals name="gallery_video_count">
-        <item quantity="one">%d видео</item>
-        <item quantity="other">%d видео</item>
-    </plurals>
     <string name="settings_audio_spectrum">Включить визуальный спектр</string>
     <string name="settings_audio_spectrum_desc">Показывать анимированный аудиовизуализатор в Blaze Audio.</string>
     <string name="blaze_party">Blaze Party</string>
@@ -422,6 +405,7 @@
     <string name="blaze_party_scan_unavailable">QR-сканер недоступен. Установите QR-сканер или введите код вручную.</string>
     <string name="blaze_party_joined">Вы присоединились к сессии Blaze Party</string>
     <string name="blaze_party_short">Party</string>
+    <string name="audio_party_queue_short">Очередь Party</string>
     <string name="add_to_blaze_party">Добавить в Blaze Party</string>
     <string name="blaze_party_playlist_title">Плейлист Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">В плейлисте Blaze Party нет треков. Добавьте треки из аудиобраузера кнопкой «Добавить в Blaze Party».</string>
@@ -535,7 +519,6 @@
     <string name="app_name_audio">Blaze Audio</string>
     <string name="blaze_party_network_error">Не удалось подключиться к хосту. Убедитесь, что вы подключены к той же сети Wi‑Fi.</string>
     <string name="video_queue_title">ОЧЕРЕДЬ ВИДЕО</string>
-    <string name="video_queue_title_with_category">ОЧЕРЕДЬ ВИДЕО — %1$s (%2$d)</string>
     <string name="video_queue_empty_message">В этой очереди нет видео. Выберите видео в браузере и используйте «+ очередь».</string>
     <string name="toast_video_queue_added">%1$d видео добавлено в очередь</string>
     <string name="toast_video_queue_added_partial">%1$d видео добавлено, %2$d уже есть в очереди</string>
@@ -545,12 +528,12 @@
     <string name="content_desc_video_queue">Очередь видео</string>
     <string name="content_desc_close_video_queue">Закрыть очередь видео</string>
     <string name="audio_library_title">Библиотека</string>
+    <string name="audio_open_full_player">Открыть аудиоплеер</string>
     <string name="audio_library_subtitle">Ваша музыкальная библиотека Pro+</string>
-    <string name="audio_loading_in_progress">Загрузка...</string>
     <string name="audio_search">Поиск</string>
+    <string name="audio_tab_albums">Альбомы</string>
     <string name="audio_tab_artists">Исполнители</string>
     <string name="audio_tab_titles">Треки</string>
-    <string name="audio_tab_playlists">Плейлисты</string>
     <string name="audio_resume_listening">Недавно прослушано</string>
     <string name="audio_recent_albums">Мои альбомы</string>
     <string name="audio_played_tracks">Треки</string>
@@ -591,12 +574,6 @@
     <string name="audio_section_interface">Интерфейс</string>
     <string name="audio_dynamic_theme">Динамическая тема</string>
     <string name="audio_dynamic_theme_subtitle">По умолчанию зелёный Blaze, цвета обложки при включении</string>
-    <string name="audio_cover_border">Цветная рамка обложки</string>
-    <string name="audio_cover_border_subtitle">Динамический акцент вокруг обложки</string>
-    <string name="audio_artwork_size">Размер обложек</string>
-    <string name="audio_size_small">Маленький</string>
-    <string name="audio_size_medium">Средний</string>
-    <string name="audio_size_large">Большой</string>
     <string name="audio_section_lyrics_metadata">Тексты и метаданные</string>
     <string name="audio_synced_lyrics">Синхронные тексты</string>
     <string name="audio_synced_lyrics_subtitle">Главный переключатель локальных текстов LRC/TXT</string>
@@ -624,12 +601,9 @@
         <item quantity="one">%d исполнитель</item>
         <item quantity="other">%d исполнителей</item>
     </plurals>
-    <string name="audio_watched_folders_empty_info">Отслеживаемых папок пока нет. В аудиобраузере откройте меню папки и выберите «Добавить в отслеживаемые папки».</string>
-    <string name="audio_watched_folders_manage_info">Нажмите на папку, чтобы удалить её из отслеживания. Новые папки добавляются из меню папок в аудиобраузере.</string>
     <string name="audio_remove_watched_folder">Удалить</string>
     <string name="audio_add_to_watched">Добавить в отслеживаемые папки</string>
     <string name="audio_watched_folder_added">Папка добавлена в отслеживаемые</string>
-    <string name="audio_watched_folder_refresh_hint">Папка добавлена в отслеживаемые. При возврате в библиотеку автоматически запускается полное обновление.</string>
     <string name="audio_watched_folder_removed">Папка удалена из отслеживаемых</string>
     <string name="audio_watched_folder_already">Эта папка уже отслеживается</string>
     <string name="audio_tag_genre">Жанр</string>
@@ -644,6 +618,7 @@
     <string name="action_done">Готово</string>
     <string name="audio_play_album">Воспроизвести весь альбом</string>
     <string name="audio_add_album_queue">Добавить в очередь</string>
+    <string name="audio_album_queue_button">Очередь</string>
     <string name="audio_add_playlist_blaze_party">Добавить плейлист в Blaze Party</string>
     <string name="audio_add_playlist_queue">Добавить плейлист в очередь</string>
     <string name="queue_clear_all">Очистить всё</string>
@@ -886,4 +861,28 @@
     <string name="slideshow_font_bebas">Bebas Neue</string>
     <string name="slideshow_font_caveat">Caveat</string>
     <string name="slideshow_font_cinzel">Cinzel</string>
+
+    <!-- Page artiste et photographie Wikimedia -->
+    <string name="audio_artist_page_title">Исполнитель</string>
+    <string name="audio_album_page_title">Альбом</string>
+    <string name="audio_my_artists">Мои исполнители</string>
+    <string name="audio_artist_play_all">Воспроизвести всё</string>
+    <string name="audio_library_empty_hint">Попробуйте другой поиск или просканируйте медиатеку.</string>
+    <string name="audio_artist_photo_credit">Фото: %1$s • %2$s</string>
+    <string name="audio_artist_photo_credit_author">Фото: %1$s</string>
+    <string name="audio_artist_photo_source">Источник фотографии</string>
+    <string name="audio_artist_photo_author">Автор: %1$s</string>
+    <string name="audio_artist_photo_license">Лицензия: %1$s</string>
+    <string name="audio_artist_photo_credits_title">Сведения о фотографии</string>
+    <string name="audio_artist_photo_open_source">Открыть источник</string>
+
+    <!-- Photo d’artiste : source automatique + choix manuel persistant. -->
+    <string name="audio_artist_change_photo">Изменить фото</string>
+    <string name="audio_artist_photo_actions_title">Фото исполнителя</string>
+    <string name="audio_artist_photo_choose_device">Выбрать изображение на устройстве</string>
+    <string name="audio_artist_photo_restore_auto">Восстановить автоматическое фото</string>
+    <string name="audio_artist_photo_updated">Фото исполнителя обновлено</string>
+    <string name="audio_artist_photo_restored">Автоматическое фото восстановлено</string>
+    <string name="audio_artist_photo_update_failed">Это изображение нельзя использовать</string>
+    <string name="audio_now_playing">Сейчас играет</string>
 </resources>

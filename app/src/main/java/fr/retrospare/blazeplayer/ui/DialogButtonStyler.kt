@@ -13,6 +13,7 @@ object DialogButtonStyler {
     fun style(dialog: android.app.AlertDialog) {
         HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.decorView?.post {
+            AdaptiveButtonTextManager.applyTo(dialog.window?.decorView)
             styleButton(dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE))
             styleButton(dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE))
             styleButton(dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL))
@@ -22,6 +23,7 @@ object DialogButtonStyler {
     fun style(dialog: androidx.appcompat.app.AlertDialog) {
         HapticFeedbackManager.attachToWindow(dialog.window)
         dialog.window?.decorView?.post {
+            AdaptiveButtonTextManager.applyTo(dialog.window?.decorView)
             styleButton(dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE))
             styleButton(dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEGATIVE))
             styleButton(dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL))

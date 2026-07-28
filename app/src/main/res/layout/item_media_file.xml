@@ -17,10 +17,10 @@
          rendue visible par le navigateur quand la sélection est disponible. Positionnée à gauche,
          comme dans le navigateur audio. -->
     <CheckBox
+        style="@style/Widget.BlazePlayer.MultiSelectCheckBox"
         android:id="@+id/checkboxSelect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:buttonTint="@color/green_accent"
         android:layout_marginEnd="10dp"
         android:visibility="gone" />
 
@@ -60,7 +60,8 @@
             android:textSize="9sp"
             android:textColor="@color/on_surface"
             android:fontFamily="sans-serif-condensed"
-            android:visibility="gone" />
+            android:visibility="gone"
+            android:textStyle="bold" />
 
     </FrameLayout>
 
@@ -103,7 +104,8 @@
                 android:textColor="@color/on_surface_variant"
                 android:fontFamily="sans-serif-condensed"
                 android:layout_marginEnd="4dp"
-                android:visibility="gone" />
+                android:visibility="gone"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvVideoCodec"
@@ -116,7 +118,8 @@
                 android:textColor="@color/on_surface_variant"
                 android:fontFamily="sans-serif-condensed"
                 android:layout_marginEnd="4dp"
-                android:visibility="gone" />
+                android:visibility="gone"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvAudioCodec"
@@ -129,7 +132,8 @@
                 android:textColor="@color/on_surface_variant"
                 android:fontFamily="sans-serif-condensed"
                 android:layout_marginEnd="4dp"
-                android:visibility="gone" />
+                android:visibility="gone"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvAudioQuality"
@@ -141,7 +145,8 @@
                 android:textSize="10sp"
                 android:textColor="@color/on_surface_variant"
                 android:fontFamily="sans-serif-condensed"
-                android:visibility="gone" />
+                android:visibility="gone"
+                android:textStyle="bold" />
 
         </LinearLayout>
 

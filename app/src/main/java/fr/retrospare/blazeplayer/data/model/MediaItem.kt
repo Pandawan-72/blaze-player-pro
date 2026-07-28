@@ -16,7 +16,16 @@ data class MediaItem(
     val mimeType: String = "",
     val videoCodec: String? = null,
     val audioCodec: String? = null,
-    val previewUris: List<String> = emptyList()
+    val previewUris: List<String> = emptyList(),
+    val artist: String = "",
+    val album: String = "",
+    val trackNumber: Int = 0,
+    /**
+     * Chemin logique de la médiathèque, par exemple Artiste/Album/Titre.
+     * Pour UPnP, path reste l'URL HTTP réellement lisible alors que libraryPath conserve
+     * l'arborescence des containers parcourus.
+     */
+    val libraryPath: String = ""
 ) {
     val formattedDuration: String
         get() {

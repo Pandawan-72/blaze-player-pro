@@ -9,6 +9,8 @@
     <!-- Accents -->
     <color name="green_accent">#21E69A</color>
     <color name="green_accent_stroke">#8A21E69A</color>
+    <color name="multi_select_border_unchecked">#7D8796</color>
+    <color name="multi_select_border_checked">#08704D</color>
     <color name="blue_accent">#46A6FF</color>
     <color name="yellow_accent">#F4B72E</color>
     <color name="red_accent">#F05A5A</color>

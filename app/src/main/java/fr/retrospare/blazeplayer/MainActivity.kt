@@ -22,7 +22,6 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.NavHostFragment
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.databinding.ActivityMainBinding
-import fr.retrospare.blazeplayer.player.AudioLibraryHeuristics
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -367,6 +366,7 @@ class MainActivity : AppCompatActivity() {
         val pending = prefs.getBoolean("pendingOpenBlazeGallery", false) ||
             prefs.getLong("pendingOpenBlazeGalleryAt", 0L) > 0L
         if (!pending) return false
+        BlazeStartupWarmup.requestGalleryPriority(this)
 
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
                 as? androidx.navigation.fragment.NavHostFragment
@@ -394,6 +394,7 @@ class MainActivity : AppCompatActivity() {
         val pending = prefs.getBoolean("pendingOpenBlazeAudio", false) ||
             prefs.getLong("pendingOpenBlazeAudioAt", 0L) > 0L
         if (!pending) return false
+        BlazeStartupWarmup.requestAudioPriority(this)
 
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
                 as? androidx.navigation.fragment.NavHostFragment
@@ -469,8 +470,7 @@ class MainActivity : AppCompatActivity() {
         val connection = fr.retrospare.blazeplayer.player.PartyProtocol.parse(data.toString())
         if (connection == null) {
             val scheme = data.scheme.orEmpty()
-            val looksLikePartyLink = scheme == "bp" || scheme == "blazeparty" || scheme == "intent" ||
-                data.host == "blazeparty.local"
+            val looksLikePartyLink = scheme == "bp" || scheme == "blazeparty" || scheme == "intent"
             if (!looksLikePartyLink) return false
             android.util.Log.w("MainActivity", "Lien Blaze Party invalide/incomplet : $data")
             android.widget.Toast.makeText(this, getString(fr.retrospare.blazeplayer.R.string.blaze_party_scan_unavailable), android.widget.Toast.LENGTH_LONG).show()
@@ -649,6 +649,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun switchToTab(index: Int): Boolean {
+        when (index) {
+            3 -> BlazeStartupWarmup.requestGalleryPriority(this)
+            4 -> BlazeStartupWarmup.requestAudioPriority(this)
+        }
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
         val homeFragment = navHost?.childFragmentManager?.fragments
             ?.filterIsInstance<fr.retrospare.blazeplayer.home.HomeFragment>()

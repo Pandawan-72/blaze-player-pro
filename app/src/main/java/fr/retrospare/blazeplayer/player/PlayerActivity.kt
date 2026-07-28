@@ -43,7 +43,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.C
 import androidx.media3.common.DeviceInfo
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
@@ -3124,8 +3123,6 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
         if (isDestroyed || isFinishing) return
         binding.ivPlayPause.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
     }
-
-    private fun getBrightness(): Float { val b = window.attributes.screenBrightness; return if (b < 0) 0.5f else b }
 
     /** Change de média en gardant le même player et la même session Cast.
      *

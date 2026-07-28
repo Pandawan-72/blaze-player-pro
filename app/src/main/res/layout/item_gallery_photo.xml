@@ -1,87 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<fr.retrospare.blazeplayer.ui.SquareRoundedFrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="#000000"
     android:foreground="?attr/selectableItemBackground"
     android:padding="1dp">
 
-    <fr.retrospare.blazeplayer.ui.PortraitFrameLayout
+    <ImageView
+        android:id="@+id/ivThumbnail"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop" />
 
-        <ImageView
-            android:id="@+id/ivThumbnail"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@null"
-            android:scaleType="centerCrop" />
+    <ImageButton
+        android:id="@+id/btnMore"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="3dp"
+        android:background="@drawable/bg_icon_gray"
+        android:contentDescription="@string/content_desc_options"
+        android:padding="4dp"
+        android:src="@drawable/ic_more_vert"
+        android:tint="#FFFFFFFF" />
 
-        <LinearLayout
-            android:id="@+id/photoBottomOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="72dp"
-            android:layout_gravity="bottom"
-            android:background="@drawable/bg_gallery_photo_bottom_overlay"
-            android:gravity="bottom|center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="7dp"
-            android:paddingEnd="3dp"
-            android:paddingBottom="5dp">
+    <CheckBox
+        style="@style/Widget.BlazePlayer.MultiSelectCheckBox"
+        android:id="@+id/cbSelected"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="3dp"
+        android:visibility="gone" />
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tvFileName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-condensed"
-                    android:maxLines="1"
-                    android:shadowColor="#CC000000"
-                    android:shadowDx="0"
-                    android:shadowDy="1"
-                    android:shadowRadius="2"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="11sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvDuration"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:shadowColor="#CC000000"
-                    android:shadowDx="0"
-                    android:shadowDy="1"
-                    android:shadowRadius="2"
-                    android:textColor="#DDFFFFFF"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <ImageButton
-                android:id="@+id/btnMore"
-                android:layout_width="34dp"
-                android:layout_height="34dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/content_desc_options"
-                android:padding="6dp"
-                android:src="@drawable/ic_more_vert"
-                android:tint="#FFFFFFFF" />
-        </LinearLayout>
-
-        <CheckBox
-            android:id="@+id/cbSelected"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_gravity="top|end"
-            android:layout_margin="6dp"
-            android:buttonTint="@color/green_accent"
-            android:visibility="gone" />
-    </fr.retrospare.blazeplayer.ui.PortraitFrameLayout>
-</FrameLayout>
+</fr.retrospare.blazeplayer.ui.SquareRoundedFrameLayout>

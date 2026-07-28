@@ -28,9 +28,8 @@ object AudioProSettings {
     const val KEY_TRACK_ORDER = "track_order"
     const val KEY_IGNORE_SHORT = "ignore_short"
     const val KEY_DYNAMIC_THEME = "dynamic_theme"
-    const val KEY_COVER_BORDER = "cover_border"
     const val KEY_LYRICS_PLAYER = "lyrics_player"
-    const val KEY_ARTWORK_SIZE = "artwork_size"
+    private const val LEGACY_KEY_ARTWORK_SIZE = "artwork_size"
     const val KEY_SYNCED_LYRICS = "synced_lyrics"
     const val KEY_DOWNLOAD_COVERS = "download_covers"
     const val KEY_KARAOKAST_SYNC_OFFSET_MS = "karaokast_sync_offset_ms"
@@ -44,7 +43,16 @@ object AudioProSettings {
     private const val KEY_LAST_AUTO_SCAN_AT = "last_auto_scan_at"
 
     const val ACTION_LIBRARY_SETTINGS_CHANGED = "fr.retrospare.blazeplayer.action.AUDIO_LIBRARY_SETTINGS_CHANGED"
+    const val ACTION_WATCHED_FOLDERS_CHANGED = "fr.retrospare.blazeplayer.action.AUDIO_WATCHED_FOLDERS_CHANGED"
     const val EXTRA_CHANGED_KEY = "changed_key"
+    const val EXTRA_WATCHED_FOLDER_CHANGE = "watched_folder_change"
+    const val EXTRA_WATCHED_FOLDER_NAME = "watched_folder_name"
+    const val EXTRA_WATCHED_FOLDER_PATH = "watched_folder_path"
+    const val EXTRA_WATCHED_FOLDER_NETWORK = "watched_folder_network"
+    const val EXTRA_WATCHED_FOLDER_SHARE_ID = "watched_folder_share_id"
+    const val EXTRA_WATCHED_FOLDER_SHARE_NAME = "watched_folder_share_name"
+    const val WATCHED_FOLDER_ADDED = "added"
+    const val WATCHED_FOLDER_REMOVED = "removed"
     const val AUTO_SCAN_INTERVAL_MS = 10L * 60L * 1000L
 
     const val REPLAYGAIN_OFF = 0
@@ -54,10 +62,6 @@ object AudioProSettings {
     const val OUTPUT_MODE_AUTO = "auto"
     const val OUTPUT_MODE_COMPATIBILITY = "compatibility"
     const val OUTPUT_MODE_HIGH_PRECISION = "high_precision"
-
-    const val ARTWORK_SMALL = 0
-    const val ARTWORK_MEDIUM = 1
-    const val ARTWORK_LARGE = 2
 
     data class Values(
         val gapless: Boolean = true,
@@ -70,9 +74,7 @@ object AudioProSettings {
         val trackOrder: Boolean = true,
         val ignoreShort: Boolean = false,
         val dynamicTheme: Boolean = true,
-        val coverBorder: Boolean = true,
         val lyricsPlayer: Boolean = true,
-        val artworkSize: Int = ARTWORK_MEDIUM,
         val syncedLyrics: Boolean = true,
         val downloadCovers: Boolean = true
     )
@@ -125,6 +127,10 @@ object AudioProSettings {
         // conserve une correction cachée après la suppression du réglage dans l'interface.
         if (audioPrefs.contains(LEGACY_KEY_NORMALIZE)) {
             edit.remove(LEGACY_KEY_NORMALIZE)
+            changed = true
+        }
+        if (audioPrefs.contains(LEGACY_KEY_ARTWORK_SIZE)) {
+            edit.remove(LEGACY_KEY_ARTWORK_SIZE)
             changed = true
         }
         if (changed) edit.apply()
@@ -206,9 +212,7 @@ object AudioProSettings {
             trackOrder = p.getBoolean(KEY_TRACK_ORDER, true),
             ignoreShort = p.getBoolean(KEY_IGNORE_SHORT, false),
             dynamicTheme = p.getBoolean(KEY_DYNAMIC_THEME, true),
-            coverBorder = p.getBoolean(KEY_COVER_BORDER, true),
             lyricsPlayer = p.getBoolean(KEY_LYRICS_PLAYER, true),
-            artworkSize = p.getInt(KEY_ARTWORK_SIZE, ARTWORK_MEDIUM).coerceIn(ARTWORK_SMALL, ARTWORK_LARGE),
             syncedLyrics = p.getBoolean(KEY_SYNCED_LYRICS, true),
             downloadCovers = p.getBoolean(KEY_DOWNLOAD_COVERS, true)
         )
@@ -259,6 +263,7 @@ object AudioProSettings {
         current += clean
         saveWatchedFolders(context, current)
         markLibraryRefreshPending(context)
+        notifyWatchedFoldersChanged(context, clean, WATCHED_FOLDER_ADDED)
         return true
     }
 
@@ -269,6 +274,9 @@ object AudioProSettings {
     fun markLibraryRefreshPending(context: Context) {
         prefs(context).edit().putBoolean(KEY_LIBRARY_REFRESH_PENDING, true).apply()
     }
+
+    fun isLibraryRefreshPending(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_LIBRARY_REFRESH_PENDING, false)
 
     fun consumeLibraryRefreshPending(context: Context): Boolean {
         val preferences = prefs(context)
@@ -327,8 +335,31 @@ object AudioProSettings {
 
     fun removeWatchedFolder(context: Context, folder: WatchedFolder) {
         val clean = normalizeFolder(folder)
-        saveWatchedFolders(context, watchedFolders(context).filterNot { sameFolder(it, clean) })
+        val previous = watchedFolders(context)
+        val updated = previous.filterNot { sameFolder(it, clean) }
+        if (updated.size == previous.size) return
+        saveWatchedFolders(context, updated)
         runCatching { AudioWatchedLibraryCache.remove(context, clean) }
+        markLibraryRefreshPending(context)
+        notifyWatchedFoldersChanged(context, clean, WATCHED_FOLDER_REMOVED)
+    }
+
+    private fun notifyWatchedFoldersChanged(
+        context: Context,
+        folder: WatchedFolder,
+        change: String
+    ) {
+        val appContext = context.applicationContext
+        appContext.sendBroadcast(
+            Intent(ACTION_WATCHED_FOLDERS_CHANGED)
+                .setPackage(appContext.packageName)
+                .putExtra(EXTRA_WATCHED_FOLDER_CHANGE, change)
+                .putExtra(EXTRA_WATCHED_FOLDER_NAME, folder.name)
+                .putExtra(EXTRA_WATCHED_FOLDER_PATH, folder.path)
+                .putExtra(EXTRA_WATCHED_FOLDER_NETWORK, folder.isNetwork)
+                .putExtra(EXTRA_WATCHED_FOLDER_SHARE_ID, folder.shareId)
+                .putExtra(EXTRA_WATCHED_FOLDER_SHARE_NAME, folder.shareName)
+        )
     }
 
     fun isWatchedFolder(context: Context, folder: WatchedFolder): Boolean {
@@ -368,7 +399,11 @@ object AudioProSettings {
                 put("shareName", folder.shareName)
             })
         }
-        prefs(context).edit().putString(KEY_WATCHED_FOLDERS, array.toString()).apply()
+        // La liste est très petite. commit() garantit que le repository lancé immédiatement après
+        // la coche relit déjà la nouvelle configuration, y compris depuis un autre thread.
+        prefs(context).edit()
+            .putString(KEY_WATCHED_FOLDERS, array.toString())
+            .commit()
     }
 
     /** ReplayGain est désormais l'unique mécanisme d'égalisation de niveau. Les corrections

@@ -41,7 +41,8 @@
             android:paddingVertical="1dp"
             android:textSize="9sp"
             android:textColor="@color/green_accent"
-            android:visibility="gone" />
+            android:visibility="gone"
+            android:textStyle="bold" />
 
         <!-- Progress bar en bas -->
         <FrameLayout
@@ -91,7 +92,8 @@
             android:textSize="9sp"
             android:textColor="@color/on_surface_variant"
             android:layout_marginEnd="3dp"
-            android:text="MP4" />
+            android:text="MP4"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvVideoCodec"
@@ -104,7 +106,8 @@
             android:textColor="@color/on_surface_variant"
             android:layout_marginEnd="3dp"
             android:text="H.264"
-            android:visibility="visible" />
+            android:visibility="visible"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvAudioCodec"
@@ -116,7 +119,8 @@
             android:textSize="9sp"
             android:textColor="@color/on_surface_variant"
             android:layout_marginEnd="3dp"
-            android:visibility="gone" />
+            android:visibility="gone"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvAudioQuality"
@@ -127,7 +131,8 @@
             android:paddingVertical="1dp"
             android:textSize="9sp"
             android:textColor="@color/on_surface_variant"
-            android:visibility="gone" />
+            android:visibility="gone"
+            android:textStyle="bold" />
 
     </LinearLayout>
 
@@ -150,6 +155,7 @@
 
     <!-- checkboxSelect caché -->
     <CheckBox
+        style="@style/Widget.BlazePlayer.MultiSelectCheckBox"
         android:id="@+id/checkboxSelect"
         android:layout_width="0dp"
         android:layout_height="0dp"

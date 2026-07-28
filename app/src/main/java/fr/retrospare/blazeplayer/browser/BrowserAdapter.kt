@@ -10,9 +10,10 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
+import fr.retrospare.blazeplayer.player.AudioLibraryBackgroundDispatchers
+import fr.retrospare.blazeplayer.player.AudioLibraryWorkState
+import fr.retrospare.blazeplayer.player.AudioArtworkResolver
 import fr.retrospare.blazeplayer.player.AudioQualityBadgeBinder
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -194,18 +195,6 @@ class BrowserAdapter(
         private val tvAudioCodec: TextView = view.findViewById(R.id.tvAudioCodec)
         private val tvAudioQuality: TextView = view.findViewById(R.id.tvAudioQuality)
 
-        private fun isEventInsideChild(parent: View, child: View?, event: android.view.MotionEvent): Boolean {
-            if (child == null || child.visibility != View.VISIBLE) return false
-            val parentLocation = IntArray(2)
-            val childLocation = IntArray(2)
-            parent.getLocationOnScreen(parentLocation)
-            child.getLocationOnScreen(childLocation)
-            val rawX = parentLocation[0] + event.x
-            val rawY = parentLocation[1] + event.y
-            return rawX >= childLocation[0] && rawX <= childLocation[0] + child.width &&
-                rawY >= childLocation[1] && rawY <= childLocation[1] + child.height
-        }
-
         fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             val key = selectionKey(item)
             tvName.text = item.name
@@ -275,8 +264,9 @@ class BrowserAdapter(
             ivThumbnail.setTag(R.id.ivThumbnail, item.path)
             if (isAudio) ivThumbnail.setImageResource(R.drawable.ic_music_note_large)
             val cachedThumb = if (isAudio) {
-                fr.retrospare.blazeplayer.player.AudioArtworkResolver.cachedJpegBytes(itemView.context, item.path)
-                    ?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
+                // Bind RecyclerView strictement RAM : aucune lecture disque/compression JPEG sur le
+                // thread principal pendant qu'un morceau peut jouer en arrière-plan.
+                AudioArtworkResolver.memoryCachedBitmap(item.path)
             } else {
                 fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailBitmap(itemView.context, item.path)
             }
@@ -286,9 +276,14 @@ class BrowserAdapter(
                 ivThumbnail.setBackgroundColor(0x00000000)
             } else if (isAudio) {
                 thumbnailJob = scope.launch {
-                    val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        fr.retrospare.blazeplayer.player.AudioArtworkResolver.resolveJpegBytes(itemView.context, item.path)
-                            ?.let { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }
+                    val bitmap = withContext(AudioLibraryBackgroundDispatchers.visibleArtwork) {
+                        AudioArtworkResolver.cachedBitmap(itemView.context, item.path)?.let { return@withContext it }
+                        if (AudioLibraryWorkState.isPlaybackProtected()) {
+                            AudioLibraryWorkState.awaitPlaybackIdle()
+                        } else {
+                            AudioLibraryWorkState.awaitPlaybackCriticalWindowEnd()
+                        }
+                        AudioArtworkResolver.resolveBitmap(itemView.context, item.path)
                     }
                     if (ivThumbnail.getTag(R.id.ivThumbnail) == item.path && bitmap != null) {
                         ivThumbnail.setImageBitmap(bitmap)
@@ -345,11 +340,6 @@ class BrowserAdapter(
                 popup.show()
             }
         }
-    }
-
-    private fun isVideoItem(item: MediaItem): Boolean {
-        val ext = item.extension.lowercase()
-        return item.mimeType.startsWith("video/") || ext in setOf("mp4", "mkv", "avi", "mov", "webm", "m4v", "flv", "wmv", "3gp", "ts")
     }
 
     class DiffCallback : DiffUtil.ItemCallback<MediaItem>() {

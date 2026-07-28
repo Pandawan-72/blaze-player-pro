@@ -41,7 +41,9 @@
             android:paddingVertical="4dp"
             android:textSize="11sp"
             android:fontFamily="sans-serif-condensed"
-            android:background="@drawable/bg_badge_blue" />
+            android:textColor="@color/blue_accent"
+            android:background="@drawable/bg_badge_blue"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <!-- Partage SMB (masqué si auto-détecté) -->

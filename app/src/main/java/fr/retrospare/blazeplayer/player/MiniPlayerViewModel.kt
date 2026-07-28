@@ -15,7 +15,6 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
-import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.debug.CrashReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -220,14 +219,9 @@ class MiniPlayerViewModel @Inject constructor(
             _accentColor.value = AudioDynamicColor.DEFAULT_ACCENT
             return
         }
-        viewModelScope.launch(Dispatchers.Default) {
-            val bitmap = try {
-                android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size)
-            } catch (_: Exception) {
-                null
-            }
-            if (bitmap == null) return@launch
-            val accent = AudioDynamicColor.accentFromBitmap(bitmap)
+        viewModelScope.launch(AudioPlaybackDispatchers.compute) {
+            val accent = AudioDynamicColor.accentFromArtworkBytes(art)
+                ?: AudioDynamicColor.DEFAULT_ACCENT
             val bg = AudioDynamicColor.backgroundFromAccent(accent)
             kotlinx.coroutines.withContext(Dispatchers.Main) {
                 if (token == colorComputeToken) {
@@ -274,22 +268,47 @@ class MiniPlayerViewModel @Inject constructor(
                 currentArtworkPath = artworkKey
                 artworkLoadJob?.cancel()
             }
-            val cachedArtwork = AudioArtworkResolver.cachedJpegBytes(context, path, preferredArtworkPath)
-            if (cachedArtwork != null) {
-                applyArtwork(cachedArtwork)
+            val mediaArtworkData = meta?.artworkData
+            // Les callbacks MediaController restent instantanés : aucune lecture disque ni
+            // compression Bitmap ne se produit ici. L'artwork déjà transporté par Media3 est le
+            // repli immédiat, puis BlazePlaybackIo consulte le cache persistant.
+            if (mediaArtworkData != null) {
+                applyArtwork(mediaArtworkData)
             } else if (pathChanged) {
-                // Conserver la pochette pendant les simples événements play/pause/buffering ; le
-                // placeholder n'est appliqué qu'au vrai changement de piste.
                 applyArtwork(null)
             }
-            if (pathChanged || (cachedArtwork == null && artworkLoadJob?.isActive != true)) {
-                artworkLoadJob = viewModelScope.launch(Dispatchers.IO) {
-                    val art = AudioArtworkResolver.resolveJpegBytes(context, path, preferredArtworkPath)
+            if (pathChanged || (_artworkData.value == null && artworkLoadJob?.isActive != true)) {
+                artworkLoadJob = viewModelScope.launch(AudioPlaybackDispatchers.io) {
+                    val cached = AudioArtworkResolver.cachedJpegBytes(
+                        context,
+                        path,
+                        preferredArtworkPath
+                    )
+                    if (cached != null) {
+                        kotlinx.coroutines.withContext(Dispatchers.Main) {
+                            val currentItem = controller?.currentMediaItem
+                            val current = currentItem?.mediaMetadata?.extras?.getString("blaze_original_path")
+                                ?: currentItem?.mediaId.orEmpty()
+                            if (current == path && currentArtworkPath == artworkKey) applyArtwork(cached)
+                        }
+                        return@launch
+                    }
+
+                    if (AudioLibraryWorkState.isPlaybackProtected()) {
+                        AudioLibraryWorkState.awaitPlaybackIdle()
+                    } else {
+                        AudioLibraryWorkState.awaitPlaybackCriticalWindowEnd()
+                    }
+                    val resolved = AudioArtworkResolver.resolveJpegBytes(
+                        context,
+                        path,
+                        preferredArtworkPath
+                    ) ?: mediaArtworkData
                     kotlinx.coroutines.withContext(Dispatchers.Main) {
                         val currentItem = controller?.currentMediaItem
                         val current = currentItem?.mediaMetadata?.extras?.getString("blaze_original_path")
                             ?: currentItem?.mediaId.orEmpty()
-                        if (current == path && currentArtworkPath == artworkKey) applyArtwork(art)
+                        if (current == path && currentArtworkPath == artworkKey) applyArtwork(resolved)
                     }
                 }
             }

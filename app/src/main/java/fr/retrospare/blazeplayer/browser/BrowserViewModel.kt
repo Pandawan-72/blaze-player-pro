@@ -9,7 +9,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fr.retrospare.blazeplayer.data.model.MediaItem
-import fr.retrospare.blazeplayer.data.repository.MediaRepository
 import fr.retrospare.blazeplayer.network.SmbBrowser
 import fr.retrospare.blazeplayer.network.UpnpBrowser
 import fr.retrospare.blazeplayer.data.model.NetworkShare
@@ -19,7 +18,6 @@ import kotlinx.coroutines.Dispatchers
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +30,6 @@ import javax.inject.Inject
 class BrowserViewModel @Inject constructor(
     private val dataStore: DataStore<Preferences>,
     @param:ApplicationContext private val context: Context,
-    private val mediaRepository: MediaRepository,
     private val smbBrowser: SmbBrowser,
     private val upnpBrowser: UpnpBrowser,
     private val networkRepository: NetworkRepository

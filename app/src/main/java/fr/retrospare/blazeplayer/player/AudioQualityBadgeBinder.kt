@@ -27,12 +27,14 @@ object AudioQualityBadgeBinder {
         fallbackExtension: String = "",
         codecTextColor: Int? = null,
         knownDurationMs: Long = 0L,
-        knownSizeBytes: Long = 0L
+        knownBitrate: Long = 0L,
+        knownSizeBytes: Long = 0L,
+        textOnly: Boolean = false
     ) {
         val context = codecView?.context ?: qualityView?.context ?: return
         val ext = normalizedExtension(path, originalName, fallbackExtension)
         if (ext.isNotBlank()) {
-            BadgeStyle.applyContainerBadge(codecView, ext)
+            if (textOnly) applyTextOnlyStyle(codecView) else BadgeStyle.applyContainerBadge(codecView, ext)
             codecTextColor?.let { codecView?.setTextColor(it) }
             codecView?.visibility = View.VISIBLE
         } else {
@@ -42,13 +44,25 @@ object AudioQualityBadgeBinder {
 
         val view = qualityView ?: return
         qualityJobs.remove(view)?.cancel()
-        BadgeStyle.applyTechnicalBadge(view)
+        if (textOnly) applyTextOnlyStyle(view) else BadgeStyle.applyTechnicalBadge(view)
         view.text = ""
         view.visibility = View.GONE
 
         // Le caractère lossless dépend uniquement du conteneur : rendu immédiat, sans accès au
         // fichier ni au NAS. Le badge ne doit jamais disparaître pendant une indexation.
         if (renderQuality(context, view, AudioTechnicalInfo(extension = ext), ext)) return
+        if (
+            knownBitrate > 0L &&
+            renderQuality(
+                context,
+                view,
+                AudioTechnicalInfo(
+                    bitrate = knownBitrate,
+                    extension = ext
+                ),
+                ext
+            )
+        ) return
 
         val cached = path.takeIf { it.isNotBlank() }
             ?.let { AudioMetadataExtractor.getCached(context.applicationContext, it) }
@@ -58,7 +72,7 @@ object AudioQualityBadgeBinder {
         if (immediateEstimate != null) {
             renderQuality(context, view, immediateEstimate, ext)
             if (path.isNotBlank()) {
-                scope.launch(Dispatchers.IO) {
+                scope.launch(AudioPlaybackDispatchers.io) {
                     AudioMetadataExtractor.putCached(context.applicationContext, path, immediateEstimate)
                 }
             }
@@ -73,12 +87,31 @@ object AudioQualityBadgeBinder {
         val job = scope.launch {
             // Room contient déjà taille et durée après le scan. On calcule d'abord le débit moyen
             // depuis cette persistance locale, sans ouvrir une seconde fois le fichier réseau.
-            val snapshot = withContext(Dispatchers.IO) {
+            val snapshot = withContext(AudioPlaybackDispatchers.io) {
                 runCatching {
                     AudioLibraryRoomStore.loadTechnicalSnapshot(context.applicationContext, path)
                 }.getOrNull()
             }
             if (view.tag !== token) return@launch
+
+            val roomBitrate = snapshot?.bitrate
+                ?.takeIf { it > 0L }
+            if (roomBitrate != null) {
+                val roomInfo = AudioTechnicalInfo(
+                    duration = snapshot?.durationMs
+                        ?.takeIf { it > 0L }
+                        ?.let { ((it + 500L) / 1000L).coerceAtLeast(1L) }
+                        ?: 0L,
+                    bitrate = roomBitrate,
+                    extension = snapshot?.extension.orEmpty().ifBlank { ext }
+                )
+                withContext(AudioPlaybackDispatchers.compute) {
+                    AudioLibraryMemoryStore.updateMetadata(mapOf(path to roomInfo))
+                }
+                if (view.tag === token && renderQuality(context, view, roomInfo, ext)) {
+                    return@launch
+                }
+            }
 
             val roomEstimate = estimateTechnicalInfo(
                 ext = snapshot?.extension?.takeIf { it.isNotBlank() } ?: ext,
@@ -86,24 +119,19 @@ object AudioQualityBadgeBinder {
                 sizeBytes = knownSizeBytes.takeIf { it > 0L } ?: snapshot?.sizeBytes ?: 0L
             )
             if (roomEstimate != null) {
-                withContext(Dispatchers.IO) {
+                withContext(AudioPlaybackDispatchers.io) {
                     AudioMetadataExtractor.putCached(context.applicationContext, path, roomEstimate)
+                }
+                withContext(AudioPlaybackDispatchers.compute) {
+                    AudioLibraryMemoryStore.updateMetadata(mapOf(path to roomEstimate))
                 }
                 if (view.tag === token) renderQuality(context, view, roomEstimate, ext)
                 return@launch
             }
 
-            // Seulement en dernier recours, et jamais pendant la lecture ou l'indexation, ouvrir le
-            // média pour lire ses informations techniques. Cela protège le flux audio NAS.
-            AudioLibraryWorkState.awaitEnrichmentWindow()
-            if (view.tag !== token) return@launch
-            val info = AudioMetadataExtractor.extractQualityOnly(
-                context.applicationContext,
-                path,
-                originalName.ifBlank { AudioLibraryHeuristics.fileNameFromPath(path) }
-            )
-            if (view.tag !== token) return@launch
-            renderQuality(context, view, info, ext)
+            // Aucun accès au fichier audio depuis un bind RecyclerView. L'unique pipeline du
+            // repository hydratera le snapshot pendant une vraie fenêtre d'inactivité. Cela évite
+            // qu'un simple changement d'écran concurrence Media3 ou fige l'égaliseur visuel.
         }
         qualityJobs[view] = job
         job.invokeOnCompletion {
@@ -111,6 +139,19 @@ object AudioQualityBadgeBinder {
                 if (qualityJobs[view] === job) qualityJobs.remove(view)
             }
         }
+    }
+
+
+    private fun applyTextOnlyStyle(view: TextView?) {
+        view ?: return
+        view.background = null
+        view.setPadding(0, 0, 0, 0)
+        view.includeFontPadding = false
+        view.minWidth = 0
+        view.setTypeface(
+            android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.BOLD),
+            android.graphics.Typeface.BOLD
+        )
     }
 
     private fun estimateTechnicalInfo(ext: String, durationMs: Long, sizeBytes: Long): AudioTechnicalInfo? {

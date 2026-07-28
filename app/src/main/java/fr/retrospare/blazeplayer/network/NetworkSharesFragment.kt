@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -241,6 +242,8 @@ class NetworkSharesFragment : Fragment() {
         tvIp.text = device.ip
         tvBadge.text = "SMB"
         tvBadge.setBackgroundResource(R.drawable.bg_badge_blue)
+        tvBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.blue_accent))
+        tvBadge.setTypeface(tvBadge.typeface, android.graphics.Typeface.BOLD)
 
         // Charge les partages SMB disponibles
         viewLifecycleOwner.lifecycleScope.launch {

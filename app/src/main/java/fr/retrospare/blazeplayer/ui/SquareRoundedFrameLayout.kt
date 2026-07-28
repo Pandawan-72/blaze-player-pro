@@ -2,28 +2,51 @@ package fr.retrospare.blazeplayer.ui
 
 import android.content.Context
 import android.util.AttributeSet
+import android.widget.FrameLayout
 
 /**
- * Variante de RoundedFrameLayout qui force sa hauteur à égaler sa largeur mesurée, directement
- * dans onMeasure — sans passer par un `view.post { ... }` exécuté à chaque bind RecyclerView
- * (ancienne technique utilisée dans Blaze Gallery pour les tuiles de dossiers). Cette ancienne
- * technique forçait une deuxième passe de layout après l'affichage initial de chaque tuile,
- * provoquant un redimensionnement visible ("saut") pendant le scroll et du travail de mise en
- * page superflu à chaque recyclage de vue. Ici la vue est carrée dès la première mesure, sans
- * travail additionnel ni délai.
+ * Conteneur strictement carré sans aucun arrondi ni masque d'outline.
+ *
+ * Le nom historique est conservé pour ne pas casser les layouts/ViewBinding existants, mais
+ * cette vue n'hérite volontairement plus de [RoundedFrameLayout]. Le lecteur audio doit afficher
+ * la pochette bord à bord avec quatre angles droits, y compris après une restauration de vue ou
+ * lorsqu'un ancien outline a été appliqué par le thème.
  */
 class SquareRoundedFrameLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : RoundedFrameLayout(context, attrs, defStyleAttr) {
+) : FrameLayout(context, attrs, defStyleAttr) {
+
+    /** Compatibilité avec les anciens appels Kotlin. Toute valeur est volontairement ignorée. */
+    var radiusDp: Float = 0f
+        set(@Suppress("UNUSED_PARAMETER") value) {
+            field = 0f
+            removeAnyOutlineClipping()
+        }
 
     init {
-        radiusDp = 0f
+        removeAnyOutlineClipping()
+    }
+
+    private fun removeAnyOutlineClipping() {
         clipToOutline = false
+        outlineProvider = null
+        elevation = 0f
+        translationZ = 0f
+        invalidateOutline()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Certains thèmes/rendus restaurent un outline après l'inflation : on le neutralise aussi
+        // au rattachement afin que les coins ne puissent jamais redevenir arrondis.
+        removeAnyOutlineClipping()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, widthMeasureSpec)
+        val size = measuredWidth
+        setMeasuredDimension(size, size)
     }
 }

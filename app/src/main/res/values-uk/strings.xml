@@ -39,7 +39,6 @@
     <string name="queue">ЧЕРГА</string>
     <string name="queue_short">Черга</string>
     <string name="add">Додати</string>
-    <string name="lyrics">Текст пісні</string>
     <string name="audio_lyrics_title">Текст пісні</string>
     <string name="audio_lyrics_disabled">Увімкніть «Синхронізований текст» у налаштуваннях аудіо, щоб дозволити локальні тексти.</string>
     <string name="audio_lyrics_none">Для цієї доріжки локальний текст не знайдено.</string>
@@ -248,10 +247,6 @@ Retro-Spare Dev / Anthony Gentil
 Розмір: %5$s</string>
     <string name="dialog_video_info_video_codec">Відеокодек: %1$s</string>
     <string name="dialog_video_info_audio_codec">Аудіокодек: %1$s</string>
-    <plurals name="video_count">
-        <item quantity="one">%1$d відео</item>
-        <item quantity="other">%1$d відео</item>
-    </plurals>
     <string name="toast_cannot_open_screen_cast_settings">Не вдалося відкрити налаштування трансляції екрана</string>
     <string name="toast_share_not_found">Спільний ресурс для цього обраного не знайдено</string>
     <string name="action_remove_from_history">Видалити з історії</string>
@@ -315,7 +310,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="player_speed_label_short">Швидкість</string>
     <string name="player_ratio_label">Співвідношення</string>
     <string name="content_desc_close_playlist">Закрити список відтворення</string>
-    <string name="content_desc_clean">Очистити</string>
     <string name="content_desc_playlist">Список відтворення</string>
     <string name="content_desc_shuffle">Перемішати</string>
     <string name="content_desc_previous">Попередній</string>
@@ -358,7 +352,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="gallery_trash_empty_message">Кошик порожній</string>
     <string name="gallery_type_photo">Фото</string>
     <string name="gallery_type_video">Відео</string>
-    <string name="gallery_folder_title">Blaze Gallery — %1$s</string>
     <string name="gallery_sort">Сортувати</string>
     <string name="gallery_sort_date_desc">Спочатку нові</string>
     <string name="gallery_sort_date_asc">Спочатку старі</string>
@@ -383,14 +376,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="confirm_empty_trash_message">Очистити кошик назавжди? Цю дію не можна скасувати.</string>
     <string name="confirm_permanent_delete_message">Назавжди видалити це фото з кошика?</string>
     <string name="action_confirm_delete">Видалити</string>
-    <plurals name="gallery_photo_count">
-        <item quantity="one">%d фото</item>
-        <item quantity="other">%d фото</item>
-    </plurals>
-    <plurals name="gallery_video_count">
-        <item quantity="one">%d відео</item>
-        <item quantity="other">%d відео</item>
-    </plurals>
     <string name="settings_audio_spectrum">Увімкнути візуальний спектр</string>
     <string name="settings_audio_spectrum_desc">Показувати анімований аудіовізуалізатор у Blaze Audio.</string>
     <string name="blaze_party">Blaze Party</string>
@@ -408,6 +393,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="blaze_party_scan_unavailable">QR-сканер недоступний. Установіть сканер або введіть код вручну.</string>
     <string name="blaze_party_joined">Підключено до сесії Blaze Party</string>
     <string name="blaze_party_short">Party</string>
+    <string name="audio_party_queue_short">Черга Party</string>
     <string name="add_to_blaze_party">Додати до Blaze Party</string>
     <string name="blaze_party_playlist_title">Список відтворення Blaze Party</string>
     <string name="blaze_party_playlist_empty_message">У списку Blaze Party немає доріжок. Додайте їх з аудіобраузера через «Додати до Blaze Party».</string>
@@ -518,7 +504,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="gallery_menu_cut">Обрізати</string>
     <string name="add_to_video_queue_short">черга</string>
     <string name="video_queue_title">ЧЕРГА ВІДЕО</string>
-    <string name="video_queue_title_with_category">ЧЕРГА ВІДЕО — %1$s (%2$d)</string>
     <string name="video_queue_empty_message">У цій черзі немає відео. Виберіть відео в браузері, а потім натисніть «+ черга».</string>
     <string name="toast_video_queue_added">До черги додано %1$d відео</string>
     <string name="toast_video_queue_added_partial">Додано %1$d відео, %2$d уже були в черзі</string>
@@ -531,12 +516,12 @@ Retro-Spare Dev / Anthony Gentil
     <string name="app_name_audio">Blaze Audio</string>
     <string name="blaze_party_network_error">Не вдалося підключитися до хоста. Переконайтеся, що ви в тій самій мережі Wi‑Fi.</string>
     <string name="audio_library_title">Бібліотека</string>
+    <string name="audio_open_full_player">Відкрити аудіопрогравач</string>
     <string name="audio_library_subtitle">Ваша музична бібліотека Pro+</string>
-    <string name="audio_loading_in_progress">Завантаження...</string>
     <string name="audio_search">Пошук</string>
+    <string name="audio_tab_albums">Альбоми</string>
     <string name="audio_tab_artists">Виконавці</string>
     <string name="audio_tab_titles">Доріжки</string>
-    <string name="audio_tab_playlists">Списки відтворення</string>
     <string name="audio_resume_listening">Нещодавно прослухане</string>
     <string name="audio_recent_albums">Мої альбоми</string>
     <string name="audio_played_tracks">Доріжки</string>
@@ -577,12 +562,6 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_section_interface">Інтерфейс</string>
     <string name="audio_dynamic_theme">Динамічна тема</string>
     <string name="audio_dynamic_theme_subtitle">Зелений Blaze за замовчуванням, кольори обкладинки після ввімкнення</string>
-    <string name="audio_cover_border">Кольорова рамка обкладинки</string>
-    <string name="audio_cover_border_subtitle">Динамічний акцент навколо обкладинки</string>
-    <string name="audio_artwork_size">Розмір обкладинки</string>
-    <string name="audio_size_small">Малий</string>
-    <string name="audio_size_medium">Середній</string>
-    <string name="audio_size_large">Великий</string>
     <string name="audio_section_lyrics_metadata">Тексти й метадані</string>
     <string name="audio_synced_lyrics">Синхронізований текст</string>
     <string name="audio_synced_lyrics_subtitle">Головний перемикач для локальних текстів LRC/TXT</string>
@@ -610,12 +589,9 @@ Retro-Spare Dev / Anthony Gentil
         <item quantity="one">%d виконавець</item>
         <item quantity="other">%d виконавців</item>
     </plurals>
-    <string name="audio_watched_folders_empty_info">Відстежуваних папок ще немає. В аудіобраузері відкрийте меню папки й виберіть «Додати до відстежуваних папок».</string>
-    <string name="audio_watched_folders_manage_info">Натисніть папку, щоб припинити відстеження. Додавайте нові папки через їхні меню в аудіобраузері.</string>
     <string name="audio_remove_watched_folder">Видалити</string>
     <string name="audio_add_to_watched">Додати до відстежуваних папок</string>
     <string name="audio_watched_folder_added">Папку додано до відстежуваних</string>
-    <string name="audio_watched_folder_refresh_hint">Папку додано до відстежуваних. Повне оновлення бібліотеки почнеться автоматично після повернення до неї.</string>
     <string name="audio_watched_folder_removed">Папку видалено з відстежуваних</string>
     <string name="audio_watched_folder_already">Ця папка вже відстежується</string>
     <string name="audio_tag_genre">Жанр</string>
@@ -630,6 +606,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="action_done">Готово</string>
     <string name="audio_play_album">Відтворити весь альбом</string>
     <string name="audio_add_album_queue">Додати до черги</string>
+    <string name="audio_album_queue_button">Черга</string>
     <string name="audio_add_playlist_blaze_party">Додати список до Blaze Party</string>
     <string name="audio_add_playlist_queue">Додати список до черги</string>
     <string name="queue_clear_all">Очистити все</string>
@@ -880,4 +857,28 @@ Retro-Spare Dev / Anthony Gentil
     <string name="slideshow_font_bebas">Bebas Neue</string>
     <string name="slideshow_font_caveat">Caveat</string>
     <string name="slideshow_font_cinzel">Cinzel</string>
+
+    <!-- Page artiste et photographie Wikimedia -->
+    <string name="audio_artist_page_title">Виконавець</string>
+    <string name="audio_album_page_title">Альбом</string>
+    <string name="audio_my_artists">Мої виконавці</string>
+    <string name="audio_artist_play_all">Відтворити все</string>
+    <string name="audio_library_empty_hint">Спробуйте інший пошук або проскануйте медіатеку.</string>
+    <string name="audio_artist_photo_credit">Фото: %1$s • %2$s</string>
+    <string name="audio_artist_photo_credit_author">Фото: %1$s</string>
+    <string name="audio_artist_photo_source">Джерело фотографії</string>
+    <string name="audio_artist_photo_author">Автор: %1$s</string>
+    <string name="audio_artist_photo_license">Ліцензія: %1$s</string>
+    <string name="audio_artist_photo_credits_title">Відомості про фотографію</string>
+    <string name="audio_artist_photo_open_source">Відкрити джерело</string>
+
+    <!-- Photo d’artiste : source automatique + choix manuel persistant. -->
+    <string name="audio_artist_change_photo">Змінити фото</string>
+    <string name="audio_artist_photo_actions_title">Фото виконавця</string>
+    <string name="audio_artist_photo_choose_device">Вибрати зображення на пристрої</string>
+    <string name="audio_artist_photo_restore_auto">Відновити автоматичне фото</string>
+    <string name="audio_artist_photo_updated">Фото виконавця оновлено</string>
+    <string name="audio_artist_photo_restored">Автоматичне фото відновлено</string>
+    <string name="audio_artist_photo_update_failed">Це зображення неможливо використати</string>
+    <string name="audio_now_playing">Зараз відтворюється</string>
 </resources>

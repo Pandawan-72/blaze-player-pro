@@ -8,7 +8,7 @@
     android:background="@color/background"
     android:paddingBottom="60dp">
 
-    <!-- Carte premium FILE D'ATTENTE VIDÉO : header raccord avec les cartes Local/Réseau -->
+    <!-- Carte premium FILE D'ATTENTE VIDÉO : même structure que la file audio. -->
     <LinearLayout
         android:id="@+id/videoQueueHeaderCard"
         android:layout_width="match_parent"
@@ -23,6 +23,7 @@
         android:paddingEnd="16dp"
         android:paddingBottom="12dp">
 
+        <!-- En-tête : fermeture + titre uniquement. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="40dp"
@@ -55,11 +56,22 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
+        </LinearLayout>
+
+        <!-- Première ligne : copie de la file à gauche, corbeille alignée à droite. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVideoQueueToPlaylist"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_marginStart="8dp"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
                 android:includeFontPadding="false"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
@@ -75,40 +87,92 @@
                 app:iconSize="15dp"
                 app:iconTint="@color/green_accent"
                 app:iconGravity="textStart"
-                app:backgroundTint="@android:color/transparent"
+                app:backgroundTint="@color/surface_variant"
                 app:strokeColor="@color/green_accent_stroke"
-                app:strokeWidth="0dp"
-                app:cornerRadius="0dp"
+                app:strokeWidth="1dp"
+                app:cornerRadius="20dp"
                 android:contentDescription="@string/content_desc_queue_to_playlist" />
 
-            <TextView
+            <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/btnClearVideoQueue"
                 android:layout_width="50dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="8dp"
+                android:layout_height="40dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
-                android:paddingLeft="0dp"
-                android:paddingRight="0dp"
-                android:paddingTop="0dp"
-                android:paddingBottom="0dp"
-                android:includeFontPadding="false"
-                android:gravity="center"
-                android:textAlignment="center"
-                android:text="−"
-                android:textSize="21sp"
-                android:textStyle="bold"
-                android:fontFamily="sans-serif"
-                android:textColor="@color/red_accent"
+                android:padding="10dp"
+                android:scaleType="centerInside"
                 android:background="@drawable/bg_queue_action_remove_pill"
-                android:contentDescription="@string/content_desc_clean"
-                    android:foreground="@drawable/bg_premium_pill_foreground"
-                    android:foregroundGravity="fill"
-                    android:clipToOutline="true"
-                    android:elevation="3dp"
-                    android:stateListAnimator="@animator/premium_pill_state_animator" />
+                android:contentDescription="@string/action_empty_playlist"
+                android:foreground="@drawable/bg_premium_pill_foreground"
+                android:foregroundGravity="fill"
+                android:clipToOutline="true"
+                android:elevation="3dp"
+                android:stateListAnimator="@animator/premium_pill_state_animator"
+                app:srcCompat="@drawable/ic_trash"
+                app:tint="@color/red_accent" />
 
         </LinearLayout>
+
+        <!-- Deuxième ligne : création / choix d'une playlist vidéo. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNewVideoQueuePlaylist"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:includeFontPadding="false"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="10dp"
+                android:text="@string/action_new_playlist"
+                android:textColor="@color/black"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:icon="@drawable/ic_add_circle"
+                app:iconSize="16dp"
+                app:iconTint="@color/black"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/green_accent"
+                app:cornerRadius="20dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChooseVideoQueuePlaylist"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:includeFontPadding="false"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="10dp"
+                android:text="@string/action_choose_playlist"
+                android:textColor="@color/on_surface"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-condensed"
+                android:visibility="gone"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:icon="@drawable/ic_layout_list"
+                app:iconSize="15dp"
+                app:iconTint="@color/green_accent"
+                app:iconGravity="textStart"
+                app:backgroundTint="@color/surface_variant"
+                app:strokeColor="@color/green_accent_stroke"
+                app:strokeWidth="1dp"
+                app:cornerRadius="20dp" />
+
+        </LinearLayout>
+
     </LinearLayout>
 
     <FrameLayout

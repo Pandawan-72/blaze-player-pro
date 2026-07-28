@@ -31,12 +31,24 @@
              endroit à changer puisqu'aucun MaterialButton du projet ne déclare de style="..."
              explicite — ils héritent tous de ce style par défaut. -->
         <item name="materialButtonStyle">@style/Widget.BlazePlayer.Button</item>
+        <item name="android:buttonStyle">@style/Widget.BlazePlayer.PlatformButton</item>
+        <item name="buttonStyle">@style/Widget.BlazePlayer.PlatformButton</item>
         <item name="materialButtonOutlinedStyle">@style/Widget.BlazePlayer.Button.Outlined</item>
+        <item name="android:checkboxStyle">@style/Widget.BlazePlayer.MultiSelectCheckBox</item>
+        <item name="checkboxStyle">@style/Widget.BlazePlayer.MultiSelectCheckBox</item>
     </style>
 
     <!-- Tous les vrais boutons pilule Material de l'application héritent de ce rendu.
          La navigation inférieure utilise ses propres LinearLayout/drawables et n'est pas touchée. -->
     <style name="Widget.BlazePlayer.Button" parent="Widget.Material3.Button">
+        <item name="autoSizeTextType">uniform</item>
+        <item name="autoSizeMinTextSize">7sp</item>
+        <item name="autoSizeMaxTextSize">16sp</item>
+        <item name="autoSizeStepGranularity">1sp</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">none</item>
+
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>
         <item name="android:textStyle">bold</item>
@@ -57,6 +69,14 @@
     </style>
 
     <style name="Widget.BlazePlayer.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="autoSizeTextType">uniform</item>
+        <item name="autoSizeMinTextSize">7sp</item>
+        <item name="autoSizeMaxTextSize">16sp</item>
+        <item name="autoSizeStepGranularity">1sp</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">none</item>
+
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>
         <item name="android:textStyle">bold</item>
@@ -118,6 +138,8 @@
         <item name="android:buttonBarPositiveButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
         <item name="android:buttonBarNegativeButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
         <item name="android:buttonBarNeutralButtonStyle">@style/Widget.BlazePlayer.DialogButton</item>
+        <item name="android:checkboxStyle">@style/Widget.BlazePlayer.MultiSelectCheckBox</item>
+        <item name="checkboxStyle">@style/Widget.BlazePlayer.MultiSelectCheckBox</item>
     </style>
 
     <style name="ShapeAppearance.BlazePlayer.Dialog" parent="">

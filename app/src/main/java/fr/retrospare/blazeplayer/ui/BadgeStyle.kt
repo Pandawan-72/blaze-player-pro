@@ -1,5 +1,6 @@
 package fr.retrospare.blazeplayer.ui
 
+import android.graphics.Typeface
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import fr.retrospare.blazeplayer.R
@@ -9,6 +10,7 @@ object BadgeStyle {
         view ?: return
         view.setBackgroundResource(R.drawable.bg_badge_gray)
         view.setTextColor(ContextCompat.getColor(view.context, R.color.on_surface_variant))
+        view.setTypeface(view.typeface, Typeface.BOLD)
     }
 
     /**
@@ -25,6 +27,7 @@ object BadgeStyle {
         view.text = ext
         view.setBackgroundResource(R.drawable.bg_badge_black)
         view.setTextColor(ContextCompat.getColor(view.context, colorForContainer(ext)))
+        view.setTypeface(view.typeface, Typeface.BOLD)
     }
 
     private fun colorForContainer(ext: String): Int = when (ext) {

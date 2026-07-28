@@ -383,11 +383,6 @@ class PhotoEditorActivity : AppCompatActivity() {
 
     /** Revient à l'aperçu sans effet (désactivation du flou) — sans repasser par
      *  [refreshBlurPreview] puisqu'il n'y a alors plus rien à calculer. */
-    private fun clearBlurPreview() {
-        pendingBlurPreview?.let { blurPreviewHandler.removeCallbacks(it) }
-        rotatedPreviewBitmap?.let { ivPhoto.setImageBitmap(it) }
-    }
-
     // ── Onglets outils ───────────────────────────────────────────────────────
 
     private val toolTabs by lazy {

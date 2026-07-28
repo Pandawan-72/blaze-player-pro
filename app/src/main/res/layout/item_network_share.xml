@@ -76,7 +76,8 @@
                 android:textColor="@color/blue_accent"
                 android:textSize="9sp"
                 android:fontFamily="sans-serif-condensed"
-                android:includeFontPadding="false" />
+                android:includeFontPadding="false"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvStatus"

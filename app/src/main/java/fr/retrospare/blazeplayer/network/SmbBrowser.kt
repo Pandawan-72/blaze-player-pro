@@ -1,17 +1,20 @@
 package fr.retrospare.blazeplayer.network
 
+import fr.retrospare.blazeplayer.player.AudioLibraryBackgroundDispatchers
 import com.hierynomus.msfscc.fileinformation.FileIdBothDirectoryInformation
-import com.hierynomus.mssmb2.SMB2ShareAccess
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.share.DiskShare
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.data.model.NetworkShare
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import java.util.ArrayDeque
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,6 +27,8 @@ class SmbBrowser @Inject constructor() {
     // ouverts et figer l'arborescence. On sérialise les listings de dossiers, qui sont courts et
     // critiques pour l'UX.
     private val listSemaphore = Semaphore(1)
+    /** Le scan de bibliothèque garde sa propre connexion sans bloquer la navigation interactive. */
+    private val libraryScanSemaphore = Semaphore(1)
 
     private val VIDEO_EXTENSIONS = setOf(
         "mp4", "mkv", "avi", "mov", "wmv", "flv", "ts",
@@ -37,9 +42,10 @@ class SmbBrowser @Inject constructor() {
     // La bibliothèque audio a besoin de voir les pochettes explicites dans les dossiers NAS
     // pour pouvoir les indexer sans ouvrir les fichiers audio réseau. On ne remonte pas toutes
     // les images du partage : uniquement les noms conventionnels de cover d'album.
-    private val COVER_IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png")
-    private val COVER_IMAGE_NAMES = setOf(
-        "cover", "folder", "front", "album", "albumart", "album art", "artwork", "jaquette", "pochette"
+    private val COVER_IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
+    private val COVER_IMAGE_NAMES = listOf(
+        "cover", "folder", "front", "poster", "default", "jacket",
+        "album", "albumart", "album art", "artwork", "jaquette", "pochette"
     )
 
     private fun lastWriteTimeMillis(info: FileIdBothDirectoryInformation): Long = runCatching {
@@ -56,7 +62,7 @@ class SmbBrowser @Inject constructor() {
         return SMBClient(config)
     }
 
-    suspend fun listShares(share: NetworkShare): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+    suspend fun listShares(share: NetworkShare): Result<List<MediaItem>> = withContext(AudioLibraryBackgroundDispatchers.network) {
         listSemaphore.withPermit {
             runCatching {
                 val client = createClient()
@@ -100,7 +106,7 @@ class SmbBrowser @Inject constructor() {
         share: NetworkShare,
         path: String = "",
         includeAudioCoverImages: Boolean = false
-    ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+    ): Result<List<MediaItem>> = withContext(AudioLibraryBackgroundDispatchers.network) {
         // Si aucun nom de partage n'est defini, on liste les partages disponibles
         if (share.shareName.isBlank()) {
             // Le chemin "path" sert alors a stocker le nom du partage choisi + sous-chemin
@@ -120,7 +126,7 @@ class SmbBrowser @Inject constructor() {
         path: String,
         sharePrefix: String?,
         includeAudioCoverImages: Boolean
-    ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+    ): Result<List<MediaItem>> = withContext(AudioLibraryBackgroundDispatchers.network) {
         listSemaphore.withPermit {
             runCatching {
                 val client = createClient()
@@ -192,16 +198,307 @@ class SmbBrowser @Inject constructor() {
         }
     }
 
-    /** Recherche récursive de vidéos dans le dossier SMB courant. Un seul Visual/Browser ne doit
-     *  pas lancer plusieurs connexions concurrentes au NAS : on réutilise le même sémaphore que le
-     *  listing normal, et on limite les résultats pour garder le navigateur fluide. */
+    /**
+     * Parcours audio optimisé pour la bibliothèque.
+     *
+     * Contrairement à listFiles() appelé récursivement, cette méthode conserve UNE connexion,
+     * UNE session et UN DiskShare ouverts pendant tout le parcours. Sur un NAS avec des centaines
+     * de dossiers, cela supprime la grande majorité des handshakes SMB.
+     *
+     * Chaque fichier audio reçoit dans previewUris la cover conventionnelle trouvée dans son
+     * dossier, ce qui évite ensuite d'ouvrir chaque morceau uniquement pour chercher une pochette.
+     */
+    private data class SmbLibraryNode(
+        val path: String,
+        val depth: Int,
+        val inheritedCover: String
+    )
+
+    /**
+     * Découverte SMB exhaustive et tolérante aux erreurs.
+     *
+     * - une connexion/session/partage restent ouverts tant qu'ils sont sains ;
+     * - le dossier courant est réessayé avec reconnexion avant d'être déclaré en échec ;
+     * - un échec de sous-dossier ne supprime jamais les titres déjà indexés ;
+     * - la découverte continue pendant la lecture : seule l'hydratation lourde est suspendue.
+     */
+    suspend fun scanAudioLibrary(
+        share: NetworkShare,
+        startPath: String = "",
+        maxTracks: Int = 500_000,
+        maxDepth: Int = 64,
+        beforeDirectory: suspend () -> Unit = {},
+        onBatch: suspend (List<MediaItem>) -> Unit = {}
+    ): Result<NetworkLibraryScanReport> = withContext(AudioLibraryBackgroundDispatchers.network) {
+        libraryScanSemaphore.withPermit {
+            var activeClient: SMBClient? = null
+            var activeConnection: AutoCloseable? = null
+            var activeSession: AutoCloseable? = null
+            var activeShare: DiskShare? = null
+
+            fun closeActiveConnection() {
+                runCatching { activeShare?.close() }
+                runCatching { activeSession?.close() }
+                runCatching { activeConnection?.close() }
+                runCatching { activeClient?.close() }
+                activeShare = null
+                activeSession = null
+                activeConnection = null
+                activeClient = null
+            }
+
+            try {
+                var effectiveShare = share
+                var effectiveStart = startPath.trim('/').replace("\\", "/")
+
+                if (effectiveShare.shareName.isBlank()) {
+                    if (effectiveStart.isBlank()) {
+                        return@withPermit Result.failure(
+                            IllegalArgumentException("Nom de partage SMB manquant")
+                        )
+                    }
+                    val parts = effectiveStart.split("/", limit = 2)
+                    effectiveShare = effectiveShare.copy(shareName = parts.first())
+                    effectiveStart = parts.getOrNull(1).orEmpty()
+                }
+
+                val authContext = buildAuthContext(effectiveShare)
+
+                fun openConnection() {
+                    closeActiveConnection()
+                    val client = createClient()
+                    val connection = client.connect(
+                        effectiveShare.host,
+                        effectiveShare.port ?: 445
+                    )
+                    val session = connection.authenticate(authContext)
+                    val disk = session.connectShare(effectiveShare.shareName) as? DiskShare
+                        ?: throw IllegalStateException("Partage SMB non disque")
+                    activeClient = client
+                    activeConnection = connection
+                    activeSession = session
+                    activeShare = disk
+                }
+
+                suspend fun listDirectoryWithRetry(
+                    directoryPath: String
+                ): Result<List<FileIdBothDirectoryInformation>> {
+                    var lastError: Throwable? = null
+                    repeat(SMB_DIRECTORY_MAX_ATTEMPTS) { attempt ->
+                        if (!currentCoroutineContext().isActive) {
+                            return Result.failure(
+                                kotlinx.coroutines.CancellationException(
+                                    "Découverte SMB annulée"
+                                )
+                            )
+                        }
+                        try {
+                            if (activeShare == null) openConnection()
+                            val listing = activeShare!!.list(
+                                directoryPath.replace("/", "\\")
+                            )
+                            return Result.success(listing)
+                        } catch (error: Throwable) {
+                            lastError = error
+                            closeActiveConnection()
+                            if (attempt + 1 < SMB_DIRECTORY_MAX_ATTEMPTS) {
+                                delay(SMB_RETRY_DELAYS_MS[attempt])
+                            }
+                        }
+                    }
+                    return Result.failure(
+                        lastError ?: IllegalStateException("Listing SMB impossible")
+                    )
+                }
+
+                val queue = ArrayDeque<SmbLibraryNode>()
+                val seenDirectories = HashSet<String>()
+                val seenAudioPaths = HashSet<String>(16_384)
+                val failedDirectories = linkedSetOf<String>()
+                var foundCount = 0
+                var visitedDirectoryCount = 0
+                var limitReached = false
+
+                queue.add(SmbLibraryNode(effectiveStart, 0, ""))
+                seenDirectories += effectiveStart.lowercase()
+
+                while (
+                    queue.isNotEmpty() &&
+                    foundCount < maxTracks &&
+                    currentCoroutineContext().isActive
+                ) {
+                    beforeDirectory()
+                    val node = queue.removeFirst()
+
+                    if (node.depth > maxDepth) {
+                        failedDirectories += node.path.ifBlank { "/" }
+                        continue
+                    }
+
+                    val listing = listDirectoryWithRetry(node.path)
+                    if (listing.isFailure) {
+                        failedDirectories += node.path.ifBlank { "/" }
+                        continue
+                    }
+
+                    visitedDirectoryCount++
+                    val entries = listing.getOrDefault(emptyList())
+                    if (entries.isEmpty()) continue
+
+                    val imageEntries = entries.filter { info ->
+                        val name = info.fileName
+                        val isDirectory = info.fileAttributes and 0x10L != 0L
+                        val ext = name.substringAfterLast('.', "").lowercase()
+                        !isDirectory &&
+                            !name.startsWith(".") &&
+                            ext in COVER_IMAGE_EXTENSIONS
+                    }
+                    val namedCover = imageEntries.minByOrNull { info ->
+                        coverCandidatePriority(info.fileName)
+                    }?.takeIf { coverCandidatePriority(it.fileName) < 100 }
+                    val fallbackImage = imageEntries
+                        .maxByOrNull { it.endOfFile }
+                    val coverInfo = namedCover ?: fallbackImage
+
+                    val ownCoverUri = coverInfo?.let { info ->
+                        val fullPath = if (node.path.isBlank()) {
+                            info.fileName
+                        } else {
+                            "${node.path}/${info.fileName}"
+                        }
+                        buildSmbUri(effectiveShare, fullPath)
+                    }.orEmpty()
+
+                    val currentFolderName = node.path
+                        .trimEnd('/')
+                        .substringAfterLast('/', "")
+                    val coverUri = ownCoverUri.ifBlank {
+                        node.inheritedCover.takeIf {
+                            isDiscFolderName(currentFolderName)
+                        }.orEmpty()
+                    }
+
+                    val directoryBatch = ArrayList<MediaItem>()
+                    entries.forEach entryLoop@ { info ->
+                        if (foundCount + directoryBatch.size >= maxTracks) {
+                            limitReached = true
+                            return@entryLoop
+                        }
+
+                        val name = info.fileName
+                        if (
+                            name == "." ||
+                            name == ".." ||
+                            name.startsWith(".")
+                        ) {
+                            return@entryLoop
+                        }
+
+                        val fullPath = if (node.path.isBlank()) {
+                            name
+                        } else {
+                            "${node.path}/$name"
+                        }
+                        val isDirectory =
+                            info.fileAttributes and 0x10L != 0L
+
+                        if (isDirectory) {
+                            if (node.depth >= maxDepth) {
+                                failedDirectories += fullPath
+                            } else {
+                                val key = fullPath.lowercase()
+                                if (seenDirectories.add(key)) {
+                                    val inheritedForChild = coverUri.takeIf {
+                                        isDiscFolderName(name)
+                                    }.orEmpty()
+                                    queue.add(
+                                        SmbLibraryNode(
+                                            fullPath,
+                                            node.depth + 1,
+                                            inheritedForChild
+                                        )
+                                    )
+                                }
+                            }
+                            return@entryLoop
+                        }
+
+                        val ext = name.substringAfterLast('.', "").lowercase()
+                        if (ext !in AUDIO_EXTENSIONS) return@entryLoop
+
+                        val smbUri = buildSmbUri(effectiveShare, fullPath)
+                        if (!seenAudioPaths.add(smbUri)) return@entryLoop
+
+                        directoryBatch += MediaItem(
+                            id = smbUri,
+                            name = name,
+                            path = smbUri,
+                            size = info.endOfFile,
+                            modifiedAt = lastWriteTimeMillis(info),
+                            mimeType = getMimeType(ext),
+                            extension = ext,
+                            isNetwork = true,
+                            networkShareId = effectiveShare.id,
+                            previewUris = coverUri
+                                .takeIf { it.isNotBlank() }
+                                ?.let(::listOf)
+                                ?: emptyList(),
+                            libraryPath = fullPath
+                        )
+                    }
+
+                    if (directoryBatch.isNotEmpty()) {
+                        foundCount += directoryBatch.size
+                        onBatch(directoryBatch)
+                    }
+                }
+
+                if (foundCount >= maxTracks && queue.isNotEmpty()) {
+                    limitReached = true
+                }
+                val cancelled = !currentCoroutineContext().isActive
+                val complete =
+                    !cancelled &&
+                        !limitReached &&
+                        queue.isEmpty() &&
+                        failedDirectories.isEmpty()
+
+                if (
+                    visitedDirectoryCount == 0 &&
+                    failedDirectories.isNotEmpty()
+                ) {
+                    Result.failure(
+                        IllegalStateException(
+                            "Aucun dossier SMB n'a pu être parcouru"
+                        )
+                    )
+                } else {
+                    Result.success(
+                        NetworkLibraryScanReport(
+                            foundCount = foundCount,
+                            visitedDirectoryCount = visitedDirectoryCount,
+                            failedDirectories = failedDirectories.toList(),
+                            limitReached = limitReached,
+                            cancelled = cancelled,
+                            complete = complete
+                        )
+                    )
+                }
+            } catch (error: Throwable) {
+                Result.failure(error)
+            } finally {
+                closeActiveConnection()
+            }
+        }
+    }
+
     suspend fun searchVideoFiles(
         share: NetworkShare,
         startPath: String = "",
         query: String,
         maxResults: Int = 200,
         maxDepth: Int = 8
-    ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+    ): Result<List<MediaItem>> = withContext(AudioLibraryBackgroundDispatchers.network) {
         val q = query.trim()
         if (q.isBlank()) return@withContext Result.success(emptyList())
 
@@ -247,7 +544,7 @@ class SmbBrowser @Inject constructor() {
         query: String,
         maxResults: Int,
         maxDepth: Int
-    ): Result<List<MediaItem>> = withContext(Dispatchers.IO) {
+    ): Result<List<MediaItem>> = withContext(AudioLibraryBackgroundDispatchers.network) {
         listSemaphore.withPermit {
             runCatching {
                 val client = createClient()
@@ -309,7 +606,7 @@ class SmbBrowser @Inject constructor() {
      * le parcours, avec un budget de temps global et une gestion résiliente des erreurs : une
      * panne sur un sous-dossier ne fait pas perdre les résultats déjà trouvés ailleurs.
      */
-    suspend fun checkConnection(share: NetworkShare): Boolean = withContext(Dispatchers.IO) {
+    suspend fun checkConnection(share: NetworkShare): Boolean = withContext(AudioLibraryBackgroundDispatchers.network) {
         runCatching {
             val client = createClient()
             val authContext = buildAuthContext(share)
@@ -344,6 +641,18 @@ class SmbBrowser @Inject constructor() {
         )
     }
 
+    private fun coverCandidatePriority(name: String): Int {
+        val base = name.substringBeforeLast('.', name)
+            .replace('_', ' ')
+            .replace('-', ' ')
+            .trim()
+            .lowercase()
+        val index = COVER_IMAGE_NAMES.indexOfFirst {
+            base == it || base.startsWith("$it ")
+        }
+        return if (index >= 0) index else 100
+    }
+
     private fun isAudioCoverImage(name: String, ext: String): Boolean {
         if (ext.lowercase() !in COVER_IMAGE_EXTENSIONS) return false
         val base = name.substringBeforeLast('.', name)
@@ -354,9 +663,21 @@ class SmbBrowser @Inject constructor() {
         return COVER_IMAGE_NAMES.any { base == it || base.startsWith(it) }
     }
 
+    private fun isDiscFolderName(value: String): Boolean =
+        Regex(
+            "^(?:cd|disc|disk|disque|vol(?:ume)?)\\s*\\d+",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(value.trim())
+
     private fun getCoverMimeType(ext: String): String = when (ext.lowercase()) {
         "png" -> "image/png"
+        "webp" -> "image/webp"
         else -> "image/jpeg"
+    }
+
+    private companion object {
+        const val SMB_DIRECTORY_MAX_ATTEMPTS = 4
+        val SMB_RETRY_DELAYS_MS = longArrayOf(250L, 700L, 1_500L)
     }
 
     private fun getMimeType(ext: String): String = when (ext) {

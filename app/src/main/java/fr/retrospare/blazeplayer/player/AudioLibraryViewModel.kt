@@ -10,21 +10,17 @@ import fr.retrospare.blazeplayer.playlist.PlaylistCategory
 import fr.retrospare.blazeplayer.playlist.PlaylistManager
 import fr.retrospare.blazeplayer.playlist.PlaylistTrackRef
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlin.math.abs
 
@@ -32,6 +28,9 @@ import kotlin.math.abs
  *  retiré : il n'était jamais atteint (onCreate écrasait toujours sa valeur par défaut avant le
  *  premier rendu), c'était un enum mort. */
 enum class LibraryTab { ALBUMS, ARTISTS, TITLES, PLAYLISTS }
+
+/** Onglet interne de la page dédiée à un artiste. */
+enum class ArtistDetailTab { ALBUMS, TITLES }
 
 data class LibraryPlaylist(
     val title: String,
@@ -62,8 +61,10 @@ data class LibraryUiState(
     val albumCount: Int = 0,
     val artistCount: Int = 0,
     val openedAlbum: LibraryAlbum? = null,
+    val openedArtist: LibraryArtist? = null,
+    val artistDetailTab: ArtistDetailTab = ArtistDetailTab.ALBUMS,
     val isRefreshing: Boolean = false,
-    /** true tant qu'aucune donnée (cache mémoire ou Room) n'a encore été observée. */
+    /** true tant que le snapshot mémoire n'a pas encore été restauré ou initialisé. */
     val isInitialLoad: Boolean = true
 )
 
@@ -75,43 +76,21 @@ class AudioLibraryViewModel @Inject constructor(
 
     companion object {
         private const val MAX_RENDER_TRACK_ROWS = 2000
-        private const val MAX_ARTWORK_ENRICH_TRACKS = 2400
     }
 
     private val _tab = MutableStateFlow(LibraryTab.ALBUMS)
     private val _searchQuery = MutableStateFlow("")
     private val _openedAlbumKey = MutableStateFlow<String?>(null)
     private val _openedAlbumTrackPaths = MutableStateFlow<Set<String>>(emptySet())
+    private val _openedArtistName = MutableStateFlow<String?>(null)
+    private val _artistDetailTab = MutableStateFlow(ArtistDetailTab.ALBUMS)
     private val _isRefreshing = MutableStateFlow(false)
     private val _playlists = MutableStateFlow<List<LibraryPlaylist>>(emptyList())
     private val _librarySettings = MutableStateFlow(readLibrarySettings())
     val refreshState: StateFlow<Boolean> get() = _isRefreshing
-    private val hasObservedTracksOnce = AtomicBoolean(false)
 
-    // L'enrichissement lance plusieurs workers en parallèle. Des HashSet classiques pouvaient
-    // être modifiés simultanément et perdre des entrées (voire corrompre leur état interne).
-    private val artworkAttemptedThisSession = ConcurrentHashMap.newKeySet<String>()
-    private val durationAttemptedThisSession = ConcurrentHashMap.newKeySet<String>()
-    private var artworkEnrichmentJob: Job? = null
-    private var durationEnrichmentJob: Job? = null
-
-    private val libraryTracksFlow: StateFlow<List<LibraryTrack>> = repository.observeLibrary(appContext)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    init {
-        // Les durées ne sont pas des tags texte : elles sont calculées en arrière-plan depuis les
-        // pistes manquantes, puis persistées dans Room. La bibliothèque peut ainsi afficher la
-        // durée réelle des albums sans retarder le premier rendu ni rouvrir les fichiers à chaque
-        // visite.
-        viewModelScope.launch {
-            libraryTracksFlow.collect { tracks ->
-                // Pendant un scan NAS, ne pas ouvrir en parallèle chaque fichier pour calculer sa
-                // durée : cela multiplie les requêtes SMB et ralentit fortement l'indexation.
-                // L'enrichissement est lancé explicitement à la fin de refresh().
-                if (tracks.isNotEmpty() && !_isRefreshing.value) scheduleDurationEnrichment(tracks)
-            }
-        }
-    }
+    private val librarySnapshotFlow: StateFlow<AudioLibrarySnapshot> =
+        repository.observeSnapshot()
 
     private data class LibraryBehaviorSettings(
         val trackOrder: Boolean,
@@ -131,45 +110,91 @@ class AudioLibraryViewModel @Inject constructor(
         if (next == _librarySettings.value) return
         _librarySettings.value = next
         if (next.ignoreShort) {
-            durationEnrichmentJob?.cancel()
-            durationEnrichmentJob = null
-            durationAttemptedThisSession.clear()
-            scheduleDurationEnrichment(libraryTracksFlow.value)
+            scheduleEnrichment(librarySnapshotFlow.value.tracks)
         }
     }
+
+    private data class DetailSelection(
+        val openedAlbumKey: String?,
+        val openedAlbumTrackPaths: Set<String>,
+        val openedArtistName: String?,
+        val artistDetailTab: ArtistDetailTab
+    )
 
     private data class Selection(
         val tab: LibraryTab,
         val query: String,
         val openedAlbumKey: String?,
-        val openedAlbumTrackPaths: Set<String>
+        val openedAlbumTrackPaths: Set<String>,
+        val openedArtistName: String?,
+        val artistDetailTab: ArtistDetailTab
     )
 
     private data class UiInputs(
-        val tracks: List<LibraryTrack>,
+        val snapshot: AudioLibrarySnapshot,
         val selection: Selection,
         val playlists: List<LibraryPlaylist>,
         val refreshing: Boolean,
         val settings: LibraryBehaviorSettings
     )
 
-    private val selectionFlow = combine(_tab, _searchQuery, _openedAlbumKey, _openedAlbumTrackPaths) { tab, query, key, paths ->
-        Selection(tab, query, key, paths)
+    private val detailSelectionFlow = combine(
+        _openedAlbumKey,
+        _openedAlbumTrackPaths,
+        _openedArtistName,
+        _artistDetailTab
+    ) { albumKey, albumPaths, artistName, artistTab ->
+        DetailSelection(albumKey, albumPaths, artistName, artistTab)
     }
 
+    private val selectionFlow = combine(_tab, _searchQuery, detailSelectionFlow) { tab, query, detail ->
+        Selection(
+            tab = tab,
+            query = query,
+            openedAlbumKey = detail.openedAlbumKey,
+            openedAlbumTrackPaths = detail.openedAlbumTrackPaths,
+            openedArtistName = detail.openedArtistName,
+            artistDetailTab = detail.artistDetailTab
+        )
+    }
+
+    private val renderSnapshotFlow = librarySnapshotFlow.debounce(180L)
+
     val uiState: StateFlow<LibraryUiState> = combine(
-        libraryTracksFlow, selectionFlow, _playlists, _isRefreshing, _librarySettings
-    ) { tracks, selection, playlists, refreshing, settings ->
-        UiInputs(tracks, selection, playlists, refreshing, settings)
+        renderSnapshotFlow, selectionFlow, _playlists, _isRefreshing, _librarySettings
+    ) { snapshot, selection, playlists, refreshing, settings ->
+        UiInputs(snapshot, selection, playlists, refreshing, settings)
     }
         // Les regroupements albums/artistes et les tris peuvent traiter plusieurs milliers de
         // titres. Ils ne doivent jamais monopoliser le thread UI (cause principale de l'ANR).
         .mapLatest { input ->
-            if (input.tracks.isNotEmpty()) hasObservedTracksOnce.set(true)
-            buildUiState(input.tracks, input.selection, input.playlists, input.refreshing, input.settings)
+            buildUiState(
+                input.snapshot,
+                input.selection,
+                input.playlists,
+                input.refreshing,
+                input.settings
+            )
         }
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
+        .flowOn(AudioLibraryBackgroundDispatchers.compute)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            buildUiState(
+                snapshot = librarySnapshotFlow.value,
+                selection = Selection(
+                    tab = _tab.value,
+                    query = _searchQuery.value,
+                    openedAlbumKey = _openedAlbumKey.value,
+                    openedAlbumTrackPaths = _openedAlbumTrackPaths.value,
+                    openedArtistName = _openedArtistName.value,
+                    artistDetailTab = _artistDetailTab.value
+                ),
+                playlists = _playlists.value,
+                refreshing = _isRefreshing.value,
+                settings = _librarySettings.value
+            )
+        )
 
     fun setTab(tab: LibraryTab) {
         _tab.value = tab
@@ -193,6 +218,37 @@ class AudioLibraryViewModel @Inject constructor(
 
     fun isAlbumDetailOpen(): Boolean = _openedAlbumKey.value != null
 
+    fun openArtistDetail(artist: LibraryArtist) {
+        closeAlbumDetail()
+        _searchQuery.value = ""
+        _openedArtistName.value = artist.name
+        _artistDetailTab.value = ArtistDetailTab.ALBUMS
+    }
+
+    fun closeArtistDetail() {
+        closeAlbumDetail()
+        _openedArtistName.value = null
+        _artistDetailTab.value = ArtistDetailTab.ALBUMS
+        _searchQuery.value = ""
+    }
+
+    /** Retour direct à l'accueil principal de la bibliothèque depuis une page album ou artiste. */
+    fun returnToLibraryHome() {
+        _openedAlbumKey.value = null
+        _openedAlbumTrackPaths.value = emptySet()
+        _openedArtistName.value = null
+        _artistDetailTab.value = ArtistDetailTab.ALBUMS
+        _searchQuery.value = ""
+        _tab.value = LibraryTab.ALBUMS
+    }
+
+    fun setArtistDetailTab(tab: ArtistDetailTab) {
+        closeAlbumDetail()
+        _artistDetailTab.value = tab
+    }
+
+    fun isArtistDetailOpen(): Boolean = _openedArtistName.value != null
+
     /** Lance un scan complet (MediaStore + local + réseau), puis précharge les pochettes. */
     fun refresh(manual: Boolean, isPlaybackCritical: () -> Boolean = { false }): Boolean {
         if (_isRefreshing.value) return false
@@ -203,12 +259,14 @@ class AudioLibraryViewModel @Inject constructor(
             AudioLibraryWorkState.beginIndexing()
             var tracksToEnrich: List<LibraryTrack> = emptyList()
             try {
-                artworkAttemptedThisSession.clear()
-                durationEnrichmentJob?.cancel()
-                durationAttemptedThisSession.clear()
                 ThumbnailUtils.invalidateAudioFolderCoverLookups()
                 AudioArtworkResolver.invalidateIndexedPaths()
-                tracksToEnrich = repository.refresh(appContext, manual, isPlaybackCritical).activeTracks
+                tracksToEnrich = repository.refresh(
+                    appContext,
+                    manual,
+                    isPlaybackCritical
+                ).activeTracks
+                AudioProSettings.consumeLibraryRefreshPending(appContext)
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -245,95 +303,35 @@ class AudioLibraryViewModel @Inject constructor(
      */
     fun scheduleEnrichment(source: List<LibraryTrack>) {
         if (source.isEmpty()) return
-        scheduleDurationEnrichment(source)
-
-        artworkEnrichmentJob?.cancel()
-        artworkEnrichmentJob = viewModelScope.launch {
-            AudioLibraryWorkState.awaitEnrichmentWindow()
-            val artworkCandidates = withContext(Dispatchers.Default) {
-                source.asSequence()
-                    // Une seule extraction automatique par album suffit à la grille. Les autres
-                    // titres ne sont ouverts que lorsqu'ils deviennent visibles ou sont lus.
-                    .distinctBy { AudioLibraryHeuristics.albumKey(it) }
-                    .filter { it.path.isNotBlank() && needsArtworkExtraction(it) }
-                    .sortedWith(
-                        compareByDescending<LibraryTrack> { it.source != LibraryTrackSource.NETWORK }
-                            .thenByDescending { it.addedAt }
-                    )
-                    .take(MAX_ARTWORK_ENRICH_TRACKS)
-                    .toList()
-            }
-            if (artworkCandidates.isEmpty()) return@launch
-            repository.enrichArtwork(
-                candidates = artworkCandidates,
-                loadArtwork = { track ->
-                    if (artworkAttemptedThisSession.add(track.path)) loadArtworkBitmapForTrack(track) != null else false
-                },
-                concurrency = 1
-            )
-        }
-    }
-
-    private fun scheduleDurationEnrichment(source: List<LibraryTrack>) {
-        if (durationEnrichmentJob?.isActive == true) return
-        val candidates = source.asSequence()
-            .filter { it.path.isNotBlank() && it.durationMs <= 0L }
-            .filter { it.path !in durationAttemptedThisSession }
-            .sortedWith(
-                compareByDescending<LibraryTrack> { it.source != LibraryTrackSource.NETWORK }
-                    .thenBy { AudioLibraryHeuristics.albumKey(it) }
-                    .thenBy { AudioLibraryHeuristics.normalizedTrackNo(it.trackNo) }
-            )
-            .toList()
-        if (candidates.isEmpty()) return
-
-        val job = viewModelScope.launch {
-            AudioLibraryWorkState.awaitEnrichmentWindow()
-            repository.enrichMetadata(
-                context = appContext,
-                candidates = candidates,
-                extractMetadata = { track ->
-                    if (!durationAttemptedThisSession.add(track.path)) {
-                        null
-                    } else {
-                        val seconds = AudioMetadataExtractor.extractDurationOnly(appContext, track.path)
-                        if (seconds > 0L) {
-                            AudioTechnicalInfo(
-                                duration = seconds,
-                                extension = track.container.ifBlank {
-                                    AudioLibraryHeuristics.containerFrom("", track.path)
-                                }
-                            )
-                        } else null
-                    }
-                },
-                concurrency = 1,
-                batchSize = 8
-            )
-        }
-        durationEnrichmentJob = job
-        job.invokeOnCompletion { cause ->
-            if (cause == null) {
-                viewModelScope.launch { scheduleDurationEnrichment(libraryTracksFlow.value) }
-            }
-        }
+        // Le repository possède maintenant l'unique pipeline album par album. Il continue pendant
+        // les accalmies d'un long scan et évite les doubles ouvertures de fichiers.
+        repository.requestHydration()
     }
 
     /** Résout et charge la pochette d'un titre pour l'affichage d'une ligne visible (bind), en
      *  réutilisant les caches déjà chauds. Public : appelé depuis l'Adapter, pas seulement depuis
      *  l'enrichissement en arrière-plan. */
     suspend fun loadArtworkForBinding(track: LibraryTrack): android.graphics.Bitmap? {
-        // Pendant le premier parcours NAS, ne pas ouvrir en parallèle chaque audio/cover visible :
-        // le listing réseau doit rester prioritaire. Une pochette déjà persistée reste disponible,
-        // sinon le placeholder est remplacé automatiquement après l'enrichissement post-scan.
-        if ((_isRefreshing.value || BlazePlayerService.isAudioPlaybackActive) &&
-            track.source == LibraryTrackSource.NETWORK
-        ) {
-            val primary = primaryArtworkPath(track)
-            AudioArtworkResolver.memoryCachedBitmap(track.path, primary)?.let { return it }
-            val persisted = AudioArtworkPersistence.existingPath(appContext, track.path) ?: return null
-            return withTimeoutOrNull(750L) {
-                AudioArtworkResolver.resolveBitmap(appContext, track.path, persisted)
+        // Un bind RecyclerView ne doit jamais rouvrir un MP3/FLAC pendant la lecture ni pendant
+        // un scan. Il peut uniquement exploiter la RAM ou le JPEG/WebP déjà persisté. L'extraction
+        // embarquée reste l'unique responsabilité du pipeline d'hydratation du repository.
+        if (_isRefreshing.value || AudioLibraryWorkState.isPlaybackProtected()) {
+            val explicit = preferredFolderArtworkPath(
+                track,
+                allowFastLocalProbe = false
+            )
+            val primary = explicit ?: primaryArtworkPath(track)
+            AudioArtworkResolver.memoryCachedBitmap(
+                track.path,
+                primary
+            )?.let { return it }
+
+            return withContext(AudioLibraryBackgroundDispatchers.io) {
+                AudioArtworkResolver.cachedBitmap(
+                    appContext,
+                    track.path,
+                    explicit
+                )
             }
         }
         return loadArtworkBitmapForTrack(track)
@@ -389,61 +387,165 @@ class AudioLibraryViewModel @Inject constructor(
     // Construction de l'état d'écran à partir des titres bruts.
     // -----------------------------------------------------------------
 
+    /**
+     * Les index préparés sont normalement complets. Ces fonctions empêchent néanmoins toute perte
+     * d'élément si l'Activity reçoit encore un snapshot créé par une ancienne version pendant une
+     * hydratation : les clés manquantes sont réintégrées et retriées immédiatement.
+     */
+    private fun completePreparedAlbums(
+        snapshot: AudioLibrarySnapshot
+    ): List<LibraryAlbum> {
+        if (snapshot.albumsByKey.isEmpty()) return emptyList()
+
+        val orderIsComplete =
+            snapshot.albumKeysSorted.size == snapshot.albumsByKey.size &&
+                snapshot.albumKeysSorted.distinct().size == snapshot.albumKeysSorted.size &&
+                snapshot.albumKeysSorted.all(snapshot.albumsByKey::containsKey)
+
+        return if (orderIsComplete) {
+            snapshot.albumKeysSorted.mapNotNull(snapshot.albumsByKey::get)
+        } else {
+            snapshot.albumsByKey.values.sortedWith(
+                compareBy<LibraryAlbum> {
+                    AudioLibraryHeuristics.normalizeArtistSort(it.artist)
+                }.thenBy {
+                    AudioLibraryHeuristics.normalize(it.title)
+                }.thenBy { it.key }
+            )
+        }
+    }
+
+    private fun completePreparedArtists(
+        snapshot: AudioLibrarySnapshot
+    ): List<LibraryArtist> {
+        if (snapshot.artistsByName.isEmpty()) return emptyList()
+
+        val orderIsComplete =
+            snapshot.artistNamesSorted.size == snapshot.artistsByName.size &&
+                snapshot.artistNamesSorted.distinct().size == snapshot.artistNamesSorted.size &&
+                snapshot.artistNamesSorted.all(snapshot.artistsByName::containsKey)
+
+        return if (orderIsComplete) {
+            snapshot.artistNamesSorted.mapNotNull(snapshot.artistsByName::get)
+        } else {
+            snapshot.artistsByName.values.sortedBy {
+                AudioLibraryHeuristics.normalizeArtistSort(it.name)
+            }
+        }
+    }
+
     private fun buildUiState(
-        tracks: List<LibraryTrack>,
+        snapshot: AudioLibrarySnapshot,
         selection: Selection,
         playlists: List<LibraryPlaylist>,
         refreshing: Boolean,
         settings: LibraryBehaviorSettings
     ): LibraryUiState {
+        val tracks = snapshot.tracks
         val visibleTracks = if (settings.ignoreShort) {
-            // Une durée inconnue reste visible le temps de l'analyse asynchrone. Dès que Room reçoit
-            // la durée réelle, les fichiers de moins de 30 secondes disparaissent aussi bien en
+            // Une durée inconnue reste visible le temps de l'analyse asynchrone. Dès que le snapshot
+            // reçoit la durée réelle, les fichiers de moins de 30 secondes disparaissent aussi bien en
             // local que via SMB/UPnP. Les fichiers restent indexés pour réapparaître instantanément
             // quand l'option est désactivée.
             tracks.filter { it.durationMs <= 0L || it.durationMs >= 30_000L }
         } else tracks
-        val stillInitialLoad = !hasObservedTracksOnce.get() && tracks.isEmpty()
-        if (visibleTracks.isEmpty()) {
+        val stillInitialLoad = !snapshot.ready
+        if (visibleTracks.isEmpty() && selection.tab != LibraryTab.PLAYLISTS) {
             return LibraryUiState(
                 tab = selection.tab,
                 searchQuery = selection.query,
-                rows = if (stillInitialLoad) emptyList() else listOf(LibraryRow.Status(appContext.getString(R.string.audio_no_music), "")),
+                rows = if (stillInitialLoad) emptyList() else listOf(
+                    LibraryRow.Status(appContext.getString(R.string.audio_no_music), "")
+                ),
                 isRefreshing = refreshing,
                 isInitialLoad = stillInitialLoad
             )
         }
-        val filtered = filteredTracks(visibleTracks, selection.query, settings.trackOrder)
-        val albums = buildAlbums(filtered, settings.trackOrder)
-        // La carte album connaît parfois une cover commune alors que certaines lignes de titres
-        // n'ont encore qu'un artworkPath vide / égal au chemin audio. Réinjecter ici la cover
-        // d'album dans toutes les représentations UI garantit que le clic depuis Titres, Artistes
-        // ou le détail Album transmet exactement la pochette affichée par la bibliothèque.
-        val albumTrackByPath = albums.asSequence()
-            .flatMap { it.tracks.asSequence() }
-            .associateBy { it.path }
-        val filteredWithArtwork = filtered.map { albumTrackByPath[it.path] ?: it }
-        val artists = buildArtists(filteredWithArtwork)
-        val openedAlbum = resolveOpenedAlbumForDetail(selection, albums, visibleTracks, settings.trackOrder)
-
-        val fullTrackCount = visibleTracks.distinctBy { it.path }.size
-        // Sans recherche, albums/artistes viennent déjà de la liste complète : ne pas refaire
-        // les deux regroupements coûteux à chaque émission Room.
         val hasQuery = selection.query.isNotBlank()
-        val fullAlbumCount = if (hasQuery) buildAlbums(visibleTracks, settings.trackOrder).size else albums.size
-        val fullArtistCount = if (hasQuery) buildArtists(visibleTracks).size else artists.size
+        val filtered = when {
+            !hasQuery && selection.tab != LibraryTab.TITLES -> visibleTracks
+            !hasQuery && selection.tab == LibraryTab.TITLES && !settings.ignoreShort -> {
+                val orderedPaths = if (settings.trackOrder) {
+                    snapshot.trackPathsByTrackOrder
+                } else {
+                    snapshot.trackPathsByTitleOrder
+                }
+                orderedPaths.mapNotNull(snapshot.tracksByPath::get)
+            }
+            else -> filteredTracks(visibleTracks, selection.query, settings.trackOrder)
+        }
+        val canUsePreparedModels = !settings.ignoreShort && !hasQuery
+
+        // Le snapshot contient déjà les albums/artistes finalisés et triés. Chaque vue ne
+        // matérialise que le modèle dont elle a réellement besoin.
+        val albums = when {
+            selection.openedArtistName != null -> emptyList()
+            selection.tab != LibraryTab.ALBUMS -> emptyList()
+            canUsePreparedModels -> completePreparedAlbums(snapshot)
+            else -> buildAlbums(filtered, settings.trackOrder)
+        }
+        val artists = when {
+            selection.openedArtistName != null -> emptyList()
+            selection.tab != LibraryTab.ARTISTS -> emptyList()
+            canUsePreparedModels -> completePreparedArtists(snapshot)
+            else -> buildArtists(filtered)
+        }
+        val openedArtist = resolveOpenedArtist(selection.openedArtistName, snapshot, visibleTracks)
+        val artistTracks = openedArtist?.tracks.orEmpty().let { source ->
+            if (selection.query.isBlank()) sortTracksByArtist(source, settings.trackOrder)
+            else filteredTracks(source, selection.query, settings.trackOrder)
+        }
+        val artistAlbums = if (openedArtist != null) buildAlbums(artistTracks, settings.trackOrder) else emptyList()
+        val albumCandidates = when {
+            openedArtist != null -> artistAlbums
+            albums.isNotEmpty() -> albums
+            else -> completePreparedAlbums(snapshot)
+        }
+        val openedAlbum = resolveOpenedAlbumForDetail(
+            selection,
+            albumCandidates,
+            visibleTracks,
+            settings.trackOrder
+        )
+
+        val fullTrackCount = visibleTracks.size
+        val fullAlbumCount = if (!settings.ignoreShort) {
+            snapshot.albumsByKey.size
+        } else {
+            buildAlbums(visibleTracks, settings.trackOrder).size
+        }
+        val fullArtistCount = if (!settings.ignoreShort) {
+            snapshot.artistsByName.size
+        } else {
+            buildArtists(visibleTracks).size
+        }
 
         val rows: List<LibraryRow> = when {
-            filtered.isEmpty() -> listOf(LibraryRow.Status(appContext.getString(R.string.audio_no_music), "Essaie une autre recherche ou lance un scan."))
-            selection.tab == LibraryTab.ALBUMS && openedAlbum != null -> {
+            openedAlbum != null -> {
                 // Le héros d'album et ses actions sont déjà affichés dans le header fixe de
                 // l'Activity. Le RecyclerView ne contient donc plus une seconde carte identique.
                 albumPlaybackTracks(openedAlbum, settings.trackOrder)
                     .mapIndexed { index, track -> LibraryRow.AlbumTrackItem(track, index + 1) }
             }
+            openedArtist != null && selection.artistDetailTab == ArtistDetailTab.ALBUMS -> {
+                if (artistAlbums.isEmpty()) listOf(LibraryRow.Status(appContext.getString(R.string.audio_no_music)))
+                else artistAlbums.map { LibraryRow.AlbumTile(it) }
+            }
+            openedArtist != null -> {
+                if (artistTracks.isEmpty()) listOf(LibraryRow.Status(appContext.getString(R.string.audio_no_music)))
+                else artistTracks.take(MAX_RENDER_TRACK_ROWS)
+                    .mapIndexed { index, track -> LibraryRow.AlbumTrackItem(track, index + 1) }
+            }
+            selection.tab != LibraryTab.PLAYLISTS && filtered.isEmpty() -> listOf(
+                LibraryRow.Status(
+                    appContext.getString(R.string.audio_no_music),
+                    appContext.getString(R.string.audio_library_empty_hint)
+                )
+            )
             selection.tab == LibraryTab.ALBUMS -> albums.map { LibraryRow.AlbumTile(it) }
             selection.tab == LibraryTab.ARTISTS -> artists.map { LibraryRow.ArtistItem(it) }
-            selection.tab == LibraryTab.TITLES -> filteredWithArtwork.take(MAX_RENDER_TRACK_ROWS).mapIndexed { index, track -> LibraryRow.TrackItem(track, index + 1) }
+            selection.tab == LibraryTab.TITLES -> filtered.take(MAX_RENDER_TRACK_ROWS)
+                .mapIndexed { index, track -> LibraryRow.TrackItem(track, index + 1) }
             selection.tab == LibraryTab.PLAYLISTS -> playlists.map { LibraryRow.PlaylistItem(it) }
             else -> emptyList()
         }
@@ -456,8 +558,40 @@ class AudioLibraryViewModel @Inject constructor(
             albumCount = fullAlbumCount,
             artistCount = fullArtistCount,
             openedAlbum = openedAlbum,
+            openedArtist = openedArtist,
+            artistDetailTab = selection.artistDetailTab,
             isRefreshing = refreshing,
             isInitialLoad = false
+        )
+    }
+
+    private fun resolveOpenedArtist(
+        requestedName: String?,
+        snapshot: AudioLibrarySnapshot,
+        sourceTracks: List<LibraryTrack>
+    ): LibraryArtist? {
+        val name = requestedName?.trim().orEmpty()
+        if (name.isBlank()) return null
+        snapshot.artistsByName[name]?.let { artist ->
+            val visiblePaths = sourceTracks.asSequence().map { it.path }.toHashSet()
+            return artist.copy(tracks = artist.tracks.filter { it.path in visiblePaths })
+        }
+        val normalized = AudioLibraryHeuristics.normalize(name)
+        snapshot.artistsByName.entries.firstOrNull {
+            AudioLibraryHeuristics.normalize(it.key) == normalized
+        }?.value?.let { artist ->
+            val visiblePaths = sourceTracks.asSequence().map { it.path }.toHashSet()
+            return artist.copy(tracks = artist.tracks.filter { it.path in visiblePaths })
+        }
+        val fallbackTracks = sourceTracks.filter { track ->
+            AudioLibraryHeuristics.normalize(AudioLibraryHeuristics.artistFolderNameFromPath(track.path)) == normalized ||
+                AudioLibraryHeuristics.normalize(track.artist) == normalized
+        }
+        if (fallbackTracks.isEmpty()) return null
+        return LibraryArtist(
+            name = name,
+            tracks = fallbackTracks.distinctBy { it.path },
+            albums = fallbackTracks.map { AudioLibraryHeuristics.albumKey(it) }.distinct().size
         )
     }
 
@@ -537,9 +671,9 @@ class AudioLibraryViewModel @Inject constructor(
     private fun buildAlbumFromTracks(key: String, albumTracks: List<LibraryTrack>, trackOrder: Boolean): LibraryAlbum {
         val sorted = AudioLibraryHeuristics.sortAlbumTracks(albumTracks, trackOrder)
         val albumArtwork = AudioLibraryHeuristics.bestArtworkPath(sorted)
-        val tracksWithAlbumArtwork = if (AudioLibraryHeuristics.isImagePath(albumArtwork)) {
+        val tracksWithAlbumArtwork = if (AudioLibraryHeuristics.isArtworkReference(albumArtwork)) {
             sorted.map { track ->
-                if (AudioLibraryHeuristics.isImagePath(track.artworkPath)) track
+                if (AudioLibraryHeuristics.isArtworkReference(track.artworkPath)) track
                 else track.copy(artworkPath = albumArtwork)
             }
         } else sorted
@@ -577,24 +711,15 @@ class AudioLibraryViewModel @Inject constructor(
     // Enrichissement des pochettes uniquement.
     // -----------------------------------------------------------------
 
-    private fun needsArtworkExtraction(track: LibraryTrack): Boolean {
-        if (track.path.isBlank()) return false
-        if (AudioArtworkPersistence.existingPath(appContext, track.path) != null) return false
-        val primary = primaryArtworkPath(track)
-        if (ThumbnailUtils.getMemoryCachedAudioArtworkBitmapNoIo(primary) != null) return false
-        if (ThumbnailUtils.getCachedAudioArtworkBitmapNoFolderProbe(appContext, primary) != null) return false
-        val fallback = fallbackArtworkPath(track)
-        if (fallback != null) {
-            if (ThumbnailUtils.getMemoryCachedAudioArtworkBitmapNoIo(fallback) != null) return false
-            if (ThumbnailUtils.getCachedAudioArtworkBitmapNoFolderProbe(appContext, fallback) != null) return false
-        }
-        return true
-    }
-
     private fun preferredFolderArtworkPath(track: LibraryTrack, allowFastLocalProbe: Boolean): String? {
         val indexedArtworkName = AudioLibraryHeuristics.fileNameFromPath(track.artworkPath)
-        if (AudioLibraryHeuristics.isImagePath(track.artworkPath) &&
-            AudioLibraryHeuristics.isPreferredCoverName(indexedArtworkName)
+        if (
+            AudioLibraryHeuristics.isArtworkReference(track.artworkPath) &&
+            (
+                track.artworkPath.startsWith("http://", true) ||
+                    track.artworkPath.startsWith("https://", true) ||
+                    AudioLibraryHeuristics.isPreferredCoverName(indexedArtworkName)
+            )
         ) return track.artworkPath
         if (allowFastLocalProbe && track.source != LibraryTrackSource.NETWORK) {
             ThumbnailUtils.fastPreferredFolderCoverPathForAudioPath(track.path)?.let { return it }

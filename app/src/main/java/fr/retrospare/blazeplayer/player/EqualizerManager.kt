@@ -36,7 +36,7 @@ class EqualizerManager(
 ) {
 
     companion object {
-        const val SOFTWARE_BAND_COUNT = 10
+        const val SOFTWARE_BAND_COUNT = AudioFrequencyBands.BAND_COUNT
         const val UI_MIN_LEVEL = -1000 // -10 dB, in millibels
         const val UI_MAX_LEVEL = 1000  // +10 dB, in millibels
         const val PREAMP_MIN = -1000
@@ -61,7 +61,7 @@ class EqualizerManager(
         const val KEY_REVERB_MIX = "reverb_mix"
         const val REVERB_PRESET_COUNT = 4
         const val REVERB_MIX_MAX = 80
-        private val SOFTWARE_FREQS_HZ = intArrayOf(31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000)
+        private val SOFTWARE_FREQS_HZ = AudioFrequencyBands.CENTERS_HZ
         private const val PREF_VERSION = 7
         private const val KEY_LAST_PRESET = "last_preset"
         private const val KEY_CACHE_VERSION = "eq_cache_version"
@@ -78,8 +78,18 @@ class EqualizerManager(
         private const val AUTO_HEADROOM_SETTLED_EPSILON = 4f
     }
 
+    data class Capabilities(
+        val equalizer: Boolean,
+        val bassBoost: Boolean,
+        val virtualizer: Boolean,
+        val loudness: Boolean,
+        val dynamicsProcessing: Boolean
+    )
+
     private val appContext = context.applicationContext
     private val prefs: SharedPreferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val migrationLock = Any()
+    @Volatile private var migrationReady = false
 
     // Must be initialized before the init block: migrateIfNeeded() reads this map.
     // A delegated/lazy property declared below init would leave its delegate field null here.
@@ -119,17 +129,6 @@ class EqualizerManager(
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
 
-    private val availableEffectTypes: Set<java.util.UUID> by lazy {
-        try {
-            AudioEffect.queryEffects()
-                ?.mapNotNull { descriptor -> descriptor.type }
-                ?.toSet()
-                .orEmpty()
-        } catch (_: Exception) {
-            emptySet()
-        }
-    }
-
     private val preferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (attachToAudioSession) {
             when {
@@ -155,11 +154,33 @@ class EqualizerManager(
         if (attachToAudioSession) prefs.registerOnSharedPreferenceChangeListener(preferenceListener)
     }
 
-    fun isEqualizerAvailable(): Boolean = AudioEffect.EFFECT_TYPE_EQUALIZER in availableEffectTypes
-    fun isBassBoostAvailable(): Boolean = AudioEffect.EFFECT_TYPE_BASS_BOOST in availableEffectTypes
-    fun isVirtualizerAvailable(): Boolean = AudioEffect.EFFECT_TYPE_VIRTUALIZER in availableEffectTypes
-    fun isLoudnessAvailable(): Boolean = AudioEffect.EFFECT_TYPE_LOUDNESS_ENHANCER in availableEffectTypes
-    fun isDynamicsProcessingAvailable(): Boolean = AudioEffect.EFFECT_TYPE_DYNAMICS_PROCESSING in availableEffectTypes
+    /**
+     * Les réglages Blaze reposent d'abord sur le DSP logiciel du service. L'énumération globale
+     * AudioEffect.queryEffects() n'est donc ni nécessaire ni souhaitable ici : certains appareils
+     * bloquent cet appel Binder dans AudioFlinger pendant une lecture, jusqu'à provoquer un ANR.
+     *
+     * Les effets Android optionnels sont créés à la demande et protégés par try/catch. Leur échec
+     * n'empêche jamais l'ouverture des paramètres ni le fonctionnement du DSP logiciel.
+     */
+    fun loadCapabilities(): Capabilities = Capabilities(
+        equalizer = true,
+        bassBoost = true,
+        virtualizer = true,
+        loudness = true,
+        dynamicsProcessing = true
+    )
+
+    /** À appeler sur un worker avant d'afficher la feuille de réglages. */
+    fun warmUpForUi() {
+        migrateIfNeeded()
+        getCurrentLevels()
+    }
+
+    fun isEqualizerAvailable(): Boolean = loadCapabilities().equalizer
+    fun isBassBoostAvailable(): Boolean = loadCapabilities().bassBoost
+    fun isVirtualizerAvailable(): Boolean = loadCapabilities().virtualizer
+    fun isLoudnessAvailable(): Boolean = loadCapabilities().loudness
+    fun isDynamicsProcessingAvailable(): Boolean = loadCapabilities().dynamicsProcessing
 
     private fun ensureBassBoost(): BassBoost? {
         if (!attachToAudioSession) return null
@@ -201,10 +222,16 @@ class EqualizerManager(
     val maxLevel: Int get() = UI_MAX_LEVEL
 
     private fun migrateIfNeeded() {
-        val version = prefs.getInt(KEY_CACHE_VERSION, 1)
-        if (version >= PREF_VERSION && hasAllBands(KEY_ACTIVE_PREFIX)) return
+        if (migrationReady) return
+        synchronized(migrationLock) {
+            if (migrationReady) return
+            val version = prefs.getInt(KEY_CACHE_VERSION, 1)
+            if (version >= PREF_VERSION && hasAllBands(KEY_ACTIVE_PREFIX)) {
+                migrationReady = true
+                return
+            }
 
-        val last = prefs.getString(KEY_LAST_PRESET, "Flat") ?: "Flat"
+            val last = prefs.getString(KEY_LAST_PRESET, "Flat") ?: "Flat"
         val stablePreset = when {
             presets.containsKey(last) -> last
             last.equals("Personnalisé", true) || last.equals("Custom", true) -> "Custom"
@@ -261,16 +288,22 @@ class EqualizerManager(
         edit.putBoolean(KEY_REVERB_ENABLED, prefs.getBoolean(KEY_REVERB_ENABLED, false))
         edit.putInt(KEY_REVERB_PRESET, prefs.getInt(KEY_REVERB_PRESET, 0).coerceIn(0, REVERB_PRESET_COUNT - 1))
         edit.putInt(KEY_REVERB_MIX, prefs.getInt(KEY_REVERB_MIX, 0).coerceIn(0, REVERB_MIX_MAX))
-        edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
-        edit.commit()
+            edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
+            // apply() met immédiatement à jour la copie mémoire et écrit le disque hors du thread UI.
+            edit.apply()
+            migrationReady = true
+        }
     }
 
-    fun getBandFreq(band: Int): Int = SOFTWARE_FREQS_HZ.getOrElse(band) { 0 }
+    fun getBandFreq(band: Int): Int = AudioFrequencyBands.centerHz(band)
 
-    fun getBandLevel(band: Int): Int {
+    fun getAllBandLevels(): List<Int> {
         migrateIfNeeded()
-        return getCurrentLevels().getOrElse(band) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL)
+        return getCurrentLevels()
     }
+
+    fun getBandLevel(band: Int): Int =
+        getAllBandLevels().getOrElse(band) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL)
 
     fun setBandLevel(band: Int, level: Int) {
         if (band !in 0 until SOFTWARE_BAND_COUNT) return
@@ -279,14 +312,13 @@ class EqualizerManager(
         val levels = getCurrentLevels().toMutableList()
         levels[band] = level.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL)
         saveCustomBands(levels)
-        savePreset("Custom")
         applyCustomToNative()
     }
 
     fun isEnabled(): Boolean = prefs.getBoolean(KEY_EQ_ENABLED, true)
 
     fun setEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean(KEY_EQ_ENABLED, enabled).commit()
+        prefs.edit().putBoolean(KEY_EQ_ENABLED, enabled).apply()
         if (attachToAudioSession) {
             safeSetEnabled(equalizer, enabled)
             if (enabled) {
@@ -323,7 +355,7 @@ class EqualizerManager(
 
     fun setBassBoost(strength: Int) {
         val safe = strength.coerceIn(0, 1000)
-        prefs.edit().putInt("bass_boost", safe).commit()
+        prefs.edit().putInt("bass_boost", safe).apply()
         if (!attachToAudioSession) return
         val effect = if (safe > 0 && isEnabled()) ensureBassBoost() else bassBoost
         try {
@@ -338,7 +370,7 @@ class EqualizerManager(
 
     fun setVirtualizer(strength: Int) {
         val safe = strength.coerceIn(0, 1000)
-        prefs.edit().putInt("virtualizer", safe).commit()
+        prefs.edit().putInt("virtualizer", safe).apply()
         if (!attachToAudioSession) return
         val effect = if (safe > 0 && isEnabled()) ensureVirtualizer() else virtualizer
         try {
@@ -445,14 +477,17 @@ class EqualizerManager(
     }
 
     private fun saveCustomBands(levels: List<Int>) {
+        // Une seule transaction mémoire/disque par mouvement de bande. L'ancienne version lançait
+        // deux apply() successifs à chaque pixel du geste, ce qui accumulait des écritures en attente.
         val edit = prefs.edit()
         for (i in 0 until SOFTWARE_BAND_COUNT) {
-            edit.putInt("$KEY_CUSTOM_PREFIX$i", levels.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
+            val safe = levels.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL)
+            edit.putInt("$KEY_CUSTOM_PREFIX$i", safe)
+            edit.putInt("$KEY_ACTIVE_PREFIX$i", safe)
         }
         edit.putString(KEY_LAST_PRESET, "Custom")
         edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
-        edit.commit()
-        saveActiveBands(levels, "Custom")
+        edit.apply()
     }
 
     fun getCustomBands(): List<Int> {
@@ -488,7 +523,7 @@ class EqualizerManager(
             edit.putInt(presetBandKey(name, i), levels.getOrElse(i) { 0 }.coerceIn(UI_MIN_LEVEL, UI_MAX_LEVEL))
         }
         edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
-        edit.commit()
+        edit.apply()
     }
 
     private fun saveActiveBands(levels: List<Int>, presetName: String) {
@@ -498,7 +533,7 @@ class EqualizerManager(
         }
         edit.putString(KEY_LAST_PRESET, presetName)
         edit.putInt(KEY_CACHE_VERSION, PREF_VERSION)
-        edit.commit()
+        edit.apply()
     }
 
     private fun getCurrentLevels(): List<Int> {

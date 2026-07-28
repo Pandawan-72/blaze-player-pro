@@ -23,6 +23,8 @@ data class LibraryTrack(
     val artist: String,
     val album: String,
     val durationMs: Long,
+    /** Débit moyen en bits/s, hydraté sans modifier les noms issus des dossiers. */
+    val bitrate: Long = 0L,
     val trackNo: Int,
     val path: String,
     val addedAt: Long,
@@ -34,7 +36,9 @@ data class LibraryTrack(
     val artistFromTag: Boolean = false,
     val container: String = "",
     val sizeBytes: Long = 0L,
-    val modifiedAt: Long = 0L
+    val modifiedAt: Long = 0L,
+    /** Arborescence Artiste/Album/Titre utilisée pour le regroupement, distincte de l'URL. */
+    val libraryPath: String = ""
 )
 
 data class LibraryAlbum(
@@ -91,20 +95,30 @@ object AudioLibraryHeuristics {
         )
     }
 
+    fun structuralPath(track: LibraryTrack): String =
+        track.libraryPath.ifBlank { track.path }
+
     fun applyFolderMetadata(track: LibraryTrack): LibraryTrack {
-        val folder = folderMetadata(track.path, fileNameFromPath(track.path))
+        val structure = structuralPath(track)
+        val folder = folderMetadata(
+            structure,
+            fileNameFromPath(structure).ifBlank { fileNameFromPath(track.path) }
+        )
         return track.copy(
-            title = folder.title,
-            artist = folder.artist,
-            album = folder.album,
+            title = folder.title.ifBlank { track.title },
+            artist = folder.artist.ifBlank { track.artist },
+            album = folder.album.ifBlank { track.album },
             titleFromTag = false,
             artistFromTag = false,
             albumFromTag = false
         )
     }
 
-    val audioExtensions = setOf("mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "dts", "ac3", "mka", "wv", "aiff", "alac")
-    val coverExtensions = setOf("jpg", "png")
+    val audioExtensions = setOf(
+        "mp3", "flac", "aac", "ogg", "oga", "opus", "wav", "m4a", "m4b",
+        "wma", "ape", "dts", "ac3", "mka", "wv", "aiff", "alac"
+    )
+    val coverExtensions = setOf("jpg", "jpeg", "png", "webp")
     val coverBaseNames = listOf("cover")
 
     fun belongsToLocalFolder(path: String, folder: fr.retrospare.blazeplayer.player.AudioProSettings.WatchedFolder): Boolean {
@@ -119,6 +133,8 @@ object AudioLibraryHeuristics {
         val folderPath = normalizeNetworkPath(folder.path)
         if (folderPath.isBlank()) return true
         val candidates = linkedSetOf(folderPath).apply {
+            val folderName = normalizeNetworkPath(folder.name)
+            if (folderName.isNotBlank()) add(folderName)
             val shareName = normalizeNetworkPath(folder.shareName.ifBlank { folder.name })
             if (shareName.isNotBlank() && folderPath.startsWith("$shareName/")) add(folderPath.removePrefix("$shareName/").trimStart('/'))
             folderPath.substringAfter("://", folderPath).takeIf { it != folderPath }?.let { add(it.trimStart('/')) }
@@ -146,26 +162,62 @@ object AudioLibraryHeuristics {
     fun isAudioItem(ext: String, mime: String, path: String): Boolean =
         ext.lowercase(Locale.getDefault()) in audioExtensions || mime.startsWith("audio/", true) || AudioRepository.isAudioExtension(path)
 
-    fun isImagePath(path: String): Boolean = path.substringBefore('?').substringAfterLast('.', "").lowercase(Locale.getDefault()) in coverExtensions
+    fun isImagePath(path: String): Boolean =
+        path.substringBefore('?')
+            .substringAfterLast('.', "")
+            .lowercase(Locale.getDefault()) in coverExtensions
 
-    fun isAudioPath(path: String): Boolean = path.substringBefore('?').substringAfterLast('.', "").lowercase(Locale.getDefault()) in audioExtensions
+    fun isAudioPath(path: String): Boolean =
+        path.substringBefore('?')
+            .substringAfterLast('.', "")
+            .lowercase(Locale.getDefault()) in audioExtensions
+
+    /**
+     * Une albumArtURI UPnP peut être une URL HTTP sans extension. Dans un champ artworkPath,
+     * cette référence reste une vraie pochette même si isImagePath() ne peut pas la reconnaître.
+     */
+    fun isArtworkReference(path: String): Boolean =
+        isImagePath(path) ||
+            (
+                (path.startsWith("http://", true) || path.startsWith("https://", true)) &&
+                    !isAudioPath(path)
+            )
 
     fun pickNetworkFolderCover(items: List<fr.retrospare.blazeplayer.data.model.MediaItem>): String = items
         .filter { isImagePath(it.path) && isPreferredCoverName(it.name.ifBlank { fileNameFromPath(it.path) }) }
         .sortedWith(compareBy<fr.retrospare.blazeplayer.data.model.MediaItem> { coverPriority(it.name.ifBlank { fileNameFromPath(it.path) }) }.thenBy { normalize(it.name) })
         .firstOrNull()?.path.orEmpty()
 
-    fun isPreferredCoverName(name: String): Boolean =
-        name.substringAfterLast('/').substringAfterLast('\\').lowercase(Locale.ROOT) in
-            setOf("cover.jpg", "cover.jpeg", "cover.png")
+    private val preferredCoverBases = listOf(
+        "cover", "folder", "front", "poster", "default", "jacket",
+        "album", "albumart", "artwork", "jaquette", "pochette"
+    )
 
-    fun coverPriority(name: String): Int = when (
-        name.substringAfterLast('/').substringAfterLast('\\').lowercase(Locale.ROOT)
-    ) {
-        "cover.jpg" -> 0
-        "cover.png" -> 1
-        "cover.jpeg" -> 2
-        else -> 100
+    fun isPreferredCoverName(name: String): Boolean {
+        val fileName = name.substringAfterLast('/').substringAfterLast('\\')
+        val extension = fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
+        if (extension !in coverExtensions) return false
+        val base = fileName.substringBeforeLast('.', fileName)
+            .replace('_', ' ')
+            .replace('-', ' ')
+            .trim()
+            .lowercase(Locale.ROOT)
+        return preferredCoverBases.any {
+            base == it || base.startsWith("$it ")
+        }
+    }
+
+    fun coverPriority(name: String): Int {
+        val fileName = name.substringAfterLast('/').substringAfterLast('\\')
+        val base = fileName.substringBeforeLast('.', fileName)
+            .replace('_', ' ')
+            .replace('-', ' ')
+            .trim()
+            .lowercase(Locale.ROOT)
+        val index = preferredCoverBases.indexOfFirst {
+            base == it || base.startsWith("$it ")
+        }
+        return if (index >= 0) index else 100
     }
 
     fun albumDirectoryIdentity(path: String): String {
@@ -182,18 +234,18 @@ object AudioLibraryHeuristics {
      * renomme pas, ne fusionne pas et ne déplace pas les cartes déjà affichées.
      */
     fun albumKey(track: LibraryTrack): String {
-        val directoryKey = albumDirectoryIdentity(track.path)
+        val directoryKey = albumDirectoryIdentity(structuralPath(track))
         return "folder:${directoryKey.ifBlank { canonicalPathKey(track.path) }}"
     }
 
     /** Nom affiché dans « Mes albums » : nom du dossier contenant les titres de l'album. */
     fun bestAlbumTitle(tracks: List<LibraryTrack>): String = dominantPathValue(
-        tracks.map { albumFolderNameFromPath(it.path) }.filter { it.isNotBlank() }
+        tracks.map { albumFolderNameFromPath(structuralPath(it)) }.filter { it.isNotBlank() }
     )
 
     /** Nom d'artiste affiché : nom du dossier parent du dossier de l'album. */
     fun bestAlbumArtist(tracks: List<LibraryTrack>): String = dominantPathValue(
-        tracks.map { artistFolderNameFromPath(it.path) }.filter { it.isNotBlank() }
+        tracks.map { artistFolderNameFromPath(structuralPath(it)) }.filter { it.isNotBlank() }
     )
 
     private fun dominantPathValue(values: List<String>): String {
@@ -207,7 +259,10 @@ object AudioLibraryHeuristics {
         return dominant.firstOrNull().orEmpty()
     }
 
-    fun bestArtworkPath(tracks: List<LibraryTrack>): String = tracks.firstNotNullOfOrNull { t -> t.artworkPath.takeIf { isImagePath(it) } }
+    fun bestArtworkPath(tracks: List<LibraryTrack>): String =
+        tracks.firstNotNullOfOrNull { track ->
+            track.artworkPath.takeIf(::isArtworkReference)
+        }
         ?: tracks.firstNotNullOfOrNull { t -> t.artworkPath.takeIf { it.isNotBlank() } }
         ?: tracks.firstOrNull()?.path.orEmpty()
 
@@ -275,7 +330,7 @@ object AudioLibraryHeuristics {
         val unique = input.distinctBy { canonicalPathKey(it.path) }
         return if (byTrackNumber) {
             unique.sortedWith(
-                compareBy<LibraryTrack> { discNumberFromPath(it.path) }
+                compareBy<LibraryTrack> { discNumberFromPath(structuralPath(it)) }
                     .thenBy { normalizedTrackNo(it.trackNo) }
                     .thenBy { normalize(it.title) }
                     .thenBy { normalize(fileNameFromPath(it.path)) }
@@ -372,7 +427,12 @@ object AudioLibraryHeuristics {
     /** Nécessite un Context pour lire les dossiers surveillés courants. */
     fun belongsToAnyWatchedFolder(context: Context, track: LibraryTrack): Boolean =
         fr.retrospare.blazeplayer.player.AudioProSettings.watchedFolders(context).any { folder ->
-            if (folder.isNetwork) belongsToNetworkFolder(track.path, folder) else belongsToLocalFolder(track.path, folder)
+            if (folder.isNetwork) {
+                belongsToNetworkFolder(track.path, folder) ||
+                    belongsToNetworkFolder(structuralPath(track), folder)
+            } else {
+                belongsToLocalFolder(track.path, folder)
+            }
         }
 
     fun trackCompletenessScore(track: LibraryTrack): Int {
@@ -381,6 +441,7 @@ object AudioLibraryHeuristics {
         if (track.artistFromTag && !isWeakArtist(track.artist)) score += 16
         if (track.albumFromTag && !isWeakAlbum(track.album)) score += 16
         if (track.durationMs > 0L) score += 4
+        if (track.bitrate > 0L) score += 2
         if (track.trackNo > 0) score += 3
         if (containerLabel(track).isNotBlank()) score += 2
         if (track.artworkPath.isNotBlank()) score += 1
@@ -389,15 +450,36 @@ object AudioLibraryHeuristics {
 
     /** Ne garde qu'un exemplaire par chemin canonique (le plus complet), et uniquement les
      *  titres qui appartiennent encore à un dossier surveillé actuel. */
-    fun canonicalLibraryTracks(context: Context, input: List<LibraryTrack>): List<LibraryTrack> = input
-        .asSequence()
-        .filter { it.path.isNotBlank() }
-        .filter { it.source != LibraryTrackSource.QUEUE }
-        .groupBy { canonicalPathKey(it.path) }
-        .values
-        .mapNotNull { candidates -> candidates.maxWithOrNull(compareBy<LibraryTrack> { trackCompletenessScore(it) }.thenBy { it.addedAt }) }
-        .filter { belongsToAnyWatchedFolder(context, it) }
-        .toList()
+    fun canonicalLibraryTracks(context: Context, input: List<LibraryTrack>): List<LibraryTrack> {
+        // watchedFolders() décode la configuration persistée. L'ancienne version la rappelait pour
+        // chaque titre via belongsToAnyWatchedFolder(), ce qui transformait une restauration de
+        // quelques milliers de pistes en milliers de lectures/parsing identiques et expliquait le
+        // long écran « Chargement ». La configuration est désormais lue une seule fois par passe.
+        val watchedFolders = fr.retrospare.blazeplayer.player.AudioProSettings.watchedFolders(context)
+        return input
+            .asSequence()
+            .filter { it.path.isNotBlank() }
+            .map(::applyFolderMetadata)
+            .filter { it.source != LibraryTrackSource.QUEUE }
+            .groupBy { canonicalPathKey(it.path) }
+            .values
+            .mapNotNull { candidates ->
+                candidates.maxWithOrNull(
+                    compareBy<LibraryTrack> { trackCompletenessScore(it) }.thenBy { it.addedAt }
+                )
+            }
+            .filter { track ->
+                watchedFolders.any { folder ->
+                    if (folder.isNetwork) {
+                        belongsToNetworkFolder(track.path, folder) ||
+                            belongsToNetworkFolder(structuralPath(track), folder)
+                    } else {
+                        belongsToLocalFolder(track.path, folder)
+                    }
+                }
+            }
+            .toList()
+    }
 
     fun mergeTracks(a: List<LibraryTrack>, b: List<LibraryTrack>, context: Context): List<LibraryTrack> {
         val map = LinkedHashMap<String, LibraryTrack>()
@@ -409,17 +491,24 @@ object AudioLibraryHeuristics {
                 trackCompletenessScore(incoming) > trackCompletenessScore(existing) -> incoming.copy(
                     addedAt = maxOf(incoming.addedAt, existing.addedAt),
                     artworkPath = incoming.artworkPath.ifBlank { existing.artworkPath },
+                    bitrate = incoming.bitrate.takeIf { it > 0L } ?: existing.bitrate,
                     sizeBytes = incoming.sizeBytes.takeIf { it > 0L } ?: existing.sizeBytes,
-                    modifiedAt = incoming.modifiedAt.takeIf { it > 0L } ?: existing.modifiedAt
+                    modifiedAt = incoming.modifiedAt.takeIf { it > 0L } ?: existing.modifiedAt,
+                    libraryPath = incoming.libraryPath.ifBlank { existing.libraryPath }
                 )
                 trackCompletenessScore(incoming) == trackCompletenessScore(existing) -> existing.copy(
                     addedAt = maxOf(incoming.addedAt, existing.addedAt),
                     artworkPath = existing.artworkPath.ifBlank { incoming.artworkPath },
+                    bitrate = existing.bitrate.takeIf { it > 0L } ?: incoming.bitrate,
                     container = existing.container.ifBlank { incoming.container },
                     sizeBytes = existing.sizeBytes.takeIf { it > 0L } ?: incoming.sizeBytes,
-                    modifiedAt = existing.modifiedAt.takeIf { it > 0L } ?: incoming.modifiedAt
+                    modifiedAt = existing.modifiedAt.takeIf { it > 0L } ?: incoming.modifiedAt,
+                    libraryPath = existing.libraryPath.ifBlank { incoming.libraryPath }
                 )
-                else -> existing
+                else -> existing.copy(
+                    bitrate = existing.bitrate.takeIf { it > 0L } ?: incoming.bitrate,
+                    libraryPath = existing.libraryPath.ifBlank { incoming.libraryPath }
+                )
             }
         }
         return canonicalLibraryTracks(context, map.values.toList())
@@ -450,7 +539,10 @@ object AudioLibraryHeuristics {
         return current.filter { track ->
             val networkTrack = track.source == LibraryTrackSource.NETWORK || isNetworkPath(track.path)
             if (!networkTrack) return@filter true
-            val inConfirmedFolder = confirmedFolders.any { belongsToNetworkFolder(track.path, it) }
+            val inConfirmedFolder = confirmedFolders.any {
+                belongsToNetworkFolder(track.path, it) ||
+                    belongsToNetworkFolder(structuralPath(track), it)
+            }
             if (!inConfirmedFolder) return@filter true
             normalizeNetworkPath(track.path) in livePaths
         }

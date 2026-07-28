@@ -12,6 +12,8 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 import java.text.Normalizer
 import java.util.Locale
@@ -19,8 +21,8 @@ import java.util.Locale
 /**
  * Source locale persistante de la bibliothèque audio.
  *
- * La UI ne doit plus reconstruire Mes albums / Artistes / Titres depuis le NAS, la file
- * d'attente ou des snapshots JSON historiques. Le NAS sert uniquement à alimenter cette table :
+ * Cache durable utilisé pour restaurer rapidement le snapshot mémoire après un redémarrage.
+ * La UI ne collecte jamais directement cette table. Les scans local/réseau l'alimentent en fond :
  * - pass 1 : upsert de squelettes path/name/size/mtime/folderKey ;
  * - pass 2 : update progressif des tags et covers, fichier par fichier.
  */
@@ -43,11 +45,13 @@ import java.util.Locale
 )
 data class AudioLibraryTrackEntity(
     @PrimaryKey val path: String,
+    @ColumnInfo(defaultValue = "''") val libraryPath: String = "",
     val name: String,
     val title: String,
     val artist: String,
     val album: String,
     val durationMs: Long,
+    @ColumnInfo(defaultValue = "0") val bitrate: Long = 0L,
     val trackNumber: Int,
     val addedAt: Long,
     val extension: String,
@@ -69,6 +73,51 @@ data class AudioLibraryTrackEntity(
     val artistSortKey: String,
     val titleSortKey: String
 )
+
+/** Une seule ligne représentative par dossier d'album, utilisée uniquement lorsque le
+ * snapshot binaire n'existe pas encore (premier lancement après mise à jour). */
+data class AudioLibraryAlbumBootstrapRow(
+    val path: String,
+    val libraryPath: String,
+    val title: String,
+    val artist: String,
+    val album: String,
+    val durationMs: Long,
+    val bitrate: Long,
+    val trackNumber: Int,
+    val addedAt: Long,
+    val artworkPath: String,
+    val isNetwork: Boolean,
+    val sourceLabel: String,
+    val titleFromTag: Boolean,
+    val albumFromTag: Boolean,
+    val artistFromTag: Boolean,
+    val extension: String,
+    val sizeBytes: Long,
+    val modifiedAt: Long
+) {
+    fun toLibraryTrack(): LibraryTrack = LibraryTrack(
+        id = -kotlin.math.abs(path.hashCode()).toLong(),
+        title = title,
+        artist = artist,
+        album = album,
+        durationMs = durationMs,
+        bitrate = bitrate,
+        trackNo = trackNumber,
+        path = path,
+        addedAt = addedAt,
+        libraryPath = libraryPath,
+        artworkPath = artworkPath,
+        source = if (isNetwork) LibraryTrackSource.NETWORK else LibraryTrackSource.LOCAL,
+        sourceLabel = sourceLabel,
+        titleFromTag = titleFromTag,
+        albumFromTag = albumFromTag,
+        artistFromTag = artistFromTag,
+        container = extension,
+        sizeBytes = sizeBytes,
+        modifiedAt = modifiedAt
+    )
+}
 
 @Dao
 interface AudioLibraryTrackDao {
@@ -92,6 +141,22 @@ interface AudioLibraryTrackDao {
     """)
     suspend fun activeOnce(limit: Int): List<AudioLibraryTrackEntity>
 
+    /**
+     * Projection légère : SQLite ne renvoie qu'une piste représentative par folderKey. Elle permet
+     * d'afficher immédiatement la grille Albums pendant que la restauration complète continue en
+     * arrière-plan, notamment au tout premier lancement qui suit l'installation de cette version.
+     */
+    @Query("""
+        SELECT path, libraryPath, title, artist, album, durationMs, bitrate, trackNumber, addedAt, artworkPath,
+               isNetwork, sourceLabel, titleFromTag, albumFromTag, artistFromTag,
+               extension, sizeBytes, modifiedAt
+        FROM audio_library_tracks
+        WHERE deleted = 0
+        GROUP BY folderKey
+        ORDER BY artistSortKey, albumSortKey
+    """)
+    suspend fun albumBootstrapOnce(): List<AudioLibraryAlbumBootstrapRow>
+
     @Query("SELECT * FROM audio_library_tracks WHERE path IN (:paths)")
     suspend fun byPaths(paths: List<String>): List<AudioLibraryTrackEntity>
 
@@ -100,6 +165,9 @@ interface AudioLibraryTrackDao {
 
     @Query("UPDATE audio_library_tracks SET artworkPath = :artworkPath, artworkVersion = :artworkVersion WHERE path = :path AND deleted = 0")
     suspend fun updateArtwork(path: String, artworkPath: String, artworkVersion: Int): Int
+
+    @Query("UPDATE audio_library_tracks SET artworkPath = :artworkPath, artworkVersion = :artworkVersion WHERE path IN (:paths) AND deleted = 0")
+    suspend fun updateArtworkPaths(paths: List<String>, artworkPath: String, artworkVersion: Int): Int
 
     @Query("UPDATE audio_library_tracks SET artworkPath = :persistedPath, artworkVersion = :artworkVersion WHERE artworkPath = :sourcePath AND deleted = 0")
     suspend fun updateArtworkForSource(sourcePath: String, persistedPath: String, artworkVersion: Int): Int
@@ -110,6 +178,9 @@ interface AudioLibraryTrackDao {
     @Query("DELETE FROM audio_library_tracks WHERE folderKey IN (:folderKeys)")
     suspend fun deleteFolders(folderKeys: List<String>): Int
 
+    @Query("DELETE FROM audio_library_tracks WHERE path IN (:paths)")
+    suspend fun deletePaths(paths: List<String>): Int
+
     @Query("DELETE FROM audio_library_tracks WHERE folderKey IN (:folderKeys) AND seenGeneration != :generation")
     suspend fun deleteMissingInFolders(folderKeys: List<String>, generation: Long): Int
 
@@ -119,7 +190,7 @@ interface AudioLibraryTrackDao {
 
 @Database(
     entities = [AudioLibraryTrackEntity::class],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 abstract class AudioLibraryRoomDatabase : RoomDatabase() {
@@ -128,13 +199,32 @@ abstract class AudioLibraryRoomDatabase : RoomDatabase() {
     companion object {
         @Volatile private var instance: AudioLibraryRoomDatabase? = null
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE audio_library_tracks " +
+                        "ADD COLUMN libraryPath TEXT NOT NULL DEFAULT ''"
+                )
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE audio_library_tracks " +
+                        "ADD COLUMN bitrate INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
         fun get(context: Context): AudioLibraryRoomDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
                 context.applicationContext,
                 AudioLibraryRoomDatabase::class.java,
                 "blaze_audio_library_room.db"
             )
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .fallbackToDestructiveMigration(true)
                 .build()
                 .also { instance = it }
         }
@@ -142,7 +232,7 @@ abstract class AudioLibraryRoomDatabase : RoomDatabase() {
 }
 
 object AudioLibraryRoomStore {
-    private const val CURRENT_METADATA_VERSION = 2
+    private const val CURRENT_METADATA_VERSION = 3
     private const val CURRENT_ARTWORK_VERSION = 2
 
     data class ReplaceResult(
@@ -153,6 +243,7 @@ object AudioLibraryRoomStore {
 
     data class TechnicalSnapshot(
         val durationMs: Long,
+        val bitrate: Long,
         val sizeBytes: Long,
         val extension: String
     )
@@ -163,12 +254,16 @@ object AudioLibraryRoomStore {
     suspend fun loadActive(context: Context, limit: Int = Int.MAX_VALUE): List<AudioLibraryTrackEntity> =
         AudioLibraryRoomDatabase.get(context).trackDao().activeOnce(if (limit == Int.MAX_VALUE) Int.MAX_VALUE else limit)
 
+    suspend fun loadAlbumBootstrap(context: Context): List<LibraryTrack> =
+        AudioLibraryRoomDatabase.get(context).trackDao().albumBootstrapOnce().map { it.toLibraryTrack() }
+
     /** Données déjà indexées permettant de calculer un débit moyen sans rouvrir le fichier NAS. */
     suspend fun loadTechnicalSnapshot(context: Context, path: String): TechnicalSnapshot? {
         if (path.isBlank()) return null
         val entity = AudioLibraryRoomDatabase.get(context).trackDao().byPath(path) ?: return null
         return TechnicalSnapshot(
             durationMs = entity.durationMs.coerceAtLeast(0L),
+            bitrate = entity.bitrate.coerceAtLeast(0L),
             sizeBytes = entity.sizeBytes.coerceAtLeast(0L),
             extension = entity.extension
         )
@@ -228,7 +323,18 @@ object AudioLibraryRoomStore {
                     titleSortKey = normalizeForStore(skeleton.title)
                 )
                 !fileChanged && old.hasRealMetadata() -> old.copy(
+                    libraryPath = skeleton.libraryPath.ifBlank { old.libraryPath },
                     name = skeleton.name.ifBlank { old.name },
+                    title = skeleton.title,
+                    artist = skeleton.artist,
+                    album = skeleton.album,
+                    trackNumber = skeleton.trackNumber.takeIf { it > 0 } ?: old.trackNumber,
+                    titleFromTag = false,
+                    artistFromTag = false,
+                    albumFromTag = false,
+                    albumSortKey = normalizeForStore(skeleton.album),
+                    artistSortKey = normalizeForStore(skeleton.artist),
+                    titleSortKey = normalizeForStore(skeleton.title),
                     addedAt = maxOf(old.addedAt, skeleton.addedAt),
                     sourceLabel = skeleton.sourceLabel.ifBlank { old.sourceLabel },
                     shareId = skeleton.shareId.ifBlank { old.shareId },
@@ -247,8 +353,7 @@ object AudioLibraryRoomStore {
                     artworkVersion = if (
                         AudioArtworkPersistence.isPersistedPath(context, old.artworkPath) && java.io.File(old.artworkPath).isFile
                     ) CURRENT_ARTWORK_VERSION else if (
-                        AudioLibraryHeuristics.isImagePath(skeleton.artworkPath) &&
-                        AudioLibraryHeuristics.isPreferredCoverName(AudioLibraryHeuristics.fileNameFromPath(skeleton.artworkPath))
+                        AudioLibraryHeuristics.isArtworkReference(skeleton.artworkPath)
                     ) CURRENT_ARTWORK_VERSION else 0
                 )
                 else -> skeleton.copy(
@@ -282,24 +387,25 @@ object AudioLibraryRoomStore {
             val old = existing[update.path] ?: return@mapNotNull null
             if (old.deleted) return@mapNotNull null
             old.copy(
-                title = update.title.ifBlank { old.title },
-                artist = update.artist.ifBlank { old.artist },
-                album = update.album.ifBlank { old.album },
+                title = old.title,
+                artist = old.artist,
+                album = old.album,
                 durationMs = update.durationMs.takeIf { it > 0L } ?: old.durationMs,
+                bitrate = update.bitrate.takeIf { it > 0L } ?: old.bitrate,
                 trackNumber = update.trackNumber.takeIf { it > 0 } ?: old.trackNumber,
                 extension = update.extension.ifBlank { old.extension },
                 artworkPath = old.artworkPath.takeIf {
                     AudioArtworkPersistence.isPersistedPath(context, it) && java.io.File(it).isFile
                 } ?: update.artworkPath.ifBlank { old.artworkPath },
-                titleFromTag = update.titleFromTag || old.titleFromTag,
-                artistFromTag = update.artistFromTag || old.artistFromTag,
-                albumFromTag = update.albumFromTag || old.albumFromTag,
+                titleFromTag = false,
+                artistFromTag = false,
+                albumFromTag = false,
                 metadataVersion = CURRENT_METADATA_VERSION,
                 artworkVersion = if (update.artworkPath.isNotBlank()) CURRENT_ARTWORK_VERSION else old.artworkVersion,
                 deleted = false,
-                albumSortKey = normalizeForStore(update.album.ifBlank { old.album }),
-                artistSortKey = normalizeForStore(update.artist.ifBlank { old.artist }),
-                titleSortKey = normalizeForStore(update.title.ifBlank { old.title })
+                albumSortKey = normalizeForStore(old.album),
+                artistSortKey = normalizeForStore(old.artist),
+                titleSortKey = normalizeForStore(old.title)
             )
         }
         merged.chunked(300).forEach { dao.upsertAll(it) }
@@ -310,19 +416,20 @@ object AudioLibraryRoomStore {
         val dao = AudioLibraryRoomDatabase.get(context).trackDao()
         val old = dao.byPath(path) ?: return
         if (old.deleted) return
-        val nextTitle = info.title.ifBlank { old.title }
-        val nextArtist = info.artist.ifBlank { old.artist }
-        val nextAlbum = info.album.ifBlank { old.album }
+        val nextTitle = old.title
+        val nextArtist = old.artist
+        val nextAlbum = old.album
         val next = old.copy(
             title = nextTitle,
             artist = nextArtist,
             album = nextAlbum,
             durationMs = if (info.duration > 0L) info.duration * 1000L else old.durationMs,
+            bitrate = if (info.bitrate > 0L) info.bitrate else old.bitrate,
             trackNumber = if (info.trackNumber > 0) info.trackNumber else old.trackNumber,
             extension = info.extension.ifBlank { old.extension },
-            titleFromTag = old.titleFromTag || info.title.isNotBlank(),
-            artistFromTag = old.artistFromTag || info.artist.isNotBlank(),
-            albumFromTag = old.albumFromTag || info.album.isNotBlank(),
+            titleFromTag = false,
+            artistFromTag = false,
+            albumFromTag = false,
             metadataVersion = CURRENT_METADATA_VERSION,
             albumSortKey = normalizeForStore(nextAlbum),
             artistSortKey = normalizeForStore(nextArtist),
@@ -334,6 +441,26 @@ object AudioLibraryRoomStore {
     suspend fun updateArtworkPath(context: Context, path: String, artworkPath: String) {
         if (path.isBlank() || artworkPath.isBlank()) return
         AudioLibraryRoomDatabase.get(context).trackDao().updateArtwork(path, artworkPath, CURRENT_ARTWORK_VERSION)
+    }
+
+    suspend fun updateArtworkPaths(
+        context: Context,
+        paths: Collection<String>,
+        artworkPath: String
+    ) {
+        if (paths.isEmpty() || artworkPath.isBlank()) return
+        val dao = AudioLibraryRoomDatabase.get(context).trackDao()
+        paths.asSequence()
+            .filter { it.isNotBlank() }
+            .distinct()
+            .chunked(300)
+            .forEach { chunk ->
+                dao.updateArtworkPaths(
+                    chunk,
+                    artworkPath,
+                    CURRENT_ARTWORK_VERSION
+                )
+            }
     }
 
     suspend fun updateArtworkPathForSource(context: Context, sourcePath: String, persistedPath: String) {
@@ -348,19 +475,29 @@ object AudioLibraryRoomStore {
         folderKeys.chunked(300).forEach { dao.deleteFolders(it) }
     }
 
+    suspend fun deletePaths(context: Context, paths: Set<String>) {
+        if (paths.isEmpty()) return
+        val dao = AudioLibraryRoomDatabase.get(context).trackDao()
+        paths.chunked(300).forEach { dao.deletePaths(it) }
+    }
+
     suspend fun clear(context: Context) {
         AudioLibraryRoomDatabase.get(context).trackDao().clear()
     }
 
     private fun AudioLibraryTrackEntity.hasRealMetadata(): Boolean =
-        titleFromTag || artistFromTag || albumFromTag || durationMs > 0L || trackNumber > 0 || metadataVersion >= CURRENT_METADATA_VERSION
+        titleFromTag || artistFromTag || albumFromTag ||
+            durationMs > 0L || bitrate > 0L || trackNumber > 0 ||
+            metadataVersion >= CURRENT_METADATA_VERSION
 
     private fun sameFileIdentity(old: AudioLibraryTrackEntity, new: AudioLibraryTrackEntity): Boolean {
         val oldSize = old.sizeBytes
         val newSize = new.sizeBytes
         val oldModified = old.modifiedAt
         val newModified = new.modifiedAt
-        if (new.isNetwork && newSize <= 0L && newModified <= 0L) return false
+        // Beaucoup de serveurs UPnP ne publient ni taille ni date. À chemin identique, leur
+        // absence ne doit pas réinitialiser durée, bitrate et cover à chaque reprise partielle.
+        if (new.isNetwork && newSize <= 0L && newModified <= 0L) return true
         if (oldSize > 0L && newSize > 0L && oldSize != newSize) return false
         if (oldModified > 0L && newModified > 0L && oldModified != newModified) return false
         return true

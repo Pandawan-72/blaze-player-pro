@@ -234,37 +234,6 @@ class PlaylistAdapter(
             itemView.setOnClickListener { val pos = adapterPosition; if (pos != RecyclerView.NO_ID.toInt()) onItemClick(pos) }
         }
 
-        private fun applyTechnicalMeta(
-            meta: AudioTechnicalInfo?,
-            fallbackExtension: String,
-            tvCodec: TextView?,
-            tvFormatBadge: TextView?,
-            tvTime: TextView?,
-            isCurrent: Boolean
-        ) {
-            val ext = meta?.extension?.ifBlank { fallbackExtension }?.uppercase()
-                ?: fallbackExtension.uppercase()
-            if (ext.isNotEmpty()) {
-                fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvCodec, ext)
-                tvCodec?.visibility = View.VISIBLE
-            } else {
-                tvCodec?.visibility = View.GONE
-            }
-            val lossless = meta?.isLossless == true || ext in setOf("FLAC", "WAV", "ALAC", "APE", "AIFF", "WV")
-            when {
-                lossless -> {
-                    tvFormatBadge?.text = itemView.context.getString(R.string.lossless_label)
-                    tvFormatBadge?.visibility = View.VISIBLE
-                }
-                (meta?.bitrate ?: 0L) > 0L -> {
-                    tvFormatBadge?.text = "${meta!!.bitrate / 1000} kbps"
-                    tvFormatBadge?.visibility = View.VISIBLE
-                }
-                else -> tvFormatBadge?.visibility = View.GONE
-            }
-            applyTimeBadge(tvTime, (meta?.duration ?: 0L) * 1000L, isCurrent)
-        }
-
         fun updateTimeBadge(isCurrent: Boolean) {
             val fallbackDurationMs = if (currentDurationMs > 0L) currentDurationMs else 0L
             applyTimeBadge(tvBitrate, fallbackDurationMs, isCurrent)

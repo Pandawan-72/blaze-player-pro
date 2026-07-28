@@ -2,11 +2,9 @@ package fr.retrospare.blazeplayer.home
 
 import fr.retrospare.blazeplayer.ui.showPremium
 import android.graphics.Typeface
-import androidx.core.content.res.ResourcesCompat
 import android.os.Bundle
 import android.os.Build
 import android.net.Uri
-import android.provider.OpenableColumns
 import android.provider.MediaStore
 import android.content.ContentValues
 import android.os.Environment
@@ -46,6 +44,11 @@ import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
 import java.io.FileOutputStream
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
@@ -55,11 +58,13 @@ class HomeFragment : Fragment() {
     private val viewModel: HomeViewModel by viewModels()
     private var currentTabIndex = 0
     private var audioPlayerFragment: AudioPlayerFragment? = null
+    private var audioFragmentCreationPending: Boolean = false
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
     private enum class GallerySort { FOLDER_NAME, DATE_DESC, DATE_ASC, PHOTO_NAME, FILE_SIZE }
     private enum class GalleryMediaType { PHOTO, VIDEO }
+    private enum class GalleryDragGesture { UNDECIDED, SELECTING, SCROLLING }
 
     private var gallerySort: GallerySort = GallerySort.DATE_DESC
     private var currentGalleryMediaType: GalleryMediaType = GalleryMediaType.PHOTO
@@ -72,6 +77,8 @@ class HomeFragment : Fragment() {
     private var currentGalleryPhotos: List<MediaItem> = emptyList()
     private var galleryFoldersScrollPosition: Int = 0
     private var galleryFoldersScrollOffset: Int = 0
+    private var galleryMediaScrollPosition: Int = 0
+    private var galleryMediaScrollOffset: Int = 0
 
     private var allVideoHistoryItems: List<MediaItem> = emptyList()
     private var latestLocalHistoryItems: List<MediaItem> = emptyList()
@@ -309,6 +316,7 @@ class HomeFragment : Fragment() {
 
         binding.btnNetworkHelp.setOnClickListener { showNetworkHelpDialog() }
         binding.btnSettings.setOnClickListener {
+            if (currentTabIndex == 3) saveCurrentGalleryScrollPosition()
             findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_settings)
         }
         setupTabs()
@@ -746,11 +754,11 @@ class HomeFragment : Fragment() {
     private fun setupGalleryTab() {
         configureGalleryPrimaryAsTrashIcon()
         binding.btnGalleryPrimary.setOnClickListener { showGalleryTrash() }
-        binding.btnGallerySecondary.text = getString(R.string.action_back)
-        binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
+        binding.btnGalleryBack.visibility = View.GONE
         binding.btnGallerySecondary.visibility = View.GONE
         binding.btnGalleryDiapo.visibility = View.GONE
         setupGalleryTypeToggle()
+        setupGalleryDragSelection()
     }
 
     /** Câble une seule fois les 2 icônes de bascule Photo/Vidéo de l'accueil Blaze Gallery et
@@ -787,6 +795,15 @@ class HomeFragment : Fragment() {
         binding.btnGalleryTypeVideo.visibility = visibility
     }
 
+    /** Place la navigation Retour au début de l'en-tête, juste avant le titre courant. */
+    private fun configureGalleryHeaderBack(visible: Boolean, onClick: (() -> Unit)? = null) {
+        binding.btnGalleryBack.visibility = if (visible) View.VISIBLE else View.GONE
+        binding.ivSectionGallery.visibility = if (visible) View.GONE else View.VISIBLE
+        binding.btnGalleryBack.setOnClickListener(
+            if (visible && onClick != null) View.OnClickListener { onClick() } else null
+        )
+    }
+
     private fun handleBlazeGalleryBack(): Boolean {
         return when {
             gallerySelectionMode -> {
@@ -812,15 +829,7 @@ class HomeFragment : Fragment() {
 
     private fun refreshCurrentGalleryView() {
         if (_binding == null || !isAdded || currentTabIndex != 3) return
-        // Ne pas détruire une sélection multiple juste parce qu'un chooser/une boîte système a
-        // temporairement mis l'app en pause. Les actions destructives nettoient déjà la sélection
-        // avant de lancer MediaStore.
-        if (gallerySelectionMode) return
-        when {
-            galleryTrashMode -> showGalleryTrash()
-            currentGalleryBucketId != null -> showGalleryPhotos(currentGalleryBucketId.orEmpty(), currentGalleryBucketName.orEmpty())
-            else -> showGalleryFolders()
-        }
+        restoreCurrentGalleryContent()
     }
 
     /** URI MediaStore correspondant au type de média actuellement affiché dans Blaze Gallery. */
@@ -920,6 +929,7 @@ class HomeFragment : Fragment() {
         binding.listGallery.visibility = View.GONE
         binding.emptyStateGallery.visibility = View.VISIBLE
         binding.tvEmptyStateGallery.text = getString(R.string.permission_gallery_required)
+        configureGalleryHeaderBack(false)
         binding.btnGallerySecondary.visibility = View.GONE
         binding.btnGalleryPrimary.visibility = View.GONE
         binding.btnGalleryDiapo.visibility = View.GONE
@@ -975,19 +985,6 @@ class HomeFragment : Fragment() {
     private fun configureGalleryPrimaryAsTextAction() {
         setGalleryPrimaryCompact(false)
         binding.btnGalleryPrimary.contentDescription = null
-    }
-
-    private fun styleGalleryBackButton() {
-        setGallerySecondaryCompact(true)
-        binding.btnGallerySecondary.text = ""
-        binding.btnGallerySecondary.contentDescription = getString(R.string.action_back)
-        binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
-        binding.btnGallerySecondary.setTextColor(android.graphics.Color.TRANSPARENT)
-        binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.on_surface))
-        binding.btnGallerySecondary.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_header_action_button)
-        binding.btnGallerySecondary.backgroundTintList = null
-        binding.btnGallerySecondary.strokeWidth = 0
-        binding.btnGallerySecondary.strokeColor = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
     }
 
     private fun styleGallerySecondaryNeutralButton() {
@@ -1080,16 +1077,22 @@ class HomeFragment : Fragment() {
 
     private fun openGalleryFolder(folder: MediaItem) {
         saveGalleryFoldersScrollPosition()
+        galleryMediaScrollPosition = 0
+        galleryMediaScrollOffset = 0
         showGalleryPhotos(folder.path, folder.name)
     }
 
     private fun showGalleryFolders(restoreScroll: Boolean = false) {
         if (!isAdded || !requestGalleryPermissionIfNeeded()) return
+        // Retente le réchauffage MediaStore après l'accord des permissions. L'appel est idempotent
+        // et ne relance aucun travail lorsqu'il a déjà réussi au démarrage de l'application.
+        ThumbnailUtils.scheduleGalleryMediaStoreWarmup(requireContext().applicationContext)
         val renderGeneration = nextGalleryRenderGeneration()
         currentGalleryBucketId = null
         currentGalleryBucketName = null
         galleryTrashMode = false
         clearGallerySelection()
+        configureGalleryHeaderBack(false)
         binding.btnGalleryDiapo.visibility = if (currentGalleryMediaType == GalleryMediaType.PHOTO && !galleryCustomThumbnailMode) View.VISIBLE else View.GONE
         binding.btnGalleryDiapo.setOnClickListener { launchSlideshowFolderPicker() }
         binding.btnGallerySecondary.visibility = View.VISIBLE
@@ -1113,14 +1116,57 @@ class HomeFragment : Fragment() {
         binding.listGallery.visibility = View.VISIBLE
         binding.listGallery.apply {
             setHasFixedSize(true)
-            setItemViewCacheSize(12)
+            setItemViewCacheSize(24)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_FOLDER, 32)
             setBackgroundColor(android.graphics.Color.TRANSPARENT)
-            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2)
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2).apply {
+                initialPrefetchItemCount = 12
+            }
             itemAnimator = null
+        }
+        val folderSnapshotKey = currentGalleryMediaType.name
+        val cachedFolders = galleryFolderSnapshots[folderSnapshotKey]
+        if (cachedFolders != null) {
+            binding.listGallery.adapter = GalleryAdapter(
+                items = cachedFolders,
+                grid = false,
+                trashMode = false,
+                onClick = { folder -> openGalleryFolder(folder) },
+                onLongClick = {},
+                onMore = { folder, anchor -> showGalleryFolderMenu(folder, anchor) }
+            )
+            if (restoreScroll) restoreGalleryFoldersScrollPosition(cachedFolders.size)
+            updateGalleryEmptyState(cachedFolders.isEmpty(), getString(R.string.gallery_empty_folders))
         }
         viewLifecycleOwner.lifecycleScope.launch {
             val folders = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadGalleryFoldersFromMediaStore() }
             if (!isCurrentGalleryRender(renderGeneration) || galleryTrashMode || currentGalleryBucketId != null) return@launch
+            val previousSnapshot = galleryFolderSnapshots.put(folderSnapshotKey, folders)
+            if (previousSnapshot == folders && binding.listGallery.adapter is GalleryAdapter) {
+                updateGalleryEmptyState(folders.isEmpty(), getString(R.string.gallery_empty_folders))
+                return@launch
+            }
+            val firstFolderPreviews = folders.flatMap { it.previewUris }.take(18)
+            val folderMediaType = currentGalleryMediaType
+            val folderWarmupJob = viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                if (folderMediaType == GalleryMediaType.PHOTO) {
+                    ThumbnailUtils.warmImageThumbnails(
+                        requireContext().applicationContext,
+                        firstFolderPreviews,
+                        maxSize = 260,
+                        concurrency = 6
+                    )
+                } else {
+                    ThumbnailUtils.warmVideoThumbnails(
+                        requireContext().applicationContext,
+                        firstFolderPreviews,
+                        concurrency = 4
+                    )
+                }
+            }
+            // Attend seulement une fraction de seconde pour profiter des miniatures MediaStore déjà
+            // prêtes. Si le stockage est plus lent, le job continue hors écran au lieu d'être annulé.
+            kotlinx.coroutines.withTimeoutOrNull(220L) { folderWarmupJob.join() }
             binding.listGallery.adapter = GalleryAdapter(
                 items = folders,
                 grid = false,
@@ -1132,7 +1178,7 @@ class HomeFragment : Fragment() {
             if (restoreScroll) restoreGalleryFoldersScrollPosition(folders.size)
             if (currentGalleryMediaType == GalleryMediaType.PHOTO) {
                 // Pré-cache utile à la réouverture, mais volontairement lancé doucement pour ne
-                // pas concurrencer le scroll de l'accueil Galerie où chaque dossier affiche 4 aperçus.
+                // pas concurrencer le scroll de l'accueil Galerie où chaque dossier affiche 3 aperçus.
                 precacheGalleryPhotoThumbnails(folders.flatMap { it.previewUris }, renderGeneration, maxSize = 220, initialDelayMs = 450L)
             }
             updateGalleryEmptyState(folders.isEmpty(), getString(R.string.gallery_empty_folders))
@@ -1150,19 +1196,22 @@ class HomeFragment : Fragment() {
         if (isEmpty) binding.tvEmptyStateGallery.text = message
     }
 
-    private fun showGalleryPhotos(bucketId: String, bucketName: String) {
+    private fun showGalleryPhotos(
+        bucketId: String,
+        bucketName: String,
+        restoreScroll: Boolean = false,
+        preserveSelection: Boolean = false
+    ) {
         if (!isAdded || !requestGalleryPermissionIfNeeded()) return
         val renderGeneration = nextGalleryRenderGeneration()
+        val keepSelection = preserveSelection && gallerySelectionMode
         currentGalleryBucketId = bucketId
         currentGalleryBucketName = bucketName
         galleryTrashMode = false
-        clearGallerySelection()
+        if (!keepSelection) clearGallerySelection()
         updateGalleryTypeToggle(visible = false)
-        binding.btnGallerySecondary.visibility = View.VISIBLE
-        binding.btnGallerySecondary.text = getString(R.string.action_back)
-        binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
-        binding.btnGallerySecondary.setOnClickListener { showGalleryFolders(restoreScroll = true) }
-        styleGalleryBackButton()
+        configureGalleryHeaderBack(true) { showGalleryFolders(restoreScroll = true) }
+        binding.btnGallerySecondary.visibility = View.GONE
         binding.btnGalleryDiapo.visibility = if (currentGalleryMediaType == GalleryMediaType.PHOTO && !galleryCustomThumbnailMode) View.VISIBLE else View.GONE
         binding.btnGalleryDiapo.setOnClickListener { launchSlideshowFolderPicker() }
         binding.btnGalleryPrimary.visibility = View.VISIBLE
@@ -1172,22 +1221,81 @@ class HomeFragment : Fragment() {
         binding.btnGalleryPrimary.setIconResource(R.drawable.ic_sort)
         binding.btnGalleryPrimary.setOnClickListener { showGallerySortMenu() }
         styleGalleryTrashButton(false)
-        binding.tvSectionGallery.text = if (galleryCustomThumbnailMode) {
+        if (keepSelection) updateGallerySelectionToolbar()
+        binding.tvSectionGallery.text = if (keepSelection) {
+            getString(R.string.gallery_selected_count, selectedGalleryPhotos.size)
+        } else if (galleryCustomThumbnailMode) {
             getString(R.string.custom_thumbnail_pick_image)
         } else {
-            getString(R.string.gallery_folder_title, bucketName)
+            bucketName
         }
         binding.listGallery.visibility = View.VISIBLE
         binding.listGallery.apply {
             setHasFixedSize(true)
-            setItemViewCacheSize(24)
+            setItemViewCacheSize(72)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_MEDIA, 96)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_MONTH_HEADER, 16)
             setBackgroundColor(android.graphics.Color.BLACK)
-            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
+            val gridLayoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 4).apply {
+                initialPrefetchItemCount = 32
+            }
+            gridLayoutManager.spanSizeLookup = object : androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    val adapter = binding.listGallery.adapter
+                    return if (adapter is GalleryAdapter && adapter.isHeaderPosition(position)) 4 else 1
+                }
+            }
+            layoutManager = gridLayoutManager
             itemAnimator = null
+        }
+        val mediaSnapshotKey = "${currentGalleryMediaType.name}|$bucketId|${gallerySort.name}"
+        galleryMediaSnapshots[mediaSnapshotKey]?.let { cachedPhotos ->
+            currentGalleryPhotos = cachedPhotos
+            binding.listGallery.adapter = GalleryAdapter(
+                items = cachedPhotos,
+                grid = true,
+                trashMode = false,
+                onClick = { photo ->
+                    when {
+                        galleryCustomThumbnailMode -> applyCustomThumbnailFromGallery(photo)
+                        gallerySelectionMode -> toggleGallerySelection(photo)
+                        else -> openGalleryPhoto(photo)
+                    }
+                },
+                onLongClick = { photo -> if (!galleryCustomThumbnailMode) enterGallerySelection(photo) },
+                onMore = { photo, anchor -> showGalleryPhotoMenu(photo, anchor) }
+            )
+            updateGalleryEmptyState(cachedPhotos.isEmpty(), getString(R.string.gallery_empty_photos))
+            if (restoreScroll) restoreGalleryMediaScrollPosition(binding.listGallery.adapter?.itemCount ?: 0)
         }
         viewLifecycleOwner.lifecycleScope.launch {
             val photos = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadGalleryPhotosFromMediaStore(bucketId) }
             if (!isCurrentGalleryRender(renderGeneration) || galleryTrashMode || currentGalleryBucketId != bucketId) return@launch
+            val previousSnapshot = galleryMediaSnapshots.put(mediaSnapshotKey, photos)
+            if (previousSnapshot == photos && binding.listGallery.adapter is GalleryAdapter) {
+                currentGalleryPhotos = photos
+                updateGalleryEmptyState(photos.isEmpty(), getString(R.string.gallery_empty_photos))
+                return@launch
+            }
+            val firstVisibleMedia = photos.take(36).map { it.path }
+            val openedMediaType = currentGalleryMediaType
+            val mediaWarmupJob = viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                if (openedMediaType == GalleryMediaType.PHOTO) {
+                    ThumbnailUtils.warmImageThumbnails(
+                        requireContext().applicationContext,
+                        firstVisibleMedia,
+                        maxSize = 280,
+                        concurrency = 6
+                    )
+                } else {
+                    ThumbnailUtils.warmVideoThumbnails(
+                        requireContext().applicationContext,
+                        firstVisibleMedia,
+                        concurrency = 4
+                    )
+                }
+            }
+            kotlinx.coroutines.withTimeoutOrNull(260L) { mediaWarmupJob.join() }
             currentGalleryPhotos = photos
             binding.listGallery.adapter = GalleryAdapter(
                 items = photos,
@@ -1207,6 +1315,7 @@ class HomeFragment : Fragment() {
                 precacheGalleryPhotoThumbnails(photos.map { it.path }, renderGeneration, maxSize = 360)
             }
             updateGalleryEmptyState(photos.isEmpty(), getString(R.string.gallery_empty_photos))
+            if (restoreScroll) restoreGalleryMediaScrollPosition(binding.listGallery.adapter?.itemCount ?: 0)
         }
     }
 
@@ -1251,7 +1360,7 @@ class HomeFragment : Fragment() {
                 }
                 val folder = folders.getOrPut(bucketId) { MutableGalleryFolder(bucketId, bucketName, relativePath = relativePath) }
                 folder.count += 1
-                if (folder.previewUris.size < 4) folder.previewUris += imageUri
+                if (folder.previewUris.size < 3) folder.previewUris += imageUri
                 if (date > folder.lastModified) folder.lastModified = date
             }
         }
@@ -1354,6 +1463,60 @@ class HomeFragment : Fragment() {
         var previewUris: List<String> = emptyList(),
         var relativePath: String = ""
     )
+
+    private fun buildGalleryGridEntries(items: List<MediaItem>): List<GalleryGridEntry> {
+        if (items.isEmpty()) return emptyList()
+
+        val groupedByMonth = items.groupBy { galleryMonthKey(it.lastPlayedAt) }
+        val monthKeys = groupedByMonth.keys.sortedWith(
+            if (gallerySort == GallerySort.DATE_ASC) compareBy { it } else compareByDescending { it }
+        )
+
+        return buildList {
+            monthKeys.forEach { monthKey ->
+                val monthItems = groupedByMonth[monthKey].orEmpty()
+                val referenceTimestamp = monthItems.firstOrNull()?.lastPlayedAt ?: 0L
+                add(GalleryGridEntry.MonthHeader(monthKey, formatGalleryMonthHeader(referenceTimestamp)))
+
+                val sortedMonthItems = when (gallerySort) {
+                    GallerySort.DATE_ASC -> monthItems.sortedBy { it.lastPlayedAt }
+                    GallerySort.PHOTO_NAME, GallerySort.FOLDER_NAME ->
+                        monthItems.sortedBy { it.name.lowercase(currentGalleryLocale()) }
+                    GallerySort.FILE_SIZE -> monthItems.sortedByDescending { it.size }
+                    else -> monthItems.sortedByDescending { it.lastPlayedAt }
+                }
+                sortedMonthItems.forEach { add(GalleryGridEntry.Media(it)) }
+            }
+        }
+    }
+
+    private fun galleryTimestampMillis(timestamp: Long): Long {
+        return if (timestamp in 1 until 10_000_000_000L) timestamp * 1000L else timestamp
+    }
+
+    private fun galleryMonthKey(timestamp: Long): String {
+        val calendar = Calendar.getInstance().apply { timeInMillis = galleryTimestampMillis(timestamp) }
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH) + 1
+        return String.format(Locale.ROOT, "%04d-%02d", year, month)
+    }
+
+    private fun currentGalleryLocale(): Locale {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            resources.configuration.locales[0]
+        } else {
+            @Suppress("DEPRECATION")
+            resources.configuration.locale
+        }
+    }
+
+    private fun formatGalleryMonthHeader(timestamp: Long): String {
+        val date = Date(galleryTimestampMillis(timestamp))
+        val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+        val itemYear = Calendar.getInstance().apply { time = date }.get(Calendar.YEAR)
+        val pattern = if (itemYear == currentYear) "LLLL" else "LLLL yyyy"
+        return SimpleDateFormat(pattern, currentGalleryLocale()).format(date)
+    }
 
     private fun openGalleryPhoto(photo: MediaItem) {
         if (currentGalleryMediaType == GalleryMediaType.VIDEO) {
@@ -1465,12 +1628,19 @@ class HomeFragment : Fragment() {
     }
 
     private fun loadGalleryImage(imageView: ImageView, uriString: String, requestSize: Size = Size(360, 360), isFullScreen: Boolean = false, thumbnailMaxSize: Int = 360) {
+        val previousTag = imageView.getTag(R.id.ivThumbnail) as? String
         imageView.setTag(R.id.ivThumbnail, uriString)
-        imageView.setImageDrawable(null)
-        if (currentGalleryMediaType == GalleryMediaType.VIDEO) {
-            // Les vignettes vidéo passent par le même extracteur de frame (+ cache mémoire/disque)
-            // que le reste de l'app (navigateur local/réseau), plutôt que par Coil qui ne décode
-            // pas les conteneurs vidéo.
+
+        if (!isFullScreen && currentGalleryMediaType == GalleryMediaType.VIDEO) {
+            ThumbnailUtils.peekMemoryThumbnailBitmap(uriString)?.let { bitmap ->
+                imageView.setImageBitmap(bitmap)
+                imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                return
+            }
+            // Ne jamais vider une ImageView pour la même requête : le job déjà lancé terminera son
+            // travail et évite le flash noir. Pour une nouvelle tuile, on remplace seulement par le
+            // placeholder, jamais par null.
+            if (previousTag != uriString) imageView.setImageResource(R.drawable.bg_thumbnail)
             viewLifecycleOwner.lifecycleScope.launch {
                 ThumbnailUtils.loadThumbnail(requireContext(), uriString, imageView)
             }
@@ -1514,6 +1684,12 @@ class HomeFragment : Fragment() {
             }
             return
         }
+        ThumbnailUtils.peekMemoryImageThumbnailBitmap(uriString, thumbnailMaxSize)?.let { bitmap ->
+            imageView.setImageBitmap(bitmap)
+            imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+            return
+        }
+        if (previousTag != uriString) imageView.setImageResource(R.drawable.bg_thumbnail)
         viewLifecycleOwner.lifecycleScope.launch {
             val loaded = ThumbnailUtils.loadImageThumbnail(requireContext(), uriString, imageView, thumbnailMaxSize)
             if (!loaded && isAdded && imageView.getTag(R.id.ivThumbnail) == uriString) {
@@ -1961,24 +2137,32 @@ class HomeFragment : Fragment() {
         updateGalleryTypeToggle(visible = false)
         binding.btnGalleryDiapo.visibility = View.GONE
         binding.tvSectionGallery.text = getString(R.string.gallery_trash)
-        binding.btnGallerySecondary.visibility = View.VISIBLE
-        binding.btnGallerySecondary.text = getString(R.string.action_back)
-        binding.btnGallerySecondary.setIconResource(R.drawable.ic_arrow_back)
-        binding.btnGallerySecondary.setOnClickListener { showGalleryFolders() }
+        configureGalleryHeaderBack(true) { showGalleryFolders() }
+        binding.btnGallerySecondary.visibility = View.GONE
         binding.btnGalleryPrimary.visibility = View.VISIBLE
         binding.btnGalleryPrimary.isEnabled = true
         binding.btnGalleryPrimary.alpha = 1f
         binding.btnGalleryPrimary.text = getString(R.string.gallery_empty_trash)
         binding.btnGalleryPrimary.setIconResource(R.drawable.ic_trash)
         binding.btnGalleryPrimary.setOnClickListener { confirmGalleryDeletion(getString(R.string.confirm_empty_trash_message)) { emptyGalleryTrashPermanently() } }
-        styleGalleryBackButton()
         styleGalleryTrashButton(true)
         binding.listGallery.visibility = View.VISIBLE
         binding.listGallery.apply {
             setHasFixedSize(true)
-            setItemViewCacheSize(24)
+            setItemViewCacheSize(72)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_MEDIA, 96)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_MONTH_HEADER, 16)
             setBackgroundColor(android.graphics.Color.BLACK)
-            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
+            val gridLayoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 4).apply {
+                initialPrefetchItemCount = 32
+            }
+            gridLayoutManager.spanSizeLookup = object : androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    val adapter = binding.listGallery.adapter
+                    return if (adapter is GalleryAdapter && adapter.isHeaderPosition(position)) 4 else 1
+                }
+            }
+            layoutManager = gridLayoutManager
             itemAnimator = null
         }
         viewLifecycleOwner.lifecycleScope.launch {
@@ -2084,6 +2268,16 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateGallerySelectionToolbar() {
+        configureGalleryHeaderBack(true) {
+            val bucketId = currentGalleryBucketId
+            val bucketName = currentGalleryBucketName.orEmpty()
+            clearGallerySelection()
+            if (bucketId != null) {
+                showGalleryPhotos(bucketId, bucketName, restoreScroll = true)
+            } else {
+                showGalleryFolders(restoreScroll = true)
+            }
+        }
         binding.btnGalleryDiapo.visibility = View.GONE
         binding.btnGallerySecondary.visibility = View.VISIBLE
         binding.btnGalleryPrimary.visibility = View.VISIBLE
@@ -2125,7 +2319,7 @@ class HomeFragment : Fragment() {
         )
     }
 
-    private fun showGallerySlideshowAllPhotosSelection() {
+    private fun showGallerySlideshowAllPhotosSelection(preserveSelection: Boolean = false) {
         if (currentGalleryMediaType != GalleryMediaType.PHOTO || !isAdded || !requestGalleryPermissionIfNeeded()) return
         val renderGeneration = nextGalleryRenderGeneration()
         currentGalleryBucketId = null
@@ -2133,15 +2327,26 @@ class HomeFragment : Fragment() {
         galleryTrashMode = false
         gallerySelectionMode = true
         gallerySlideshowSelectionMode = true
-        selectedGalleryPhotos.clear()
+        if (!preserveSelection) selectedGalleryPhotos.clear()
         updateGalleryTypeToggle(false)
         updateGallerySelectionToolbar()
         binding.listGallery.visibility = View.VISIBLE
         binding.listGallery.apply {
             setHasFixedSize(true)
-            setItemViewCacheSize(24)
+            setItemViewCacheSize(72)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_MEDIA, 96)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_MONTH_HEADER, 16)
             setBackgroundColor(android.graphics.Color.BLACK)
-            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
+            val gridLayoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 4).apply {
+                initialPrefetchItemCount = 32
+            }
+            gridLayoutManager.spanSizeLookup = object : androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    val adapter = binding.listGallery.adapter
+                    return if (adapter is GalleryAdapter && adapter.isHeaderPosition(position)) 4 else 1
+                }
+            }
+            layoutManager = gridLayoutManager
             itemAnimator = null
         }
         viewLifecycleOwner.lifecycleScope.launch {
@@ -2149,6 +2354,15 @@ class HomeFragment : Fragment() {
                 loadAllGalleryPhotosFromMediaStore(includeOnlyTrashed = false)
             }
             if (!isCurrentGalleryRender(renderGeneration) || !gallerySlideshowSelectionMode) return@launch
+            val slideshowWarmupJob = viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                ThumbnailUtils.warmImageThumbnails(
+                    requireContext().applicationContext,
+                    photos.take(36).map { it.path },
+                    maxSize = 280,
+                    concurrency = 6
+                )
+            }
+            kotlinx.coroutines.withTimeoutOrNull(260L) { slideshowWarmupJob.join() }
             currentGalleryPhotos = photos
             binding.listGallery.adapter = GalleryAdapter(
                 items = photos,
@@ -2160,25 +2374,14 @@ class HomeFragment : Fragment() {
             )
             precacheGalleryPhotoThumbnails(photos.map { it.path }, renderGeneration, maxSize = 360)
             updateGalleryEmptyState(photos.isEmpty(), getString(R.string.gallery_empty_photos))
-            if (photos.size < 2) {
+            if (preserveSelection) {
+                restoreGalleryMediaScrollPosition(binding.listGallery.adapter?.itemCount ?: 0)
+            } else if (photos.size < 2) {
                 android.widget.Toast.makeText(requireContext(), R.string.slideshow_need_two_photos, android.widget.Toast.LENGTH_SHORT).show()
             } else {
                 android.widget.Toast.makeText(requireContext(), R.string.slideshow_select_hint, android.widget.Toast.LENGTH_SHORT).show()
             }
         }
-    }
-
-    private fun startGallerySlideshowSelection() {
-        if (currentGalleryMediaType != GalleryMediaType.PHOTO || currentGalleryPhotos.size < 2) {
-            android.widget.Toast.makeText(requireContext(), R.string.slideshow_need_two_photos, android.widget.Toast.LENGTH_SHORT).show()
-            return
-        }
-        gallerySelectionMode = true
-        gallerySlideshowSelectionMode = true
-        selectedGalleryPhotos.clear()
-        updateGallerySelectionToolbar()
-        binding.listGallery.adapter?.notifyDataSetChanged()
-        android.widget.Toast.makeText(requireContext(), R.string.slideshow_select_hint, android.widget.Toast.LENGTH_SHORT).show()
     }
 
     private fun launchGallerySlideshow() {
@@ -2242,11 +2445,13 @@ class HomeFragment : Fragment() {
     }
 
     private inner class PhotoViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
-        val tvFileName: TextView = view.findViewById(R.id.tvFileName)
-        val tvDuration: TextView = view.findViewById(R.id.tvDuration)
         val ivThumbnail: ImageView = view.findViewById(R.id.ivThumbnail)
         val cbSelected: android.widget.CheckBox = view.findViewById(R.id.cbSelected)
         val btnMore: View = view.findViewById(R.id.btnMore)
+    }
+
+    private inner class GalleryMonthHeaderViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
+        val tvMonthHeader: TextView = view.findViewById(R.id.tvMonthHeader)
     }
 
     private inner class FolderViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
@@ -2255,10 +2460,22 @@ class HomeFragment : Fragment() {
         val previews: List<ImageView> = listOf(
             view.findViewById(R.id.ivPreview1),
             view.findViewById(R.id.ivPreview2),
-            view.findViewById(R.id.ivPreview3),
-            view.findViewById(R.id.ivPreview4)
+            view.findViewById(R.id.ivPreview3)
         )
+        val folderIcon: ImageView = view.findViewById(R.id.ivGalleryFolderIcon)
         val btnFolderMore: View = view.findViewById(R.id.btnFolderMore)
+    }
+
+    private sealed interface GalleryGridEntry {
+        val stableId: Long
+
+        data class MonthHeader(val key: String, val title: String) : GalleryGridEntry {
+            override val stableId: Long = ("gallery_month_" + key).hashCode().toLong()
+        }
+
+        data class Media(val item: MediaItem) : GalleryGridEntry {
+            override val stableId: Long = item.path.hashCode().toLong()
+        }
     }
 
     /** Adapter des grilles Blaze Gallery (dossiers et photos).
@@ -2267,9 +2484,9 @@ class HomeFragment : Fragment() {
      *  FolderViewHolder) au lieu d'être recherchées via findViewById() à chaque bind : avant ce
      *  correctif, chaque recyclage de case pendant le scroll refaisait 5 à 7 parcours de l'arbre
      *  de vues, ce qui est la cause la plus commune de saccades dans une grille RecyclerView.
-     *  Le redimensionnement carré des tuiles de dossier ne passe plus non plus par un
-     *  `view.post { ... }` exécuté à chaque bind (cf. SquareRoundedFrameLayout), qui provoquait un
-     *  saut visible de la tuile juste après son apparition à l'écran pendant le scroll. */
+     *  La grille photo/vidéo reproduit désormais davantage l'app Galerie Android : 4 tuiles
+     *  carrées par rangée, avec séparateurs par mois occupant toute la largeur.
+     */
     private inner class GalleryAdapter(
         private val items: List<MediaItem>,
         private val grid: Boolean,
@@ -2279,78 +2496,321 @@ class HomeFragment : Fragment() {
         private val onMore: (MediaItem, View) -> Unit
     ) : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
 
+        private val gridEntries: List<GalleryGridEntry> = if (grid) buildGalleryGridEntries(items) else emptyList()
+
         init {
             setHasStableIds(true)
         }
 
-        override fun getItemCount() = items.size
+        fun isHeaderPosition(position: Int): Boolean {
+            return grid && gridEntries.getOrNull(position) is GalleryGridEntry.MonthHeader
+        }
 
-        override fun getItemId(position: Int): Long = items[position].path.hashCode().toLong()
+        override fun getItemCount() = if (grid) gridEntries.size else items.size
+
+        override fun getItemId(position: Int): Long {
+            return if (grid) {
+                gridEntries[position].stableId
+            } else {
+                items[position].path.hashCode().toLong()
+            }
+        }
+
+        override fun getItemViewType(position: Int): Int {
+            if (!grid) return VIEW_TYPE_FOLDER
+            return when (gridEntries[position]) {
+                is GalleryGridEntry.MonthHeader -> VIEW_TYPE_MONTH_HEADER
+                is GalleryGridEntry.Media -> VIEW_TYPE_MEDIA
+            }
+        }
+
+        fun mediaItemAtAdapterPosition(position: Int): MediaItem? {
+            if (position !in 0 until itemCount) return null
+            return if (grid) {
+                (gridEntries.getOrNull(position) as? GalleryGridEntry.Media)?.item
+            } else {
+                items.getOrNull(position)
+            }
+        }
+
+        private fun mediaItemAt(position: Int): MediaItem = requireNotNull(mediaItemAtAdapterPosition(position))
+
+        private fun bindPhotoSelection(holder: PhotoViewHolder, item: MediaItem) {
+            holder.cbSelected.visibility = if (gallerySelectionMode && !trashMode) View.VISIBLE else View.GONE
+            holder.cbSelected.isChecked = selectedGalleryPhotos.contains(item.path)
+            holder.btnMore.visibility = if (gallerySelectionMode && !trashMode) View.GONE else View.VISIBLE
+        }
 
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
-            return if (grid) {
-                PhotoViewHolder(layoutInflater.inflate(R.layout.item_gallery_photo, parent, false))
-            } else {
-                FolderViewHolder(layoutInflater.inflate(R.layout.item_gallery_folder_tile, parent, false))
+            return when (viewType) {
+                VIEW_TYPE_MONTH_HEADER -> GalleryMonthHeaderViewHolder(layoutInflater.inflate(R.layout.item_gallery_month_header, parent, false))
+                VIEW_TYPE_MEDIA -> PhotoViewHolder(layoutInflater.inflate(R.layout.item_gallery_photo, parent, false))
+                else -> FolderViewHolder(layoutInflater.inflate(R.layout.item_gallery_folder_tile, parent, false))
             }
         }
 
         override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
-            val item = items[position]
-            val view = holder.itemView
-            if (holder is PhotoViewHolder) {
-                holder.tvFileName.text = item.name
-                holder.tvDuration.text = android.text.format.Formatter.formatShortFileSize(requireContext(), item.size)
-                loadGalleryImage(holder.ivThumbnail, item.path)
-                holder.cbSelected.visibility = if (gallerySelectionMode && !trashMode) View.VISIBLE else View.GONE
-                holder.cbSelected.isChecked = selectedGalleryPhotos.contains(item.path)
-                holder.cbSelected.setOnClickListener { toggleGallerySelection(item) }
-                holder.btnMore.visibility = if (gallerySelectionMode && !trashMode) View.GONE else View.VISIBLE
-                holder.btnMore.setOnClickListener { onMore(item, it) }
-            } else if (holder is FolderViewHolder) {
-                holder.tvFolderName.text = item.name
-                holder.tvFolderCount.text = resources.getQuantityString(
-                    if (currentGalleryMediaType == GalleryMediaType.VIDEO) R.plurals.gallery_video_count else R.plurals.gallery_photo_count,
-                    item.size.toInt(),
-                    item.size.toInt()
-                )
-                holder.previews.forEachIndexed { index, imageView ->
-                    val uri = item.previewUris.getOrNull(index)
-                    if (uri != null) {
-                        imageView.visibility = View.VISIBLE
-                        loadGalleryImage(imageView, uri, Size(220, 220), thumbnailMaxSize = 220)
-                    } else {
-                        imageView.setTag(R.id.ivThumbnail, null)
-                        imageView.visibility = View.INVISIBLE
-                        imageView.setImageDrawable(null)
+            when (holder) {
+                is GalleryMonthHeaderViewHolder -> {
+                    val header = gridEntries[position] as GalleryGridEntry.MonthHeader
+                    holder.tvMonthHeader.text = header.title
+                    holder.itemView.setOnClickListener(null)
+                    holder.itemView.setOnLongClickListener(null)
+                }
+                is PhotoViewHolder -> {
+                    val item = mediaItemAt(position)
+                    val view = holder.itemView
+                    loadGalleryImage(holder.ivThumbnail, item.path, Size(280, 280), thumbnailMaxSize = 280)
+                    bindPhotoSelection(holder, item)
+                    holder.cbSelected.setOnClickListener { toggleGallerySelection(item) }
+                    holder.btnMore.setOnClickListener { onMore(item, it) }
+                    view.setOnClickListener { onClick(item) }
+                    view.setOnLongClickListener {
+                        onLongClick(item)
+                        true
                     }
                 }
-                holder.btnFolderMore.setOnClickListener { onMore(item, it) }
-            }
-            view.setOnClickListener { onClick(item) }
-            view.setOnLongClickListener {
-                onLongClick(item)
-                true
+                is FolderViewHolder -> {
+                    val item = items[position]
+                    val view = holder.itemView
+                    holder.tvFolderName.text = item.name
+                    holder.folderIcon.visibility = View.VISIBLE
+                    holder.tvFolderCount.text = item.size.toString()
+                    holder.previews.forEachIndexed { index, imageView ->
+                        val uri = item.previewUris.getOrNull(index)
+                        if (uri != null) {
+                            imageView.visibility = View.VISIBLE
+                            loadGalleryImage(imageView, uri, Size(260, 260), thumbnailMaxSize = 260)
+                        } else {
+                            imageView.setTag(R.id.ivThumbnail, null)
+                            imageView.visibility = View.INVISIBLE
+                            imageView.setImageDrawable(null)
+                        }
+                    }
+                    holder.btnFolderMore.setOnClickListener { onMore(item, it) }
+                    view.setOnClickListener { onClick(item) }
+                    view.setOnLongClickListener {
+                        onLongClick(item)
+                        true
+                    }
+                }
             }
         }
 
-        override fun onViewRecycled(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder) {
-            super.onViewRecycled(holder)
-            when (holder) {
-                is PhotoViewHolder -> {
-                    holder.ivThumbnail.setTag(R.id.ivThumbnail, null)
-                    holder.ivThumbnail.setImageDrawable(null)
-                }
-                is FolderViewHolder -> holder.previews.forEach { imageView ->
-                    imageView.setTag(R.id.ivThumbnail, null)
-                    imageView.setImageDrawable(null)
-                }
+        override fun onBindViewHolder(
+            holder: androidx.recyclerview.widget.RecyclerView.ViewHolder,
+            position: Int,
+            payloads: MutableList<Any>
+        ) {
+            if (payloads.contains(GALLERY_SELECTION_PAYLOAD) && holder is PhotoViewHolder) {
+                mediaItemAtAdapterPosition(position)?.let { bindPhotoSelection(holder, it) }
+                return
             }
+            super.onBindViewHolder(holder, position, payloads)
+        }
+
+        override fun onViewRecycled(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder) {
+            // Les bitmaps déjà affichés restent attachés au ViewHolder recyclé. Le bind suivant
+            // remplace immédiatement l'image grâce au cache RAM ; vider ici provoquait précisément
+            // les cases noires visibles pendant un fling rapide.
+            super.onViewRecycled(holder)
         }
     }
 
     private fun refreshGalleryDefaultContent() {
-        showGalleryFolders()
+        restoreCurrentGalleryContent()
+    }
+
+    /** Restaure l'écran interne exact de Blaze Gallery après une destination plein écran
+     *  (notamment Réglages) : type photo/vidéo, dossier, corbeille, sélection et position. */
+    private fun restoreCurrentGalleryContent() {
+        when {
+            galleryTrashMode -> showGalleryTrash()
+            currentGalleryBucketId != null -> showGalleryPhotos(
+                currentGalleryBucketId.orEmpty(),
+                currentGalleryBucketName.orEmpty(),
+                restoreScroll = true,
+                preserveSelection = gallerySelectionMode
+            )
+            gallerySlideshowSelectionMode -> showGallerySlideshowAllPhotosSelection(preserveSelection = true)
+            else -> showGalleryFolders(restoreScroll = true)
+        }
+    }
+
+    private fun saveCurrentGalleryScrollPosition() {
+        val recycler = _binding?.listGallery ?: return
+        val layoutManager = recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager ?: return
+        val firstVisible = layoutManager.findFirstVisibleItemPosition()
+        if (firstVisible == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return
+        val firstView = layoutManager.findViewByPosition(firstVisible)
+        val offset = (firstView?.top ?: recycler.paddingTop) - recycler.paddingTop
+        if (currentGalleryBucketId != null || gallerySlideshowSelectionMode || galleryTrashMode) {
+            galleryMediaScrollPosition = firstVisible
+            galleryMediaScrollOffset = offset
+        } else {
+            galleryFoldersScrollPosition = firstVisible
+            galleryFoldersScrollOffset = offset
+        }
+    }
+
+    private fun restoreGalleryMediaScrollPosition(itemCount: Int) {
+        if (itemCount <= 0) return
+        val position = galleryMediaScrollPosition.coerceIn(0, itemCount - 1)
+        val offset = galleryMediaScrollOffset
+        val recycler = _binding?.listGallery ?: return
+        recycler.post {
+            val currentRecycler = _binding?.listGallery ?: return@post
+            val layoutManager = currentRecycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager ?: return@post
+            layoutManager.scrollToPositionWithOffset(position, offset)
+        }
+    }
+
+    /** Une fois le mode de sélection activé par appui long, un glissement horizontal permet de
+     *  cocher uniquement les tuiles réellement traversées. Un geste principalement vertical reste
+     *  entièrement géré par la RecyclerView afin de conserver un défilement normal et fluide. */
+    private fun setupGalleryDragSelection() {
+        val recycler = binding.listGallery
+        val touchSlop = android.view.ViewConfiguration.get(requireContext()).scaledTouchSlop
+        val directionRatio = 1.30f
+        val edgeSize = (48f * resources.displayMetrics.density).toInt()
+        val edgeScrollStep = (14f * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+
+        recycler.addOnItemTouchListener(object : androidx.recyclerview.widget.RecyclerView.SimpleOnItemTouchListener() {
+            private var downX = 0f
+            private var downY = 0f
+            private var lastX = 0f
+            private var lastY = 0f
+            private var startPosition = androidx.recyclerview.widget.RecyclerView.NO_POSITION
+            private var gestureMode = GalleryDragGesture.UNDECIDED
+            private val visitedPaths = linkedSetOf<String>()
+
+            private fun adapter(): GalleryAdapter? = recycler.adapter as? GalleryAdapter
+
+            private fun mediaPositionAt(x: Float, y: Float): Int {
+                val child = recycler.findChildViewUnder(x, y)
+                    ?: return androidx.recyclerview.widget.RecyclerView.NO_POSITION
+                val position = recycler.getChildAdapterPosition(child)
+                val galleryAdapter = adapter() ?: return androidx.recyclerview.widget.RecyclerView.NO_POSITION
+                return if (galleryAdapter.mediaItemAtAdapterPosition(position) != null) {
+                    position
+                } else {
+                    androidx.recyclerview.widget.RecyclerView.NO_POSITION
+                }
+            }
+
+            private fun selectPosition(position: Int): Boolean {
+                if (position == androidx.recyclerview.widget.RecyclerView.NO_POSITION) return false
+                val galleryAdapter = adapter() ?: return false
+                val item = galleryAdapter.mediaItemAtAdapterPosition(position) ?: return false
+                if (!visitedPaths.add(item.path)) return false
+                if (!selectedGalleryPhotos.add(item.path)) return false
+                galleryAdapter.notifyItemChanged(position, GALLERY_SELECTION_PAYLOAD)
+                return true
+            }
+
+            /** Échantillonne le segment réellement parcouru par le doigt. Cela évite d'utiliser
+             *  les positions d'adaptateur intermédiaires, qui sélectionnaient auparavant toute une
+             *  fin de rangée puis le début de la suivante lors d'un simple passage diagonal. */
+            private fun selectTilesAlongSegment(fromX: Float, fromY: Float, toX: Float, toY: Float) {
+                val dx = toX - fromX
+                val dy = toY - fromY
+                val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                val sampleStep = (24f * resources.displayMetrics.density).coerceAtLeast(1f)
+                val steps = kotlin.math.ceil(distance / sampleStep).toInt().coerceAtLeast(1)
+                var selectionChanged = false
+                for (step in 0..steps) {
+                    val ratio = step.toFloat() / steps.toFloat()
+                    selectionChanged = selectPosition(
+                        mediaPositionAt(fromX + dx * ratio, fromY + dy * ratio)
+                    ) || selectionChanged
+                }
+                if (selectionChanged) updateGallerySelectionToolbar()
+            }
+
+            private fun handleSelectionMove(event: android.view.MotionEvent) {
+                selectTilesAlongSegment(lastX, lastY, event.x, event.y)
+                lastX = event.x
+                lastY = event.y
+
+                val scrollY = when {
+                    event.y < edgeSize -> -edgeScrollStep
+                    event.y > recycler.height - edgeSize -> edgeScrollStep
+                    else -> 0
+                }
+                if (scrollY != 0) recycler.scrollBy(0, scrollY)
+            }
+
+            private fun resetGesture() {
+                gestureMode = GalleryDragGesture.UNDECIDED
+                startPosition = androidx.recyclerview.widget.RecyclerView.NO_POSITION
+                visitedPaths.clear()
+                recycler.parent?.requestDisallowInterceptTouchEvent(false)
+            }
+
+            override fun onInterceptTouchEvent(
+                rv: androidx.recyclerview.widget.RecyclerView,
+                event: android.view.MotionEvent
+            ): Boolean {
+                if (!gallerySelectionMode || galleryTrashMode) {
+                    resetGesture()
+                    return false
+                }
+
+                when (event.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        downX = event.x
+                        downY = event.y
+                        lastX = event.x
+                        lastY = event.y
+                        startPosition = mediaPositionAt(event.x, event.y)
+                        gestureMode = GalleryDragGesture.UNDECIDED
+                        visitedPaths.clear()
+                    }
+
+                    android.view.MotionEvent.ACTION_MOVE -> {
+                        if (gestureMode == GalleryDragGesture.SCROLLING ||
+                            startPosition == androidx.recyclerview.widget.RecyclerView.NO_POSITION
+                        ) return false
+
+                        if (gestureMode == GalleryDragGesture.UNDECIDED) {
+                            val dx = kotlin.math.abs(event.x - downX)
+                            val dy = kotlin.math.abs(event.y - downY)
+                            if (dx <= touchSlop && dy <= touchSlop) return false
+
+                            // Le scroll vertical garde toujours la priorité. Le mode balayage ne
+                            // démarre que lorsque l'intention horizontale est suffisamment claire.
+                            if (dy >= dx * directionRatio) {
+                                gestureMode = GalleryDragGesture.SCROLLING
+                                return false
+                            }
+                            if (dx < dy * directionRatio) return false
+
+                            gestureMode = GalleryDragGesture.SELECTING
+                            recycler.stopScroll()
+                            recycler.parent?.requestDisallowInterceptTouchEvent(true)
+                            handleSelectionMove(event)
+                            return true
+                        }
+                    }
+
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_CANCEL -> resetGesture()
+                }
+                return gestureMode == GalleryDragGesture.SELECTING
+            }
+
+            override fun onTouchEvent(
+                rv: androidx.recyclerview.widget.RecyclerView,
+                event: android.view.MotionEvent
+            ) {
+                if (gestureMode != GalleryDragGesture.SELECTING) return
+                when (event.actionMasked) {
+                    android.view.MotionEvent.ACTION_MOVE -> handleSelectionMove(event)
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_CANCEL -> resetGesture()
+                }
+            }
+        })
     }
 
     private fun showAudioTab() {
@@ -2358,21 +2818,67 @@ class HomeFragment : Fragment() {
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
         binding.scrollContent.visibility = android.view.View.GONE
         binding.audioContainer.visibility = android.view.View.VISIBLE
-        // Récupère le fragment existant par tag
-        val existing = childFragmentManager.findFragmentByTag("blaze_audio")
-        if (existing == null) {
-            audioPlayerFragment = fr.retrospare.blazeplayer.player.AudioPlayerFragment()
-            childFragmentManager.beginTransaction()
-                .add(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!, "blaze_audio")
-                .setMaxLifecycle(audioPlayerFragment!!, androidx.lifecycle.Lifecycle.State.RESUMED)
-                .commitAllowingStateLoss()
-        } else {
-            audioPlayerFragment = existing as? fr.retrospare.blazeplayer.player.AudioPlayerFragment
+
+        // Une transaction Fragment est asynchrone. Plusieurs appels rapprochés à showAudioTab()
+        // pouvaient donc tous voir le tag absent et empiler plusieurs AudioPlayerFragment dans le
+        // même conteneur. Chaque copie ouvrait ensuite son propre contrôleur et se disputait le
+        // listener FFT. La référence mémoire sert désormais de verrou dès la création.
+        val pendingOrAttached = audioPlayerFragment?.takeUnless { it.isRemoving }
+        if (pendingOrAttached != null) {
+            if (pendingOrAttached.isAdded) {
+                audioFragmentCreationPending = false
+                removeDuplicateAudioFragments(keep = pendingOrAttached)
+                childFragmentManager.beginTransaction()
+                    .setMaxLifecycle(pendingOrAttached, androidx.lifecycle.Lifecycle.State.RESUMED)
+                    .show(pendingOrAttached)
+                    .commitAllowingStateLoss()
+                return
+            }
+            // La transaction add/replace est déjà dans la file FragmentManager : ne jamais créer
+            // une deuxième instance pendant cette courte fenêtre.
+            if (audioFragmentCreationPending) return
+            audioPlayerFragment = null
+        }
+
+        val existingFragments = audioFragmentsInContainer()
+        val existing = existingFragments.lastOrNull { it.tag == AUDIO_FRAGMENT_TAG }
+            ?: existingFragments.lastOrNull()
+        if (existing != null) {
+            audioFragmentCreationPending = false
+            audioPlayerFragment = existing
+            removeDuplicateAudioFragments(keep = existing)
             childFragmentManager.beginTransaction()
                 .setMaxLifecycle(existing, androidx.lifecycle.Lifecycle.State.RESUMED)
                 .show(existing)
                 .commitAllowingStateLoss()
+            return
         }
+
+        val created = fr.retrospare.blazeplayer.player.AudioPlayerFragment()
+        audioPlayerFragment = created
+        audioFragmentCreationPending = true
+        childFragmentManager.beginTransaction()
+            // replace() garantit qu'un ancien fragment restauré sans tag ne reste pas empilé.
+            .replace(fr.retrospare.blazeplayer.R.id.audioContainer, created, AUDIO_FRAGMENT_TAG)
+            .setMaxLifecycle(created, androidx.lifecycle.Lifecycle.State.RESUMED)
+            .runOnCommit { audioFragmentCreationPending = false }
+            .commitAllowingStateLoss()
+    }
+
+    private fun audioFragmentsInContainer(): List<AudioPlayerFragment> =
+        childFragmentManager.fragments
+            .filterIsInstance<AudioPlayerFragment>()
+            .filter {
+                !it.isRemoving &&
+                    (it.id == fr.retrospare.blazeplayer.R.id.audioContainer || it.tag == AUDIO_FRAGMENT_TAG)
+            }
+
+    private fun removeDuplicateAudioFragments(keep: AudioPlayerFragment) {
+        val duplicates = audioFragmentsInContainer().filter { it !== keep }
+        if (duplicates.isEmpty()) return
+        childFragmentManager.beginTransaction().apply {
+            duplicates.forEach { remove(it) }
+        }.commitAllowingStateLoss()
     }
 
     fun switchToAudioTab() {
@@ -2430,14 +2936,18 @@ class HomeFragment : Fragment() {
         // Sans ce lookup, elle n'était jamais re-cachée/re-plafonnée, et son onResume() (qui appelle
         // setInAudioPlayer(true) sans vérifier s'il est caché) pouvait re-masquer le mini player
         // juste après, sans qu'aucun événement ne le corrige avant un clic manuel sur un onglet.
-        val frag = audioPlayerFragment
-            ?: (childFragmentManager.findFragmentByTag("blaze_audio") as? fr.retrospare.blazeplayer.player.AudioPlayerFragment)
-                ?.also { audioPlayerFragment = it }
-        frag?.let {
-            val tx = childFragmentManager.beginTransaction()
-                .setMaxLifecycle(it, androidx.lifecycle.Lifecycle.State.STARTED)
-            if (!it.isHidden) tx.hide(it)
-            tx.commitAllowingStateLoss()
+        val fragments = audioFragmentsInContainer()
+        val primary = audioPlayerFragment?.takeUnless { it.isRemoving }
+            ?: fragments.lastOrNull { it.tag == AUDIO_FRAGMENT_TAG }
+            ?: fragments.lastOrNull()
+        audioPlayerFragment = primary
+        if (fragments.isNotEmpty()) {
+            childFragmentManager.beginTransaction().apply {
+                fragments.forEach {
+                    setMaxLifecycle(it, androidx.lifecycle.Lifecycle.State.STARTED)
+                    if (!it.isHidden) hide(it)
+                }
+            }.commitAllowingStateLoss()
         }
     }
 
@@ -2459,10 +2969,17 @@ class HomeFragment : Fragment() {
         showAudioTab()
 
         val existing = audioPlayerFragment
-            ?: (childFragmentManager.findFragmentByTag("blaze_audio") as? AudioPlayerFragment)
+            ?: (childFragmentManager.findFragmentByTag(AUDIO_FRAGMENT_TAG) as? AudioPlayerFragment)
                 ?.also { audioPlayerFragment = it }
         if (existing != null && existing.isAdded && existing.context != null) {
             existing.addTrack(path, name)
+            return
+        } else if (existing != null && audioFragmentCreationPending && !existing.isRemoving) {
+            // Le fragment vient d'être demandé par showAudioTab() mais sa transaction n'est pas
+            // encore exécutée. Le morceau est remis au ViewModel partagé ; l'unique fragment le
+            // consommera dès que son MediaController sera prêt.
+            androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
+                .addToPlaylist(path, name)
             return
         } else if (existing != null) {
             // Protection anti-crash : après certains retours depuis un intent Android externe,
@@ -2470,6 +2987,7 @@ class HomeFragment : Fragment() {
             // alors qu'elle n'est plus attachée. Appeler addTrack() dessus déclenche
             // activityViewModels()/requireActivity(). On jette cette instance et on recrée un
             // lecteur propre avec le morceau en attente.
+            audioFragmentCreationPending = false
             audioPlayerFragment = null
             childFragmentManager.beginTransaction().remove(existing).commitAllowingStateLoss()
         }
@@ -2481,8 +2999,10 @@ class HomeFragment : Fragment() {
         androidx.lifecycle.ViewModelProvider(requireActivity())[fr.retrospare.blazeplayer.home.SharedAudioViewModel::class.java]
             .addToPlaylist(path, name)
         audioPlayerFragment = AudioPlayerFragment()
+        audioFragmentCreationPending = true
         childFragmentManager.beginTransaction()
-            .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!, "blaze_audio")
+            .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!, AUDIO_FRAGMENT_TAG)
+            .runOnCommit { audioFragmentCreationPending = false }
             .commitAllowingStateLoss()
     }
 
@@ -2591,8 +3111,10 @@ class HomeFragment : Fragment() {
 
         tabViews.forEachIndexed { i, tab ->
             val isActive = (i + 1) == selectedIndex
-            tab.background = ContextCompat.getDrawable(requireContext(),
-                if (isActive) R.drawable.bg_tab_active else R.drawable.bg_tab_inactive)
+            // Aucun indicateur en forme de pilule : l’onglet actif se distingue uniquement
+            // par la couleur Blaze de son icône et de son libellé.
+            tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_inactive)
+            tab.isSelected = isActive
             tabTexts[i].setTextColor(ContextCompat.getColor(requireContext(),
                 if (isActive) R.color.green_accent else R.color.on_surface_variant))
             tabIcons[i].setColorFilter(ContextCompat.getColor(requireContext(),
@@ -3339,23 +3861,38 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        if (_binding != null && currentTabIndex == 3) saveCurrentGalleryScrollPosition()
         videoHistoryTopResetJob?.cancel()
         videoHistoryTopResetJob = null
         videoHistoryRefreshJob?.cancel()
         videoHistoryRefreshJob = null
-        if (_binding != null) binding.listLocal.adapter = null
+        if (_binding != null) {
+            binding.listLocal.adapter = null
+            binding.listGallery.adapter = null
+        }
         historyAdapter = null
         _binding = null
         super.onDestroyView()
     }
 
     companion object {
+        private const val AUDIO_FRAGMENT_TAG = "blaze_audio"
+        private const val VIEW_TYPE_FOLDER = 0
+        private const val VIEW_TYPE_MEDIA = 1
+        private const val VIEW_TYPE_MONTH_HEADER = 2
+        private const val GALLERY_SELECTION_PAYLOAD = "gallery_selection"
         private const val PREFS_RUNTIME_PERMISSIONS = "blaze_runtime_permissions"
         private const val PREFS_HELP_MODALS = "blaze_help_modals"
         private const val KEY_NETWORK_HELP_SHOWN = "network_help_shown"
         private const val KEY_GALLERY_PERMISSIONS_PROMPTED = "gallery_permissions_prompted"
         private const val KEY_AUDIO_PERMISSIONS_PROMPTED = "audio_permissions_prompted"
         private const val KEY_NETWORK_PERMISSIONS_PROMPTED = "network_permissions_prompted"
+
+        // Snapshot processus de Blaze Gallery : les listes déjà indexées sont reposées
+        // immédiatement lors d'un retour d'écran, pendant que MediaStore vérifie les changements
+        // en arrière-plan. Les miniatures correspondantes sont conservées dans ThumbnailUtils.
+        private val galleryFolderSnapshots = ConcurrentHashMap<String, List<MediaItem>>()
+        private val galleryMediaSnapshots = ConcurrentHashMap<String, List<MediaItem>>()
     }
 
 }

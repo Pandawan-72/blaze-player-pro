@@ -12,27 +12,32 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.LruCache
 import android.text.InputType
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.LinearInterpolator
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.setPadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -58,22 +63,19 @@ import fr.retrospare.blazeplayer.ui.DialogButtonStyler
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 import javax.inject.Inject
 
 /**
  * Bibliothèque audio : écran fin, branché sur [AudioLibraryViewModel] (état + logique métier)
- * et [AudioLibraryRepository] (Room + scan). Cette Activity ne garde que ce qui est réellement
+ * et sur le snapshot mémoire de [AudioLibraryRepository]. Cette Activity ne garde que ce qui est
  * spécifique à l'écran : construction des vues (pixel perfect, inchangée), mini player, dialogues,
  * couleur dynamique de fond, et le binding paresseux des covers visibles.
  */
@@ -84,14 +86,10 @@ class AudioLibraryActivity : AppCompatActivity() {
 
     private val viewModel: AudioLibraryViewModel by viewModels()
 
-    // Un seul dispatcher restant côté Activity : le chargement paresseux des covers pour les
-    // lignes réellement visibles (bind-time), distinct de l'enrichissement en masse du ViewModel.
-    private val artworkDispatcher: CoroutineDispatcher = Executors.newFixedThreadPool(2) { runnable ->
-        Thread {
-            try { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DEFAULT) } catch (_: Exception) {}
-            runnable.run()
-        }.apply { name = "BlazeLibraryCover"; isDaemon = true; priority = Thread.NORM_PRIORITY }
-    }.asCoroutineDispatcher()
+    // Les covers visibles appartiennent à la bibliothèque, pas au cycle de lecture. Elles utilisent
+    // donc un pool dédié de priorité arrière-plan, distinct des pochettes du player/mini-player.
+    private val artworkDispatcher: CoroutineDispatcher =
+        AudioLibraryBackgroundDispatchers.visibleArtwork
 
     private lateinit var root: LinearLayout
     private lateinit var recyclerView: RecyclerView
@@ -106,6 +104,7 @@ class AudioLibraryActivity : AppCompatActivity() {
     private lateinit var manualScanButton: TextView
     private lateinit var albumViewModeContainer: LinearLayout
     private lateinit var tabContainer: LinearLayout
+    private lateinit var homeButton: ImageButton
     private lateinit var miniPlayer: LinearLayout
     private lateinit var miniArtwork: fr.retrospare.blazeplayer.ui.RoundedImageView
     private lateinit var miniTitle: TextView
@@ -114,12 +113,65 @@ class AudioLibraryActivity : AppCompatActivity() {
     private lateinit var miniPlayPause: ImageButton
     private lateinit var miniSpinner: ImageView
     private lateinit var albumStickyHeader: LinearLayout
+    private lateinit var libraryRootFrame: FrameLayout
+    private lateinit var libraryScreenContainer: LinearLayout
+    private lateinit var libraryHero: LinearLayout
+    private var artistFullBleedHero: FrameLayout? = null
+    private var artistHeroTopOverlayContent: View? = null
+    private var statusBarInsetTop: Int = 0
+    private var navigationBarInsetBottom: Int = 0
 
     private var knownWatchedFolders: Map<String, AudioProSettings.WatchedFolder> = emptyMap()
     /** Dernier état reçu du ViewModel — sert aux fonctions appelées hors du flux de rendu
      *  (ex. handleTopBack) qui ont besoin de savoir si un détail album est ouvert. */
     private var currentState: LibraryUiState = LibraryUiState()
     private var miniArtworkJob: Job? = null
+    private var artistImageJob: Job? = null
+    private var artistImageUpdatesJob: Job? = null
+    private var artistHeroImageView: ImageView? = null
+    private var artistHeroCreditView: TextView? = null
+    private var artistHeroBoundName: String = ""
+    private val artistBitmapCache = object : LruCache<String, android.graphics.Bitmap>(32 * 1024) {
+        override fun sizeOf(key: String, value: android.graphics.Bitmap): Int =
+            (value.byteCount / 1024).coerceAtLeast(1)
+    }
+    private var renderedDetailHeaderKey: String = ""
+    private var lastLibraryChromeKey: String = ""
+    private var albumHeroMetadataView: TextView? = null
+    private var albumStickyMetadataView: TextView? = null
+    private var currentArtistImage: ArtistImageRepository.ArtistImage? = null
+    private var pendingArtistPhotoSelection: LibraryArtist? = null
+    private val artistPhotoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val artist = pendingArtistPhotoSelection
+        pendingArtistPhotoSelection = null
+        if (uri == null || artist == null) return@registerForActivityResult
+        lifecycleScope.launch {
+            val updated = ArtistImageRepository.setManualImage(
+                this@AudioLibraryActivity,
+                artist.name,
+                uri
+            )
+            if (updated == null) {
+                Toast.makeText(
+                    this@AudioLibraryActivity,
+                    R.string.audio_artist_photo_update_failed,
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@launch
+            }
+            Toast.makeText(
+                this@AudioLibraryActivity,
+                R.string.audio_artist_photo_updated,
+                Toast.LENGTH_SHORT
+            ).show()
+            currentArtistImage = updated
+            if (::adapter.isInitialized) adapter.notifyArtistImageChanged(artist.name)
+            if (currentState.openedArtist?.name == artist.name) {
+                renderedDetailHeaderKey = ""
+                renderStickyDetailHeader(null, currentState.openedArtist)
+            }
+        }
+    }
     private var watchedFolderAutoRefreshJob: Job? = null
     private var automaticScanLoopJob: Job? = null
     private var librarySettingsReceiverRegistered = false
@@ -147,13 +199,13 @@ class AudioLibraryActivity : AppCompatActivity() {
     /** Media3 controllers must only be queried from their application thread. Le scan en arrière
      *  plan (Repository) lit ce volatile plutôt que controller.isPlaying directement. */
     @Volatile private var playbackCriticalSnapshot: Boolean = false
+
+    /** Clé canonique du morceau actuellement sélectionné par Media3. */
+    private var nowPlayingTrackKey: String = ""
+    /** L'égaliseur factice s'anime uniquement lorsque la lecture est réellement active. */
+    private var nowPlayingIsPlaying: Boolean = false
+
     private var miniTicker = Handler(Looper.getMainLooper())
-    private val miniTick = object : Runnable {
-        override fun run() {
-            updateMiniTime()
-            miniTicker.postDelayed(this, 1000L)
-        }
-    }
     private var miniSpinAnimator: ObjectAnimator? = null
 
     private val textMain: Int by lazy { ContextCompat.getColor(this, R.color.on_background) }
@@ -186,30 +238,37 @@ class AudioLibraryActivity : AppCompatActivity() {
         private const val VIEW_TYPE_ALBUM_TILE = 8
         private const val VIEW_TYPE_ALBUM_TRACK = 9
 
+        /** Trois grandes tuiles par ligne pour les albums et les artistes. */
+        private const val LIBRARY_GRID_SPAN_COUNT = 3
+
+        private const val PAYLOAD_ARTIST_IMAGE = "artist_image"
+        private const val PAYLOAD_ALBUM_METADATA = "album_metadata"
+        private const val PAYLOAD_ARTIST_METADATA = "artist_metadata"
+        private const val PAYLOAD_TRACK_METADATA = "track_metadata"
+        private const val PAYLOAD_TRACK_ARTWORK = "track_artwork"
+        private const val PAYLOAD_NOW_PLAYING = "now_playing"
+
         /**
-         * Appelé depuis l'écran player avant d'ouvrir la bibliothèque. Ne fait plus que
-         * pré-chauffer la connexion Room (page cache SQLite) : l'ancien cache mémoire
-         * inter-instances a été retiré, l'index composite Room rend désormais la lecture
-         * assez rapide pour ne plus en avoir besoin.
+         * Point d'entrée historique conservé pour AudioPlayerFragment. Le repository est déjà
+         * démarré depuis Application.onCreate() ; cet appel idempotent évite surtout qu'une ancienne
+         * implémentation relance une seconde lecture Room si l'utilisateur ouvre Blaze Audio très vite.
          */
         fun warmUpForFastOpen(context: Context) {
-            val appContext = context.applicationContext
-            Thread {
-                runCatching { runBlocking { AudioLibraryRoomStore.loadActive(appContext, 1) } }
-            }.apply {
-                name = "BlazeLibraryWarmup"
-                isDaemon = true
-                priority = Thread.MIN_PRIORITY
-                start()
+            runCatching {
+                (context.applicationContext as? fr.retrospare.blazeplayer.BlazePlayerApp)
+                    ?.audioLibraryRepository
+                    ?.get()
+                    ?.start()
             }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // La bibliothèque est entièrement reconstruite depuis Room. On ignore le
+        // La bibliothèque est fournie par le snapshot mémoire partagé. On ignore le
         // savedInstanceState Android pour éviter qu'un ancien état de vue soit restauré après
         // suppression/vidage de cache.
         super.onCreate(null)
+        fr.retrospare.blazeplayer.BlazeStartupWarmup.requestAudioPriority(this)
         if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
                 this,
                 userRepository,
@@ -230,6 +289,16 @@ class AudioLibraryActivity : AppCompatActivity() {
         adapter = LibraryAdapter()
         recyclerView.adapter = adapter
         setupActions()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (currentState.openedAlbum != null || currentState.openedArtist != null) {
+                    handleTopBack()
+                } else {
+                    finish()
+                }
+            }
+        })
+        observeArtistImageUpdates()
         updateWatchedSummary()
         val settingsFilter = IntentFilter(AudioProSettings.ACTION_LIBRARY_SETTINGS_CHANGED)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -251,7 +320,7 @@ class AudioLibraryActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        refreshMiniPlayer()
+        refreshPlaybackCriticalSnapshot(controller)
         handleLibrarySettingChanges(AudioProSettings.consumePendingLibrarySettingChanges(this))
         synchronizeWatchedFoldersAndRefreshIfNeeded()
         startAutomaticScanLoop()
@@ -266,6 +335,9 @@ class AudioLibraryActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         miniArtworkJob?.cancel()
+        artistImageJob?.cancel()
+        artistImageUpdatesJob?.cancel()
+        clearFullBleedArtistHero()
         watchedFolderAutoRefreshJob?.cancel()
         automaticScanLoopJob?.cancel()
         if (librarySettingsReceiverRegistered) {
@@ -276,6 +348,24 @@ class AudioLibraryActivity : AppCompatActivity() {
         stopMiniSpin(keepVisible = false)
         controllerFuture?.let { MediaController.releaseFuture(it) }
         super.onDestroy()
+    }
+
+    private fun observeArtistImageUpdates() {
+        artistImageUpdatesJob?.cancel()
+        artistImageUpdatesJob = lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ArtistImageRepository.imageUpdates.collect { artistName ->
+                    if (::adapter.isInitialized) adapter.notifyArtistImageChanged(artistName)
+                    val opened = currentState.openedArtist
+                    if (opened != null && currentState.openedAlbum == null &&
+                        AudioLibraryHeuristics.normalize(opened.name) ==
+                        AudioLibraryHeuristics.normalize(artistName)
+                    ) {
+                        loadArtistHeroImage(opened)
+                    }
+                }
+            }
+        }
     }
 
     private fun observeViewModel() {
@@ -305,8 +395,27 @@ class AudioLibraryActivity : AppCompatActivity() {
             tvAlbumCount.text = resources.getQuantityString(R.plurals.audio_album_count_compact, state.albumCount, state.albumCount)
             tvArtistCount.text = resources.getQuantityString(R.plurals.audio_artist_count_compact, state.artistCount, state.artistCount)
         }
-        updateSectionVisibility(state)
-        val rows = if (state.isInitialLoad) listOf(LibraryRow.Status(getString(R.string.audio_loading_in_progress))) else state.rows
+        val chromeKey = buildString {
+            append(state.tab.name)
+            append('|').append(state.openedAlbum?.key.orEmpty())
+            append('|').append(state.openedAlbum?.artworkPath.orEmpty())
+            append('|').append(state.openedAlbum?.title.orEmpty())
+            append('|').append(state.openedAlbum?.artist.orEmpty())
+            append('|').append(state.openedArtist?.name.orEmpty())
+            append('|').append(state.artistDetailTab.name)
+            append('|').append(state.isInitialLoad)
+        }
+        val chromeChanged = chromeKey != lastLibraryChromeKey
+        if (chromeChanged) {
+            lastLibraryChromeKey = chromeKey
+            updateSectionVisibility(state)
+        } else {
+            updateVisibleAlbumMetadata(state.openedAlbum)
+        }
+        // Ne jamais remplacer la grille par une ligne « Chargement ». Le snapshot binaire ou la
+        // projection Room légère arrive en arrière-plan ; conserver une surface stable évite le
+        // flash de dix secondes observé sur les grosses bibliothèques.
+        val rows = if (state.isInitialLoad) emptyList() else state.rows
 
         // ListAdapter applique son diff de manière asynchrone. Le LayoutManager doit être changé
         // uniquement une fois la nouvelle liste réellement active : sinon le GridLayoutManager
@@ -314,64 +423,146 @@ class AudioLibraryActivity : AppCompatActivity() {
         // puis conserver cette géométrie incohérente jusqu'au premier scroll.
         adapter.submitList(rows) {
             if (renderGeneration != libraryRenderGeneration || isFinishing || isDestroyed) return@submitList
-            configureListLayoutForCurrentView(state)
+            if (chromeChanged) configureListLayoutForCurrentView(state)
             restoreAlbumGridAnchorIfNeeded(state, renderGeneration)
         }
     }
 
     private fun updateSectionVisibility(state: LibraryUiState) {
         val detailAlbum = state.openedAlbum
-        val isHome = state.tab == LibraryTab.ALBUMS && detailAlbum == null
-        renderStickyAlbumHeader(detailAlbum)
+        val detailArtist = state.openedArtist
+        val isHome = detailAlbum == null && detailArtist == null
+        homeButton.visibility = if (isHome) View.GONE else View.VISIBLE
+        renderStickyDetailHeader(detailAlbum, detailArtist)
+        renderLibraryTabs(state)
 
-        tvLibraryTitle.text = getString(R.string.audio_library_title)
-        tvSubtitle.text = getString(R.string.audio_library_subtitle)
-        tvSubtitle.visibility = View.VISIBLE
+        when {
+            detailArtist != null && detailAlbum == null -> {
+                tvLibraryTitle.text = getString(R.string.audio_artist_page_title)
+                tvSubtitle.text = artistSummaryText(detailArtist)
+                tvSubtitle.visibility = View.VISIBLE
+            }
+            detailAlbum != null -> {
+                tvLibraryTitle.text = getString(R.string.audio_album_page_title)
+                tvSubtitle.text = detailAlbum.artist
+                tvSubtitle.visibility = if (detailAlbum.artist.isBlank()) View.GONE else View.VISIBLE
+            }
+            else -> {
+                tvLibraryTitle.text = getString(R.string.audio_library_title)
+                tvSubtitle.text = getString(R.string.audio_library_subtitle)
+                tvSubtitle.visibility = View.VISIBLE
+            }
+        }
+        applyLibraryWindowInsets()
 
-        // L'accueil est désormais une grille d'albums unique. Les anciens filtres
-        // Titres / Albums / Artistes sont volontairement retirés.
-        tabContainer.visibility = View.GONE
-
-        // Dossiers surveillés et statistiques : uniquement sur l'accueil albums.
+        // Dossiers surveillés et statistiques : uniquement sur les vues principales Albums/Artistes.
         val homeOnlyVisibility = if (isHome) View.VISIBLE else View.GONE
-        listOf(R.id.watchedSummaryCard, R.id.libraryStats).forEach { id -> findViewById<View>(id)?.visibility = homeOnlyVisibility }
+        listOf(R.id.watchedSummaryCard, R.id.libraryStats).forEach { id ->
+            findViewById<View>(id)?.visibility = homeOnlyVisibility
+        }
         findViewById<View>(R.id.dividerLibraryStats)?.visibility = View.GONE
 
-        listOf(R.id.resumeSectionHeader, R.id.resumeScroll, R.id.dividerLibraryResume).forEach { id -> findViewById<View>(id)?.visibility = View.GONE }
+        listOf(R.id.resumeSectionHeader, R.id.resumeScroll, R.id.dividerLibraryResume).forEach { id ->
+            findViewById<View>(id)?.visibility = View.GONE
+        }
 
         findViewById<View>(R.id.dividerLibraryAlbums)?.visibility = View.GONE
         findViewById<View>(R.id.albumsSectionHeader)?.visibility = if (isHome) View.VISIBLE else View.GONE
         findViewById<View>(R.id.albumsScroll)?.visibility = View.GONE
-        findViewById<TextView>(R.id.tvAlbumsTitle)?.text = getString(R.string.audio_recent_albums)
+        findViewById<TextView>(R.id.tvAlbumsTitle)?.text = when (state.tab) {
+            LibraryTab.ARTISTS -> getString(R.string.audio_my_artists)
+            else -> getString(R.string.audio_recent_albums)
+        }
         albumViewModeContainer.visibility = View.GONE
 
         findViewById<View>(R.id.dividerLibraryTracks)?.visibility = View.GONE
         findViewById<View>(R.id.tracksContainer)?.visibility = View.VISIBLE
         findViewById<View>(R.id.tracksSectionHeader)?.visibility = View.GONE
-        findViewById<TextView>(R.id.tvTracksTitle)?.apply {
-            visibility = if (detailAlbum != null || isHome) View.INVISIBLE else View.VISIBLE
-            text = when (state.tab) {
-                LibraryTab.ARTISTS -> getString(R.string.audio_tab_artists)
-                LibraryTab.TITLES -> getString(R.string.audio_tab_titles)
-                LibraryTab.PLAYLISTS -> getString(R.string.audio_tab_playlists)
-                else -> ""
+        findViewById<TextView>(R.id.tvTracksTitle)?.visibility = View.GONE
+        sortButton.visibility = View.GONE
+    }
+
+    private fun renderLibraryTabs(state: LibraryUiState) {
+        if (state.openedAlbum != null) {
+            tabContainer.visibility = View.GONE
+            return
+        }
+        tabContainer.removeAllViews()
+        tabContainer.visibility = View.VISIBLE
+
+        if (state.openedArtist != null) {
+            addLibraryTab(
+                label = getString(R.string.audio_tab_albums),
+                selected = state.artistDetailTab == ArtistDetailTab.ALBUMS
+            ) { viewModel.setArtistDetailTab(ArtistDetailTab.ALBUMS) }
+            addLibraryTab(
+                label = getString(R.string.audio_tab_titles),
+                selected = state.artistDetailTab == ArtistDetailTab.TITLES
+            ) { viewModel.setArtistDetailTab(ArtistDetailTab.TITLES) }
+        } else {
+            addLibraryTab(
+                label = getString(R.string.audio_tab_albums),
+                selected = state.tab == LibraryTab.ALBUMS
+            ) {
+                viewModel.setSearchQuery("")
+                viewModel.setTab(LibraryTab.ALBUMS)
+            }
+            addLibraryTab(
+                label = getString(R.string.audio_tab_artists),
+                selected = state.tab == LibraryTab.ARTISTS
+            ) {
+                viewModel.setSearchQuery("")
+                viewModel.setTab(LibraryTab.ARTISTS)
             }
         }
-        sortButton.visibility = View.GONE
+    }
+
+    private fun addLibraryTab(label: String, selected: Boolean, onClick: () -> Unit) {
+        tabContainer.addView(TextView(this).apply {
+            text = label
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            textSize = 13f
+            setTextColor(if (selected) textMain else textMuted)
+            background = ContextCompat.getDrawable(
+                this@AudioLibraryActivity,
+                if (selected) R.drawable.bg_tab_active else R.drawable.bg_tab_inactive
+            )
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
     }
 
     private fun configureListLayoutForCurrentView(state: LibraryUiState) {
         val isAlbumDetail = state.openedAlbum != null
-        val shouldUseGrid = state.tab == LibraryTab.ALBUMS && !isAlbumDetail
-        val spanCount = 4
+        val isArtistAlbumGrid = state.openedArtist != null &&
+            state.artistDetailTab == ArtistDetailTab.ALBUMS && !isAlbumDetail
+        val isLibraryAlbumGrid = state.openedArtist == null &&
+            state.tab == LibraryTab.ALBUMS && !isAlbumDetail
+        val isLibraryArtistGrid = state.openedArtist == null &&
+            state.tab == LibraryTab.ARTISTS && !isAlbumDetail
+        val shouldUseGrid = isArtistAlbumGrid || isLibraryAlbumGrid || isLibraryArtistGrid
+        val spanCount = LIBRARY_GRID_SPAN_COUNT
         val current = recyclerView.layoutManager
         if (shouldUseGrid) {
             val currentGrid = current as? GridLayoutManager
             if (currentGrid == null || currentGrid.spanCount != spanCount) {
-                recyclerView.layoutManager = GridLayoutManager(this, spanCount).apply {
+                recyclerView.layoutManager = GridLayoutManager(
+                    this,
+                    spanCount,
+                    RecyclerView.VERTICAL,
+                    false
+                ).apply {
+                    // Ne pas restaurer une géométrie de l'ancienne grille 4 colonnes.
+                    recycleChildrenOnDetach = true
+                    initialPrefetchItemCount = spanCount * 4
                     spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-                        override fun getSpanSize(position: Int): Int =
-                            if (adapter.getItemViewType(position) == VIEW_TYPE_ALBUM_TILE) 1 else spanCount
+                        override fun getSpanSize(position: Int): Int = when (adapter.getItemViewType(position)) {
+                            VIEW_TYPE_ALBUM_TILE, VIEW_TYPE_ARTIST -> 1
+                            else -> spanCount
+                        }
                     }
                 }
             }
@@ -379,7 +570,12 @@ class AudioLibraryActivity : AppCompatActivity() {
             recyclerView.layoutManager = LinearLayoutManager(this)
         }
         recyclerView.clipToPadding = false
-        recyclerView.setPadding(0, if (isAlbumDetail) dp(2) else if (shouldUseGrid) dp(8) else 0, 0, if (shouldUseGrid) dp(28) else dp(24))
+        recyclerView.setPadding(
+            0,
+            if (isAlbumDetail) dp(2) else if (shouldUseGrid) dp(8) else 0,
+            0,
+            if (shouldUseGrid) dp(28) else dp(24)
+        )
         recyclerView.invalidateItemDecorations()
         recyclerView.requestLayout()
     }
@@ -389,9 +585,23 @@ class AudioLibraryActivity : AppCompatActivity() {
     // -----------------------------------------------------------------
 
     private fun buildUi() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = bg
         window.navigationBarColor = bg
         setContentView(R.layout.activity_blaze_audio_library)
+
+        libraryRootFrame = findViewById(R.id.libraryRoot)
+        libraryScreenContainer = findViewById(R.id.libraryScreenContainer)
+        libraryHero = findViewById(R.id.libraryHero)
+        libraryRootFrame.clipChildren = false
+        libraryRootFrame.clipToPadding = false
+        ViewCompat.setOnApplyWindowInsetsListener(libraryRootFrame) { _, insets ->
+            statusBarInsetTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            navigationBarInsetBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            applyLibraryWindowInsets()
+            insets
+        }
+        ViewCompat.requestApplyInsets(libraryRootFrame)
         applyFullscreenLibraryBackground(bg)
 
         root = findViewById(R.id.libraryGlobalCard)
@@ -407,6 +617,7 @@ class AudioLibraryActivity : AppCompatActivity() {
         albumViewModeContainer = findViewById(R.id.albumViewModeContainer)
         albumViewModeContainer.visibility = View.GONE
         tabContainer = findViewById(R.id.tabContainer)
+        homeButton = findViewById(R.id.btnLibraryHome)
         miniPlayer = findViewById(R.id.libraryMiniPlayer)
         miniArtwork = findViewById(R.id.ivLibraryMiniArtwork)
         miniTitle = findViewById(R.id.tvLibraryMiniTitle)
@@ -415,21 +626,21 @@ class AudioLibraryActivity : AppCompatActivity() {
         miniPlayPause = findViewById(R.id.btnLibraryMiniPlayPause)
         miniSpinner = findViewById(R.id.libraryMiniPlayingIndicator)
         albumStickyHeader = findViewById(R.id.albumStickyHeader)
-        renderEmptyMiniPlayer()
+        miniPlayer.visibility = View.GONE
         applyAccentToStaticChrome()
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { handleTopBack() }
         findViewById<ImageButton>(R.id.btnSearch).setOnClickListener { showSearchDialog() }
+        homeButton.setOnClickListener { openFullAudioPlayer() }
         findViewById<ImageButton>(R.id.btnSettings).setOnClickListener {
             startActivity(Intent(this, AudioProSettingsActivity::class.java))
         }
         findViewById<TextView>(R.id.btnManageWatched).setOnClickListener { openWatchedFoldersBrowser() }
-        miniPlayer.setOnClickListener { openFullAudioPlayer() }
-        findViewById<ImageButton>(R.id.btnLibraryMiniPrev).setOnClickListener { controller?.seekToPreviousMediaItem() }
-        miniPlayPause.setOnClickListener { controller?.let { if (it.isPlaying) it.pause() else it.play() } }
-        findViewById<ImageButton>(R.id.btnLibraryMiniNext).setOnClickListener { controller?.seekToNextMediaItem() }
+        // Le mini-player a été retiré de la bibliothèque. Le contrôleur Media3 reste connecté
+        // uniquement pour savoir si une lecture est critique pendant un scan en arrière-plan.
 
-        // Pas de barre de filtres : la bibliothèque s'ouvre directement sur la grille albums.
+        // La barre est alimentée au rendu : Albums/Artistes sur la bibliothèque, puis
+        // Albums/Titres à l’intérieur de la page artiste.
         tabContainer.removeAllViews()
         tabContainer.visibility = View.GONE
         installStickyHero()
@@ -445,6 +656,11 @@ class AudioLibraryActivity : AppCompatActivity() {
             clipToPadding = false
             setPadding(0, 0, 0, dp(24))
             overScrollMode = View.OVER_SCROLL_NEVER
+            // Conserve plusieurs rangées de tuiles déjà liées pendant un fling. Les pochettes
+            // visibles ne sont ainsi pas immédiatement recyclées/remplacées par le placeholder.
+            setItemViewCacheSize(64)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_ALBUM_TILE, 80)
+            recycledViewPool.setMaxRecycledViews(VIEW_TYPE_ARTIST, 48)
         }
         // tracksContainer est le seul élément scrollable de l'écran (layout_height=0dp,
         // layout_weight=1 dans le XML) : le RecyclerView remplit tout l'espace disponible, sans
@@ -466,35 +682,50 @@ class AudioLibraryActivity : AppCompatActivity() {
             runCatching {
                 controller = future.get()
                 refreshPlaybackCriticalSnapshot(controller)
+                refreshLibraryNowPlaying(controller)
                 controller?.addListener(object : Player.Listener {
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
                         playbackCriticalSnapshot = isPlaying
-                        refreshMiniPlayer()
+                        refreshLibraryNowPlaying(controller)
                     }
-                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                        refreshPlaybackCriticalSnapshot(controller)
-                        refreshMiniPlayer()
-                    }
+
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         refreshPlaybackCriticalSnapshot(controller)
-                        refreshMiniPlayer()
+                        refreshLibraryNowPlaying(controller)
                     }
+
+                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                        refreshPlaybackCriticalSnapshot(controller)
+                        refreshLibraryNowPlaying(controller)
+                    }
+
                     override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                        // Même stratégie que le mini-player global : rafraîchir la vue uniquement
-                        // quand les métadonnées utiles changent, pas à chaque événement Media3.
-                        refreshMiniPlayer()
+                        refreshPlaybackCriticalSnapshot(controller)
+                        refreshLibraryNowPlaying(controller)
                     }
                 })
-                refreshMiniPlayer()
-                miniTicker.post(miniTick)
-            }.onFailure { renderEmptyMiniPlayer() }
+                miniPlayer.visibility = View.GONE
+            }.onFailure {
+                playbackCriticalSnapshot = false
+                miniPlayer.visibility = View.GONE
+            }
         }, ContextCompat.getMainExecutor(this))
     }
 
     private fun manualRefresh() {
         val started = viewModel.refresh(manual = true, isPlaybackCritical = ::isPlaybackCritical)
-        if (!started) return
-        AudioProSettings.consumeLibraryRefreshPending(this)
+        if (!started) {
+            // Un scan est déjà actif : conserver une demande conflated pour refaire une passe avec
+            // les dossiers cochés après la fin du scan courant.
+            (applicationContext as? fr.retrospare.blazeplayer.BlazePlayerApp)
+                ?.audioLibraryRepository
+                ?.get()
+                ?.apply {
+                    setInteractiveLoading(true)
+                    requestWatchedFoldersRefresh()
+                }
+            return
+        }
         AudioProSettings.markAutomaticScanStarted(this)
         Toast.makeText(this, getString(R.string.audio_library_refresh_started), Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
@@ -508,9 +739,108 @@ class AudioLibraryActivity : AppCompatActivity() {
     private fun refreshPlaybackCriticalSnapshot(player: Player?) {
         if (Looper.myLooper() != Looper.getMainLooper()) return
         playbackCriticalSnapshot = runCatching { player?.isPlaying == true }.getOrDefault(playbackCriticalSnapshot)
+
+        // La bibliothèque audio suit elle aussi la cover réellement associée au titre courant.
+        // Le chemin explicite couvre cover.jpg/png et albumArtURI ; artworkData est le repli direct
+        // pour une pochette embarquée déjà fournie par Media3.
+        val item = player?.currentMediaItem
+        val path = mediaPathOf(item)
+        if (path.isNotBlank() && ::miniArtwork.isInitialized) {
+            bindMiniArtwork(
+                path = path,
+                preferredArtworkPath = item?.mediaMetadata?.extras
+                    ?.getString(AudioRepository.EXTRA_ARTWORK_PATH)
+                    .orEmpty(),
+                fallbackArtworkData = item?.mediaMetadata?.artworkData
+            )
+        }
     }
 
     private fun isPlaybackCritical(): Boolean = playbackCriticalSnapshot
+
+    private fun mediaPathOf(item: MediaItem?): String {
+        if (item == null) return ""
+        return originalPathOf(item)
+            ?.takeIf { it.isNotBlank() }
+            ?: item.mediaId.takeIf { it.isNotBlank() }
+            ?: item.localConfiguration?.uri?.toString().orEmpty()
+    }
+
+    private fun trackPlaybackKey(path: String): String =
+        AudioLibraryHeuristics.canonicalPathKey(path)
+
+    private fun isTrackCurrent(track: LibraryTrack): Boolean =
+        nowPlayingTrackKey.isNotBlank() &&
+            trackPlaybackKey(track.path) == nowPlayingTrackKey
+
+    private fun isTrackCurrentlyPlaying(track: LibraryTrack): Boolean =
+        nowPlayingIsPlaying && isTrackCurrent(track)
+
+    /**
+     * Le bouton placé dans une ligne contrôle le morceau courant sans reconstruire la file.
+     * Pour une autre piste, il conserve le comportement habituel et démarre ce titre.
+     */
+    private fun toggleTrackPlayback(track: LibraryTrack) {
+        val mediaController = controller
+        if (mediaController != null && isTrackCurrent(track)) {
+            val shouldPlay = !mediaController.isPlaying
+            if (shouldPlay) {
+                if (mediaController.playbackState == Player.STATE_ENDED) {
+                    mediaController.seekToDefaultPosition()
+                }
+                mediaController.play()
+            } else {
+                mediaController.pause()
+            }
+            val previousKey = nowPlayingTrackKey
+            nowPlayingIsPlaying = shouldPlay
+            adapter.notifyNowPlayingChanged(previousKey, nowPlayingTrackKey)
+            return
+        }
+        playFrom(track)
+    }
+
+    /**
+     * Met à jour uniquement l'ancienne et la nouvelle ligne concernées. La liste entière n'est
+     * jamais reconstruite lors d'un play/pause ou d'un passage au morceau suivant.
+     */
+    private fun refreshLibraryNowPlaying(player: Player?) {
+        if (Looper.myLooper() != Looper.getMainLooper()) return
+
+        val previousKey = nowPlayingTrackKey
+        val previousPlaying = nowPlayingIsPlaying
+
+        val currentPath = mediaPathOf(player?.currentMediaItem)
+        nowPlayingTrackKey = currentPath
+            .takeIf { it.isNotBlank() }
+            ?.let(::trackPlaybackKey)
+            .orEmpty()
+        nowPlayingIsPlaying = runCatching {
+            player?.isPlaying == true && player.playbackState != Player.STATE_IDLE
+        }.getOrDefault(false)
+
+        if (
+            previousKey != nowPlayingTrackKey ||
+            previousPlaying != nowPlayingIsPlaying
+        ) {
+            if (::adapter.isInitialized) {
+                adapter.notifyNowPlayingChanged(previousKey, nowPlayingTrackKey)
+            }
+        }
+    }
+
+    /**
+     * Rend l'indicateur visible sans attendre le retour asynchrone du service après le clic.
+     * Le contrôleur Media3 reprend ensuite la main et corrige l'état si nécessaire.
+     */
+    private fun markTrackAsStarting(track: LibraryTrack) {
+        val previousKey = nowPlayingTrackKey
+        nowPlayingTrackKey = trackPlaybackKey(track.path)
+        nowPlayingIsPlaying = true
+        if (::adapter.isInitialized) {
+            adapter.notifyNowPlayingChanged(previousKey, nowPlayingTrackKey)
+        }
+    }
 
     // -----------------------------------------------------------------
     // Navigation : tabs, recherche, détail album.
@@ -518,16 +848,28 @@ class AudioLibraryActivity : AppCompatActivity() {
 
     private fun handleTopBack() {
         when {
-            currentState.openedAlbum != null -> returnToLibraryHome()
+            currentState.openedAlbum != null -> closeAlbumAndRestorePreviousPage()
+            currentState.openedArtist != null -> {
+                renderedDetailHeaderKey = ""
+                artistImageJob?.cancel()
+                viewModel.closeArtistDetail()
+            }
             else -> finish()
         }
     }
 
     private fun returnToLibraryHome() {
+        restoreAlbumGridAfterCommit = false
+        albumGridAnchorStableId = null
+        artistImageJob?.cancel()
+        currentArtistImage = null
+        viewModel.returnToLibraryHome()
+    }
+
+    private fun closeAlbumAndRestorePreviousPage() {
         restoreAlbumGridAfterCommit = albumGridAnchorStableId != null
+        renderedDetailHeaderKey = ""
         viewModel.closeAlbumDetail()
-        viewModel.setTab(LibraryTab.ALBUMS)
-        getSharedPreferences(PREFS_UI, MODE_PRIVATE).edit().putString(KEY_TAB, LibraryTab.ALBUMS.name).apply()
     }
 
     private fun saveAlbumGridAnchor() {
@@ -542,7 +884,10 @@ class AudioLibraryActivity : AppCompatActivity() {
     }
 
     private fun restoreAlbumGridAnchorIfNeeded(state: LibraryUiState, renderGeneration: Long) {
-        val isAlbumGrid = state.tab == LibraryTab.ALBUMS && state.openedAlbum == null
+        val isAlbumGrid = state.openedAlbum == null && (
+            (state.openedArtist != null && state.artistDetailTab == ArtistDetailTab.ALBUMS) ||
+                (state.openedArtist == null && state.tab == LibraryTab.ALBUMS)
+            )
         if (!isAlbumGrid || !restoreAlbumGridAfterCommit) {
             recyclerView.requestLayout()
             return
@@ -576,12 +921,9 @@ class AudioLibraryActivity : AppCompatActivity() {
         viewModel.openAlbumDetail(album)
     }
 
-    private fun closeAlbumDetailView() = returnToLibraryHome()
-
     private fun openArtist(artist: LibraryArtist) {
-        // Un artiste ouvre désormais la grille d'albums filtrée, jamais l'ancienne vue Titres.
-        viewModel.setSearchQuery(artist.name)
-        viewModel.setTab(LibraryTab.ALBUMS)
+        renderedDetailHeaderKey = ""
+        viewModel.openArtistDetail(artist)
     }
 
     private fun showSearchDialog() {
@@ -640,7 +982,7 @@ class AudioLibraryActivity : AppCompatActivity() {
         // L'ajout d'un dossier déclenche toujours son indexage initial. Le réglage
         // « Scanner automatiquement » ne doit désactiver que les rescans périodiques, sinon une
         // bibliothèque nouvellement ajoutée reste vide jusqu'à un clic manuel sur Actualiser.
-        val pendingRefresh = AudioProSettings.consumeLibraryRefreshPending(this)
+        val pendingRefresh = AudioProSettings.isLibraryRefreshPending(this)
         knownWatchedFolders = current
 
         if (removed.isNotEmpty()) {
@@ -648,8 +990,14 @@ class AudioLibraryActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.audio_watched_folder_removed), Toast.LENGTH_SHORT).show()
         }
         if (removed.isNotEmpty() || added.isNotEmpty() || pendingRefresh) updateWatchedSummary()
-        if ((added.isNotEmpty() || pendingRefresh) && current.isNotEmpty()) {
-            requestAutomaticLibraryRefresh(force = true)
+        // L'ajout marque toujours le refresh comme pending avant d'émettre la notification.
+        // Si le repository a déjà terminé le scan pendant que cet écran était en pause, le drapeau
+        // est déjà effacé et on évite ainsi de relancer inutilement toute la bibliothèque au retour.
+        if (pendingRefresh && current.isNotEmpty()) {
+            (applicationContext as? fr.retrospare.blazeplayer.BlazePlayerApp)
+                ?.audioLibraryRepository
+                ?.get()
+                ?.requestWatchedFoldersRefresh()
         }
     }
 
@@ -680,7 +1028,6 @@ class AudioLibraryActivity : AppCompatActivity() {
 
     private fun requestAutomaticLibraryRefresh(force: Boolean) {
         if (!AudioProSettings.isAutomaticScanDue(this, force)) return
-        if (force) AudioProSettings.consumeLibraryRefreshPending(this)
         if (watchedFolderAutoRefreshJob?.isActive == true) return
         watchedFolderAutoRefreshJob = lifecycleScope.launch {
             var started = false
@@ -697,9 +1044,9 @@ class AudioLibraryActivity : AppCompatActivity() {
     // -----------------------------------------------------------------
 
     private fun playFrom(track: LibraryTrack) {
+        markTrackAsStarting(track)
         appendSingleTrackToAudioQueueAndPlay(track)
         // Lecture immédiate sans navigation forcée : l'utilisateur reste dans la bibliothèque.
-        miniPlayer.postDelayed({ refreshMiniPlayer() }, 250L)
     }
 
     private fun playAlbumNow(tracks: List<LibraryTrack>) {
@@ -717,15 +1064,6 @@ class AudioLibraryActivity : AppCompatActivity() {
             })
         }
         Toast.makeText(this, getString(R.string.audio_play_album), Toast.LENGTH_SHORT).show()
-    }
-
-    private fun playPlaylist(playlist: LibraryPlaylist) {
-        if (playlist.tracks.isEmpty()) {
-            Toast.makeText(this, R.string.playlist_empty, Toast.LENGTH_SHORT).show()
-            return
-        }
-        AudioRepository.save(this, playlist.tracks.map { PlaylistItem(it.path, it.title, it.artworkPath) }, 0)
-        openFullAudioPlayer()
     }
 
     private fun showTrackOverflowActions(track: LibraryTrack) {
@@ -779,16 +1117,6 @@ class AudioLibraryActivity : AppCompatActivity() {
             .setNegativeButton(getString(R.string.action_cancel), null)
             .show()
             .also { DialogButtonStyler.style(it) }
-    }
-
-    private fun showAlbumPlaylistChoiceDialog(album: LibraryAlbum, tracks: List<LibraryTrack>) {
-        fr.retrospare.blazeplayer.playlist.PlaylistDialogs.showAddToPlaylistPicker(
-            this,
-            PlaylistCategory.AUDIO,
-            tracks.distinctBy { it.path }.map { it.toPlaylistRef() }
-        ) {
-            if (viewModel.uiState.value.tab == LibraryTab.PLAYLISTS) viewModel.setTab(LibraryTab.PLAYLISTS)
-        }
     }
 
     private fun showPlaylistActions(playlist: LibraryPlaylist) {
@@ -895,79 +1223,26 @@ class AudioLibraryActivity : AppCompatActivity() {
     // Mini player.
     // -----------------------------------------------------------------
 
-    private fun refreshMiniPlayer() {
-        val c = controller
-        if (c == null || c.mediaItemCount <= 0 || c.currentMediaItem == null) {
-            renderEmptyMiniPlayer()
-            return
-        }
-        miniPlayer.visibility = View.VISIBLE
-        setMiniControlsEnabled(true)
-        val item = c.currentMediaItem
-        val meta = item?.mediaMetadata
-        val path = originalPathOf(item) ?: item?.mediaId.orEmpty()
-        val cached = AudioMediaCache.getCachedMetadata(this, path)
-        val originalName = meta?.extras?.getString("blaze_original_name")
-            .orEmpty().ifBlank { AudioLibraryHeuristics.fileNameFromPath(path) }
-        val folderMeta = AudioLibraryHeuristics.folderMetadata(path, originalName)
-        miniTitle.text = folderMeta.title.ifBlank {
-            cached?.title.orEmpty().ifBlank { getString(R.string.unknown_title) }
-        }
-        currentMiniArtistTag = folderMeta.artist
-        currentMiniAlbumTag = folderMeta.album
-        renderLibraryMiniTags()
-        miniPlayPause.setImageResource(if (c.isPlaying) R.drawable.ic_pause else R.drawable.ic_play_white)
-        if (c.isPlaying) startMiniSpin() else stopMiniSpin(keepVisible = false)
-        val memoryArtworkAvailable = AudioArtworkResolver.memoryCachedBitmap(path) != null
-        val shouldBindArtwork = path != currentMiniArtworkPath ||
-            (!currentMiniArtworkHasImage && miniArtworkJob?.isActive != true && memoryArtworkAvailable)
-        if (shouldBindArtwork || (path.isNotBlank() && !currentMiniArtworkHasImage && miniArtworkJob?.isActive != true)) {
-            bindMiniArtwork(path)
-        }
-        updateMiniTime()
-    }
-
-    private fun renderEmptyMiniPlayer() {
-        if (!::miniPlayer.isInitialized) return
+    private fun bindMiniArtwork(
+        path: String,
+        preferredArtworkPath: String = "",
+        fallbackArtworkData: ByteArray? = null
+    ) {
+        val artworkKey = "$path\u0000$preferredArtworkPath"
+        val pathChanged = currentMiniArtworkPath != artworkKey
+        if (!pathChanged && (currentMiniArtworkHasImage || miniArtworkJob?.isActive == true)) return
+        currentMiniArtworkPath = artworkKey
         miniArtworkJob?.cancel()
-        currentMiniArtworkPath = ""
-        currentMiniArtworkHasImage = false
-        miniPlayer.visibility = View.VISIBLE
-        miniTitle.text = getString(R.string.audio_no_current_track)
-        currentMiniArtistTag = ""
-        currentMiniAlbumTag = ""
-        currentMiniAccentColor = AudioDynamicColor.DEFAULT_ACCENT
-        miniArtist.text = ""
-        val zero = getString(R.string.zero_time)
-        miniTime.text = "$zero / $zero"
-        miniArtwork.setImageResource(R.drawable.ic_audio)
-        applyFullscreenLibraryBackground(resolveInitialLibraryBackgroundColor())
-        miniPlayPause.setImageResource(R.drawable.ic_play_white)
-        stopMiniSpin(keepVisible = false)
-        setMiniControlsEnabled(false)
-    }
 
-    private fun setMiniControlsEnabled(enabled: Boolean) {
-        listOf(
-            findViewById<ImageButton>(R.id.btnLibraryMiniPrev),
-            miniPlayPause,
-            findViewById<ImageButton>(R.id.btnLibraryMiniNext)
-        ).forEach { button ->
-            button.isEnabled = enabled
-            button.alpha = if (enabled) 1f else 0.38f
-        }
-    }
-
-    private fun bindMiniArtwork(path: String) {
-        val pathChanged = currentMiniArtworkPath != path
-        if (!pathChanged && miniArtworkJob?.isActive == true) return
-        currentMiniArtworkPath = path
-        miniArtworkJob?.cancel()
-        val memoryBitmap = AudioArtworkResolver.memoryCachedBitmap(path)
+        val fallbackBitmap = fallbackArtworkData
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { decodeArtworkBytesSampled(it, 512) }
+        val memoryBitmap = AudioArtworkResolver.memoryCachedBitmap(path, preferredArtworkPath)
+            ?: fallbackBitmap
         if (memoryBitmap != null) {
             currentMiniArtworkHasImage = true
             miniArtwork.setImageBitmap(memoryBitmap)
-            applyLibraryDynamicBackgroundFromBitmap(memoryBitmap)
+            applyLibraryDynamicBackgroundFromBitmap(memoryBitmap, artworkKey)
         } else if (pathChanged) {
             // Ne remplace le visuel par le placeholder qu'au vrai changement de piste. Les simples
             // événements de lecture (buffering, play/pause, timeline) conservent le bitmap courant.
@@ -975,17 +1250,47 @@ class AudioLibraryActivity : AppCompatActivity() {
             miniArtwork.setImageResource(R.drawable.ic_audio)
             applyFullscreenLibraryBackground(resolveInitialLibraryBackgroundColor())
         }
-        miniArtworkJob = lifecycleScope.launch(artworkDispatcher) {
-            val bmp = memoryBitmap
-                ?: AudioArtworkResolver.cachedBitmap(this@AudioLibraryActivity, path)
-                ?: runCatching {
-                    AudioArtworkResolver.resolveBitmap(this@AudioLibraryActivity, path)
-                }.getOrNull()
+        miniArtworkJob = lifecycleScope.launch(AudioPlaybackDispatchers.io) {
+            val cached = AudioArtworkResolver.memoryCachedBitmap(path, preferredArtworkPath)
+                ?: AudioArtworkResolver.cachedBitmap(
+                    this@AudioLibraryActivity,
+                    path,
+                    preferredArtworkPath
+                )
+            if (cached != null) {
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    if (currentMiniArtworkPath == artworkKey) {
+                        currentMiniArtworkHasImage = true
+                        miniArtwork.setImageBitmap(cached)
+                        applyLibraryDynamicBackgroundFromBitmap(cached, artworkKey)
+                    }
+                }
+                return@launch
+            }
+
+            // Le mini-player de la bibliothèque ne doit jamais ouvrir le fichier audio ou lister
+            // le NAS pendant que celui-ci alimente Media3. Le fallback Media3 déjà affiché reste en
+            // place ; la résolution complète reprend à la pause.
+            if (AudioLibraryWorkState.isPlaybackProtected()) {
+                AudioLibraryWorkState.awaitPlaybackIdle()
+            } else {
+                AudioLibraryWorkState.awaitPlaybackCriticalWindowEnd()
+            }
+            val resolved = runCatching {
+                AudioArtworkResolver.resolveBitmap(
+                    this@AudioLibraryActivity,
+                    path,
+                    preferredArtworkPath
+                )
+            }.getOrNull()
+            val bmp = resolved ?: fallbackArtworkData
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { decodeArtworkBytesSampled(it, 512) }
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                if (currentMiniArtworkPath == path && bmp != null) {
+                if (currentMiniArtworkPath == artworkKey && bmp != null) {
                     currentMiniArtworkHasImage = true
                     miniArtwork.setImageBitmap(bmp)
-                    applyLibraryDynamicBackgroundFromBitmap(bmp)
+                    applyLibraryDynamicBackgroundFromBitmap(bmp, artworkKey)
                 }
             }
         }
@@ -1040,7 +1345,7 @@ class AudioLibraryActivity : AppCompatActivity() {
             data.size,
             android.graphics.BitmapFactory.Options().apply {
                 inSampleSize = sample
-                inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+                inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
             }
         ) ?: return@runCatching null
         if (decoded.width <= maxSizePx && decoded.height <= maxSizePx) decoded
@@ -1057,35 +1362,11 @@ class AudioLibraryActivity : AppCompatActivity() {
         }
     }.getOrNull()
 
-    private fun updateMiniTime() {
-        val c = controller ?: return
-        if (miniPlayer.visibility != View.VISIBLE || c.currentMediaItem == null) return
-        val duration = c.duration.takeIf { it > 0 } ?: 0L
-        val position = c.currentPosition.coerceAtLeast(0L)
-        miniTime.text = if (duration > 0L) {
-            "${AudioLibraryHeuristics.formatDuration(position)} / ${AudioLibraryHeuristics.formatDuration(duration)}"
-        } else {
-            AudioLibraryHeuristics.formatDuration(position)
-        }
-    }
-
     private fun openFullAudioPlayer() {
         startActivity(Intent(this, fr.retrospare.blazeplayer.MainActivity::class.java).apply {
             putExtra("openBlazeAudio", true)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         })
-    }
-
-    private fun startMiniSpin() {
-        findViewById<View>(R.id.libraryMiniEqOverlay)?.visibility = View.VISIBLE
-        miniSpinner.visibility = View.VISIBLE
-        if (miniSpinAnimator?.isRunning == true) return
-        miniSpinAnimator = ObjectAnimator.ofFloat(miniSpinner, View.ROTATION, 0f, 360f).apply {
-            duration = 2200L
-            repeatCount = ObjectAnimator.INFINITE
-            interpolator = LinearInterpolator()
-            start()
-        }
     }
 
     private fun stopMiniSpin(keepVisible: Boolean) {
@@ -1102,158 +1383,790 @@ class AudioLibraryActivity : AppCompatActivity() {
     // Header sticky (détail album) — inchangé, pixel perfect.
     // -----------------------------------------------------------------
 
-    private fun renderStickyAlbumHeader(album: LibraryAlbum?) {
-        if (!::albumStickyHeader.isInitialized) return
-        albumStickyHeader.removeAllViews()
-        if (album == null) {
+    private fun renderStickyDetailHeader(album: LibraryAlbum?, artist: LibraryArtist?) {
+        val nextKey = when {
+            album != null -> "album:${album.key}:${album.artworkPath}:${album.tracks.size}"
+            artist != null -> "artist:${AudioLibraryHeuristics.normalize(artist.name)}:${artist.albums}:${artist.tracks.size}"
+            else -> ""
+        }
+
+        // Un retour depuis un artiste ou un album doit toujours nettoyer le héros avant de
+        // réafficher la bibliothèque. Auparavant handleTopBack() remettait déjà la clé à vide :
+        // le rendu suivant considérait alors à tort que le header vide était inchangé et gardait
+        // la photo précédente à l'écran.
+        if (nextKey.isBlank()) {
+            renderedDetailHeaderKey = ""
+            artistImageJob?.cancel()
+            artistImageJob = null
+            currentArtistImage = null
+            artistHeroImageView = null
+            artistHeroCreditView = null
+            artistHeroBoundName = ""
+            clearFullBleedArtistHero()
+            albumStickyHeader.removeAllViews()
+            albumStickyMetadataView = null
             albumStickyHeader.visibility = View.GONE
+            applyLibraryWindowInsets()
             return
         }
-        albumStickyHeader.visibility = View.VISIBLE
+
+        val alreadyRendered = when {
+            album != null -> nextKey == renderedDetailHeaderKey && artistFullBleedHero != null
+            artist != null -> nextKey == renderedDetailHeaderKey && artistFullBleedHero != null
+            else -> false
+        }
+        if (alreadyRendered) return
+
+        renderedDetailHeaderKey = nextKey
+        artistImageJob?.cancel()
+        currentArtistImage = null
+        when {
+            album != null -> {
+                artistHeroImageView = null
+                artistHeroCreditView = null
+                artistHeroBoundName = ""
+                albumStickyHeader.removeAllViews()
+                albumStickyHeader.visibility = View.GONE
+                renderFullBleedAlbumHeader(album)
+            }
+            artist != null -> {
+                albumHeroMetadataView = null
+                albumStickyMetadataView = null
+                albumStickyHeader.removeAllViews()
+                albumStickyHeader.visibility = View.GONE
+                renderFullBleedArtistHeader(artist)
+            }
+        }
+        applyLibraryWindowInsets()
+    }
+
+    private fun renderFullBleedAlbumHeader(album: LibraryAlbum) {
+        clearFullBleedArtistHero()
+        libraryHero.visibility = View.GONE
+        window.statusBarColor = Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, libraryRootFrame).isAppearanceLightStatusBars = false
+
         val ordered = albumPlaybackTracks(album)
-        val card = LinearLayout(this).apply {
+        val hero = FrameLayout(this).apply {
+            background = ColorDrawable(Color.rgb(18, 24, 34))
+            clipChildren = true
+            clipToPadding = true
+            elevation = 0f
+        }
+        // Le même conteneur plein écran sert aux détails Artiste et Album. Le nom historique de
+        // la variable est conservé pour limiter le risque de régression dans la navigation.
+        artistFullBleedHero = hero
+        libraryRootFrame.addView(
+            hero,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                artistHeroTotalHeightPx()
+            ).apply { gravity = Gravity.TOP }
+        )
+
+        val cover = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setImageResource(R.drawable.ic_audio)
+            background = ColorDrawable(Color.rgb(18, 24, 34))
+        }
+        hero.addView(
+            cover,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+        album.tracks.firstOrNull()?.copy(artworkPath = album.artworkPath)?.let { representative ->
+            bindOriginalArtwork(cover, representative)
+        }
+
+        // Dégradé inférieur pour le titre et les actions, identique à la fiche Artiste.
+        hero.addView(
+            View(this).apply {
+                background = ContextCompat.getDrawable(
+                    this@AudioLibraryActivity,
+                    R.drawable.bg_audio_artist_hero_scrim
+                )
+            },
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+
+        // Overlay supérieur opaque sous la barre système : la navigation reste lisible même sur
+        // une pochette très claire ou très contrastée.
+        hero.addView(
+            View(this).apply {
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.TOP_BOTTOM,
+                    intArrayOf(
+                        Color.argb(238, 4, 7, 12),
+                        Color.argb(190, 4, 7, 12),
+                        Color.argb(92, 4, 7, 12),
+                        Color.TRANSPARENT
+                    )
+                )
+            },
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                dp(164)
+            ).apply { gravity = Gravity.TOP }
+        )
+
+        val topContent = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            background = pillDrawable(Color.argb(30, 255, 255, 255), dp(22), stroke = Color.argb(18, 255, 255, 255))
-            setPadding(dp(12), dp(12), dp(12), dp(12))
+            setPadding(dp(18), statusBarInsetTop + dp(10), dp(18), dp(10))
         }
-        albumStickyHeader.addView(card, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        artistHeroTopOverlayContent = topContent
+        hero.addView(
+            topContent,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                statusBarInsetTop + dp(82),
+                Gravity.TOP
+            )
+        )
 
-        val cover = fr.retrospare.blazeplayer.ui.RoundedImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_CROP
-            radiusDp = 16f
-            setImageResource(R.drawable.ic_audio)
-            background = ContextCompat.getDrawable(this@AudioLibraryActivity, R.drawable.bg_audio_cover_placeholder)
+        topContent.addView(artistOverlayActionButton(R.drawable.ic_arrow_back, getString(R.string.action_back)).apply {
+            setOnClickListener { handleTopBack() }
+        }, LinearLayout.LayoutParams(dp(40), dp(40)))
+
+        val heading = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
         }
-        card.addView(cover, LinearLayout.LayoutParams(dp(132), dp(132)).apply { rightMargin = dp(14) })
+        topContent.addView(
+            heading,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(12)
+                marginEnd = dp(8)
+            }
+        )
+        heading.addView(TextView(this).apply {
+            text = getString(R.string.audio_album_page_title)
+            setTextColor(Color.WHITE)
+            textSize = 25f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            includeFontPadding = false
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+        })
+        topContent.addView(artistOverlayActionButton(R.drawable.ic_search, getString(R.string.audio_search)).apply {
+            setOnClickListener { showSearchDialog() }
+        }, LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginStart = dp(4) })
+        topContent.addView(
+            artistOverlayActionButton(
+                R.drawable.ic_home,
+                getString(R.string.audio_open_full_player)
+            ).apply {
+                setOnClickListener { openFullAudioPlayer() }
+            },
+            LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginStart = dp(6) }
+        )
+        topContent.addView(artistOverlayActionButton(R.drawable.ic_settings, getString(R.string.audio_settings_title)).apply {
+            setOnClickListener {
+                startActivity(Intent(this@AudioLibraryActivity, AudioProSettingsActivity::class.java))
+            }
+        }, LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginStart = dp(6) })
 
-        val panel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        card.addView(panel, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val bottomContent = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.BOTTOM
+            setPadding(dp(18), dp(8), dp(18), dp(22))
+        }
+        hero.addView(
+            bottomContent,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM
+            )
+        )
 
-        panel.addView(TextView(this).apply {
-            setTextColor(textMain)
-            textSize = 20f
+        bottomContent.addView(TextView(this).apply {
+            text = album.title
+            setTextColor(Color.WHITE)
+            textSize = 32f
             typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
             includeFontPadding = false
             maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
-            text = album.title
-            visibility = if (album.title.isBlank()) View.GONE else View.VISIBLE
+            setShadowLayer(dp(4).toFloat(), 0f, dp(2).toFloat(), Color.BLACK)
         })
-        panel.addView(TextView(this).apply {
-            val taggedArtist = albumDisplayArtist(album)
-            setTextColor(accent)
-            textSize = 13f
-            typeface = Typeface.DEFAULT_BOLD
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-            setPadding(0, dp(4), 0, 0)
-            text = taggedArtist
-            visibility = if (taggedArtist.isBlank()) View.GONE else View.VISIBLE
-        })
-        panel.addView(TextView(this).apply {
-            setTextColor(textMuted)
-            textSize = 12f
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-            setPadding(0, dp(4), 0, dp(10))
-            text = albumMetaLine(ordered)
-        })
-        panel.addView(stickyAlbumActionButton(getString(R.string.audio_play_album), R.drawable.ic_play_white, primary = true).apply {
-            setOnClickListener { playAlbumNow(ordered) }
-        })
-        panel.addView(stickyAlbumActionButton(getString(R.string.audio_add_album_queue), R.drawable.ic_add, primary = false).apply {
-            (layoutParams as LinearLayout.LayoutParams).topMargin = dp(8)
-            setOnClickListener { appendTracksToAudioQueue(ordered) }
-        })
-
-        val representative = album.tracks.firstOrNull()?.copy(artworkPath = album.artworkPath)
-        if (representative != null) bindOriginalArtwork(cover, representative)
-
-        val stickyDivider = View(this).apply {
-            background = ContextCompat.getDrawable(this@AudioLibraryActivity, R.drawable.bg_audio_library_section_divider)
+        val albumDetails = albumArtistMetaLine(album, ordered)
+        if (albumDetails.isNotBlank()) {
+            val detailsView = TextView(this).apply {
+                text = albumDetails
+                setTextColor(Color.argb(225, 255, 255, 255))
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                includeFontPadding = false
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                setPadding(0, dp(5), 0, 0)
+                setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+            }
+            albumHeroMetadataView = detailsView
+            bottomContent.addView(detailsView)
         }
-        albumStickyHeader.addView(stickyDivider, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply {
-            topMargin = dp(12)
-            bottomMargin = dp(8)
-        })
+
+        val actionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(12), 0, 0)
+        }
+        bottomContent.addView(
+            actionRow,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+        actionRow.addView(
+            artistHeroPlayAllButton(getString(R.string.audio_play_album)).apply {
+                setOnClickListener { playAlbumNow(ordered) }
+            },
+            LinearLayout.LayoutParams(0, dp(48), 1f)
+        )
+        actionRow.addView(
+            albumHeroQueueButton(getString(R.string.audio_album_queue_button)).apply {
+                contentDescription = getString(R.string.audio_add_album_queue)
+                tooltipText = getString(R.string.audio_add_album_queue)
+                setOnClickListener { appendTracksToAudioQueue(ordered) }
+            },
+            LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginStart = dp(10) }
+        )
     }
 
-    private fun stickyAlbumActionButton(label: String, icon: Int, primary: Boolean): TextView = TextView(this).apply {
+    private fun renderFullBleedArtistHeader(artist: LibraryArtist) {
+        clearFullBleedArtistHero()
+        libraryHero.visibility = View.GONE
+        window.statusBarColor = Color.TRANSPARENT
+        WindowCompat.getInsetsController(window, libraryRootFrame).isAppearanceLightStatusBars = false
+
+        val hero = FrameLayout(this).apply {
+            background = ColorDrawable(Color.rgb(18, 24, 34))
+            clipChildren = true
+            clipToPadding = true
+            elevation = 0f
+        }
+        artistFullBleedHero = hero
+        libraryRootFrame.addView(
+            hero,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                artistHeroTotalHeightPx()
+            ).apply { gravity = Gravity.TOP }
+        )
+
+        val image = ImageView(this).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setImageResource(R.drawable.ic_audio)
+            background = ColorDrawable(Color.rgb(18, 24, 34))
+        }
+        hero.addView(
+            image,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+        artistHeroImageView = image
+        artistHeroBoundName = artist.name
+
+        // La pochette d'un album n'est qu'un fallback immédiat. Une photo artiste déjà en mémoire
+        // est appliquée sans transition pour éviter tout scintillement lors des mises à jour du snapshot.
+        val readyArtistImage = ArtistImageRepository.peekMemory(artist.name)
+        if (readyArtistImage == null) {
+            artist.tracks.firstOrNull()?.let { representative ->
+                bindOriginalArtwork(
+                    image,
+                    representative.copy(
+                        artworkPath = AudioLibraryHeuristics.bestArtworkPath(artist.tracks)
+                    )
+                )
+            }
+        }
+
+        // Dégradé inférieur pour le nom, les actions et les crédits.
+        hero.addView(
+            View(this).apply {
+                background = ContextCompat.getDrawable(
+                    this@AudioLibraryActivity,
+                    R.drawable.bg_audio_artist_hero_scrim
+                )
+            },
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        )
+
+        // Overlay supérieur plus opaque : la navigation reste lisible quelle que soit la photo.
+        val topScrim = View(this).apply {
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(
+                    Color.argb(238, 4, 7, 12),
+                    Color.argb(190, 4, 7, 12),
+                    Color.argb(92, 4, 7, 12),
+                    Color.TRANSPARENT
+                )
+            )
+        }
+        hero.addView(
+            topScrim,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                dp(164)
+            ).apply { gravity = Gravity.TOP }
+        )
+
+        val topContent = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(18), statusBarInsetTop + dp(10), dp(18), dp(10))
+        }
+        artistHeroTopOverlayContent = topContent
+        hero.addView(
+            topContent,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                statusBarInsetTop + dp(82),
+                Gravity.TOP
+            )
+        )
+
+        topContent.addView(artistOverlayActionButton(R.drawable.ic_arrow_back, getString(R.string.action_back)).apply {
+            setOnClickListener { handleTopBack() }
+        }, LinearLayout.LayoutParams(dp(40), dp(40)))
+
+        val heading = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        topContent.addView(
+            heading,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(12)
+                marginEnd = dp(8)
+            }
+        )
+        heading.addView(TextView(this).apply {
+            text = getString(R.string.audio_artist_page_title)
+            setTextColor(Color.WHITE)
+            textSize = 25f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            includeFontPadding = false
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            setShadowLayer(dp(3).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+        })
+        heading.addView(TextView(this).apply {
+            text = artistSummaryText(artist)
+            setTextColor(Color.argb(225, 255, 255, 255))
+            textSize = 12.5f
+            typeface = Typeface.DEFAULT_BOLD
+            includeFontPadding = false
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            setPadding(0, dp(3), 0, 0)
+            setShadowLayer(dp(2).toFloat(), 0f, dp(1).toFloat(), Color.BLACK)
+        })
+
+        topContent.addView(artistOverlayActionButton(R.drawable.ic_search, getString(R.string.audio_search)).apply {
+            setOnClickListener { showSearchDialog() }
+        }, LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginStart = dp(4) })
+        topContent.addView(
+            artistOverlayActionButton(
+                R.drawable.ic_home,
+                getString(R.string.audio_open_full_player)
+            ).apply {
+                setOnClickListener { openFullAudioPlayer() }
+            },
+            LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginStart = dp(6) }
+        )
+        topContent.addView(artistOverlayActionButton(R.drawable.ic_settings, getString(R.string.audio_settings_title)).apply {
+            setOnClickListener {
+                startActivity(Intent(this@AudioLibraryActivity, AudioProSettingsActivity::class.java))
+            }
+        }, LinearLayout.LayoutParams(dp(40), dp(40)).apply { marginStart = dp(6) })
+
+        val bottomContent = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.BOTTOM
+            setPadding(dp(18), dp(8), dp(18), dp(22))
+        }
+        hero.addView(
+            bottomContent,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM
+            )
+        )
+
+        bottomContent.addView(TextView(this).apply {
+            text = artist.name
+            setTextColor(Color.WHITE)
+            textSize = 32f
+            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            includeFontPadding = false
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+            setShadowLayer(dp(4).toFloat(), 0f, dp(2).toFloat(), Color.BLACK)
+        })
+
+        val actionRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(12), 0, 0)
+        }
+        bottomContent.addView(
+            actionRow,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+        actionRow.addView(artistHeroPlayAllButton(getString(R.string.audio_artist_play_all)).apply {
+            setOnClickListener { playAlbumNow(artistPlaybackTracks(artist)) }
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        actionRow.addView(artistHeroPhotoButton().apply {
+            contentDescription = getString(R.string.audio_artist_change_photo)
+            tooltipText = getString(R.string.audio_artist_change_photo)
+            setOnClickListener { showArtistPhotoActions(artist) }
+        }, LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(10) })
+
+        val credit = TextView(this).apply {
+            visibility = View.GONE
+            setTextColor(Color.argb(210, 255, 255, 255))
+            textSize = 9f
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            includeFontPadding = false
+            gravity = Gravity.END
+            setPadding(dp(12), 0, dp(10), dp(7))
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { currentArtistImage?.let(::showArtistPhotoCredits) }
+        }
+        hero.addView(
+            credit,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.END
+            )
+        )
+        artistHeroCreditView = credit
+        loadArtistHeroImage(artist)
+    }
+
+    private fun artistOverlayActionButton(iconRes: Int, description: String): ImageButton =
+        ImageButton(this).apply {
+            setImageResource(iconRes)
+            contentDescription = description
+            tooltipText = description
+            setPadding(dp(9))
+            imageTintList = ColorStateList.valueOf(Color.WHITE)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.argb(126, 6, 10, 16))
+                setStroke(dp(1), Color.argb(92, 255, 255, 255))
+            }
+            isClickable = true
+            isFocusable = true
+        }
+
+    private fun clearFullBleedArtistHero() {
+        artistFullBleedHero?.let { hero ->
+            (hero.parent as? ViewGroup)?.removeView(hero)
+        }
+        artistFullBleedHero = null
+        artistHeroTopOverlayContent = null
+        albumHeroMetadataView = null
+        if (::libraryHero.isInitialized) libraryHero.visibility = View.VISIBLE
+        if (::libraryRootFrame.isInitialized) {
+            window.statusBarColor = bg
+            WindowCompat.getInsetsController(window, libraryRootFrame).isAppearanceLightStatusBars = false
+        }
+    }
+
+    private fun artistHeroVisibleHeightPx(): Int = dp(332)
+
+    private fun artistHeroTotalHeightPx(): Int = statusBarInsetTop + artistHeroVisibleHeightPx()
+
+    private fun applyLibraryWindowInsets() {
+        if (!::libraryScreenContainer.isInitialized) return
+        val detailHeroMode = currentState.openedArtist != null || currentState.openedAlbum != null
+        val topPadding = if (detailHeroMode) artistHeroTotalHeightPx() else statusBarInsetTop
+        libraryScreenContainer.setPadding(0, topPadding, 0, navigationBarInsetBottom)
+
+        artistFullBleedHero?.let { hero ->
+            val params = hero.layoutParams as? FrameLayout.LayoutParams ?: return@let
+            val wantedHeight = artistHeroTotalHeightPx()
+            if (params.height != wantedHeight) {
+                params.height = wantedHeight
+                hero.layoutParams = params
+            }
+        }
+        artistHeroTopOverlayContent?.let { content ->
+            content.setPadding(dp(18), statusBarInsetTop + dp(10), dp(18), dp(10))
+            content.layoutParams = (content.layoutParams as FrameLayout.LayoutParams).apply {
+                height = statusBarInsetTop + dp(82)
+            }
+        }
+
+        if (detailHeroMode) {
+            libraryHero.visibility = View.GONE
+            window.statusBarColor = Color.TRANSPARENT
+        } else {
+            libraryHero.visibility = View.VISIBLE
+            window.statusBarColor = bg
+        }
+        window.navigationBarColor = bg
+    }
+
+    private fun loadArtistHeroImage(artist: LibraryArtist) {
+        val image = artistHeroImageView ?: return
+        val credit = artistHeroCreditView
+        val requestedName = artist.name
+        if (AudioLibraryHeuristics.normalize(artistHeroBoundName) != AudioLibraryHeuristics.normalize(requestedName)) return
+        artistImageJob?.cancel()
+        artistImageJob = lifecycleScope.launch {
+            val result = ArtistImageRepository.peekMemory(requestedName)
+                ?: ArtistImageRepository.resolve(this@AudioLibraryActivity, requestedName, artist.tracks)
+                ?: return@launch
+            val bitmap = withContext(artworkDispatcher) { cachedArtistBitmap(result.localPath, 1800) }
+                ?: return@launch
+            if (isFinishing || isDestroyed || currentState.openedArtist?.name != requestedName ||
+                artistHeroImageView !== image
+            ) return@launch
+            val imageTag = "artist_remote:${result.localPath}:${java.io.File(result.localPath).lastModified()}"
+            if (image.tag != imageTag) {
+                image.tag = imageTag
+                image.clearColorFilter()
+                image.setPadding(0)
+                image.setImageBitmap(bitmap)
+            }
+            currentArtistImage = result
+            if (credit != null) {
+                if (!result.isLocalFile) {
+                    credit.text = buildArtistPhotoCreditLabel(result)
+                    credit.visibility = if (credit.text.isBlank()) View.GONE else View.VISIBLE
+                } else {
+                    credit.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun cachedArtistBitmap(path: String, maxSizePx: Int): android.graphics.Bitmap? {
+        val file = java.io.File(path)
+        val sizeBucket = if (maxSizePx >= 1200) "hero" else "tile"
+        val key = "$path:$sizeBucket:${file.lastModified()}:${file.length()}"
+        artistBitmapCache.get(key)?.let { return it }
+        return decodeArtistImageFile(path, maxSizePx)?.also { artistBitmapCache.put(key, it) }
+    }
+
+    private fun decodeArtistImageFile(path: String, maxSizePx: Int): android.graphics.Bitmap? = runCatching {
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeFile(path, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+        var sample = 1
+        while (bounds.outWidth / sample > maxSizePx * 2 || bounds.outHeight / sample > maxSizePx * 2) sample *= 2
+        android.graphics.BitmapFactory.decodeFile(path, android.graphics.BitmapFactory.Options().apply {
+            inSampleSize = sample.coerceAtLeast(1)
+            inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+        })
+    }.getOrNull()
+
+    private fun artistPlaybackTracks(artist: LibraryArtist): List<LibraryTrack> {
+        val trackOrder = AudioProSettings.read(this).trackOrder
+        val base = compareBy<LibraryTrack> {
+            AudioLibraryHeuristics.normalize(AudioLibraryHeuristics.albumFolderNameFromPath(it.path))
+        }.thenBy { AudioLibraryHeuristics.discNumberFromPath(it.path) }
+        return if (trackOrder) {
+            artist.tracks.distinctBy { it.path }.sortedWith(
+                base.thenBy { AudioLibraryHeuristics.normalizedTrackNo(it.trackNo) }
+                    .thenBy { AudioLibraryHeuristics.normalize(it.title) }
+            )
+        } else {
+            artist.tracks.distinctBy { it.path }.sortedWith(
+                base.thenBy { AudioLibraryHeuristics.normalize(it.title) }
+            )
+        }
+    }
+
+    private fun artistSummaryText(artist: LibraryArtist): String = listOf(
+        resources.getQuantityString(R.plurals.audio_album_count_compact, artist.albums, artist.albums),
+        resources.getQuantityString(R.plurals.audio_track_count_compact, artist.tracks.size, artist.tracks.size)
+    ).joinToString(" • ")
+
+    private fun showArtistPhotoActions(artist: LibraryArtist) {
+        val hasManual = ArtistImageRepository.hasManualImage(this, artist.name)
+        val labels = buildList {
+            add(getString(R.string.audio_artist_photo_choose_device))
+            if (hasManual) add(getString(R.string.audio_artist_photo_restore_auto))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.audio_artist_photo_actions_title)
+            .setItems(labels.toTypedArray()) { _, which ->
+                when (which) {
+                    0 -> {
+                        pendingArtistPhotoSelection = artist
+                        artistPhotoPicker.launch(arrayOf("image/*"))
+                    }
+                    1 -> if (hasManual) {
+                        ArtistImageRepository.clearManualImage(this, artist.name)
+                        currentArtistImage = null
+                        if (::adapter.isInitialized) adapter.notifyArtistImageChanged(artist.name)
+                        renderedDetailHeaderKey = ""
+                        renderStickyDetailHeader(null, currentState.openedArtist)
+                        Toast.makeText(
+                            this,
+                            R.string.audio_artist_photo_restored,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+            .setNegativeButton(R.string.action_close, null)
+            .show()
+            .also { DialogButtonStyler.style(it) }
+    }
+
+    private fun buildArtistPhotoCreditLabel(image: ArtistImageRepository.ArtistImage): String {
+        val author = image.author.trim()
+        val license = image.licenseName.trim()
+        return when {
+            author.isNotBlank() && license.isNotBlank() -> getString(R.string.audio_artist_photo_credit, author, license)
+            author.isNotBlank() -> getString(R.string.audio_artist_photo_credit_author, author)
+            license.isNotBlank() -> license
+            image.sourcePageUrl.isNotBlank() -> getString(R.string.audio_artist_photo_source)
+            else -> ""
+        }
+    }
+
+    private fun showArtistPhotoCredits(image: ArtistImageRepository.ArtistImage) {
+        val details = buildList {
+            image.author.takeIf { it.isNotBlank() }?.let { add(getString(R.string.audio_artist_photo_author, it)) }
+            image.licenseName.takeIf { it.isNotBlank() }?.let { add(getString(R.string.audio_artist_photo_license, it)) }
+            image.description.takeIf { it.isNotBlank() }?.let { add(it) }
+        }.joinToString("\n\n")
+        val builder = AlertDialog.Builder(this)
+            .setTitle(R.string.audio_artist_photo_credits_title)
+            .setMessage(details.ifBlank { getString(R.string.audio_artist_photo_source) })
+            .setNegativeButton(R.string.action_close, null)
+        if (image.sourcePageUrl.isNotBlank()) {
+            builder.setPositiveButton(R.string.audio_artist_photo_open_source) { _, _ ->
+                runCatching {
+                    startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(image.sourcePageUrl)))
+                }
+            }
+        }
+        builder.show().also { DialogButtonStyler.style(it) }
+    }
+
+    private fun artistHeroPlayAllButton(label: String): TextView = TextView(this).apply {
         text = label
         gravity = Gravity.CENTER
         includeFontPadding = false
         typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
-        letterSpacing = 0.015f
-        compoundDrawablePadding = dp(7)
-        setCompoundDrawablesWithIntrinsicBounds(icon, 0, 0, 0)
-        setPadding(dp(12), 0, dp(12), 0)
-
-        val foreground = when {
-            primary && isDarkColor(accent) -> Color.WHITE
-            primary -> Color.rgb(8, 15, 24)
-            else -> ContextCompat.getColor(this@AudioLibraryActivity, R.color.audio_library_accent)
-        }
+        textSize = 13f
+        maxLines = 1
+        isSingleLine = true
+        ellipsize = null
+        compoundDrawablePadding = dp(8)
+        setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_play_white, 0, 0, 0)
+        setPadding(dp(18), dp(11), dp(18), dp(11))
+        minHeight = dp(48)
+        minWidth = 0
+        maxWidth = resources.displayMetrics.widthPixels - dp(104)
+        val foreground = if (isDarkColor(accent)) Color.WHITE else Color.rgb(8, 15, 24)
         setTextColor(foreground)
         compoundDrawableTintList = ColorStateList.valueOf(foreground)
-        setShadowLayer(
-            if (primary) dp(2).toFloat() else dp(1).toFloat(),
-            0f,
-            dp(1).toFloat(),
-            if (primary) Color.argb(105, 0, 0, 0) else Color.argb(80, 0, 0, 0)
-        )
-        background = premiumAlbumActionBackground(primary)
-        elevation = dp(if (primary) 4 else 2).toFloat()
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46))
+        background = premiumArtistHeroPillBackground()
+        elevation = dp(4).toFloat()
         isClickable = true
         isFocusable = true
         isAllCaps = false
-
-        // Les traductions longues restent toujours entièrement visibles, même sur un petit écran.
-        ButtonTextFitter.fit(this, minSp = 8, maxSp = 13)
+        ButtonTextFitter.fit(this, minSp = 9, maxSp = 13)
     }
 
-    private fun premiumAlbumActionBackground(primary: Boolean): RippleDrawable {
-        val radius = dp(18).toFloat()
-        val glacier = ContextCompat.getColor(this, R.color.audio_library_accent_stroke)
-        val start = if (primary) {
-            blendColors(Color.WHITE, accent, 0.18f)
-        } else {
-            Color.rgb(29, 39, 55)
-        }
-        val end = if (primary) {
-            blendColors(Color.BLACK, accent, 0.20f)
-        } else {
-            Color.rgb(7, 12, 21)
-        }
-        val stroke = if (primary) {
-            blendColors(Color.WHITE, accent, 0.42f)
-        } else {
-            glacier
-        }
+    private fun albumHeroQueueButton(label: String): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER
+        setPadding(dp(12), 0, dp(12), 0)
+        minimumHeight = dp(48)
+        minimumWidth = 0
+        background = premiumArtistHeroPillBackground()
+        elevation = dp(4).toFloat()
+        isClickable = true
+        isFocusable = true
+        clipChildren = true
+        clipToPadding = true
 
+        addView(ImageView(this@AudioLibraryActivity).apply {
+            setImageResource(R.drawable.ic_add_circle_black)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, LinearLayout.LayoutParams(dp(23), dp(23)).apply {
+            marginEnd = dp(8)
+        })
+
+        addView(TextView(this@AudioLibraryActivity).apply {
+            text = label
+            gravity = Gravity.CENTER
+            includeFontPadding = false
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setTextColor(if (isDarkColor(accent)) Color.WHITE else Color.rgb(8, 15, 24))
+            isAllCaps = false
+            maxLines = 1
+            isSingleLine = true
+            ellipsize = null
+            minWidth = 0
+            ButtonTextFitter.fit(this, minSp = 8, maxSp = 13)
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+    }
+
+    private fun artistHeroPhotoButton(): ImageButton = ImageButton(this).apply {
+        setImageResource(R.drawable.ic_camera)
+        setPadding(dp(13))
+        imageTintList = ColorStateList.valueOf(
+            if (isDarkColor(accent)) Color.WHITE else Color.rgb(8, 15, 24)
+        )
+        background = premiumArtistHeroPillBackground()
+        elevation = dp(4).toFloat()
+        isClickable = true
+        isFocusable = true
+    }
+
+    private fun premiumArtistHeroPillBackground(): RippleDrawable {
+        val radius = dp(24).toFloat()
+        val start = blendColors(Color.WHITE, accent, 0.18f)
+        val end = blendColors(Color.BLACK, accent, 0.20f)
+        val stroke = blendColors(Color.WHITE, accent, 0.42f)
         val base = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(start, end)).apply {
             cornerRadius = radius
             setStroke(dp(1), stroke)
-        }
-        val sheen = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(Color.argb(48, 255, 255, 255), Color.TRANSPARENT)).apply {
-            cornerRadius = radius - dp(1)
-        }
-        val content = LayerDrawable(arrayOf(base, sheen)).apply {
-            setLayerInset(1, dp(1), dp(1), dp(1), dp(22))
         }
         val mask = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = radius
             setColor(Color.WHITE)
         }
-        val ripple = if (primary) Color.argb(72, 255, 255, 255) else Color.argb(62, 185, 223, 255)
-        return RippleDrawable(ColorStateList.valueOf(ripple), content, mask)
+        return RippleDrawable(ColorStateList.valueOf(Color.argb(72, 255, 255, 255)), base, mask)
     }
 
     private fun installStickyHero() {
-        val hero = findViewById<View>(R.id.libraryHero) ?: return
-        val container = findViewById<LinearLayout>(R.id.libraryScreenContainer)
+        val hero = libraryHero
+        val container = libraryScreenContainer
         // Ne jamais appeler hero.bringToFront() ici : dans un LinearLayout vertical,
         // bringToFront() déplace réellement la vue en dernière position dans l'ordre des enfants.
         if (container != null && hero.parent === container && container.indexOfChild(hero) != 0) {
@@ -1263,6 +2176,12 @@ class AudioLibraryActivity : AppCompatActivity() {
         container?.setBackgroundColor(Color.TRANSPARENT)
         hero.setBackgroundColor(Color.TRANSPARENT)
         albumStickyHeader.setBackgroundColor(Color.TRANSPARENT)
+        albumStickyHeader.clipChildren = false
+        albumStickyHeader.clipToPadding = false
+        (albumStickyHeader.parent as? ViewGroup)?.apply {
+            clipChildren = false
+            clipToPadding = false
+        }
         hero.elevation = 0f
         hero.translationZ = 0f
         hero.translationY = 0f
@@ -1275,15 +2194,35 @@ class AudioLibraryActivity : AppCompatActivity() {
             AudioProSettings.read(this).trackOrder
         )
 
-    private fun albumMetaLine(tracks: List<LibraryTrack>): String {
+    private fun updateVisibleAlbumMetadata(album: LibraryAlbum?) {
+        if (album == null) return
+        val ordered = albumPlaybackTracks(album)
+        val details = albumArtistMetaLine(album, ordered)
+        albumHeroMetadataView?.text = details
+        albumStickyMetadataView?.text = details
+    }
+
+    private fun albumMetaParts(tracks: List<LibraryTrack>): List<String> {
         val uniqueTracks = tracks.distinctBy { it.path }
-        val count = resources.getQuantityString(R.plurals.audio_track_count_compact, uniqueTracks.size, uniqueTracks.size)
-        val hasCompleteDuration = uniqueTracks.isNotEmpty() && uniqueTracks.all { it.durationMs > 0L }
-        val totalDurationMs = if (hasCompleteDuration) uniqueTracks.sumOf { it.durationMs } else 0L
+        val count = resources.getQuantityString(
+            R.plurals.audio_track_count_compact,
+            uniqueTracks.size,
+            uniqueTracks.size
+        )
+        val totalDurationMs = uniqueTracks.asSequence()
+            .map(LibraryTrack::durationMs)
+            .filter { it > 0L }
+            .sum()
         val duration = totalDurationMs.takeIf { it > 0L }
             ?.let(AudioLibraryHeuristics::formatDuration)
-        return listOfNotNull(count, duration).joinToString(" · ")
+        return listOfNotNull(count, duration)
     }
+
+    private fun albumArtistMetaLine(album: LibraryAlbum, tracks: List<LibraryTrack>): String =
+        buildList {
+            albumDisplayArtist(album).takeIf { it.isNotBlank() }?.let(::add)
+            addAll(albumMetaParts(tracks))
+        }.joinToString(" - ")
 
 
     private fun albumCardPrimaryText(album: LibraryAlbum): String = album.title
@@ -1295,8 +2234,10 @@ class AudioLibraryActivity : AppCompatActivity() {
     private fun albumTrackCountText(album: LibraryAlbum): String {
         val tracks = album.tracks.distinctBy { it.path }
         val count = resources.getQuantityString(R.plurals.audio_track_count_compact, tracks.size, tracks.size)
-        val hasCompleteDuration = tracks.isNotEmpty() && tracks.all { it.durationMs > 0L }
-        val totalDurationMs = if (hasCompleteDuration) tracks.sumOf { it.durationMs } else 0L
+        val totalDurationMs = tracks.asSequence()
+            .map(LibraryTrack::durationMs)
+            .filter { it > 0L }
+            .sum()
         val duration = totalDurationMs.takeIf { it > 0L }
             ?.let(AudioLibraryHeuristics::formatDuration)
         return listOfNotNull(count, duration).joinToString(" · ")
@@ -1350,29 +2291,45 @@ class AudioLibraryActivity : AppCompatActivity() {
         return runCatching {
             val prefs = getSharedPreferences(DYNAMIC_AUDIO_PREFS, MODE_PRIVATE)
             when {
-                prefs.contains(KEY_DYNAMIC_BG) -> prefs.getInt(KEY_DYNAMIC_BG, fallback)
-                prefs.contains(KEY_DYNAMIC_ACCENT) -> AudioDynamicColor.backgroundFromAccent(prefs.getInt(KEY_DYNAMIC_ACCENT, AudioDynamicColor.DEFAULT_ACCENT))
+                // Ne jamais restaurer directement un ancien fond calculé par une version
+                // précédente : il peut encore être noir, brun sombre ou bleu marine. Le fond est
+                // systématiquement recalculé depuis un accent désormais normalisé et lisible.
+                prefs.contains(KEY_DYNAMIC_ACCENT) -> AudioDynamicColor.backgroundFromAccent(
+                    AudioDynamicColor.ensureReadableAccent(
+                        prefs.getInt(KEY_DYNAMIC_ACCENT, AudioDynamicColor.DEFAULT_ACCENT)
+                    )
+                )
                 else -> fallback
             }
         }.getOrDefault(fallback)
     }
 
-    private fun applyLibraryDynamicBackgroundFromBitmap(bitmap: android.graphics.Bitmap?) {
+    private fun applyLibraryDynamicBackgroundFromBitmap(
+        bitmap: android.graphics.Bitmap?,
+        artworkKey: String = currentMiniArtworkPath
+    ) {
         if (!runCatching { AudioProSettings.read(this).dynamicTheme }.getOrDefault(true) || bitmap == null) {
             applyFullscreenLibraryBackground(resolveInitialLibraryBackgroundColor())
             return
         }
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+        lifecycleScope.launch(AudioPlaybackDispatchers.compute) {
             val dynamicAccent = runCatching {
                 AudioDynamicColor.accentFromBitmap(bitmap)
             }.getOrDefault(AudioDynamicColor.DEFAULT_ACCENT)
             val dynamicBg = AudioDynamicColor.backgroundFromAccent(dynamicAccent)
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                if (!isFinishing && !isDestroyed) {
+                // Une extraction de l'ancienne cover ne doit jamais recolorer l'écran après le
+                // passage au titre suivant.
+                if (!isFinishing && !isDestroyed && currentMiniArtworkPath == artworkKey) {
                     currentMiniAccentColor = dynamicAccent
                     renderLibraryMiniTags()
                     miniSpinner.imageTintList = ColorStateList.valueOf(dynamicAccent)
                     applyFullscreenLibraryBackground(dynamicBg)
+                    getSharedPreferences(DYNAMIC_AUDIO_PREFS, MODE_PRIVATE)
+                        .edit()
+                        .putInt(KEY_DYNAMIC_BG, dynamicBg)
+                        .putInt(KEY_DYNAMIC_ACCENT, dynamicAccent)
+                        .apply()
                 }
             }
         }
@@ -1389,7 +2346,12 @@ class AudioLibraryActivity : AppCompatActivity() {
 
     private fun applyFullscreenLibraryBackground(libraryBackgroundColor: Int) {
         bg = libraryBackgroundColor
-        applySystemBarColors(libraryBackgroundColor)
+        if (currentState.openedArtist != null && currentState.openedAlbum == null) {
+            window.statusBarColor = Color.TRANSPARENT
+            window.navigationBarColor = libraryBackgroundColor
+        } else {
+            applySystemBarColors(libraryBackgroundColor)
+        }
         findViewById<View>(R.id.libraryRoot)?.background = buildLibraryBackgroundDrawable(libraryBackgroundColor)
         findViewById<View>(R.id.libraryScreenContainer)?.setBackgroundColor(Color.TRANSPARENT)
         findViewById<View>(R.id.libraryGlobalCard)?.setBackgroundColor(Color.TRANSPARENT)
@@ -1398,8 +2360,12 @@ class AudioLibraryActivity : AppCompatActivity() {
     }
 
     private fun applyAccentToStaticChrome() {
+        findViewById<TextView>(R.id.badgeLibraryPro)?.apply {
+            setTextColor(accent)
+            setBackgroundResource(R.drawable.bg_pro_badge)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
         listOf(
-            findViewById<TextView>(R.id.badgeLibraryPro),
             findViewById<TextView>(R.id.btnManageWatched),
             findViewById<TextView>(R.id.btnManualScan),
             findViewById<TextView>(R.id.tvAlbumViewGrid3),
@@ -1412,7 +2378,7 @@ class AudioLibraryActivity : AppCompatActivity() {
             imageTintList = ColorStateList.valueOf(accent)
             background = ContextCompat.getDrawable(this@AudioLibraryActivity, R.drawable.bg_audio_library_pill)
         }
-        listOf(R.id.btnBack, R.id.btnSearch, R.id.btnSettings).forEach { id ->
+        listOf(R.id.btnBack, R.id.btnSearch, R.id.btnLibraryHome, R.id.btnSettings).forEach { id ->
             findViewById<ImageButton>(id)?.imageTintList = ColorStateList.valueOf(textMain)
         }
         miniSpinner.imageTintList = ColorStateList.valueOf(accent)
@@ -1465,8 +2431,44 @@ class AudioLibraryActivity : AppCompatActivity() {
 
     private inner class LibraryAdapter : ListAdapter<LibraryRow, RecyclerView.ViewHolder>(RowDiffCallback) {
         private val boundArtworkJobs = ConcurrentHashMap<ImageView, Job>()
+        private val boundArtistImageJobs = ConcurrentHashMap<ImageView, Job>()
+        private val appliedArtistImages = ConcurrentHashMap<ImageView, String>()
+        // Cache indexé avec la clé exacte de binding de la tuile. Il complète le cache global
+        // ThumbnailUtils, dont les alias peuvent évoluer quand une cover.jpg remplace une embedded.
+        // Une pochette déjà affichée reste donc disponible de façon synchrone pendant le scroll.
+        private val boundArtworkBitmapCache = object : LruCache<String, android.graphics.Bitmap>(48 * 1024) {
+            override fun sizeOf(key: String, value: android.graphics.Bitmap): Int =
+                (value.byteCount / 1024).coerceAtLeast(1)
+        }
 
         init { setHasStableIds(true) }
+
+        fun notifyNowPlayingChanged(previousKey: String, currentKey: String) {
+            if (previousKey.isBlank() && currentKey.isBlank()) return
+
+            currentList.forEachIndexed { index, row ->
+                val track = when (row) {
+                    is LibraryRow.AlbumTrackItem -> row.track
+                    is LibraryRow.TrackItem -> row.track
+                    else -> return@forEachIndexed
+                }
+                val key = trackPlaybackKey(track.path)
+                if (key == previousKey || key == currentKey) {
+                    notifyItemChanged(index, PAYLOAD_NOW_PLAYING)
+                }
+            }
+        }
+
+        fun notifyArtistImageChanged(artistName: String) {
+            val normalized = AudioLibraryHeuristics.normalize(artistName)
+            currentList.forEachIndexed { index, row ->
+                if (row is LibraryRow.ArtistItem &&
+                    AudioLibraryHeuristics.normalize(row.artist.name) == normalized
+                ) {
+                    notifyItemChanged(index, PAYLOAD_ARTIST_IMAGE)
+                }
+            }
+        }
 
         override fun getItemId(position: Int): Long = getItem(position).stableId
         override fun getItemViewType(position: Int): Int = when (getItem(position)) {
@@ -1480,7 +2482,7 @@ class AudioLibraryActivity : AppCompatActivity() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
             VIEW_TYPE_STATUS -> TextHolder(statusTextView())
-            VIEW_TYPE_ARTIST -> ArtistHolder(rowView(withCover = false))
+            VIEW_TYPE_ARTIST -> ArtistHolder(artistTileView())
             VIEW_TYPE_PLAYLIST -> PlaylistHolder(rowView(withCover = false))
             VIEW_TYPE_ALBUM_TILE -> AlbumTileHolder(albumTileView())
             VIEW_TYPE_ALBUM_TRACK -> TrackMetaHolder(trackMetaRowView())
@@ -1498,9 +2500,83 @@ class AudioLibraryActivity : AppCompatActivity() {
             }
         }
 
+        override fun onBindViewHolder(
+            holder: RecyclerView.ViewHolder,
+            position: Int,
+            payloads: MutableList<Any>
+        ) {
+            when {
+                payloads.contains(PAYLOAD_ARTIST_IMAGE) && holder is ArtistHolder -> {
+                    val row = getItem(position) as? LibraryRow.ArtistItem ?: return
+                    holder.bindArtworkOnly(row.artist)
+                    return
+                }
+                payloads.contains(PAYLOAD_ALBUM_METADATA) && holder is AlbumTileHolder -> {
+                    val row = getItem(position) as? LibraryRow.AlbumTile ?: return
+                    holder.bindMetadataOnly(row.album)
+                    return
+                }
+                payloads.contains(PAYLOAD_ARTIST_METADATA) && holder is ArtistHolder -> {
+                    val row = getItem(position) as? LibraryRow.ArtistItem ?: return
+                    holder.bindMetadataOnly(row.artist)
+                    return
+                }
+                payloads.contains(PAYLOAD_TRACK_METADATA) && holder is MediaHolder -> {
+                    val row = getItem(position) as? LibraryRow.TrackItem ?: return
+                    holder.bindMetadataOnly(row.track)
+                    return
+                }
+                payloads.contains(PAYLOAD_TRACK_ARTWORK) && holder is MediaHolder -> {
+                    val row = getItem(position) as? LibraryRow.TrackItem ?: return
+                    holder.bindMetadataOnly(row.track)
+                    holder.bindArtworkOnly(row.track)
+                    return
+                }
+                payloads.contains(PAYLOAD_TRACK_METADATA) && holder is TrackMetaHolder -> {
+                    val row = getItem(position) as? LibraryRow.AlbumTrackItem ?: return
+                    holder.bindMetadataOnly(row.track, row.indexInAlbum)
+                    return
+                }
+                payloads.contains(PAYLOAD_NOW_PLAYING) && holder is TrackMetaHolder -> {
+                    val row = getItem(position) as? LibraryRow.AlbumTrackItem ?: return
+                    holder.bindPlayingState(row.track)
+                    return
+                }
+                payloads.contains(PAYLOAD_NOW_PLAYING) && holder is MediaHolder -> {
+                    val row = getItem(position) as? LibraryRow.TrackItem ?: return
+                    holder.bindPlayingState(row.track)
+                    return
+                }
+            }
+            super.onBindViewHolder(holder, position, payloads)
+        }
+
+        override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
+            super.onViewAttachedToWindow(holder)
+            if (holder is TrackMetaHolder) {
+                // Un ViewHolder peut revenir après un scroll/navigation sans nouveau bind.
+                holder.onAttachedToWindow()
+            }
+            if (holder is MediaHolder) holder.onAttachedToWindow()
+        }
+
         override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
-            if (holder is MediaHolder) boundArtworkJobs.remove(holder.cover)?.cancel()
-            if (holder is AlbumTileHolder) boundArtworkJobs.remove(holder.cover)?.cancel()
+            // Ne pas annuler les décodages locaux en cours : le tag empêche toute image erronée et
+            // le résultat réchauffe le cache pour la tuile qui réapparaît pendant le même fling.
+            if (holder is MediaHolder) {
+                boundArtworkJobs.remove(holder.cover)
+                holder.recycle()
+            }
+            if (holder is AlbumTileHolder) boundArtworkJobs.remove(holder.cover)
+            if (holder is TrackMetaHolder) holder.recycle()
+            if (holder is ArtistHolder) {
+                // Les jobs terminent et réchauffent les caches ; le tag empêche toute écriture sur
+                // une tuile recyclée pour un autre artiste. Les annuler provoquait les photos qui
+                // disparaissaient pendant un fling puis ne revenaient qu'à l'arrêt.
+                boundArtworkJobs.remove(holder.photo)
+                boundArtistImageJobs.remove(holder.photo)
+                appliedArtistImages.remove(holder.photo)
+            }
             super.onViewRecycled(holder)
         }
 
@@ -1548,12 +2624,21 @@ class AudioLibraryActivity : AppCompatActivity() {
             texts.addView(TextView(this@AudioLibraryActivity).apply {
                 id = View.generateViewId(); setTextColor(Color.argb(190, 255, 255, 255)); textSize = 11f; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
             })
+            if (withCover) {
+                addView(ImageButton(this@AudioLibraryActivity).apply {
+                    background = ContextCompat.getDrawable(this@AudioLibraryActivity, R.drawable.bg_audio_library_action_button)
+                    setImageResource(R.drawable.ic_play)
+                    imageTintList = ColorStateList.valueOf(accent)
+                    contentDescription = getString(R.string.action_play_pause)
+                    setPadding(dp(9))
+                }, LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginStart = dp(6) })
+            }
             addView(ImageButton(this@AudioLibraryActivity).apply {
                 background = ContextCompat.getDrawable(this@AudioLibraryActivity, R.drawable.bg_audio_library_action_button)
-                setImageResource(R.drawable.ic_play_small)
-                imageTintList = ColorStateList.valueOf(accent)
+                setImageResource(if (withCover) R.drawable.ic_more_vert else R.drawable.ic_layout_list)
+                imageTintList = ColorStateList.valueOf(textMuted)
                 setPadding(dp(8))
-            }, LinearLayout.LayoutParams(dp(40), dp(40)))
+            }, LinearLayout.LayoutParams(dp(40), dp(40)).apply { if (withCover) marginStart = dp(8) })
         }
 
         private fun albumTileView(): LinearLayout = LinearLayout(this@AudioLibraryActivity).apply {
@@ -1573,16 +2658,70 @@ class AudioLibraryActivity : AppCompatActivity() {
             }
             addView(cover, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(8) })
             addView(TextView(this@AudioLibraryActivity).apply {
-                id = View.generateViewId(); setTextColor(textMain); textSize = 13f
-                typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD); includeFontPadding = false; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
+                id = View.generateViewId()
+                setTextColor(textMain)
+                textSize = 15f
+                typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+                includeFontPadding = false
+                maxLines = 2
+                ellipsize = null
             })
             addView(TextView(this@AudioLibraryActivity).apply {
-                id = View.generateViewId(); setTextColor(textMuted); textSize = 11f
-                typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL); includeFontPadding = false; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
+                id = View.generateViewId()
+                setTextColor(textMuted)
+                textSize = 12f
+                typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+                includeFontPadding = false
+                maxLines = 2
+                ellipsize = null
             })
             addView(TextView(this@AudioLibraryActivity).apply {
-                id = View.generateViewId(); setTextColor(accent); textSize = 10f
-                typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL); includeFontPadding = false; maxLines = 1; ellipsize = TextUtils.TruncateAt.END
+                id = View.generateViewId()
+                setTextColor(accent)
+                textSize = 11f
+                typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+                includeFontPadding = false
+                maxLines = 1
+                ellipsize = null
+            })
+        }
+
+        private fun artistTileView(): LinearLayout = LinearLayout(this@AudioLibraryActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            isClickable = true
+            isFocusable = true
+            background = ColorDrawable(Color.TRANSPARENT)
+            setPadding(dp(4), dp(4), dp(4), dp(14))
+            layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+
+            val photo = fr.retrospare.blazeplayer.ui.RoundedImageView(this@AudioLibraryActivity).apply {
+                id = View.generateViewId()
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                radiusDp = 12f
+                forceSquare = true
+                setImageResource(R.drawable.ic_audio)
+                background = ContextCompat.getDrawable(this@AudioLibraryActivity, R.drawable.bg_audio_cover_placeholder)
+            }
+            addView(photo, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = dp(8)
+            })
+            addView(TextView(this@AudioLibraryActivity).apply {
+                id = View.generateViewId()
+                setTextColor(textMain)
+                textSize = 15f
+                typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+                includeFontPadding = false
+                maxLines = 2
+                ellipsize = null
+            })
+            addView(TextView(this@AudioLibraryActivity).apply {
+                id = View.generateViewId()
+                setTextColor(accent)
+                textSize = 11f
+                typeface = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+                includeFontPadding = false
+                maxLines = 1
+                ellipsize = null
             })
         }
 
@@ -1592,6 +2731,22 @@ class AudioLibraryActivity : AppCompatActivity() {
             background = pillDrawable(Color.argb(26, 255, 255, 255), dp(16), stroke = Color.argb(16, 255, 255, 255))
             setPadding(dp(12), dp(9), dp(10), dp(9))
             layoutParams = RecyclerView.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(7) }
+
+            val playingIndicator =
+                fr.retrospare.blazeplayer.widget.MiniEqualizerView(
+                    this@AudioLibraryActivity
+                ).apply {
+                    id = View.generateViewId()
+                    visibility = View.GONE
+                    setAccentColor(accent)
+                    contentDescription = getString(R.string.audio_now_playing)
+                }
+            addView(
+                playingIndicator,
+                LinearLayout.LayoutParams(dp(22), dp(30)).apply {
+                    marginEnd = dp(10)
+                }
+            )
 
             val texts = LinearLayout(this@AudioLibraryActivity).apply {
                 orientation = LinearLayout.VERTICAL
@@ -1658,6 +2813,14 @@ class AudioLibraryActivity : AppCompatActivity() {
 
             addView(ImageButton(this@AudioLibraryActivity).apply {
                 background = ContextCompat.getDrawable(this@AudioLibraryActivity, R.drawable.bg_audio_library_action_button)
+                setImageResource(R.drawable.ic_play)
+                imageTintList = ColorStateList.valueOf(accent)
+                contentDescription = getString(R.string.action_play_pause)
+                setPadding(dp(9))
+            }, LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginStart = dp(6) })
+
+            addView(ImageButton(this@AudioLibraryActivity).apply {
+                background = ContextCompat.getDrawable(this@AudioLibraryActivity, R.drawable.bg_audio_library_action_button)
                 setImageResource(R.drawable.ic_more_vert)
                 imageTintList = ColorStateList.valueOf(textMuted)
                 setPadding(dp(8))
@@ -1676,19 +2839,59 @@ class AudioLibraryActivity : AppCompatActivity() {
             private val title = texts.getChildAt(0) as TextView
             private val sub = texts.getChildAt(1) as TextView
             private val meta = texts.getChildAt(2) as TextView
-            private val action = view.getChildAt(2) as ImageButton
+            private val playPause = view.getChildAt(2) as ImageButton
+            private val action = view.getChildAt(3) as ImageButton
+            private var boundTrack: LibraryTrack? = null
+
             fun bindTrack(track: LibraryTrack) {
-                title.text = track.title
-                sub.text = listOf(track.artist, track.album).filter { it.isNotBlank() }.joinToString(" · ")
-                sub.visibility = if (sub.text.isBlank()) View.GONE else View.VISIBLE
-                meta.text = listOf(AudioLibraryHeuristics.containerLabel(track), AudioLibraryHeuristics.formatDuration(track.durationMs).takeIf { track.durationMs > 0L }, track.sourceLabel).filterNotNull().filter { it.isNotBlank() }.joinToString(" · ")
+                boundTrack = track
+                bindMetadataOnly(track)
                 itemView.setOnClickListener { playFrom(track) }
+                playPause.visibility = View.VISIBLE
+                playPause.setOnClickListener { toggleTrackPlayback(track) }
                 action.visibility = View.VISIBLE
                 action.setImageResource(R.drawable.ic_more_vert)
                 action.imageTintList = ColorStateList.valueOf(textMuted)
                 action.contentDescription = getString(R.string.audio_track_more_options)
                 action.setOnClickListener { showTrackOverflowActions(track) }
+                bindPlayingState(track)
                 bindArtwork(cover, track)
+            }
+
+            fun bindArtworkOnly(track: LibraryTrack) {
+                bindArtwork(cover, track)
+            }
+
+            fun bindMetadataOnly(track: LibraryTrack) {
+                boundTrack = track
+                title.text = track.title
+                sub.text = listOf(track.artist, track.album)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" · ")
+                sub.visibility = if (sub.text.isBlank()) View.GONE else View.VISIBLE
+                meta.text = listOf(
+                    AudioLibraryHeuristics.containerLabel(track),
+                    AudioLibraryHeuristics.formatDuration(track.durationMs)
+                        .takeIf { track.durationMs > 0L },
+                    track.sourceLabel
+                ).filterNotNull().filter { it.isNotBlank() }.joinToString(" · ")
+            }
+
+            fun bindPlayingState(track: LibraryTrack) {
+                boundTrack = track
+                val playing = isTrackCurrentlyPlaying(track)
+                playPause.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
+                playPause.imageTintList = ColorStateList.valueOf(if (playing) accent else textMain)
+                playPause.contentDescription = getString(R.string.action_play_pause)
+            }
+
+            fun onAttachedToWindow() {
+                boundTrack?.let(::bindPlayingState)
+            }
+
+            fun recycle() {
+                boundTrack = null
+                playPause.setOnClickListener(null)
             }
         }
 
@@ -1698,6 +2901,15 @@ class AudioLibraryActivity : AppCompatActivity() {
             private val sub = view.getChildAt(2) as TextView
             private val meta = view.getChildAt(3) as TextView
             fun bind(album: LibraryAlbum) {
+                bindMetadataOnly(album)
+                bindArtwork(
+                    cover,
+                    album.tracks.firstOrNull()?.copy(artworkPath = album.artworkPath) ?: return,
+                    albumKey = album.key
+                )
+            }
+
+            fun bindMetadataOnly(album: LibraryAlbum) {
                 title.text = albumCardPrimaryText(album)
                 title.visibility = if (title.text.isBlank()) View.GONE else View.VISIBLE
                 sub.text = albumCardSecondaryText(album)
@@ -1709,12 +2921,13 @@ class AudioLibraryActivity : AppCompatActivity() {
                     showAlbumCoverActions(album, albumPlaybackTracks(album))
                     true
                 }
-                bindArtwork(cover, album.tracks.firstOrNull()?.copy(artworkPath = album.artworkPath) ?: return)
             }
         }
 
         private inner class TrackMetaHolder(view: LinearLayout) : RecyclerView.ViewHolder(view) {
-            private val texts = view.getChildAt(0) as LinearLayout
+            private val playingIndicator =
+                view.getChildAt(0) as fr.retrospare.blazeplayer.widget.MiniEqualizerView
+            private val texts = view.getChildAt(1) as LinearLayout
             private val titleLine = texts.getChildAt(0) as LinearLayout
             private val title = titleLine.getChildAt(0) as TextView
             private val artist = texts.getChildAt(1) as TextView
@@ -1722,13 +2935,31 @@ class AudioLibraryActivity : AppCompatActivity() {
             private val meta = bottomLine.getChildAt(0) as TextView
             private val codec = bottomLine.getChildAt(1) as TextView
             private val quality = bottomLine.getChildAt(2) as TextView
-            private val action = view.getChildAt(1) as ImageButton
+            private val playPause = view.getChildAt(2) as ImageButton
+            private val action = view.getChildAt(3) as ImageButton
+            private var boundTrack: LibraryTrack? = null
+
             fun bind(track: LibraryTrack, index: Int) {
+                boundTrack = track
+                bindMetadataOnly(track, index)
+                itemView.setOnClickListener { playFrom(track) }
+                playPause.visibility = View.VISIBLE
+                playPause.setOnClickListener { toggleTrackPlayback(track) }
+                action.visibility = View.VISIBLE
+                action.contentDescription = getString(R.string.audio_track_more_options)
+                action.setOnClickListener { showTrackOverflowActions(track) }
+                bindPlayingState(track)
+            }
+
+            fun bindMetadataOnly(track: LibraryTrack, index: Int) {
+                boundTrack = track
                 val number = track.trackNo.takeIf { it > 0 } ?: index
                 title.text = "%02d. %s".format(
                     number.coerceAtMost(99),
                     track.title.ifBlank {
-                        AudioLibraryHeuristics.inferTitleFromName(AudioLibraryHeuristics.fileNameFromPath(track.path))
+                        AudioLibraryHeuristics.inferTitleFromName(
+                            AudioLibraryHeuristics.fileNameFromPath(track.path)
+                        )
                     }
                 )
                 val container = AudioLibraryHeuristics.containerLabel(track)
@@ -1739,6 +2970,7 @@ class AudioLibraryActivity : AppCompatActivity() {
                     originalName = AudioLibraryHeuristics.fileNameFromPath(track.path),
                     fallbackExtension = container,
                     knownDurationMs = track.durationMs,
+                    knownBitrate = track.bitrate,
                     knownSizeBytes = track.sizeBytes
                 )
                 artist.text = track.artist
@@ -1753,30 +2985,59 @@ class AudioLibraryActivity : AppCompatActivity() {
                 }
                 meta.text = details.joinToString(" · ")
                 meta.visibility = if (details.isEmpty()) View.GONE else View.VISIBLE
-                itemView.setOnClickListener { playFrom(track) }
-                action.visibility = View.VISIBLE
-                action.contentDescription = getString(R.string.audio_track_more_options)
-                action.setOnClickListener { showTrackOverflowActions(track) }
+            }
+
+            fun bindPlayingState(track: LibraryTrack) {
+                boundTrack = track
+                val playing = isTrackCurrentlyPlaying(track)
+                playPause.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
+                playPause.imageTintList = ColorStateList.valueOf(if (playing) accent else textMain)
+                playPause.contentDescription = getString(R.string.action_play_pause)
+                if (playing) {
+                    playingIndicator.setAccentColor(accent)
+                    playingIndicator.start()
+                } else {
+                    playingIndicator.stop()
+                }
+            }
+
+            fun onAttachedToWindow() {
+                val track = boundTrack ?: return
+                bindPlayingState(track)
+                if (isTrackCurrentlyPlaying(track)) playingIndicator.ensureAnimationRunning()
+            }
+
+            fun recycle() {
+                boundTrack = null
+                playPause.setOnClickListener(null)
+                playingIndicator.stop()
             }
         }
 
         private inner class ArtistHolder(view: LinearLayout) : RecyclerView.ViewHolder(view) {
-            private val avatar = view.getChildAt(0) as TextView
-            private val texts = view.getChildAt(1) as LinearLayout
-            private val title = texts.getChildAt(0) as TextView
-            private val sub = texts.getChildAt(1) as TextView
-            private val meta = texts.getChildAt(2) as TextView
-            private val action = view.getChildAt(2) as ImageButton
+            val photo = view.getChildAt(0) as ImageView
+            private val title = view.getChildAt(1) as TextView
+            private val albumCount = view.getChildAt(2) as TextView
+
             fun bind(artist: LibraryArtist) {
-                avatar.text = artist.name.take(1).uppercase(Locale.getDefault())
+                bindMetadataOnly(artist)
+                bindArtistArtwork(photo, artist, force = false)
+            }
+
+            fun bindMetadataOnly(artist: LibraryArtist) {
                 title.text = artist.name
-                sub.text = resources.getQuantityString(R.plurals.audio_album_count_compact, artist.albums, artist.albums)
-                meta.text = resources.getQuantityString(R.plurals.audio_track_count_compact, artist.tracks.size, artist.tracks.size)
-                action.visibility = View.VISIBLE
-                action.setImageResource(R.drawable.ic_play_small)
-                action.imageTintList = ColorStateList.valueOf(accent)
-                action.setOnClickListener { openArtist(artist) }
+                title.visibility = if (artist.name.isBlank()) View.GONE else View.VISIBLE
+                albumCount.text = resources.getQuantityString(
+                    R.plurals.audio_album_count_compact,
+                    artist.albums,
+                    artist.albums
+                )
                 itemView.setOnClickListener { openArtist(artist) }
+                photo.setOnClickListener { openArtist(artist) }
+            }
+
+            fun bindArtworkOnly(artist: LibraryArtist) {
+                bindArtistArtwork(photo, artist, force = true)
             }
         }
 
@@ -1801,19 +3062,127 @@ class AudioLibraryActivity : AppCompatActivity() {
             }
         }
 
-        private fun bindArtwork(view: ImageView, track: LibraryTrack) {
-            boundArtworkJobs.remove(view)?.cancel()
-            val primary = viewModel.primaryArtworkPathFor(track)
-            val fallback = viewModel.fallbackArtworkPathFor(track)
-            val requestKey = "$primary|${fallback.orEmpty()}"
-            view.tag = requestKey
-            AudioArtworkResolver.memoryCachedBitmap(track.path, primary)?.let {
-                if (view.tag == requestKey) view.setImageBitmap(it)
+        private fun bindArtistArtwork(view: ImageView, artist: LibraryArtist, force: Boolean) {
+            val requestKey = "artist_tile:${AudioLibraryHeuristics.normalize(artist.name)}"
+            val sameRequest = view.tag == requestKey
+            if (!force && sameRequest && appliedArtistImages[view] == requestKey && view.drawable != null) {
                 return
             }
-            view.setImageResource(R.drawable.ic_audio)
+            if (!sameRequest || force) {
+                boundArtworkJobs.remove(view)
+                boundArtistImageJobs.remove(view)
+                appliedArtistImages.remove(view)
+            }
+            view.tag = requestKey
+            view.clearColorFilter()
+            view.setPadding(0)
+
+            val ready = ArtistImageRepository.peekMemory(artist.name)
+            if (ready != null) {
+                val cacheKey = "${ready.localPath}:tile:${java.io.File(ready.localPath).lastModified()}:${java.io.File(ready.localPath).length()}"
+                artistBitmapCache.get(cacheKey)?.let { bitmap ->
+                    if (view.tag == requestKey) {
+                        appliedArtistImages[view] = requestKey
+                        view.setImageBitmap(bitmap)
+                    }
+                    return
+                }
+                if (!sameRequest || view.drawable == null) view.setImageResource(R.drawable.ic_audio)
+                val decodeJob = lifecycleScope.launch(artworkDispatcher) {
+                    val bitmap = cachedArtistBitmap(ready.localPath, 900)
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        if (!isFinishing && !isDestroyed && bitmap != null && view.tag == requestKey) {
+                            appliedArtistImages[view] = requestKey
+                            view.setImageBitmap(bitmap)
+                        }
+                    }
+                }
+                boundArtistImageJobs[view] = decodeJob
+                return
+            }
+
+            if (!sameRequest || view.drawable == null) view.setImageResource(R.drawable.ic_audio)
+            // La pochette n'est qu'un fallback provisoire. Elle n'est chargée que tant qu'aucune
+            // vraie photo n'est connue et ne pourra pas repasser par-dessus une photo résolue.
+            artist.tracks.firstOrNull()?.let { representative ->
+                val fallbackTrack = representative.copy(
+                    artworkPath = AudioLibraryHeuristics.bestArtworkPath(artist.tracks)
+                )
+                AudioArtworkResolver.memoryCachedBitmap(
+                    fallbackTrack.path,
+                    viewModel.primaryArtworkPathFor(fallbackTrack)
+                )?.let { bitmap ->
+                    if (view.tag == requestKey && ArtistImageRepository.peekMemory(artist.name) == null) {
+                        view.setImageBitmap(bitmap)
+                    }
+                } ?: run {
+                    val fallbackJob = lifecycleScope.launch(artworkDispatcher) {
+                        delay(120L)
+                        val bitmap = viewModel.loadArtworkForBinding(fallbackTrack)
+                        withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            if (!isFinishing && !isDestroyed && bitmap != null &&
+                                view.tag == requestKey && appliedArtistImages[view] != requestKey &&
+                                ArtistImageRepository.peekMemory(artist.name) == null
+                            ) {
+                                view.setImageBitmap(bitmap)
+                            }
+                        }
+                    }
+                    boundArtworkJobs[view] = fallbackJob
+                }
+            }
+
+            val artistJob = lifecycleScope.launch {
+                val result = ArtistImageRepository.resolve(
+                    this@AudioLibraryActivity,
+                    artist.name,
+                    artist.tracks
+                ) ?: return@launch
+                val bitmap = withContext(artworkDispatcher) {
+                    cachedArtistBitmap(result.localPath, 900)
+                } ?: return@launch
+                if (isFinishing || isDestroyed || view.tag != requestKey) return@launch
+                appliedArtistImages[view] = requestKey
+                boundArtworkJobs.remove(view)?.cancel()
+                view.clearColorFilter()
+                view.setPadding(0)
+                view.setImageBitmap(bitmap)
+            }
+            boundArtistImageJobs[view] = artistJob
+        }
+
+        private fun bindArtwork(view: ImageView, track: LibraryTrack, albumKey: String? = null) {
+            val primary = viewModel.primaryArtworkPathFor(track)
+            val fallback = viewModel.fallbackArtworkPathFor(track)
+            val requestKey = "${albumKey.orEmpty()}|$primary|${fallback.orEmpty()}"
+            val sameRequest = view.tag == requestKey
+            val activeJob = boundArtworkJobs[view]
+            if (!sameRequest) boundArtworkJobs.remove(view)
+            view.tag = requestKey
+
+            // Chemin réellement instantané après redémarrage : l'atlas a été décodé une seule fois
+            // dans Application.onCreate(), donc aucun accès Room/disque n'est nécessaire ici.
+            albumKey?.let { key -> AudioAlbumArtworkAtlas.peek(key, primary) }?.let { bitmap ->
+                boundArtworkBitmapCache.put(requestKey, bitmap)
+                if (view.tag == requestKey) view.setImageBitmap(bitmap)
+                return
+            }
+
+            boundArtworkBitmapCache.get(requestKey)?.let { bitmap ->
+                if (view.tag == requestKey) view.setImageBitmap(bitmap)
+                return
+            }
+            AudioArtworkResolver.memoryCachedBitmap(track.path, primary)?.let { bitmap ->
+                boundArtworkBitmapCache.put(requestKey, bitmap)
+                if (view.tag == requestKey) view.setImageBitmap(bitmap)
+                return
+            }
+
+            if (sameRequest && activeJob?.isActive == true) return
+            if (!sameRequest || view.drawable == null) view.setImageResource(R.drawable.ic_audio)
             val job = lifecycleScope.launch(artworkDispatcher) {
                 val bitmap = viewModel.loadArtworkForBinding(track)
+                if (bitmap != null) boundArtworkBitmapCache.put(requestKey, bitmap)
                 withContext(kotlinx.coroutines.Dispatchers.Main) {
                     if (!isFinishing && !isDestroyed && bitmap != null && view.tag == requestKey) {
                         view.setImageBitmap(bitmap)
@@ -1821,11 +3190,34 @@ class AudioLibraryActivity : AppCompatActivity() {
                 }
             }
             boundArtworkJobs[view] = job
+            job.invokeOnCompletion { boundArtworkJobs.remove(view, job) }
         }
     }
 
     private object RowDiffCallback : DiffUtil.ItemCallback<LibraryRow>() {
-        override fun areItemsTheSame(oldItem: LibraryRow, newItem: LibraryRow): Boolean = oldItem.stableId == newItem.stableId
-        override fun areContentsTheSame(oldItem: LibraryRow, newItem: LibraryRow): Boolean = oldItem == newItem
+        override fun areItemsTheSame(oldItem: LibraryRow, newItem: LibraryRow): Boolean =
+            oldItem.stableId == newItem.stableId
+
+        override fun areContentsTheSame(oldItem: LibraryRow, newItem: LibraryRow): Boolean =
+            oldItem == newItem
+
+        override fun getChangePayload(oldItem: LibraryRow, newItem: LibraryRow): Any? {
+            return when {
+                oldItem is LibraryRow.TrackItem && newItem is LibraryRow.TrackItem &&
+                    oldItem.track.path == newItem.track.path &&
+                    oldItem.track.artworkPath != newItem.track.artworkPath -> PAYLOAD_TRACK_ARTWORK
+                oldItem is LibraryRow.TrackItem && newItem is LibraryRow.TrackItem &&
+                    oldItem.track.path == newItem.track.path -> PAYLOAD_TRACK_METADATA
+                oldItem is LibraryRow.AlbumTrackItem && newItem is LibraryRow.AlbumTrackItem &&
+                    oldItem.track.path == newItem.track.path -> PAYLOAD_TRACK_METADATA
+                oldItem is LibraryRow.AlbumTile && newItem is LibraryRow.AlbumTile &&
+                    oldItem.album.key == newItem.album.key &&
+                    oldItem.album.artworkPath == newItem.album.artworkPath -> PAYLOAD_ALBUM_METADATA
+                oldItem is LibraryRow.ArtistItem && newItem is LibraryRow.ArtistItem &&
+                    AudioLibraryHeuristics.normalize(oldItem.artist.name) ==
+                        AudioLibraryHeuristics.normalize(newItem.artist.name) -> PAYLOAD_ARTIST_METADATA
+                else -> null
+            }
+        }
     }
 }

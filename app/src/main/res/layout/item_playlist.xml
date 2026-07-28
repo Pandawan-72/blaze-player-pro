@@ -84,7 +84,8 @@
                     android:paddingVertical="2dp"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="10sp"
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvPlaylistFormatBadge"
@@ -96,7 +97,8 @@
                     android:paddingVertical="2dp"
                     android:textColor="@color/on_surface_variant"
                     android:textSize="10sp"
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    android:textStyle="bold" />
 
             </LinearLayout>
 

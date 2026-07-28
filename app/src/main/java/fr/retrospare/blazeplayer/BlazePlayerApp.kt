@@ -8,6 +8,8 @@ import dagger.Lazy
 import dagger.hilt.android.HiltAndroidApp
 import fr.retrospare.blazeplayer.billing.RevenueCatManager
 import fr.retrospare.blazeplayer.debug.CrashReporter
+import fr.retrospare.blazeplayer.player.AudioLibraryRepository
+import fr.retrospare.blazeplayer.ui.AdaptiveButtonTextManager
 import fr.retrospare.blazeplayer.ui.HapticFeedbackManager
 import javax.inject.Inject
 
@@ -19,10 +21,18 @@ class BlazePlayerApp : Application() {
     @Inject
     lateinit var revenueCatManager: Lazy<RevenueCatManager>
 
+    @Inject
+    lateinit var audioLibraryRepository: Lazy<AudioLibraryRepository>
+
     override fun onCreate() {
         super.onCreate()
+        AdaptiveButtonTextManager.initialize(this)
         HapticFeedbackManager.initialize(this)
         CrashReporter.install(this)
+        // Aucun snapshot, atlas, accès Room ou initialisation des caches miniatures ne doit bloquer
+        // le démarrage des trois raccourcis Android. Le réchauffement est différé sur un thread I/O
+        // basse priorité et accéléré seulement si Audio ou Gallery est effectivement demandé.
+        BlazeStartupWarmup.schedule(this)
         if (configureRevenueCat()) {
             // Enregistre immédiatement l'écoute globale et lance une synchronisation silencieuse.
             // Aucun écran n'attend ce réseau : les droits DataStore persistés sont utilisés dès le

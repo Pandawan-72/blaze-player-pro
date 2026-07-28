@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -41,7 +42,11 @@ class NetworkSharesAdapter(
         fun bind(share: NetworkShare) {
             tvName.text = share.name
             tvUrl.text = if (share.type == ShareType.UPNP) share.host else "${share.host}/${share.shareName}"
-            tvBadgeType.text = if (share.type == ShareType.UPNP) "UPnP" else share.type.name
+            val isUpnp = share.type == ShareType.UPNP
+            tvBadgeType.text = if (isUpnp) "UPnP" else share.type.name
+            tvBadgeType.setTextColor(
+                ContextCompat.getColor(itemView.context, if (isUpnp) R.color.green_accent else R.color.blue_accent)
+            )
             tvStatus.text = ""
 
 
