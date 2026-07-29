@@ -34,7 +34,15 @@ object AudioQualityBadgeBinder {
         val context = codecView?.context ?: qualityView?.context ?: return
         val ext = normalizedExtension(path, originalName, fallbackExtension)
         if (ext.isNotBlank()) {
-            if (textOnly) applyTextOnlyStyle(codecView) else BadgeStyle.applyContainerBadge(codecView, ext)
+            if (textOnly) {
+                applyTextOnlyStyle(codecView)
+                // En mode texte seul, BadgeStyle n'est pas appelé : il faut donc mettre à jour
+                // explicitement le libellé. Sans cette affectation, le TextView conservait la
+                // valeur de prévisualisation XML « MP3 » quel que soit le morceau réellement joué.
+                codecView?.text = ext
+            } else {
+                BadgeStyle.applyContainerBadge(codecView, ext)
+            }
             codecTextColor?.let { codecView?.setTextColor(it) }
             codecView?.visibility = View.VISIBLE
         } else {
@@ -203,8 +211,8 @@ object AudioQualityBadgeBinder {
             return candidate.uppercase()
                 .takeIf { it.length in 2..5 && it.all { ch -> ch.isLetterOrDigit() } }.orEmpty()
         }
-        return ext(fallback).ifBlank { ext(name) }.ifBlank {
+        return ext(name).ifBlank {
             if (path.startsWith("content://", true)) "" else ext(path)
-        }
+        }.ifBlank { ext(fallback) }
     }
 }

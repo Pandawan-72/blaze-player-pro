@@ -881,4 +881,10 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_artist_photo_restored">Автоматичне фото відновлено</string>
     <string name="audio_artist_photo_update_failed">Це зображення неможливо використати</string>
     <string name="audio_now_playing">Зараз відтворюється</string>
+
+    <string name="review_prompt_title">Подобається Blaze Player?</string>
+    <string name="review_prompt_message">Ваш відгук допомагає Blaze Player ставати кращим. Знайдіть хвилину, щоб залишити чесну оцінку в Play Store.</string>
+    <string name="review_prompt_rate_now">Оцінити зараз</string>
+    <string name="review_prompt_later">Пізніше</string>
+    <string name="review_prompt_already_rated">Уже оцінено</string>
 </resources>

@@ -864,4 +864,10 @@ Code : %2$s</string>
     <string name="audio_artist_photo_restored">Photo automatique rétablie</string>
     <string name="audio_artist_photo_update_failed">Impossible d’utiliser cette image</string>
     <string name="audio_now_playing">Lecture en cours</string>
+
+    <string name="review_prompt_title">Vous aimez Blaze Player ?</string>
+    <string name="review_prompt_message">Votre avis aide Blaze Player à continuer de s\'améliorer. Prenez un instant pour laisser une note honnête sur le Play Store.</string>
+    <string name="review_prompt_rate_now">Noter maintenant</string>
+    <string name="review_prompt_later">Plus tard</string>
+    <string name="review_prompt_already_rated">Déjà noté</string>
 </resources>

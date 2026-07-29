@@ -58,6 +58,7 @@ class HomeFragment : Fragment() {
     private val viewModel: HomeViewModel by viewModels()
     private var currentTabIndex = 0
     private var audioPlayerFragment: AudioPlayerFragment? = null
+    private var tabDeferredWorkGeneration: Long = 0L
     private var audioFragmentCreationPending: Boolean = false
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -263,32 +264,9 @@ class HomeFragment : Fragment() {
                 isEnabled = true
             }
         })
-        // Différé : setUpMediaRouteButton() déclenche en interne CastContext.getSharedInstance(),
-        // un appel synchrone connu pour provoquer des ANR sur le thread principal (même cause que
-        // le correctif appliqué dans PlayerActivity). On évite qu'il bloque la mise en place
-        // initiale de la vue, qui se répète à chaque recréation de HomeFragment.
-        view.post {
-            if (!isAdded) return@post
-            try {
-                // Même dialog custom que dans le lecteur : quand une session Cast est active,
-                // le second appui sur l'icône de l'accueil ouvre le panneau Blaze au lieu du
-                // vieux contrôleur MediaRouter gris/vert. Le sélecteur d'appareils initial
-                // reste celui du SDK Google Cast.
-                binding.btnCast.setDialogFactory(fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory())
-                com.google.android.gms.cast.framework.CastButtonFactory
-                    .setUpMediaRouteButton(requireContext(), binding.btnCast)
-            } catch (e: Exception) {
-                binding.btnCast.visibility = android.view.View.GONE
-            }
-        }
-
-        // "Caster l'écran du téléphone" : ouvre directement les paramètres système Android de
-        // diffusion d'écran, plutôt qu'un pipeline maison (capture MediaProjection + encodage
-        // vidéo temps réel + serveur de streaming live) — l'API officielle de Google pour ça
-        // (CastRemoteDisplay) est abandonnée depuis plusieurs années, et reconstruire l'équivalent
-        // soi-même serait un chantier bien plus lourd que tout le reste de l'app, avec un risque
-        // élevé de ne pas fonctionner de façon fiable. Android sait déjà le faire nativement.
-        binding.btnCastRemote.setOnClickListener {
+        // Le bouton Chromecast ouvre directement la télécommande Blaze. Son bouton d'alimentation
+        // contient le sélecteur d'appareils Google Cast : une seule entrée suffit donc dans l'en-tête.
+        binding.btnCast.setOnClickListener {
             startActivity(android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.ChromecastRemoteActivity::class.java))
         }
 
@@ -555,11 +533,13 @@ class HomeFragment : Fragment() {
     }
 
     private fun selectTab(index: Int) {
+        if (currentTabIndex == index) return
         viewLifecycleOwner.lifecycleScope.launch {
             if (!canOpenTab(index)) {
                 findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
                 return@launch
             }
+            protectAudioPlaybackDuringTabTransition()
             currentTabIndex = index
             updateTabStyles(index)
             if (index == 4) {
@@ -570,8 +550,6 @@ class HomeFragment : Fragment() {
                 viewModel.onTabSelected(index)
                 if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
-                if (index == 1) resetVideoHistoryScrollToTop()
-                if (index == 2) showNetworkHelpOnce()
             }
         }
     }
@@ -608,7 +586,6 @@ class HomeFragment : Fragment() {
                     hideAudioTab()
                     if (requestedTab == 2) requestNetworkPermissionsIfNeeded()
                     updateSectionTitles(requestedTab)
-                    if (requestedTab == 2) showNetworkHelpOnce()
                 }
             }
         }
@@ -620,13 +597,13 @@ class HomeFragment : Fragment() {
                 findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
                 return@launch
             }
+            protectAudioPlaybackDuringTabTransition()
             currentTabIndex = 2
             audioPlayerFragment?.savePlaylistFromController() ?: Unit
             updateTabStyles(2)
             hideAudioTab()
             requestNetworkPermissionsIfNeeded()
             updateSectionTitles(2)
-            showNetworkHelpOnce()
         }
     }
 
@@ -680,7 +657,6 @@ class HomeFragment : Fragment() {
         val visibility = if (showCastButtons) View.VISIBLE else View.GONE
         binding.btnCast.visibility = visibility
         binding.btnScreenCast.visibility = visibility
-        binding.btnCastRemote.visibility = visibility
         binding.btnNetworkHelp.visibility = if (tabIndex == 2) View.VISIBLE else View.GONE
     }
 
@@ -2814,9 +2790,12 @@ class HomeFragment : Fragment() {
     }
 
     private fun showAudioTab() {
+        protectAudioPlaybackDuringTabTransition()
         updateGalleryTypeToggle(false)
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
-        binding.scrollContent.visibility = android.view.View.GONE
+        // INVISIBLE conserve la géométrie des deux grands conteneurs et évite un re-layout
+        // complet du Home au moment où le flux audio doit rester prioritaire.
+        binding.scrollContent.visibility = android.view.View.INVISIBLE
         binding.audioContainer.visibility = android.view.View.VISIBLE
 
         // Une transaction Fragment est asynchrone. Plusieurs appels rapprochés à showAudioTab()
@@ -2828,10 +2807,16 @@ class HomeFragment : Fragment() {
             if (pendingOrAttached.isAdded) {
                 audioFragmentCreationPending = false
                 removeDuplicateAudioFragments(keep = pendingOrAttached)
-                childFragmentManager.beginTransaction()
-                    .setMaxLifecycle(pendingOrAttached, androidx.lifecycle.Lifecycle.State.RESUMED)
-                    .show(pendingOrAttached)
-                    .commitAllowingStateLoss()
+                if (pendingOrAttached.isHidden) {
+                    childFragmentManager.beginTransaction()
+                        .setReorderingAllowed(true)
+                        .setMaxLifecycle(pendingOrAttached, androidx.lifecycle.Lifecycle.State.RESUMED)
+                        .show(pendingOrAttached)
+                        .runOnCommit { pendingOrAttached.setHostTabVisible(true) }
+                        .commitAllowingStateLoss()
+                } else {
+                    pendingOrAttached.setHostTabVisible(true)
+                }
                 return
             }
             // La transaction add/replace est déjà dans la file FragmentManager : ne jamais créer
@@ -2847,10 +2832,16 @@ class HomeFragment : Fragment() {
             audioFragmentCreationPending = false
             audioPlayerFragment = existing
             removeDuplicateAudioFragments(keep = existing)
-            childFragmentManager.beginTransaction()
-                .setMaxLifecycle(existing, androidx.lifecycle.Lifecycle.State.RESUMED)
-                .show(existing)
-                .commitAllowingStateLoss()
+            if (existing.isHidden) {
+                childFragmentManager.beginTransaction()
+                    .setReorderingAllowed(true)
+                    .setMaxLifecycle(existing, androidx.lifecycle.Lifecycle.State.RESUMED)
+                    .show(existing)
+                    .runOnCommit { existing.setHostTabVisible(true) }
+                    .commitAllowingStateLoss()
+            } else {
+                existing.setHostTabVisible(true)
+            }
             return
         }
 
@@ -2859,9 +2850,13 @@ class HomeFragment : Fragment() {
         audioFragmentCreationPending = true
         childFragmentManager.beginTransaction()
             // replace() garantit qu'un ancien fragment restauré sans tag ne reste pas empilé.
+            .setReorderingAllowed(true)
             .replace(fr.retrospare.blazeplayer.R.id.audioContainer, created, AUDIO_FRAGMENT_TAG)
             .setMaxLifecycle(created, androidx.lifecycle.Lifecycle.State.RESUMED)
-            .runOnCommit { audioFragmentCreationPending = false }
+            .runOnCommit {
+                audioFragmentCreationPending = false
+                created.setHostTabVisible(true)
+            }
             .commitAllowingStateLoss()
     }
 
@@ -2896,12 +2891,13 @@ class HomeFragment : Fragment() {
     fun switchToTab(index: Int) {
         // Garde-fou : si la vue n'existe pas (fragment présent dans le back stack mais pas
         // affiché, ex. Réglages/Réseau au premier plan), viewLifecycleOwner planterait.
-        if (_binding == null || !isAdded) return
+        if (_binding == null || !isAdded || currentTabIndex == index) return
         viewLifecycleOwner.lifecycleScope.launch {
             if (!canOpenTab(index)) {
                 findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_paywall)
                 return@launch
             }
+            protectAudioPlaybackDuringTabTransition()
             currentTabIndex = index
             viewModel.onTabSelected(index)
             updateTabStyles(index)
@@ -2911,44 +2907,36 @@ class HomeFragment : Fragment() {
                 hideAudioTab()
                 if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
-                if (index == 1) resetVideoHistoryScrollToTop()
-                if (index == 2) showNetworkHelpOnce()
             }
         }
     }
 
     fun returnToHome() {
+        protectAudioPlaybackDuringTabTransition()
         currentTabIndex = 1
         updateTabStyles(1)
         hideAudioTab()
         viewModel.onTabSelected(1)
         updateSectionTitles(1)
-        resetVideoHistoryScrollToTop()
     }
 
     private fun hideAudioTab() {
+        protectAudioPlaybackDuringTabTransition()
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(false)
         binding.scrollContent.visibility = android.view.View.VISIBLE
-        binding.audioContainer.visibility = android.view.View.GONE
-        // Résout le fragment via son tag en plus de la variable locale : après une recréation de
-        // la vue de HomeFragment (retour de Réglages, d'une vidéo locale...), audioPlayerFragment
-        // repart à null alors que l'instance restaurée existe toujours dans childFragmentManager.
-        // Sans ce lookup, elle n'était jamais re-cachée/re-plafonnée, et son onResume() (qui appelle
-        // setInAudioPlayer(true) sans vérifier s'il est caché) pouvait re-masquer le mini player
-        // juste après, sans qu'aucun événement ne le corrige avant un clic manuel sur un onglet.
+        // Conserve la mesure du conteneur et évite un re-layout global pendant le flux audio.
+        binding.audioContainer.visibility = android.view.View.INVISIBLE
+
         val fragments = audioFragmentsInContainer()
         val primary = audioPlayerFragment?.takeUnless { it.isRemoving }
             ?: fragments.lastOrNull { it.tag == AUDIO_FRAGMENT_TAG }
             ?: fragments.lastOrNull()
         audioPlayerFragment = primary
-        if (fragments.isNotEmpty()) {
-            childFragmentManager.beginTransaction().apply {
-                fragments.forEach {
-                    setMaxLifecycle(it, androidx.lifecycle.Lifecycle.State.STARTED)
-                    if (!it.isHidden) hide(it)
-                }
-            }.commitAllowingStateLoss()
-        }
+
+        // Ne pas hide() ni abaisser le lifecycle : onHiddenChanged() libérait auparavant le
+        // Visualizer, ce qui pouvait reconfigurer brièvement AudioTrack et produire un saut audible.
+        primary?.setHostTabVisible(false)
+        if (primary != null) removeDuplicateAudioFragments(keep = primary)
     }
 
     fun openAudioPlayer(path: String, name: String) {
@@ -3001,8 +2989,12 @@ class HomeFragment : Fragment() {
         audioPlayerFragment = AudioPlayerFragment()
         audioFragmentCreationPending = true
         childFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
             .replace(fr.retrospare.blazeplayer.R.id.audioContainer, audioPlayerFragment!!, AUDIO_FRAGMENT_TAG)
-            .runOnCommit { audioFragmentCreationPending = false }
+            .runOnCommit {
+                audioFragmentCreationPending = false
+                audioPlayerFragment?.setHostTabVisible(true)
+            }
             .commitAllowingStateLoss()
     }
 
@@ -3052,6 +3044,35 @@ class HomeFragment : Fragment() {
         }
     }
 
+    /**
+     * Les changements d’onglet sont des transitions UI, jamais des transitions audio. Une courte
+     * fenêtre empêche les workers d’hydratation de remonter en priorité pendant les premières
+     * frames, notamment quand Gallery ou Réseau prépare son contenu.
+     */
+    private fun protectAudioPlaybackDuringTabTransition() {
+        if (fr.retrospare.blazeplayer.player.AudioLibraryWorkState.isPlaybackProtected()) {
+            fr.retrospare.blazeplayer.player.AudioLibraryWorkState.beginPlaybackCriticalWindow(1_100L)
+        }
+    }
+
+    /** Exécute le chargement spécifique de l’onglet après le premier rendu de navigation. */
+    private fun scheduleDeferredTabWork(tabIndex: Int) {
+        val generation = ++tabDeferredWorkGeneration
+        binding.root.postOnAnimation {
+            if (_binding == null || !isAdded || currentTabIndex != tabIndex || generation != tabDeferredWorkGeneration) {
+                return@postOnAnimation
+            }
+            when (tabIndex) {
+                1 -> resetVideoHistoryScrollToTop()
+                2 -> {
+                    ensureEmbeddedNetworkSources()
+                    showNetworkHelpOnce()
+                }
+                3 -> refreshGalleryDefaultContent()
+            }
+        }
+    }
+
     private fun updateSectionTitles(tabIndex: Int) {
         updateHeaderCastButtons(tabIndex)
         when (tabIndex) {
@@ -3077,7 +3098,6 @@ class HomeFragment : Fragment() {
                 binding.headerControlsGallery.visibility = View.GONE
                 updateGalleryTypeToggle(false)
                 updateEmbeddedNetworkScanState(scanning = false)
-                ensureEmbeddedNetworkSources()
             }
             3 -> {
                 binding.sectionLocal.visibility = View.GONE
@@ -3087,7 +3107,6 @@ class HomeFragment : Fragment() {
                 binding.headerControlsNetwork.visibility = View.GONE
                 binding.headerControlsGallery.visibility = View.VISIBLE
                 viewModel.onTabSelected(3)
-                refreshGalleryDefaultContent()
             }
             else -> {
                 binding.sectionLocal.visibility = View.VISIBLE
@@ -3101,6 +3120,7 @@ class HomeFragment : Fragment() {
             }
         }
         updateHistoryDeleteOverlay()
+        if (tabIndex in 1..3) scheduleDeferredTabWork(tabIndex)
     }
 
     private fun updateTabStyles(selectedIndex: Int) {

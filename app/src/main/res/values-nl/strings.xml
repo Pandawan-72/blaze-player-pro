@@ -865,4 +865,10 @@ Token: %2$s</string>
     <string name="audio_artist_photo_restored">Automatische foto hersteld</string>
     <string name="audio_artist_photo_update_failed">Deze afbeelding kan niet worden gebruikt</string>
     <string name="audio_now_playing">Wordt afgespeeld</string>
+
+    <string name="review_prompt_title">Bevalt Blaze Player?</string>
+    <string name="review_prompt_message">Jouw mening helpt Blaze Player verder te verbeteren. Neem even de tijd voor een eerlijke beoordeling in de Play Store.</string>
+    <string name="review_prompt_rate_now">Nu beoordelen</string>
+    <string name="review_prompt_later">Later</string>
+    <string name="review_prompt_already_rated">Al beoordeeld</string>
 </resources>

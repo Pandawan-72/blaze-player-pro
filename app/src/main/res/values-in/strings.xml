@@ -879,4 +879,10 @@ Token: %2$s</string>
     <string name="audio_artist_photo_restored">Foto otomatis dipulihkan</string>
     <string name="audio_artist_photo_update_failed">Gambar ini tidak dapat digunakan</string>
     <string name="audio_now_playing">Sedang diputar</string>
+
+    <string name="review_prompt_title">Suka Blaze Player?</string>
+    <string name="review_prompt_message">Pendapat Anda membantu Blaze Player terus berkembang. Luangkan waktu sejenak untuk memberikan penilaian yang jujur di Play Store.</string>
+    <string name="review_prompt_rate_now">Beri nilai sekarang</string>
+    <string name="review_prompt_later">Nanti</string>
+    <string name="review_prompt_already_rated">Sudah memberi nilai</string>
 </resources>

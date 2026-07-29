@@ -1136,11 +1136,15 @@ class BlazePlayerService : MediaLibraryService() {
                 if (path.isBlank()) return
 
                 var bitrate = 0L
+                var selectedMimeType = ""
+                var selectedCodecs = ""
                 loop@ for (group in tracks.groups) {
                     if (group.type != C.TRACK_TYPE_AUDIO) continue
                     for (index in 0 until group.length) {
                         if (!group.isTrackSelected(index)) continue
                         val format = group.getTrackFormat(index)
+                        selectedMimeType = format.sampleMimeType.orEmpty()
+                        selectedCodecs = format.codecs.orEmpty()
                         bitrate = when {
                             format.averageBitrate > 0 -> format.averageBitrate.toLong()
                             format.peakBitrate > 0 -> format.peakBitrate.toLong()
@@ -1150,13 +1154,18 @@ class BlazePlayerService : MediaLibraryService() {
                     }
                 }
 
-                val extension = mediaItem.mediaMetadata.extras
-                    ?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)
+                val originalName = mediaItem.mediaMetadata.extras
+                    ?.getString("blaze_original_name")
                     .orEmpty()
-                    .ifBlank {
-                        path.substringBefore('?').substringBefore('#')
-                            .substringAfterLast('.', "").uppercase()
-                    }
+                val extension = resolveAudioContainerExtension(
+                    path = path,
+                    originalName = originalName,
+                    declaredExtension = mediaItem.mediaMetadata.extras
+                        ?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)
+                        .orEmpty(),
+                    sampleMimeType = selectedMimeType,
+                    codecs = selectedCodecs
+                )
                 val durationSeconds = exoPlayer.duration
                     .takeIf { it > 0L }
                     ?.let { (it + 500L) / 1000L }
@@ -2056,6 +2065,48 @@ class BlazePlayerService : MediaLibraryService() {
 
     private fun isObsoleteLocalRelayUrl(value: String): Boolean =
         value.startsWith("http://") && value.contains(":8928/")
+
+    private fun resolveAudioContainerExtension(
+        path: String,
+        originalName: String,
+        declaredExtension: String,
+        sampleMimeType: String,
+        codecs: String
+    ): String {
+        val allowed = setOf("MP3", "FLAC", "M4A", "AAC", "WAV", "OGG", "OGA", "OPUS", "WMA", "APE", "DTS", "AC3", "EAC3", "MKA", "WV", "AIFF", "ALAC")
+        fun normalize(raw: String): String {
+            val ext = raw.trim().removePrefix(".").uppercase()
+            return ext.takeIf { it in allowed }.orEmpty()
+        }
+        fun extensionOf(value: String): String {
+            val clean = value.substringBefore('?').substringBefore('#')
+            return normalize(clean.substringAfterLast('.', ""))
+        }
+
+        extensionOf(originalName).takeIf { it.isNotBlank() }?.let { return it }
+        if (!path.startsWith("content://", ignoreCase = true)) {
+            extensionOf(path).takeIf { it.isNotBlank() }?.let { return it }
+        }
+
+        val mime = sampleMimeType.lowercase()
+        val codec = codecs.lowercase()
+        val fromFormat = when {
+            "flac" in mime || "flac" in codec -> "FLAC"
+            "opus" in mime || "opus" in codec -> "OPUS"
+            "vorbis" in codec || "ogg" in mime -> "OGG"
+            "mpeg" in mime || "mp3" in codec -> "MP3"
+            "wav" in mime || "wave" in mime -> "WAV"
+            "alac" in mime || "alac" in codec -> "ALAC"
+            "mp4" in mime -> "M4A"
+            "aac" in mime || "mp4a" in codec -> "AAC"
+            "eac3" in mime || "ec-3" in codec -> "EAC3"
+            "ac3" in mime || "ac-3" in codec -> "AC3"
+            "dts" in mime || "dts" in codec -> "DTS"
+            "wma" in mime -> "WMA"
+            else -> ""
+        }
+        return normalize(fromFormat).ifBlank { normalize(declaredExtension) }
+    }
 
     private fun originalPathFromItem(mi: androidx.media3.common.MediaItem): String {
         val extras = mi.mediaMetadata.extras
