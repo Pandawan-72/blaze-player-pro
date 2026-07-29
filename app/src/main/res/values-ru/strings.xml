@@ -885,10 +885,4 @@
     <string name="audio_artist_photo_restored">Автоматическое фото восстановлено</string>
     <string name="audio_artist_photo_update_failed">Это изображение нельзя использовать</string>
     <string name="audio_now_playing">Сейчас играет</string>
-
-    <string name="review_prompt_title">Нравится Blaze Player?</string>
-    <string name="review_prompt_message">Ваш отзыв помогает Blaze Player становиться лучше. Уделите минуту и поставьте честную оценку в Google Play.</string>
-    <string name="review_prompt_rate_now">Оценить сейчас</string>
-    <string name="review_prompt_later">Позже</string>
-    <string name="review_prompt_already_rated">Уже оценено</string>
 </resources>

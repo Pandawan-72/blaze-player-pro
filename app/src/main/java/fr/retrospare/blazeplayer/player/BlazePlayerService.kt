@@ -28,6 +28,8 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioTrackBufferSizeProvider
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.LibraryResult
@@ -131,6 +133,14 @@ class BlazePlayerService : MediaLibraryService() {
         private const val KEY_SLEEP_TIMER_DEADLINE = "deadline_epoch_ms"
         private const val MAX_SLEEP_TIMER_MS = (99L * 60L + 59L) * 60_000L
 
+        // Marge PCM volontairement modérée pour absorber les petits retards de décodage/écriture
+        // qui deviennent audibles sur certaines sorties Bluetooth automobiles. Le tampon de source
+        // Media3 reste séparé : ces valeurs concernent uniquement l'AudioTrack Android final.
+        private const val PCM_AUDIO_TRACK_MIN_BUFFER_US = 350_000
+        private const val PCM_AUDIO_TRACK_MAX_BUFFER_US = 600_000
+        private const val PCM_AUDIO_TRACK_BUFFER_MULTIPLIER = 5
+        private const val AUDIO_UNDERRUN_LIBRARY_GUARD_MS = 5_000L
+
         /** Signal léger lu par la bibliothèque audio : quand une piste joue, les scans
          *  métadonnées/covers doivent rester strictement non prioritaires pour éviter
          *  toute coupure, surtout avec des fichiers sur NAS. */
@@ -195,6 +205,7 @@ class BlazePlayerService : MediaLibraryService() {
     private var smbStallGeneration = 0L
     @Volatile private var ignoreSmbErrorsUntilMs = 0L
     private val playbackRequestGeneration = AtomicLong(0L)
+    private val audioUnderrunCount = AtomicLong(0L)
     private var activeAudioPipelineSignature = ""
     private var sleepTimerDeadlineEpochMs = 0L
     private val sleepTimerRunnable = object : Runnable {
@@ -793,13 +804,20 @@ class BlazePlayerService : MediaLibraryService() {
 
         val dataSourceFactory = BlazeDataSourceFactory(this, SmbDataSource.OWNER_AUDIO)
         val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
+        val audioTrackBufferSizeProvider = DefaultAudioTrackBufferSizeProvider.Builder()
+            .setMinPcmBufferDurationUs(PCM_AUDIO_TRACK_MIN_BUFFER_US)
+            .setMaxPcmBufferDurationUs(PCM_AUDIO_TRACK_MAX_BUFFER_US)
+            .setPcmBufferMultiplicationFactor(PCM_AUDIO_TRACK_BUFFER_MULTIPLIER)
+            .build()
         val renderersFactory = object : DefaultRenderersFactory(this) {
             override fun buildAudioSink(
                 context: Context,
                 enableFloatOutput: Boolean,
                 enableAudioOutputPlaybackParams: Boolean
             ): AudioSink? {
+                @Suppress("DEPRECATION")
                 val builder = DefaultAudioSink.Builder(context)
+                    .setAudioTrackBufferSizeProvider(audioTrackBufferSizeProvider)
                     .setEnableFloatOutput(useFloatOutput)
                     .setEnableAudioOutputPlaybackParameters(enableAudioOutputPlaybackParams)
                 if (processor != null) {
@@ -838,7 +856,34 @@ class BlazePlayerService : MediaLibraryService() {
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
+        attachAudioUnderrunListener(exoPlayer)
         return AudioPlayerBundle(exoPlayer, processor)
+    }
+
+    private fun attachAudioUnderrunListener(exoPlayer: ExoPlayer) {
+        exoPlayer.addAnalyticsListener(object : AnalyticsListener {
+            override fun onAudioUnderrun(
+                eventTime: AnalyticsListener.EventTime,
+                bufferSize: Int,
+                bufferSizeMs: Long,
+                elapsedSinceLastFeedMs: Long
+            ) {
+                val count = audioUnderrunCount.incrementAndGet()
+                // Si une hydratation locale était en cours, elle est immédiatement repoussée afin
+                // de laisser Media3 et AudioTrack retrouver une marge stable sans interrompre le son.
+                AudioLibraryWorkState.beginPlaybackCriticalWindow(AUDIO_UNDERRUN_LIBRARY_GUARD_MS)
+
+                val item = exoPlayer.currentMediaItem
+                val path = item?.let { originalPathFromItem(it) }.orEmpty()
+                val title = item?.mediaMetadata?.title?.toString().orEmpty()
+                android.util.Log.w(
+                    "BlazeAudioUnderrun",
+                    "count=$count bufferBytes=$bufferSize bufferMs=$bufferSizeMs " +
+                        "elapsedSinceFeedMs=$elapsedSinceLastFeedMs positionMs=${eventTime.eventPlaybackPositionMs} " +
+                        "title=${title.take(80)} path=${path.take(180)}"
+                )
+            }
+        })
     }
 
     /**
@@ -1136,15 +1181,11 @@ class BlazePlayerService : MediaLibraryService() {
                 if (path.isBlank()) return
 
                 var bitrate = 0L
-                var selectedMimeType = ""
-                var selectedCodecs = ""
                 loop@ for (group in tracks.groups) {
                     if (group.type != C.TRACK_TYPE_AUDIO) continue
                     for (index in 0 until group.length) {
                         if (!group.isTrackSelected(index)) continue
                         val format = group.getTrackFormat(index)
-                        selectedMimeType = format.sampleMimeType.orEmpty()
-                        selectedCodecs = format.codecs.orEmpty()
                         bitrate = when {
                             format.averageBitrate > 0 -> format.averageBitrate.toLong()
                             format.peakBitrate > 0 -> format.peakBitrate.toLong()
@@ -1154,18 +1195,13 @@ class BlazePlayerService : MediaLibraryService() {
                     }
                 }
 
-                val originalName = mediaItem.mediaMetadata.extras
-                    ?.getString("blaze_original_name")
+                val extension = mediaItem.mediaMetadata.extras
+                    ?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)
                     .orEmpty()
-                val extension = resolveAudioContainerExtension(
-                    path = path,
-                    originalName = originalName,
-                    declaredExtension = mediaItem.mediaMetadata.extras
-                        ?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)
-                        .orEmpty(),
-                    sampleMimeType = selectedMimeType,
-                    codecs = selectedCodecs
-                )
+                    .ifBlank {
+                        path.substringBefore('?').substringBefore('#')
+                            .substringAfterLast('.', "").uppercase()
+                    }
                 val durationSeconds = exoPlayer.duration
                     .takeIf { it > 0L }
                     ?.let { (it + 500L) / 1000L }
@@ -2065,48 +2101,6 @@ class BlazePlayerService : MediaLibraryService() {
 
     private fun isObsoleteLocalRelayUrl(value: String): Boolean =
         value.startsWith("http://") && value.contains(":8928/")
-
-    private fun resolveAudioContainerExtension(
-        path: String,
-        originalName: String,
-        declaredExtension: String,
-        sampleMimeType: String,
-        codecs: String
-    ): String {
-        val allowed = setOf("MP3", "FLAC", "M4A", "AAC", "WAV", "OGG", "OGA", "OPUS", "WMA", "APE", "DTS", "AC3", "EAC3", "MKA", "WV", "AIFF", "ALAC")
-        fun normalize(raw: String): String {
-            val ext = raw.trim().removePrefix(".").uppercase()
-            return ext.takeIf { it in allowed }.orEmpty()
-        }
-        fun extensionOf(value: String): String {
-            val clean = value.substringBefore('?').substringBefore('#')
-            return normalize(clean.substringAfterLast('.', ""))
-        }
-
-        extensionOf(originalName).takeIf { it.isNotBlank() }?.let { return it }
-        if (!path.startsWith("content://", ignoreCase = true)) {
-            extensionOf(path).takeIf { it.isNotBlank() }?.let { return it }
-        }
-
-        val mime = sampleMimeType.lowercase()
-        val codec = codecs.lowercase()
-        val fromFormat = when {
-            "flac" in mime || "flac" in codec -> "FLAC"
-            "opus" in mime || "opus" in codec -> "OPUS"
-            "vorbis" in codec || "ogg" in mime -> "OGG"
-            "mpeg" in mime || "mp3" in codec -> "MP3"
-            "wav" in mime || "wave" in mime -> "WAV"
-            "alac" in mime || "alac" in codec -> "ALAC"
-            "mp4" in mime -> "M4A"
-            "aac" in mime || "mp4a" in codec -> "AAC"
-            "eac3" in mime || "ec-3" in codec -> "EAC3"
-            "ac3" in mime || "ac-3" in codec -> "AC3"
-            "dts" in mime || "dts" in codec -> "DTS"
-            "wma" in mime -> "WMA"
-            else -> ""
-        }
-        return normalize(fromFormat).ifBlank { normalize(declaredExtension) }
-    }
 
     private fun originalPathFromItem(mi: androidx.media3.common.MediaItem): String {
         val extras = mi.mediaMetadata.extras

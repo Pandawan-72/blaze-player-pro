@@ -879,10 +879,4 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_artist_photo_restored">स्वचालित फ़ोटो बहाल की गई</string>
     <string name="audio_artist_photo_update_failed">इस चित्र का उपयोग नहीं किया जा सकता</string>
     <string name="audio_now_playing">अभी चल रहा है</string>
-
-    <string name="review_prompt_title">क्या आपको Blaze Player पसंद है?</string>
-    <string name="review_prompt_message">आपकी राय Blaze Player को बेहतर बनाते रहने में मदद करती है। Play Store पर ईमानदार रेटिंग देने के लिए एक क्षण निकालें।</string>
-    <string name="review_prompt_rate_now">अभी रेट करें</string>
-    <string name="review_prompt_later">बाद में</string>
-    <string name="review_prompt_already_rated">पहले ही रेट किया</string>
 </resources>

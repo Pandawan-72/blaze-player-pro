@@ -401,11 +401,39 @@ class SettingsFragment : Fragment() {
 
     private fun setupRateApp() {
         binding.btnRateApp.setOnClickListener {
-            // Une ouverture réussie de la fiche Play Store signifie que l'utilisateur a traité
-            // la sollicitation : le popup automatique ne doit plus réapparaître ensuite.
-            if (fr.retrospare.blazeplayer.ui.AppReviewPrompt.openPlayStoreListing(requireContext())) {
-                fr.retrospare.blazeplayer.ui.AppReviewPrompt.markRatedOrHandled(requireContext())
-            }
+            openPlayStoreListing()
+        }
+    }
+
+    private fun openPlayStoreListing() {
+        val packageName = requireContext().packageName
+        val marketIntent = android.content.Intent(
+            android.content.Intent.ACTION_VIEW,
+            android.net.Uri.parse("market://details?id=$packageName")
+        ).apply {
+            setPackage("com.android.vending")
+            addFlags(
+                android.content.Intent.FLAG_ACTIVITY_NO_HISTORY or
+                    android.content.Intent.FLAG_ACTIVITY_NEW_DOCUMENT or
+                    android.content.Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+            )
+        }
+
+        try {
+            startActivity(marketIntent)
+            return
+        } catch (_: Exception) {
+            // Si le Play Store n'est pas installé/disponible, on retombe sur la page web.
+        }
+
+        val webIntent = android.content.Intent(
+            android.content.Intent.ACTION_VIEW,
+            android.net.Uri.parse("https://play.google.com/store/apps/details?id=$packageName")
+        )
+        try {
+            startActivity(webIntent)
+        } catch (_: Exception) {
+            Toast.makeText(requireContext(), getString(R.string.toast_play_store_unavailable), Toast.LENGTH_SHORT).show()
         }
     }
 

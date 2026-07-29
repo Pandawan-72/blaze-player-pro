@@ -101,13 +101,6 @@ class AudioPlayerFragment : Fragment() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
 
-    /**
-     * Visibilité réelle de Blaze Audio dans HomeFragment. Le fragment reste attaché pendant un
-     * changement d’onglet : libérer/recréer Visualizer ou MediaController au milieu d’un flux peut
-     * provoquer un micro-saut sur certains appareils. Seules les tâches UI sont suspendues.
-     */
-    private var hostTabVisible: Boolean = true
-
     private lateinit var playlistAdapter: PlaylistAdapter
     private lateinit var partyPlaylistAdapter: PartyPlaylistAdapter
     private val handler = Handler(Looper.getMainLooper())
@@ -119,7 +112,6 @@ class AudioPlayerFragment : Fragment() {
                 b != null &&
                 ctrl != null &&
                 isResumed &&
-                hostTabVisible &&
                 !isHidden &&
                 karaokeLandscapeActive &&
                 currentLyrics.isNotEmpty()
@@ -220,7 +212,7 @@ class AudioPlayerFragment : Fragment() {
     private val visualizerWatchdogRunnable = object : Runnable {
         override fun run() {
             val ctrl = controller
-            if (!audioSpectrumEnabled || _binding == null || !hostTabVisible || isHidden || !isResumed || ctrl?.isPlaying != true) {
+            if (!audioSpectrumEnabled || _binding == null || isHidden || !isResumed || ctrl?.isPlaying != true) {
                 return
             }
 
@@ -615,7 +607,7 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        if (isHidden || !hostTabVisible) return
+        if (isHidden) return
         (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
         playlistAdapter.refresh()
         if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
@@ -664,64 +656,45 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        setHostTabVisible(!hidden)
-    }
-
-    /**
-     * Suspend/reprend uniquement l’interface du lecteur sans toucher à la chaîne audio.
-     * Le callback FFT continue sur son thread dédié, mais les vues invisibles ne sont pas
-     * invalidées puisque leur conteneur est INVISIBLE et [View.isShown] vaut false.
-     */
-    fun setHostTabVisible(visible: Boolean) {
-        val changed = hostTabVisible != visible
-        hostTabVisible = visible
-        val b = _binding ?: return
-
-        if (!visible) {
+        if (!hidden) {
+            (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
+            playlistAdapter.refresh()
+            if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
+            setupSavedPlaylistDrawers()
+            applyAudioProInterfaceSettings()
+            syncSelection()
+            syncMetadata()
+            syncButtons()
+            updateKaraokeOrientationPolicy()
+            applyKaraokeLayoutForCurrentOrientation()
+            screenMirrorStateMonitor?.start()
+            screenMirrorStateMonitor?.refresh()
+            updateKaraokeCastButtonState()
+            val resumedPlaybackActive = controller?.isPlaying == true
+            if (resumedPlaybackActive) {
+                AudioLibraryWorkState.beginPlaybackCriticalWindow(4_000L)
+            }
+            _binding?.audioEqualizerView?.setPlaybackActive(resumedPlaybackActive)
+            _binding?.karaokeEqualizerView?.setPlaybackActive(resumedPlaybackActive)
+            _binding?.artworkFrame?.post {
+                lastPortraitEqualizerArtworkSize = 0
+                syncPortraitEqualizerGeometry()
+            }
+            if (audioSpectrumEnabled && resumedPlaybackActive) {
+                recalibrateVisualizerForVisibleResume()
+            }
+        } else {
             screenMirrorStateMonitor?.stop()
+            _binding?.audioEqualizerView?.setPlaybackActive(false)
+            _binding?.karaokeEqualizerView?.setPlaybackActive(false)
             stopVisualizerWatchdog()
-            b.audioEqualizerView.setPlaybackActive(false)
-            b.karaokeEqualizerView.setPlaybackActive(false)
-            (activity as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(false)
+            stopAudioVisualizer()
+            setAudioSpectrumIdle()
+            (requireActivity() as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(false)
             setKaraokeLandscapeUi(false)
             lockAudioPlayerToPortrait()
             updateLyricsKeepScreenOn(false)
-            return
         }
-
-        (activity as? fr.retrospare.blazeplayer.MainActivity)?.setInAudioPlayer(true)
-        playlistAdapter.refresh()
-        if (::partyPlaylistAdapter.isInitialized) refreshPartyPlaylistSheet()
-        maybeResumeGuestPartySync()
-        maybeOpenPendingBlazePartySheet()
-        setupSavedPlaylistDrawers()
-        refreshKaraoKastSyncOffset()
-        applyAudioProInterfaceSettings()
-        syncSelection()
-        syncMetadata()
-        syncButtons()
-        updateKaraokeOrientationPolicy()
-        applyKaraokeLayoutForCurrentOrientation()
-        screenMirrorStateMonitor?.start()
-        screenMirrorStateMonitor?.refresh()
-        updateKaraokeCastButtonState()
-
-        val playbackActive = controller?.isPlaying == true
-        b.audioEqualizerView.setPlaybackActive(playbackActive)
-        b.karaokeEqualizerView.setPlaybackActive(playbackActive)
-        b.artworkFrame.post {
-            lastPortraitEqualizerArtworkSize = 0
-            syncPortraitEqualizerGeometry()
-        }
-
-        if (audioSpectrumEnabled && playbackActive) {
-            AudioLibraryWorkState.beginPlaybackCriticalWindow(900L)
-            // Ne jamais forcer une nouvelle session pour un simple changement d’onglet.
-            ensureAudioVisualizer(forceRestart = false)
-            startVisualizerWatchdog()
-        }
-
-        if (changed) updateLyricsKeepScreenOn(karaokeLandscapeActive && playbackActive)
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
@@ -898,7 +871,7 @@ class AudioPlayerFragment : Fragment() {
         b.artworkMetadataOverlay.visibility = if (enabled || lyricsEnabled) View.VISIBLE else View.GONE
         b.audioEqualizerView.visibility = if (enabled) View.VISIBLE else View.GONE
         b.karaokeEqualizerView.visibility = if (enabled) View.VISIBLE else View.GONE
-        val playbackActive = enabled && hostTabVisible && controller?.isPlaying == true
+        val playbackActive = enabled && controller?.isPlaying == true
         b.audioEqualizerView.setPlaybackActive(playbackActive)
         b.karaokeEqualizerView.setPlaybackActive(playbackActive)
         updatePortraitLyricsOverlayState(lyricsEnabled)
@@ -1069,8 +1042,8 @@ class AudioPlayerFragment : Fragment() {
                     AudioLibraryWorkState.beginPlaybackCriticalWindow(1_500L)
                 }
                 syncButtons()
-                _binding?.audioEqualizerView?.setPlaybackActive(hostTabVisible && isPlaying && audioSpectrumEnabled)
-                _binding?.karaokeEqualizerView?.setPlaybackActive(hostTabVisible && isPlaying && audioSpectrumEnabled)
+                _binding?.audioEqualizerView?.setPlaybackActive(isPlaying && audioSpectrumEnabled)
+                _binding?.karaokeEqualizerView?.setPlaybackActive(isPlaying && audioSpectrumEnabled)
                 val idx = ctrl.currentMediaItemIndex
                 if (playlistAdapter.hasOverrideItems()) playlistAdapter.setPlayingIndex(-1)
                 else if (isPlaying) playlistAdapter.setPlayingIndex(idx)
@@ -1209,8 +1182,8 @@ class AudioPlayerFragment : Fragment() {
             }
         })
 
-        _binding?.audioEqualizerView?.setPlaybackActive(hostTabVisible && ctrl.isPlaying && audioSpectrumEnabled)
-        _binding?.karaokeEqualizerView?.setPlaybackActive(hostTabVisible && ctrl.isPlaying && audioSpectrumEnabled)
+        _binding?.audioEqualizerView?.setPlaybackActive(ctrl.isPlaying && audioSpectrumEnabled)
+        _binding?.karaokeEqualizerView?.setPlaybackActive(ctrl.isPlaying && audioSpectrumEnabled)
         if (audioSpectrumEnabled && ctrl.isPlaying) {
             requestFreshVisualizerForCurrentTrack(
                 reason = "controller-ready-resume",
@@ -1486,7 +1459,6 @@ class AudioPlayerFragment : Fragment() {
         handler.removeCallbacks(visualizerStartupVerifyRunnable)
         if (audioSpectrumEnabled &&
             _binding != null &&
-            hostTabVisible &&
             !isHidden &&
             isResumed &&
             controller?.isPlaying == true &&
@@ -1500,7 +1472,6 @@ class AudioPlayerFragment : Fragment() {
         handler.removeCallbacks(visualizerWatchdogRunnable)
         if (audioSpectrumEnabled &&
             _binding != null &&
-            hostTabVisible &&
             !isHidden &&
             isResumed &&
             controller?.isPlaying == true &&
@@ -1514,7 +1485,6 @@ class AudioPlayerFragment : Fragment() {
         audioSpectrumEnabled &&
             _binding != null &&
             isAdded &&
-            hostTabVisible &&
             !isHidden &&
             isResumed &&
             controller?.isPlaying == true &&
@@ -1694,19 +1664,12 @@ class AudioPlayerFragment : Fragment() {
         _binding?.tvAlbum?.text = safeAlbum
         _binding?.tvAlbum?.visibility = if (safeAlbum.isBlank()) View.GONE else View.VISIBLE
 
-        // Le nom/chemin réel du morceau et le format audio sélectionné ont priorité sur les
-        // extras Media3, car une file restaurée peut encore transporter une ancienne extension.
-        // Cette résolution est recalculée à chaque transition et à chaque EVENT_TRACKS_CHANGED.
-        val declaredExt = mediaItem.mediaMetadata.extras
+        val ext = mediaItem.mediaMetadata.extras
             ?.getString(AudioRepository.EXTRA_CONTAINER_EXTENSION)
-            .orEmpty()
-        val safeExt = sequenceOf(
-            extensionFromAudioName(originalName),
-            extensionFromAudioPath(pathForMeta),
-            sanitizeAudioExtension(cachedMeta?.extension),
-            selectedAudioContainerExtension(ctrl),
-            sanitizeAudioExtension(declaredExt)
-        ).firstOrNull { it.isNotBlank() }.orEmpty()
+            ?.takeIf { it.isNotBlank() }
+            ?: cachedMeta?.extension?.takeIf { it.isNotBlank() }
+            ?: pathForMeta.substringBefore('?').substringAfterLast('.', "").uppercase()
+        val safeExt = sanitizeAudioExtension(ext)
         fr.retrospare.blazeplayer.player.AudioPlaybackHistory.markPlayed(
             requireContext().applicationContext,
             pathForMeta,
@@ -2328,47 +2291,6 @@ class AudioPlayerFragment : Fragment() {
         if (ext.isBlank() || ext.length !in 2..5 || !ext.all { it.isLetterOrDigit() }) return ""
         val allowed = setOf("MP3", "FLAC", "M4A", "AAC", "WAV", "OGG", "OGA", "OPUS", "WMA", "APE", "DTS", "AC3", "EAC3", "MKA", "WV", "AIFF", "ALAC")
         return ext.takeIf { it in allowed }.orEmpty()
-    }
-
-
-    private fun extensionFromAudioName(name: String): String =
-        sanitizeAudioExtension(name.substringBefore('?').substringBefore('#').substringAfterLast('.', ""))
-
-    private fun extensionFromAudioPath(path: String): String {
-        if (path.startsWith("content://", ignoreCase = true)) return ""
-        return extensionFromAudioName(path)
-    }
-
-    private fun selectedAudioContainerExtension(player: Player): String {
-        val format = player.currentTracks.groups.asSequence()
-            .filter { it.type == C.TRACK_TYPE_AUDIO }
-            .flatMap { group ->
-                (0 until group.length).asSequence()
-                    .filter { group.isTrackSelected(it) }
-                    .map { group.getTrackFormat(it) }
-            }
-            .firstOrNull()
-            ?: return ""
-
-        val mime = format.sampleMimeType.orEmpty().lowercase()
-        val codecs = format.codecs.orEmpty().lowercase()
-        val resolved = when {
-            "flac" in mime || "flac" in codecs -> "FLAC"
-            "opus" in mime || "opus" in codecs -> "OPUS"
-            "vorbis" in codecs -> "OGG"
-            "ogg" in mime -> "OGG"
-            "mpeg" in mime || "mp3" in codecs -> "MP3"
-            "wav" in mime || "wave" in mime -> "WAV"
-            "alac" in mime || "alac" in codecs -> "ALAC"
-            "mp4" in mime -> "M4A"
-            "aac" in mime || "mp4a" in codecs -> "AAC"
-            "eac3" in mime || "ec-3" in codecs -> "EAC3"
-            "ac3" in mime || "ac-3" in codecs -> "AC3"
-            "dts" in mime || "dts" in codecs -> "DTS"
-            "wma" in mime -> "WMA"
-            else -> ""
-        }
-        return sanitizeAudioExtension(resolved)
     }
 
     private fun sanitizeAudioSecondaryText(raw: CharSequence?): String {

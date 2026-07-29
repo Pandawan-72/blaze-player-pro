@@ -865,10 +865,4 @@ Token: %2$s</string>
     <string name="audio_artist_photo_restored">Foto automática restaurada</string>
     <string name="audio_artist_photo_update_failed">No se puede utilizar esta imagen</string>
     <string name="audio_now_playing">En reproducción</string>
-
-    <string name="review_prompt_title">¿Te gusta Blaze Player?</string>
-    <string name="review_prompt_message">Tu opinión ayuda a seguir mejorando Blaze Player. Tómate un momento para dejar una valoración sincera en Play Store.</string>
-    <string name="review_prompt_rate_now">Valorar ahora</string>
-    <string name="review_prompt_later">Más tarde</string>
-    <string name="review_prompt_already_rated">Ya valorada</string>
 </resources>

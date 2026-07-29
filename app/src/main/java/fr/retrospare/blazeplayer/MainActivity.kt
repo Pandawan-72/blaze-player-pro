@@ -29,9 +29,6 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var userRepository: fr.retrospare.blazeplayer.data.repository.UserRepository
 
     private val handler = Handler(Looper.getMainLooper())
-    private val reviewPromptRunnable = Runnable {
-        fr.retrospare.blazeplayer.ui.AppReviewPrompt.maybeShow(this)
-    }
     private val miniTimeTicker = object : Runnable {
         override fun run() {
             updateMiniPlayerTime()
@@ -332,7 +329,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        handler.removeCallbacks(reviewPromptRunnable)
         stopMiniPlayingAnimation(keepVisible = true)
         super.onPause()
     }
@@ -348,8 +344,6 @@ class MainActivity : AppCompatActivity() {
         // le PendingIntent peut simplement ramener MainActivity au premier plan sans repasser par
         // onNewIntent(). On consomme donc aussi ici la demande persistante d'ouverture Blaze Audio.
         consumePendingBlazeAudioLaunch()
-        handler.removeCallbacks(reviewPromptRunnable)
-        handler.postDelayed(reviewPromptRunnable, 1_200L)
     }
 
     private fun findHomeFragment(): fr.retrospare.blazeplayer.home.HomeFragment? {
@@ -682,7 +676,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         miniPlayerAccessJob?.cancel()
-        handler.removeCallbacks(reviewPromptRunnable)
         handler.removeCallbacks(miniTimeTicker)
         stopMiniPlayingAnimation(keepVisible = false)
         super.onDestroy()

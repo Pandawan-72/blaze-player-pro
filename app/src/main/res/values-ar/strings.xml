@@ -879,10 +879,4 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_artist_photo_restored">تمت استعادة الصورة التلقائية</string>
     <string name="audio_artist_photo_update_failed">لا يمكن استخدام هذه الصورة</string>
     <string name="audio_now_playing">قيد التشغيل</string>
-
-    <string name="review_prompt_title">هل يعجبك Blaze Player؟</string>
-    <string name="review_prompt_message">يساعد رأيك Blaze Player على الاستمرار في التحسن. خصّص لحظة لترك تقييم صادق على Play Store.</string>
-    <string name="review_prompt_rate_now">قيّم الآن</string>
-    <string name="review_prompt_later">لاحقًا</string>
-    <string name="review_prompt_already_rated">سبق أن قيّمت</string>
 </resources>
