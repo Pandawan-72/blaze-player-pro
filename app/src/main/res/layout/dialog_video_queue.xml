@@ -85,10 +85,10 @@
                 android:insetBottom="0dp"
                 app:icon="@drawable/ic_layout_list"
                 app:iconSize="15dp"
-                app:iconTint="@color/green_accent"
+                app:iconTint="?attr/colorPrimary"
                 app:iconGravity="textStart"
                 app:backgroundTint="@color/surface_variant"
-                app:strokeColor="@color/green_accent_stroke"
+                app:strokeColor="?attr/blazeAccentStroke"
                 app:strokeWidth="1dp"
                 app:cornerRadius="20dp"
                 android:contentDescription="@string/content_desc_queue_to_playlist" />
@@ -142,7 +142,7 @@
                 app:iconSize="16dp"
                 app:iconTint="@color/black"
                 app:iconGravity="textStart"
-                app:backgroundTint="@color/green_accent"
+                app:backgroundTint="?attr/colorPrimary"
                 app:cornerRadius="20dp" />
 
             <com.google.android.material.button.MaterialButton
@@ -164,10 +164,10 @@
                 android:insetBottom="0dp"
                 app:icon="@drawable/ic_layout_list"
                 app:iconSize="15dp"
-                app:iconTint="@color/green_accent"
+                app:iconTint="?attr/colorPrimary"
                 app:iconGravity="textStart"
                 app:backgroundTint="@color/surface_variant"
-                app:strokeColor="@color/green_accent_stroke"
+                app:strokeColor="?attr/blazeAccentStroke"
                 app:strokeWidth="1dp"
                 app:cornerRadius="20dp" />
 

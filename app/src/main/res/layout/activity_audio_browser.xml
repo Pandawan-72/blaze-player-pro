@@ -104,7 +104,7 @@
                 android:textColor="@color/black"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                app:backgroundTint="@color/green_accent"
+                app:backgroundTint="?attr/colorPrimary"
                 app:cornerRadius="20dp"
                 app:icon="@drawable/ic_smartphone"
                 app:iconGravity="textStart"
@@ -166,7 +166,7 @@
                 app:iconGravity="textStart"
                 app:iconSize="16dp"
                 app:iconTint="@color/on_surface"
-                app:strokeColor="@color/green_accent"
+                app:strokeColor="?attr/colorPrimary"
                 app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
@@ -271,7 +271,7 @@
                 android:fontFamily="sans-serif-condensed"
                 android:includeFontPadding="false"
                 android:text="@string/no_track_found"
-                android:textColor="@color/green_accent"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="12sp" />
 
             <LinearLayout
@@ -294,7 +294,7 @@
                     android:layout_marginEnd="5dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_equalizer"
-                    android:tint="@color/green_accent" />
+                    android:tint="?attr/colorPrimary" />
 
                 <TextView
                     android:id="@+id/tvSortLabel"

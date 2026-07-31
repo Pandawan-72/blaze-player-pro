@@ -152,7 +152,7 @@
                 android:textColor="@color/black"
                 android:textSize="13sp"
                 android:textStyle="bold"
-                app:backgroundTint="@color/green_accent"
+                app:backgroundTint="?attr/colorPrimary"
                 app:cornerRadius="20dp"
                 app:icon="@drawable/ic_smartphone"
                 app:iconGravity="textStart"
@@ -181,7 +181,7 @@
                 app:iconGravity="textStart"
                 app:iconSize="16dp"
                 app:iconTint="@color/on_surface"
-                app:strokeColor="@color/green_accent_stroke"
+                app:strokeColor="?attr/blazeAccentStroke"
                 app:strokeWidth="1dp" />
 
         </LinearLayout>
@@ -218,8 +218,8 @@
                 app:icon="@drawable/ic_add_circle"
                 app:iconGravity="textStart"
                 app:iconSize="16dp"
-                app:iconTint="@color/green_accent"
-                app:strokeColor="@color/green_accent"
+                app:iconTint="?attr/colorPrimary"
+                app:strokeColor="?attr/colorPrimary"
                 app:strokeWidth="1dp" />
 
             <com.google.android.material.button.MaterialButton
@@ -239,7 +239,7 @@
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                app:backgroundTint="@color/green_accent"
+                app:backgroundTint="?attr/colorPrimary"
                 app:cornerRadius="20dp"
                 app:icon="@drawable/ic_add_circle"
                 app:iconGravity="textStart"
@@ -285,7 +285,7 @@
                     android:layout_height="14dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_sort"
-                    android:tint="@color/green_accent" />
+                    android:tint="?attr/colorPrimary" />
 
                 <TextView
                     android:id="@+id/tvSortLabel"
@@ -326,7 +326,7 @@
             android:fontFamily="sans-serif-condensed"
             android:includeFontPadding="false"
             android:text="@string/browser_search_in_progress"
-            android:textColor="@color/green_accent"
+            android:textColor="?attr/colorPrimary"
             android:textSize="12sp"
             android:textStyle="bold"
             android:visibility="gone" />

@@ -4,13 +4,20 @@
     <style name="Theme.BlazePlayer" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:fontFamily">sans-serif-condensed</item>
         <item name="fontFamily">sans-serif-condensed</item>
-        <item name="colorPrimary">@color/green_accent</item>
+        <item name="colorPrimary">@color/accent_green</item>
         <item name="colorOnPrimary">@color/background</item>
-        <item name="colorPrimaryContainer">@color/green_container</item>
-        <item name="colorOnPrimaryContainer">@color/on_green_container</item>
+        <item name="colorPrimaryContainer">@color/accent_green_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_green</item>
         <item name="colorSecondary">@color/blue_accent</item>
         <item name="colorOnSecondary">@color/background</item>
         <item name="colorTertiary">@color/blue_accent</item>
+        <item name="blazeAccentStroke">@color/accent_green_stroke</item>
+        <item name="blazeAccentSoft">@color/accent_green_soft</item>
+        <item name="blazeAccentSubtle">@color/accent_green_subtle</item>
+        <item name="blazeAccentStrong">@color/accent_green_strong</item>
+        <item name="blazeAccentContainerStrong">@color/accent_green_container_strong</item>
+        <item name="blazeAccentDarkBorder">@color/accent_green_dark_border</item>
+        <item name="blazeOnAccent">@color/background</item>
         <item name="android:colorBackground">@color/background</item>
         <item name="colorSurface">#0D0F14</item>
         <item name="colorOnSurface">@color/on_background</item>
@@ -97,6 +104,92 @@
         <item name="iconPadding">8dp</item>
     </style>
 
+
+    <!-- Variantes du thème : seule la couleur d'accent et ses dérivés changent. -->
+    <style name="Theme.BlazePlayer.AccentBlue" parent="Theme.BlazePlayer">
+        <item name="colorPrimary">@color/accent_blue</item>
+        <item name="colorPrimaryContainer">@color/accent_blue_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_blue</item>
+        <item name="blazeAccentStroke">@color/accent_blue_stroke</item>
+        <item name="blazeAccentSoft">@color/accent_blue_soft</item>
+        <item name="blazeAccentSubtle">@color/accent_blue_subtle</item>
+        <item name="blazeAccentStrong">@color/accent_blue_strong</item>
+        <item name="blazeAccentContainerStrong">@color/accent_blue_container_strong</item>
+        <item name="blazeAccentDarkBorder">@color/accent_blue_dark_border</item>
+    </style>
+
+    <style name="Theme.BlazePlayer.AccentPurple" parent="Theme.BlazePlayer">
+        <item name="colorPrimary">@color/accent_purple</item>
+        <item name="colorPrimaryContainer">@color/accent_purple_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_purple</item>
+        <item name="blazeAccentStroke">@color/accent_purple_stroke</item>
+        <item name="blazeAccentSoft">@color/accent_purple_soft</item>
+        <item name="blazeAccentSubtle">@color/accent_purple_subtle</item>
+        <item name="blazeAccentStrong">@color/accent_purple_strong</item>
+        <item name="blazeAccentContainerStrong">@color/accent_purple_container_strong</item>
+        <item name="blazeAccentDarkBorder">@color/accent_purple_dark_border</item>
+    </style>
+
+    <style name="Theme.BlazePlayer.AccentPink" parent="Theme.BlazePlayer">
+        <item name="colorPrimary">@color/accent_pink</item>
+        <item name="colorPrimaryContainer">@color/accent_pink_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_pink</item>
+        <item name="blazeAccentStroke">@color/accent_pink_stroke</item>
+        <item name="blazeAccentSoft">@color/accent_pink_soft</item>
+        <item name="blazeAccentSubtle">@color/accent_pink_subtle</item>
+        <item name="blazeAccentStrong">@color/accent_pink_strong</item>
+        <item name="blazeAccentContainerStrong">@color/accent_pink_container_strong</item>
+        <item name="blazeAccentDarkBorder">@color/accent_pink_dark_border</item>
+    </style>
+
+    <style name="Theme.BlazePlayer.AccentOrange" parent="Theme.BlazePlayer">
+        <item name="colorPrimary">@color/accent_orange</item>
+        <item name="colorPrimaryContainer">@color/accent_orange_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_orange</item>
+        <item name="blazeAccentStroke">@color/accent_orange_stroke</item>
+        <item name="blazeAccentSoft">@color/accent_orange_soft</item>
+        <item name="blazeAccentSubtle">@color/accent_orange_subtle</item>
+        <item name="blazeAccentStrong">@color/accent_orange_strong</item>
+        <item name="blazeAccentContainerStrong">@color/accent_orange_container_strong</item>
+        <item name="blazeAccentDarkBorder">@color/accent_orange_dark_border</item>
+    </style>
+
+    <style name="Theme.BlazePlayer.AccentRed" parent="Theme.BlazePlayer">
+        <item name="colorPrimary">@color/accent_red</item>
+        <item name="colorPrimaryContainer">@color/accent_red_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_red</item>
+        <item name="blazeAccentStroke">@color/accent_red_stroke</item>
+        <item name="blazeAccentSoft">@color/accent_red_soft</item>
+        <item name="blazeAccentSubtle">@color/accent_red_subtle</item>
+        <item name="blazeAccentStrong">@color/accent_red_strong</item>
+        <item name="blazeAccentContainerStrong">@color/accent_red_container_strong</item>
+        <item name="blazeAccentDarkBorder">@color/accent_red_dark_border</item>
+    </style>
+
+    <style name="Theme.BlazePlayer.AccentTurquoise" parent="Theme.BlazePlayer">
+        <item name="colorPrimary">@color/accent_turquoise</item>
+        <item name="colorPrimaryContainer">@color/accent_turquoise_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_turquoise</item>
+        <item name="blazeAccentStroke">@color/accent_turquoise_stroke</item>
+        <item name="blazeAccentSoft">@color/accent_turquoise_soft</item>
+        <item name="blazeAccentSubtle">@color/accent_turquoise_subtle</item>
+        <item name="blazeAccentStrong">@color/accent_turquoise_strong</item>
+        <item name="blazeAccentContainerStrong">@color/accent_turquoise_container_strong</item>
+        <item name="blazeAccentDarkBorder">@color/accent_turquoise_dark_border</item>
+    </style>
+
+    <style name="Theme.BlazePlayer.AccentGold" parent="Theme.BlazePlayer">
+        <item name="colorPrimary">@color/accent_gold</item>
+        <item name="colorPrimaryContainer">@color/accent_gold_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_gold</item>
+        <item name="blazeAccentStroke">@color/accent_gold_stroke</item>
+        <item name="blazeAccentSoft">@color/accent_gold_soft</item>
+        <item name="blazeAccentSubtle">@color/accent_gold_subtle</item>
+        <item name="blazeAccentStrong">@color/accent_gold_strong</item>
+        <item name="blazeAccentContainerStrong">@color/accent_gold_container_strong</item>
+        <item name="blazeAccentDarkBorder">@color/accent_gold_dark_border</item>
+    </style>
+
     <!-- Thème lecteur vidéo — plein écran total, fond noir -->
     <style name="Theme.BlazePlayer.Fullscreen" parent="Theme.BlazePlayer">
         <item name="android:windowFullscreen">true</item>
@@ -145,6 +238,36 @@
     <style name="ShapeAppearance.BlazePlayer.Dialog" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">28dp</item>
+    </style>
+
+
+    <style name="Theme.BlazePlayer.Fullscreen.AccentBlue" parent="Theme.BlazePlayer.AccentBlue">
+        <item name="android:windowFullscreen">true</item><item name="android:windowNoTitle">true</item><item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item><item name="android:statusBarColor">@color/player_background</item><item name="android:navigationBarColor">@color/player_background</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <style name="Theme.BlazePlayer.Fullscreen.AccentPurple" parent="Theme.BlazePlayer.AccentPurple">
+        <item name="android:windowFullscreen">true</item><item name="android:windowNoTitle">true</item><item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item><item name="android:statusBarColor">@color/player_background</item><item name="android:navigationBarColor">@color/player_background</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <style name="Theme.BlazePlayer.Fullscreen.AccentPink" parent="Theme.BlazePlayer.AccentPink">
+        <item name="android:windowFullscreen">true</item><item name="android:windowNoTitle">true</item><item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item><item name="android:statusBarColor">@color/player_background</item><item name="android:navigationBarColor">@color/player_background</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <style name="Theme.BlazePlayer.Fullscreen.AccentOrange" parent="Theme.BlazePlayer.AccentOrange">
+        <item name="android:windowFullscreen">true</item><item name="android:windowNoTitle">true</item><item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item><item name="android:statusBarColor">@color/player_background</item><item name="android:navigationBarColor">@color/player_background</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <style name="Theme.BlazePlayer.Fullscreen.AccentRed" parent="Theme.BlazePlayer.AccentRed">
+        <item name="android:windowFullscreen">true</item><item name="android:windowNoTitle">true</item><item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item><item name="android:statusBarColor">@color/player_background</item><item name="android:navigationBarColor">@color/player_background</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <style name="Theme.BlazePlayer.Fullscreen.AccentTurquoise" parent="Theme.BlazePlayer.AccentTurquoise">
+        <item name="android:windowFullscreen">true</item><item name="android:windowNoTitle">true</item><item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item><item name="android:statusBarColor">@color/player_background</item><item name="android:navigationBarColor">@color/player_background</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <style name="Theme.BlazePlayer.Fullscreen.AccentGold" parent="Theme.BlazePlayer.AccentGold">
+        <item name="android:windowFullscreen">true</item><item name="android:windowNoTitle">true</item><item name="android:windowActionBar">false</item>
+        <item name="android:colorBackground">@color/player_background</item><item name="android:statusBarColor">@color/player_background</item><item name="android:navigationBarColor">@color/player_background</item><item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
 </resources>

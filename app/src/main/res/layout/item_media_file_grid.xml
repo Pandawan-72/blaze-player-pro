@@ -9,6 +9,7 @@
 
     <!-- Miniature -->
     <FrameLayout
+        android:id="@+id/thumbnailContainer"
         android:layout_width="match_parent"
         android:layout_height="100dp"
         android:background="@drawable/bg_thumbnail"
@@ -40,7 +41,7 @@
             android:paddingHorizontal="5dp"
             android:paddingVertical="1dp"
             android:textSize="9sp"
-            android:textColor="@color/green_accent"
+            android:textColor="?attr/colorPrimary"
             android:visibility="gone"
             android:textStyle="bold" />
 
@@ -57,23 +58,28 @@
                 android:id="@+id/progressFill"
                 android:layout_width="0dp"
                 android:layout_height="2dp"
-                android:background="@color/green_accent"
+                android:background="?attr/colorPrimary"
                 android:visibility="gone" />
         </FrameLayout>
 
     </FrameLayout>
 
     <!-- Nom du fichier -->
-    <TextView
+    <fr.retrospare.blazeplayer.ui.StrictTwoLineTextView
         android:id="@+id/tvFileName"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/on_surface"
-        android:textSize="11sp"
-        android:fontFamily="sans-serif-condensed"
+        android:layout_height="34dp"
+        android:layout_marginTop="4dp"
+        android:breakStrategy="simple"
         android:ellipsize="end"
-        android:singleLine="true"
-        android:layout_marginTop="4dp" />
+        android:fontFamily="sans-serif-condensed"
+        android:gravity="center_vertical|start"
+        android:hyphenationFrequency="none"
+        android:includeFontPadding="false"
+        android:maxLines="2"
+        android:minLines="2"
+        android:textColor="@color/on_surface"
+        android:textSize="11sp" />
 
     <!-- Badges format + codec -->
     <LinearLayout

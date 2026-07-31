@@ -682,7 +682,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         super.onCreate(savedInstanceState)
+
+        markDefaultBlazeVideoLaunchIfNeeded(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -715,6 +718,36 @@ class MainActivity : AppCompatActivity() {
         initializeTrialAccess()
         maybeRequestBlazeVideoPermissionsOnFirstLaunch()
         if (!handlePaywallIntent(intent)) handleAudioIntent(intent)
+    }
+
+    /**
+     * La première ouverture d'une installation, ainsi que la première ouverture après chaque mise
+     * à jour, doivent toujours démarrer sur Blaze Video. Les raccourcis explicites Blaze Gallery /
+     * Blaze Audio et les intents demandant un onglet précis restent prioritaires.
+     */
+    private fun markDefaultBlazeVideoLaunchIfNeeded(savedInstanceState: Bundle?) {
+        if (savedInstanceState != null) return
+
+        val isMainLauncherStart = intent.action == Intent.ACTION_MAIN &&
+            intent.categories?.contains(Intent.CATEGORY_LAUNCHER) == true
+        val requestedTab = intent.getIntExtra("requestedTab", -1)
+        val explicitDestination =
+            intent.getBooleanExtra("openBlazeGallery", false) ||
+                intent.getBooleanExtra("openBlazeAudio", false) ||
+                intent.hasExtra("openAudioPath") ||
+                requestedTab in 1..4 ||
+                intent.component?.className == "$packageName.BlazeGalleryLauncherActivity" ||
+                intent.component?.className == "$packageName.BlazeAudioLauncherActivity"
+
+        if (!isMainLauncherStart || explicitDestination) return
+
+        val prefs = getSharedPreferences(PREFS_LAUNCH_STATE, MODE_PRIVATE)
+        val currentVersionCode = BuildConfig.VERSION_CODE.toLong()
+        val previousVersionCode = prefs.getLong(KEY_LAST_LAUNCHED_VERSION_CODE, Long.MIN_VALUE)
+        if (previousVersionCode != currentVersionCode) {
+            intent.putExtra(EXTRA_FORCE_BLAZE_VIDEO_ON_START, true)
+        }
+        prefs.edit().putLong(KEY_LAST_LAUNCHED_VERSION_CODE, currentVersionCode).apply()
     }
 
     private fun initializeTrialAccess() {
@@ -854,6 +887,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
+        const val EXTRA_FORCE_BLAZE_VIDEO_ON_START = "forceBlazeVideoOnStart"
+        private const val PREFS_LAUNCH_STATE = "blaze_launch_state"
+        private const val KEY_LAST_LAUNCHED_VERSION_CODE = "last_launched_version_code"
         private const val PREFS_ONBOARDING = "blaze_onboarding"
         private const val KEY_VIDEO_PERMISSIONS_PROMPTED = "video_permissions_prompted"
         private const val KEY_NOTIFICATION_PERMISSION_PROMPTED = "notification_permission_prompted"

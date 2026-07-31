@@ -1,179 +1,171 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="10dp"
     android:layout_marginHorizontal="6dp"
-    android:layout_marginVertical="5dp"
+    android:layout_marginVertical="4dp"
+    android:minHeight="84dp"
     android:background="@drawable/bg_media_card"
+    android:elevation="2dp"
     android:foreground="?attr/selectableItemBackground"
-    android:elevation="3dp">
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="10dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="4dp"
+    android:paddingBottom="8dp">
 
-    <!-- Case à cocher (sélection multiple) : cachée par défaut (listes sans sélection, ex: accueil),
-         rendue visible par le navigateur quand la sélection est disponible. Positionnée à gauche,
-         comme dans le navigateur audio. -->
     <CheckBox
-        style="@style/Widget.BlazePlayer.MultiSelectCheckBox"
         android:id="@+id/checkboxSelect"
+        style="@style/Widget.BlazePlayer.MultiSelectCheckBox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="10dp"
+        android:layout_marginEnd="8dp"
         android:visibility="gone" />
 
-    <!-- Thumbnail -->
-    <FrameLayout
-        android:layout_width="120dp"
-        android:layout_height="72dp"
-        android:background="@drawable/bg_thumbnail"
-        android:layout_marginEnd="12dp"
-        android:clipToOutline="true">
-
-        <ImageView
-            android:id="@+id/ivThumbnail"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="centerCrop"
-            android:contentDescription="@null" />
-
-        <ImageView
-            android:id="@+id/ivPlayOverlay"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_gravity="center"
-            android:src="@drawable/ic_play_circle"
-            android:contentDescription="@null" />
-
-        <!-- Conteneur (MP4, MKV...) en overlay bas-gauche de la miniature -->
-        <TextView
-            android:id="@+id/tvFormat"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|start"
-            android:layout_margin="4dp"
-            android:background="@drawable/bg_badge_black"
-            android:paddingHorizontal="5dp"
-            android:paddingVertical="1dp"
-            android:textSize="9sp"
-            android:textColor="@color/on_surface"
-            android:fontFamily="sans-serif-condensed"
-            android:visibility="gone"
-            android:textStyle="bold" />
-
-    </FrameLayout>
-
-    <!-- Infos : titre + badges + durée alignés à gauche -->
+    <!-- Ligne compacte : titre et métadonnées à gauche, petite frame vidéo portrait à droite. -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:gravity="start">
+        android:gravity="start"
+        android:orientation="vertical">
 
-        <!-- Titre -->
-        <TextView
+        <fr.retrospare.blazeplayer.ui.StrictTwoLineTextView
             android:id="@+id/tvFileName"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="@color/on_surface"
-            android:textSize="14sp"
-            android:fontFamily="sans-serif-condensed"
-            android:singleLine="true"
+            android:layout_height="36dp"
+            android:breakStrategy="simple"
             android:ellipsize="end"
-            android:layout_marginBottom="5dp" />
+            android:fontFamily="sans-serif-condensed"
+            android:gravity="center_vertical|start"
+            android:hyphenationFrequency="none"
+            android:includeFontPadding="false"
+            android:maxLines="2"
+            android:minLines="2"
+            android:textColor="@color/on_surface"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
-        <!-- Badges : résolution/qualité | codec vidéo | codec audio -->
+        <!-- Conteneur, codec vidéo, codec audio et durée, dans cet ordre. -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="start"
-            android:layout_marginBottom="4dp">
+            android:layout_marginTop="4dp"
+            android:gravity="start|center_vertical"
+            android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/tvResolution"
+                android:id="@+id/tvFormat"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_badge_gray"
+                android:layout_marginEnd="4dp"
+                android:fontFamily="sans-serif-condensed"
+                android:includeFontPadding="false"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
-                android:textSize="10sp"
-                android:textColor="@color/on_surface_variant"
-                android:fontFamily="sans-serif-condensed"
-                android:layout_marginEnd="4dp"
-                android:visibility="gone"
-                android:textStyle="bold" />
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvVideoCodec"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
                 android:background="@drawable/bg_badge_gray"
+                android:fontFamily="sans-serif-condensed"
+                android:includeFontPadding="false"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
-                android:textSize="10sp"
                 android:textColor="@color/on_surface_variant"
-                android:fontFamily="sans-serif-condensed"
-                android:layout_marginEnd="4dp"
-                android:visibility="gone"
-                android:textStyle="bold" />
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvAudioCodec"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
                 android:background="@drawable/bg_badge_gray"
+                android:fontFamily="sans-serif-condensed"
+                android:includeFontPadding="false"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
-                android:textSize="10sp"
                 android:textColor="@color/on_surface_variant"
-                android:fontFamily="sans-serif-condensed"
-                android:layout_marginEnd="4dp"
-                android:visibility="gone"
-                android:textStyle="bold" />
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
-                android:id="@+id/tvAudioQuality"
+                android:id="@+id/tvDuration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_badge_gray"
+                android:fontFamily="sans-serif-condensed"
+                android:includeFontPadding="false"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
-                android:textSize="10sp"
                 android:textColor="@color/on_surface_variant"
-                android:fontFamily="sans-serif-condensed"
-                android:visibility="gone"
-                android:textStyle="bold" />
-
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
         </LinearLayout>
-
-        <!-- Durée • Résolution pixels -->
-        <TextView
-            android:id="@+id/tvDuration"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/on_surface_variant"
-            android:textSize="11sp"
-            android:fontFamily="sans-serif-condensed" />
-
     </LinearLayout>
 
-    <!-- 3 points -->
+    <!-- Aperçu vidéo volontairement étroit et vertical : une frame des dix premières secondes
+         est recadrée sans prendre la largeur de la ligne. Le menu reste l'action la plus à droite. -->
+    <FrameLayout
+        android:id="@+id/thumbnailContainer"
+        android:layout_width="46dp"
+        android:layout_height="68dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_thumbnail"
+        android:clipToOutline="true"
+        android:visibility="gone">
 
-<ImageButton
+        <ImageView
+            android:id="@+id/ivThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop" />
+
+        <ImageView
+            android:id="@+id/ivPlayOverlay"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:alpha="0.82"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_play_small"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <ImageButton
         android:id="@+id/btnMore"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:layout_marginStart="4dp"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_marginStart="2dp"
         android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/content_desc_options"
+        android:padding="6dp"
         android:src="@drawable/ic_more_vert"
-        android:tint="@color/on_surface_variant"
-        android:contentDescription="@string/content_desc_options" />
+        android:tint="@color/on_surface_variant" />
 
-    <!-- progressFill caché pour compatibilité -->
+    <TextView
+        android:id="@+id/tvResolution"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvAudioQuality"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
     <View
         android:id="@+id/progressFill"
         android:layout_width="0dp"

@@ -510,7 +510,7 @@ Token: %2$s</string>
     <string name="toast_video_queue_no_video_selected">Pilih setidaknya satu video</string>
     <string name="toast_video_queue_cleared">Antrean video dikosongkan</string>
     <string name="toast_video_queue_item_removed">Video dihapus dari antrean</string>
-    <string name="content_desc_video_queue">Antrean video</string>
+    <string name="content_desc_video_queue">Antrean</string>
     <string name="content_desc_close_video_queue">Tutup antrean video</string>
     <string name="add_to_playlist_fixed_short">Tambahkan ke daftar putar</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -835,6 +835,7 @@ Token: %2$s</string>
     <string name="slideshow_picker_selected_count">Slideshow: %1$d • Akan ditambahkan: %2$d</string>
     <string name="slideshow_added_count">%1$d foto ditambahkan ke slideshow</string>
 
+    <string name="slideshow_picker_instruction">Pilih gambar yang akan disertakan dalam tayangan slide</string>
     <string name="slideshow_picker_folders">Folder</string>
 
     <string name="karaoke_sync_offset_value">Sinkron %1$s%2$d md</string>
@@ -879,4 +880,40 @@ Token: %2$s</string>
     <string name="audio_artist_photo_restored">Foto otomatis dipulihkan</string>
     <string name="audio_artist_photo_update_failed">Gambar ini tidak dapat digunakan</string>
     <string name="audio_now_playing">Sedang diputar</string>
+
+    <string name="history_recent_video_count_zero">0 video terbaru</string>
+    <string name="history_resume_section_title">Lanjutkan menonton</string>
+    <string name="history_recently_watched">Baru ditonton</string>
+    <string name="history_resume_at">Lanjutkan pada %1$s</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="other">%1$d video terbaru</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="other">%1$d video</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">Ganti nama</string>
+    <string name="browser_rename_video_title">Ganti nama video</string>
+    <string name="browser_rename_video_hint">Nama baru</string>
+    <string name="browser_rename_extension_preserved">Ekstensi %1$s akan dipertahankan.</string>
+    <string name="browser_rename_video_success">Nama video berhasil diubah.</string>
+    <string name="browser_rename_video_error">Video ini tidak dapat diganti namanya.</string>
+    <string name="browser_rename_video_invalid_name">Masukkan nama file yang valid.</string>
+    <string name="browser_rename_video_already_exists">File dengan nama ini sudah ada.</string>
+    <string name="browser_rename_video_network_read_only">Server jaringan ini tidak mengizinkan penggantian nama video.</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">Warna aksen</string>
+    <string name="settings_accent_color_desc">Mengganti hijau Blaze di seluruh aplikasi</string>
+    <string name="dialog_choose_accent_color">Pilih warna aksen</string>
+    <string name="accent_color_green">Hijau Blaze</string>
+    <string name="accent_color_blue">Biru laut</string>
+    <string name="accent_color_purple">Ungu</string>
+    <string name="accent_color_pink">Merah muda</string>
+    <string name="accent_color_orange">Oranye</string>
+    <string name="accent_color_red">Merah</string>
+    <string name="accent_color_turquoise">Pirus</string>
+    <string name="accent_color_gold">Emas</string>
 </resources>

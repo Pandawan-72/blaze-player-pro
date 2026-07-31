@@ -507,7 +507,7 @@ Token: %2$s</string>
     <string name="toast_video_queue_no_video_selected">Wählen Sie mindestens ein Video aus</string>
     <string name="toast_video_queue_cleared">Video-Warteschlange geleert</string>
     <string name="toast_video_queue_item_removed">Video aus der Warteschlange entfernt</string>
-    <string name="content_desc_video_queue">Video-Warteschlange</string>
+    <string name="content_desc_video_queue">Warteschlange</string>
     <string name="content_desc_close_video_queue">Video-Warteschlange schließen</string>
     <string name="audio_library_title">Bibliothek</string>
     <string name="audio_open_full_player">Audioplayer öffnen</string>
@@ -829,6 +829,7 @@ Token: %2$s</string>
     <string name="slideshow_picker_selected_count">Diashow: %1$d • Hinzuzufügen: %2$d</string>
     <string name="slideshow_added_count">%1$d Foto(s) zur Diashow hinzugefügt</string>
 
+    <string name="slideshow_picker_instruction">Wählen Sie die Bilder aus, die in die Diashow aufgenommen werden sollen</string>
     <string name="slideshow_picker_folders">Ordner</string>
 
     <string name="karaoke_sync_offset_value">Sync %1$s%2$d ms</string>
@@ -865,4 +866,42 @@ Token: %2$s</string>
     <string name="audio_artist_photo_restored">Automatisches Foto wiederhergestellt</string>
     <string name="audio_artist_photo_update_failed">Dieses Bild kann nicht verwendet werden</string>
     <string name="audio_now_playing">Wird abgespielt</string>
+
+    <string name="history_recent_video_count_zero">0 aktuelle Videos</string>
+    <string name="history_resume_section_title">Wiedergabe fortsetzen</string>
+    <string name="history_recently_watched">Kürzlich angesehen</string>
+    <string name="history_resume_at">Fortsetzen bei %1$s</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="one">%1$d aktuelles Video</item>
+        <item quantity="other">%1$d aktuelle Videos</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="one">%1$d Video</item>
+        <item quantity="other">%1$d Videos</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">Umbenennen</string>
+    <string name="browser_rename_video_title">Video umbenennen</string>
+    <string name="browser_rename_video_hint">Neuer Name</string>
+    <string name="browser_rename_extension_preserved">Die Erweiterung %1$s bleibt erhalten.</string>
+    <string name="browser_rename_video_success">Video umbenannt.</string>
+    <string name="browser_rename_video_error">Dieses Video konnte nicht umbenannt werden.</string>
+    <string name="browser_rename_video_invalid_name">Gib einen gültigen Dateinamen ein.</string>
+    <string name="browser_rename_video_already_exists">Eine Datei mit diesem Namen ist bereits vorhanden.</string>
+    <string name="browser_rename_video_network_read_only">Dieser Netzwerkserver erlaubt das Umbenennen von Videos nicht.</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">Akzentfarbe</string>
+    <string name="settings_accent_color_desc">Ersetzt Blaze-Grün in der gesamten App</string>
+    <string name="dialog_choose_accent_color">Akzentfarbe auswählen</string>
+    <string name="accent_color_green">Blaze-Grün</string>
+    <string name="accent_color_blue">Ozeanblau</string>
+    <string name="accent_color_purple">Violett</string>
+    <string name="accent_color_pink">Rosa</string>
+    <string name="accent_color_orange">Orange</string>
+    <string name="accent_color_red">Rot</string>
+    <string name="accent_color_turquoise">Türkis</string>
+    <string name="accent_color_gold">Gold</string>
 </resources>

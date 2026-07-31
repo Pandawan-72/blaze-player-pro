@@ -54,7 +54,7 @@ class RangeSeekBarView @JvmOverloads constructor(
 
     private val trackPaint = Paint().apply { color = Color.argb(90, 255, 255, 255) }
     private val rangePaint = Paint().apply {
-        color = try { ContextCompat.getColor(context, fr.retrospare.blazeplayer.R.color.green_accent) } catch (_: Exception) { Color.rgb(63, 215, 143) }
+        color = try { fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context) } catch (_: Exception) { Color.rgb(63, 215, 143) }
         style = Paint.Style.STROKE
         strokeWidth = 3f * density
     }

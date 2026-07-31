@@ -254,9 +254,9 @@
             android:text="@string/action_save"
             android:textColor="@color/background"
             android:textSize="13sp"
-            app:backgroundTint="@color/green_accent"
+            app:backgroundTint="?attr/colorPrimary"
             app:cornerRadius="20dp"
-            app:strokeColor="@color/green_accent_stroke"
+            app:strokeColor="?attr/blazeAccentStroke"
             app:strokeWidth="1dp" />
     </LinearLayout>
 </LinearLayout>

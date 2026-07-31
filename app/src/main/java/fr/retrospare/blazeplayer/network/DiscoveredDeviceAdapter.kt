@@ -31,7 +31,7 @@ class DiscoveredDeviceAdapter(
                 ShareType.UPNP -> {
                     binding.tvBadge.text = "UPnP"
                     binding.tvBadge.setBackgroundResource(R.drawable.bg_badge_green)
-                    binding.tvBadge.setTextColor(ContextCompat.getColor(binding.root.context, R.color.green_accent))
+                    binding.tvBadge.setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(binding.root.context))
                     binding.ivIcon.setImageResource(R.drawable.ic_cast)
                 }
                 else -> {

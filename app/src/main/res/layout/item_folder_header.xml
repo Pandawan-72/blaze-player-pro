@@ -71,7 +71,7 @@
             android:paddingHorizontal="12dp"
             android:includeFontPadding="false"
             android:gravity="center"
-            app:backgroundTint="@color/green_accent"
+            app:backgroundTint="?attr/colorPrimary"
             app:cornerRadius="20dp" />
 
     </LinearLayout>

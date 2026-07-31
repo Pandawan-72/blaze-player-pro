@@ -85,6 +85,7 @@ class AudioBrowserActivity : AppCompatActivity() {
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         super.onCreate(savedInstanceState)
         if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
                 this,
@@ -351,7 +352,7 @@ class AudioBrowserActivity : AppCompatActivity() {
     }
 
     private fun setActiveTab(index: Int) {
-        val green = getColor(fr.retrospare.blazeplayer.R.color.green_accent)
+        val green = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(this)
         val blue = getColor(fr.retrospare.blazeplayer.R.color.blue_accent)
         val dim = 0xFF6B6E80.toInt()
         binding.btnLocal.backgroundTintList = android.content.res.ColorStateList.valueOf(if (index == 0) green else dim)

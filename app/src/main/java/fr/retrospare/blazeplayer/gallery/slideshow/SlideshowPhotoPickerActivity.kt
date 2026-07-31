@@ -54,6 +54,7 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
     private lateinit var recycler: RecyclerView
     private lateinit var title: TextView
     private lateinit var count: TextView
+    private lateinit var instruction: TextView
     private lateinit var empty: TextView
     private lateinit var addButton: MaterialButton
     private lateinit var createButton: MaterialButton
@@ -64,8 +65,11 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
     /** Photos cochées dans le dossier courant, pas encore ajoutées via le bouton. */
     private val pending = LinkedHashMap<String, String>()
     private var currentFolder: Folder? = null
+    /** Invalide les chargements asynchrones précédents lors d'un changement dossiers/photos. */
+    private var renderGeneration: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_slideshow_photo_picker)
 
@@ -80,6 +84,7 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
         recycler = findViewById(R.id.listSlideshowPicker)
         title = findViewById(R.id.tvSlideshowPickerTitle)
         count = findViewById(R.id.tvSlideshowPickerCount)
+        instruction = findViewById(R.id.tvSlideshowPickerInstruction)
         empty = findViewById(R.id.tvSlideshowPickerEmpty)
         addButton = findViewById(R.id.btnSlideshowPickerAdd)
         createButton = findViewById(R.id.btnSlideshowPickerCreate)
@@ -109,16 +114,17 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
     }
 
     private fun showFolders() {
+        val generation = ++renderGeneration
         currentFolder = null
         pending.clear()
         title.text = getString(R.string.slideshow_picker_folders)
+        instruction.visibility = View.VISIBLE
         addButton.visibility = View.GONE
         updateSelectionUi()
-        recycler.setItemViewCacheSize(24)
-        recycler.recycledViewPool.setMaxRecycledViews(0, 32)
-        recycler.layoutManager = GridLayoutManager(this, 2).apply { initialPrefetchItemCount = 12 }
+        prepareRecycler(spanCount = 2, cacheSize = 24, recycledViews = 32, prefetchCount = 12)
         lifecycleScope.launch {
             val folders = withContext(Dispatchers.IO) { loadFolders() }
+            if (generation != renderGeneration || currentFolder != null) return@launch
             val warmupJob = lifecycleScope.launch(Dispatchers.IO) {
                 ThumbnailUtils.warmImageThumbnails(
                     applicationContext,
@@ -128,22 +134,28 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
                 )
             }
             kotlinx.coroutines.withTimeoutOrNull(220L) { warmupJob.join() }
+            if (generation != renderGeneration || currentFolder != null) return@launch
             recycler.adapter = FolderAdapter(folders)
-            setEmpty(folders.isEmpty(), R.string.gallery_empty_folders)
+            revealRecycler(folders.isEmpty(), R.string.gallery_empty_folders, generation)
         }
     }
 
     private fun openFolder(folder: Folder) {
+        val generation = ++renderGeneration
         currentFolder = folder
         pending.clear()
         title.text = folder.name
+        instruction.visibility = View.GONE
         addButton.visibility = View.VISIBLE
         updateSelectionUi()
-        recycler.setItemViewCacheSize(72)
-        recycler.recycledViewPool.setMaxRecycledViews(0, 96)
-        recycler.layoutManager = GridLayoutManager(this, 4).apply { initialPrefetchItemCount = 32 }
+
+        // Détache immédiatement les anciennes tuiles de dossiers avant de passer à quatre colonnes.
+        // Sans cela, RecyclerView redessinait brièvement un FolderViewHolder au format photo et
+        // l'icône dossier apparaissait au-dessus des images pendant le chargement MediaStore.
+        prepareRecycler(spanCount = 4, cacheSize = 72, recycledViews = 96, prefetchCount = 32)
         lifecycleScope.launch {
             val photos = withContext(Dispatchers.IO) { loadPhotos(folder.id) }
+            if (generation != renderGeneration || currentFolder?.id != folder.id) return@launch
             val warmupJob = lifecycleScope.launch(Dispatchers.IO) {
                 ThumbnailUtils.warmImageThumbnails(
                     applicationContext,
@@ -153,8 +165,47 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
                 )
             }
             kotlinx.coroutines.withTimeoutOrNull(260L) { warmupJob.join() }
+            if (generation != renderGeneration || currentFolder?.id != folder.id) return@launch
             recycler.adapter = PhotoAdapter(photos)
-            setEmpty(photos.isEmpty(), R.string.gallery_empty_photos)
+            revealRecycler(photos.isEmpty(), R.string.gallery_empty_photos, generation)
+        }
+    }
+
+    /** Prépare un changement de type de contenu sans jamais laisser l'ancien adapter à l'écran. */
+    private fun prepareRecycler(
+        spanCount: Int,
+        cacheSize: Int,
+        recycledViews: Int,
+        prefetchCount: Int
+    ) {
+        empty.visibility = View.GONE
+        recycler.apply {
+            stopScroll()
+            visibility = View.INVISIBLE
+            adapter = null
+            recycledViewPool.clear()
+            setItemViewCacheSize(cacheSize)
+            recycledViewPool.setMaxRecycledViews(0, recycledViews)
+            layoutManager = GridLayoutManager(this@SlideshowPhotoPickerActivity, spanCount).apply {
+                initialPrefetchItemCount = prefetchCount
+            }
+            itemAnimator = null
+        }
+    }
+
+    /** Révèle la grille uniquement après l'installation de l'adapter correspondant au mode actif. */
+    private fun revealRecycler(isEmpty: Boolean, messageRes: Int, generation: Int) {
+        if (generation != renderGeneration) return
+        if (isEmpty) {
+            recycler.visibility = View.GONE
+            empty.visibility = View.VISIBLE
+            empty.setText(messageRes)
+            return
+        }
+        empty.visibility = View.GONE
+        recycler.scrollToPosition(0)
+        recycler.post {
+            if (generation == renderGeneration) recycler.visibility = View.VISIBLE
         }
     }
 
@@ -190,12 +241,6 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
         addButton.alpha = if (addButton.isEnabled) 1f else 0.45f
         createButton.isEnabled = selected.size + pending.size >= 2
         createButton.alpha = if (createButton.isEnabled) 1f else 0.45f
-    }
-
-    private fun setEmpty(isEmpty: Boolean, messageRes: Int) {
-        recycler.visibility = if (isEmpty) View.GONE else View.VISIBLE
-        empty.visibility = if (isEmpty) View.VISIBLE else View.GONE
-        if (isEmpty) empty.setText(messageRes)
     }
 
     private fun loadFolders(): List<Folder> {
@@ -318,6 +363,7 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: PhotoHolder, position: Int) {
             val item = items[position]
             holder.more.visibility = View.GONE
+            holder.menuOverlay.visibility = View.GONE
             val checked = selected.containsKey(item.path) || pending.containsKey(item.path)
             holder.check.visibility = View.VISIBLE
             holder.check.setOnCheckedChangeListener(null)
@@ -354,6 +400,7 @@ class SlideshowPhotoPickerActivity : AppCompatActivity() {
 
     private class PhotoHolder(view: View) : RecyclerView.ViewHolder(view) {
         val image: ImageView = view.findViewById(R.id.ivThumbnail)
+        val menuOverlay: View = view.findViewById(R.id.photoBottomMenuOverlay)
         val more: ImageButton = view.findViewById(R.id.btnMore)
         val check: CheckBox = view.findViewById(R.id.cbSelected)
     }

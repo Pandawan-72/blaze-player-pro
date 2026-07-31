@@ -100,7 +100,7 @@ object InfoDialog {
 
         root.addView(TextView(context).apply {
             text = context.getString(R.string.action_ok)
-            setTextColor(ContextCompat.getColor(context, R.color.green_accent))
+            setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context))
             textSize = 14f
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             gravity = Gravity.CENTER

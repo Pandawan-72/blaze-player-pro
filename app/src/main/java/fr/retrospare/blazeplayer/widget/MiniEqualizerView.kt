@@ -34,8 +34,8 @@ class MiniEqualizerView @JvmOverloads constructor(
     private val random = Random(SystemClock.uptimeMillis() xor hashCode().toLong())
 
     private var gradient: LinearGradient? = null
-    private var bottomColor: Int = context.getColor(R.color.green_accent)
-    private var middleColor: Int = context.getColor(R.color.green_accent)
+    private var bottomColor: Int = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context)
+    private var middleColor: Int = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context)
     private var topColor: Int = Color.WHITE
 
     /** Demande fonctionnelle persistante : ne doit être remise à false que par stop(). */
@@ -81,7 +81,7 @@ class MiniEqualizerView @JvmOverloads constructor(
     init {
         alpha = 0.96f
         setWillNotDraw(false)
-        setAccentColor(context.getColor(R.color.green_accent))
+        setAccentColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context))
     }
 
     fun setAccentColor(accentColor: Int) {

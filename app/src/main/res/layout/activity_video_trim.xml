@@ -69,7 +69,7 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:layout_gravity="center"
-            android:indeterminateTint="@color/green_accent"
+            android:indeterminateTint="?attr/colorPrimary"
             android:visibility="gone" />
     </FrameLayout>
 
@@ -172,7 +172,7 @@
             android:textAllCaps="false"
             android:textSize="12sp"
             android:textColor="#FF000000"
-            app:backgroundTint="@color/green_accent"
+            app:backgroundTint="?attr/colorPrimary"
             app:cornerRadius="22dp"
             app:icon="@drawable/ic_content_cut"
             app:iconSize="16dp"

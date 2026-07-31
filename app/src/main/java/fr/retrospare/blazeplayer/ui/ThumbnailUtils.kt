@@ -476,6 +476,10 @@ object ThumbnailUtils {
     // puis frame vidéo bornée par timeout. Clé séparée pour ne pas réutiliser les anciens snapshots
     // capturés pendant la lecture.
     private fun thumbnailKey(path: String): String = if (isAudioPath(path)) "audio-thumb-v3:${audioKey(path)}" else "video-frame-lite-v2:$path"
+    // Cache séparé du navigateur vidéo : il garantit une frame réellement extraite dans
+    // les dix premières secondes, sans réutiliser une miniature système MediaStore potentiellement
+    // choisie ailleurs dans la vidéo ni une miniature personnalisée de l'accueil.
+    private fun browserEarlyFrameKey(path: String): String = "browser-early-frame-v1:$path"
 
     /** Retourne une pochette audio déjà en cache RAM/disque sans ouvrir le fichier source.
      *  À utiliser depuis l'UI : évite de lancer MediaMetadataRetriever sur le thread principal. */
@@ -2531,6 +2535,61 @@ object ThumbnailUtils {
         return -1
     }
 
+    /** Lecture RAM pure de la frame précoce réservée au navigateur vidéo. */
+    fun peekMemoryEarlyVideoFrameBitmap(path: String): Bitmap? {
+        if (isAudioPath(path)) return null
+        val key = browserEarlyFrameKey(path)
+        videoThumbnailHotCache.get(key)?.let { return it }
+        return cache.get(key)?.also { promoteVideoHotCache(key, it) }
+    }
+
+    /** Extrait une vraie frame vidéo avant 10 secondes et la conserve dans un cache distinct. */
+    suspend fun getEarlyVideoFrameBitmap(
+        context: Context,
+        path: String,
+        timeUs: Long = 5_000_000L
+    ): Bitmap? = coroutineScope {
+        if (isAudioPath(path)) return@coroutineScope null
+        peekMemoryEarlyVideoFrameBitmap(path)?.let { return@coroutineScope it }
+
+        val key = browserEarlyFrameKey(path)
+        inFlight[key]?.let { return@coroutineScope it.await() }
+        val deferred = async(Dispatchers.IO) {
+            videoThumbnailHotCache.get(key)?.let { return@async it }
+            cache.get(key)?.let {
+                promoteVideoHotCache(key, it)
+                return@async it
+            }
+            readFromDisk(context.applicationContext, key)?.let { cached ->
+                cache.put(key, cached)
+                promoteVideoHotCache(key, cached)
+                return@async cached
+            }
+
+            val safeTimeUs = timeUs.coerceIn(250_000L, 9_500_000L)
+            val timeoutMs = if (isNetworkVideoPath(path)) 4_500L else 2_500L
+            val extracted = withTimeoutOrNull(timeoutMs) {
+                if (isNetworkVideoPath(path)) {
+                    networkThumbnailSemaphore.withPermit {
+                        extractEarlyVideoFrameInternal(context.applicationContext, path, safeTimeUs, key)
+                    }
+                } else {
+                    extractEarlyVideoFrameInternal(context.applicationContext, path, safeTimeUs, key)
+                }
+            }
+            if (extracted == null) {
+                android.util.Log.w("ThumbnailUtils", "Early browser frame timeout/failure for ${safePathForLog(path)}")
+            }
+            extracted
+        }
+        inFlight[key] = deferred
+        try {
+            deferred.await()
+        } finally {
+            inFlight.remove(key, deferred)
+        }
+    }
+
     /** Retourne uniquement une miniature déjà présente en RAM. Cette méthode est sûre dans
      *  onBindViewHolder : aucune lecture disque, MediaStore ou réseau n'est effectuée. */
     fun peekMemoryThumbnailBitmap(path: String): Bitmap? {
@@ -2778,6 +2837,54 @@ object ThumbnailUtils {
             context.contentResolver.loadThumbnail(Uri.parse(path), android.util.Size(512, 512), null)
         } catch (_: Exception) {
             null
+        }
+    }
+
+    private fun extractEarlyVideoFrameInternal(
+        context: Context,
+        path: String,
+        requestedTimeUs: Long,
+        cacheKey: String
+    ): Bitmap? {
+        val retriever = MediaMetadataRetriever()
+        var closeable: AutoCloseable? = null
+        return try {
+            closeable = setRetrieverDataSource(context, retriever, path)
+            val durationUs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toLongOrNull()
+                ?.times(1000L)
+            val targetUs = when {
+                durationUs == null || durationUs <= 0L -> requestedTimeUs
+                durationUs <= 750_000L -> (durationUs / 2L).coerceAtLeast(100_000L)
+                durationUs <= requestedTimeUs -> (durationUs / 2L).coerceAtLeast(250_000L)
+                else -> requestedTimeUs
+            }.coerceAtMost(9_500_000L)
+
+            // OPTION_CLOSEST donne une frame réellement proche de 5 s pour les fichiers locaux.
+            // Pour SMB/HTTP, OPTION_CLOSEST_SYNC limite fortement les lectures aléatoires tout en
+            // restant dans la zone de début grâce à une cible de 5 s maximum.
+            val primaryOption = if (isNetworkVideoPath(path)) {
+                MediaMetadataRetriever.OPTION_CLOSEST_SYNC
+            } else {
+                MediaMetadataRetriever.OPTION_CLOSEST
+            }
+            var bitmap = retriever.getFrameAtTime(targetUs, primaryOption)
+            if (bitmap == null) {
+                bitmap = retriever.getFrameAtTime(1_000_000L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+            }
+            bitmap?.let {
+                val scaled = scaleBitmap(it, if (isNetworkVideoPath(path)) 180 else 240)
+                cache.put(cacheKey, scaled)
+                promoteVideoHotCache(cacheKey, scaled)
+                writeToDisk(context, cacheKey, scaled)
+                scaled
+            }
+        } catch (error: Throwable) {
+            android.util.Log.w("ThumbnailUtils", "Unable to extract early browser frame for ${safePathForLog(path)}", error)
+            null
+        } finally {
+            try { retriever.release() } catch (_: Throwable) {}
+            try { closeable?.close() } catch (_: Throwable) {}
         }
     }
 
@@ -3338,6 +3445,28 @@ object ThumbnailUtils {
     ): Boolean {
         val bitmap = peekMemoryImageThumbnailBitmap(path, maxSize)
             ?: getImageThumbnailBitmap(context, path, maxSize)
+        return withContext(Dispatchers.Main) {
+            if (imageView.getTag(R.id.ivThumbnail) != path) return@withContext false
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap)
+                imageView.scaleType = ImageView.ScaleType.CENTER_CROP
+                imageView.setBackgroundColor(0x00000000)
+                true
+            } else {
+                false
+            }
+        }
+    }
+
+    suspend fun loadEarlyVideoFrame(
+        context: Context,
+        path: String,
+        imageView: ImageView,
+        timeUs: Long = 5_000_000L
+    ): Boolean {
+        imageView.setTag(R.id.ivThumbnail, path)
+        val bitmap = peekMemoryEarlyVideoFrameBitmap(path)
+            ?: getEarlyVideoFrameBitmap(context, path, timeUs)
         return withContext(Dispatchers.Main) {
             if (imageView.getTag(R.id.ivThumbnail) != path) return@withContext false
             if (bitmap != null) {

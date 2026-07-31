@@ -42,7 +42,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/action_save"
             android:src="@drawable/ic_check"
-            android:tint="@color/green_accent" />
+            android:tint="?attr/colorPrimary" />
     </LinearLayout>
 
     <!-- Zone image -->
@@ -76,7 +76,7 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:layout_gravity="center"
-            android:indeterminateTint="@color/green_accent"
+            android:indeterminateTint="?attr/colorPrimary"
             android:visibility="gone" />
 
     </FrameLayout>
@@ -131,7 +131,7 @@
                     android:textSize="12sp"
                     android:textColor="#FFFFFF"
                     app:backgroundTint="#33FFFFFF"
-                    app:strokeColor="@color/green_accent"
+                    app:strokeColor="?attr/colorPrimary"
                     app:strokeWidth="2dp"
                     app:cornerRadius="22dp" />
 
@@ -210,8 +210,8 @@
             android:layout_marginHorizontal="8dp"
             android:max="90"
             android:progress="45"
-            android:progressTint="@color/green_accent"
-            android:thumbTint="@color/green_accent" />
+            android:progressTint="?attr/colorPrimary"
+            android:thumbTint="?attr/colorPrimary" />
 
         <ImageButton
             android:id="@+id/btnRotateRight"
@@ -252,7 +252,7 @@
                 android:textSize="12sp"
                 android:textColor="#FFFFFF"
                 app:backgroundTint="#33FFFFFF"
-                app:strokeColor="@color/green_accent"
+                app:strokeColor="?attr/colorPrimary"
                 app:strokeWidth="2dp"
                 app:cornerRadius="22dp" />
 
@@ -291,7 +291,7 @@
                 android:textSize="12sp"
                 android:textColor="#FFFFFF"
                 app:backgroundTint="#33FFFFFF"
-                app:strokeColor="@color/green_accent"
+                app:strokeColor="?attr/colorPrimary"
                 app:strokeWidth="2dp"
                 app:icon="@drawable/ic_shape_circle"
                 app:iconSize="14dp"
@@ -342,8 +342,8 @@
                 android:layout_marginStart="10dp"
                 android:max="100"
                 android:progress="50"
-                android:progressTint="@color/green_accent"
-                android:thumbTint="@color/green_accent" />
+                android:progressTint="?attr/colorPrimary"
+                android:thumbTint="?attr/colorPrimary" />
         </LinearLayout>
     </LinearLayout>
 
@@ -367,7 +367,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@drawable/ic_tune"
-                android:tint="@color/green_accent"
+                android:tint="?attr/colorPrimary"
                 android:contentDescription="@null" />
 
             <TextView
@@ -375,7 +375,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:text="@string/editor_tab_filters"
-                android:textColor="@color/green_accent"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="10sp" />
         </LinearLayout>
 

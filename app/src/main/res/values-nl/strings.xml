@@ -507,7 +507,7 @@ Token: %2$s</string>
     <string name="toast_video_queue_no_video_selected">Selecteer minstens één video</string>
     <string name="toast_video_queue_cleared">Videowachtrij geleegd</string>
     <string name="toast_video_queue_item_removed">Video uit de wachtrij verwijderd</string>
-    <string name="content_desc_video_queue">Videowachtrij</string>
+    <string name="content_desc_video_queue">Wachtrij</string>
     <string name="content_desc_close_video_queue">Videowachtrij sluiten</string>
     <string name="audio_library_title">Bibliotheek</string>
     <string name="audio_open_full_player">Audiospeler openen</string>
@@ -829,6 +829,7 @@ Token: %2$s</string>
     <string name="slideshow_picker_selected_count">Diavoorstelling: %1$d • Toe te voegen: %2$d</string>
     <string name="slideshow_added_count">%1$d foto(’s) toegevoegd aan de diavoorstelling</string>
 
+    <string name="slideshow_picker_instruction">Selecteer de afbeeldingen die u in de diavoorstelling wilt opnemen</string>
     <string name="slideshow_picker_folders">Mappen</string>
 
     <string name="karaoke_sync_offset_value">Sync %1$s%2$d ms</string>
@@ -865,4 +866,42 @@ Token: %2$s</string>
     <string name="audio_artist_photo_restored">Automatische foto hersteld</string>
     <string name="audio_artist_photo_update_failed">Deze afbeelding kan niet worden gebruikt</string>
     <string name="audio_now_playing">Wordt afgespeeld</string>
+
+    <string name="history_recent_video_count_zero">0 recente video\'s</string>
+    <string name="history_resume_section_title">Afspelen hervatten</string>
+    <string name="history_recently_watched">Onlangs bekeken</string>
+    <string name="history_resume_at">Hervatten op %1$s</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="one">%1$d recente video</item>
+        <item quantity="other">%1$d recente video\'s</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="one">%1$d video</item>
+        <item quantity="other">%1$d video\'s</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">Hernoemen</string>
+    <string name="browser_rename_video_title">Video hernoemen</string>
+    <string name="browser_rename_video_hint">Nieuwe naam</string>
+    <string name="browser_rename_extension_preserved">De extensie %1$s blijft behouden.</string>
+    <string name="browser_rename_video_success">Video hernoemd.</string>
+    <string name="browser_rename_video_error">Deze video kan niet worden hernoemd.</string>
+    <string name="browser_rename_video_invalid_name">Voer een geldige bestandsnaam in.</string>
+    <string name="browser_rename_video_already_exists">Er bestaat al een bestand met deze naam.</string>
+    <string name="browser_rename_video_network_read_only">Deze netwerkserver staat het hernoemen van video’s niet toe.</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">Accentkleur</string>
+    <string name="settings_accent_color_desc">Vervangt Blaze-groen in de hele app</string>
+    <string name="dialog_choose_accent_color">Accentkleur kiezen</string>
+    <string name="accent_color_green">Blaze-groen</string>
+    <string name="accent_color_blue">Oceaanblauw</string>
+    <string name="accent_color_purple">Paars</string>
+    <string name="accent_color_pink">Roze</string>
+    <string name="accent_color_orange">Oranje</string>
+    <string name="accent_color_red">Rood</string>
+    <string name="accent_color_turquoise">Turkoois</string>
+    <string name="accent_color_gold">Goud</string>
 </resources>

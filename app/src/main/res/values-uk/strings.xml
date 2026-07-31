@@ -510,7 +510,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="toast_video_queue_no_video_selected">Виберіть принаймні одне відео</string>
     <string name="toast_video_queue_cleared">Чергу відео очищено</string>
     <string name="toast_video_queue_item_removed">Відео видалено з черги</string>
-    <string name="content_desc_video_queue">Черга відео</string>
+    <string name="content_desc_video_queue">Черга</string>
     <string name="content_desc_close_video_queue">Закрити чергу відео</string>
     <string name="add_to_playlist_fixed_short">Додати до списку відтворення</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -837,6 +837,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="slideshow_picker_selected_count">Слайд-шоу: %1$d • Додати: %2$d</string>
     <string name="slideshow_added_count">Додано фото до слайд-шоу: %1$d</string>
 
+    <string name="slideshow_picker_instruction">Виберіть зображення, які потрібно додати до слайд-шоу</string>
     <string name="slideshow_picker_folders">Папки</string>
 
     <string name="karaoke_sync_offset_value">Синхр. %1$s%2$d мс</string>
@@ -881,4 +882,46 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_artist_photo_restored">Автоматичне фото відновлено</string>
     <string name="audio_artist_photo_update_failed">Це зображення неможливо використати</string>
     <string name="audio_now_playing">Зараз відтворюється</string>
+
+    <string name="history_recent_video_count_zero">0 нещодавніх відео</string>
+    <string name="history_resume_section_title">Продовжити перегляд</string>
+    <string name="history_recently_watched">Нещодавно переглянуті</string>
+    <string name="history_resume_at">Продовжити з %1$s</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="one">%1$d нещодавнє відео</item>
+        <item quantity="few">%1$d нещодавні відео</item>
+        <item quantity="many">%1$d нещодавніх відео</item>
+        <item quantity="other">%1$d нещодавнього відео</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="one">%1$d відео</item>
+        <item quantity="few">%1$d відео</item>
+        <item quantity="many">%1$d відео</item>
+        <item quantity="other">%1$d відео</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">Перейменувати</string>
+    <string name="browser_rename_video_title">Перейменувати відео</string>
+    <string name="browser_rename_video_hint">Нова назва</string>
+    <string name="browser_rename_extension_preserved">Розширення %1$s буде збережено.</string>
+    <string name="browser_rename_video_success">Відео перейменовано.</string>
+    <string name="browser_rename_video_error">Не вдалося перейменувати це відео.</string>
+    <string name="browser_rename_video_invalid_name">Введіть припустиму назву файлу.</string>
+    <string name="browser_rename_video_already_exists">Файл із такою назвою вже існує.</string>
+    <string name="browser_rename_video_network_read_only">Цей мережевий сервер не дозволяє перейменовувати відео.</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">Колір акценту</string>
+    <string name="settings_accent_color_desc">Замінює зелений Blaze в усій програмі</string>
+    <string name="dialog_choose_accent_color">Вибрати колір акценту</string>
+    <string name="accent_color_green">Зелений Blaze</string>
+    <string name="accent_color_blue">Океанічний синій</string>
+    <string name="accent_color_purple">Фіолетовий</string>
+    <string name="accent_color_pink">Рожевий</string>
+    <string name="accent_color_orange">Помаранчевий</string>
+    <string name="accent_color_red">Червоний</string>
+    <string name="accent_color_turquoise">Бірюзовий</string>
+    <string name="accent_color_gold">Золотий</string>
 </resources>

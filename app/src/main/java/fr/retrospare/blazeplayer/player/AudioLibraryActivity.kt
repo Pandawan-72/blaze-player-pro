@@ -264,6 +264,7 @@ class AudioLibraryActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         // La bibliothèque est fournie par le snapshot mémoire partagé. On ignore le
         // savedInstanceState Android pour éviter qu'un ancien état de vue soit restauré après
         // suppression/vidage de cache.

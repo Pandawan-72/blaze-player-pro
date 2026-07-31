@@ -229,7 +229,8 @@ class PlaylistAdapter(
                 eqView?.visibility = View.GONE
             }
             tvName.setTextColor(
-                itemView.context.getColor(if (isCurrent) R.color.green_accent else R.color.on_surface)
+                if (isCurrent) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(itemView.context)
+                else itemView.context.getColor(R.color.on_surface)
             )
             itemView.setOnClickListener { val pos = adapterPosition; if (pos != RecyclerView.NO_ID.toInt()) onItemClick(pos) }
         }
@@ -249,7 +250,8 @@ class PlaylistAdapter(
             }
             if (label.isNotEmpty()) {
                 tvTime?.text = label
-                tvTime?.setTextColor(itemView.context.getColor(if (isCurrent) R.color.green_accent else R.color.on_surface_variant))
+                tvTime?.setTextColor(if (isCurrent) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(itemView.context)
+                    else itemView.context.getColor(R.color.on_surface_variant))
                 tvTime?.visibility = View.VISIBLE
             } else {
                 tvTime?.visibility = View.GONE

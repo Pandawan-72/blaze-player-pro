@@ -299,6 +299,7 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.fullscreenTheme(this))
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         lifecycleScope.launch {
@@ -2028,9 +2029,16 @@ class PlayerActivity : AppCompatActivity(), ChromecastRemoteCommandBridge.Target
 
     private fun persistVideoPosition(positionMs: Long, immediate: Boolean = false) {
         if (mediaPath.isEmpty() || positionMs <= 0L) return
-        val editor = getSharedPreferences("blaze_positions", MODE_PRIVATE).edit().putLong(mediaPath, positionMs)
+        val durationMs = try {
+            player.duration.takeIf { it > 0L && it != C.TIME_UNSET } ?: 0L
+        } catch (_: Exception) {
+            0L
+        }
+        val editor = getSharedPreferences("blaze_positions", MODE_PRIVATE).edit()
+            .putLong(mediaPath, positionMs)
+        if (durationMs > 0L) editor.putLong("$mediaPath#duration_ms", durationMs)
         if (immediate) editor.commit() else editor.apply()
-        lifecycleScope.launch { mediaRepository.updateProgress(mediaPath, positionMs) }
+        lifecycleScope.launch { mediaRepository.updateProgress(mediaPath, positionMs, durationMs) }
     }
 
     private fun stopVideoPlaybackAndNotification() {

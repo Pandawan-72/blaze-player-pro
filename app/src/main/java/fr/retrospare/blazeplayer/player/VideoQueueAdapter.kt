@@ -70,7 +70,8 @@ class VideoQueueAdapter(
             tvIndex.text = (position + 1).toString()
             indicator.visibility = if (isCurrent) View.VISIBLE else View.INVISIBLE
             queueCard.setBackgroundResource(if (isCurrent) R.drawable.bg_queue_card_current else R.drawable.bg_surface_card)
-            tvName.setTextColor(itemView.context.getColor(if (isCurrent) R.color.green_accent else R.color.on_surface))
+            tvName.setTextColor(if (isCurrent) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(itemView.context)
+            else itemView.context.getColor(R.color.on_surface))
 
             val ext = track.extension.ifBlank {
                 track.name.substringAfterLast('.', "").ifBlank {
@@ -103,7 +104,8 @@ class VideoQueueAdapter(
             }
             if (durationMs > 0L) {
                 tvTime?.text = formatMs(durationMs)
-                tvTime?.setTextColor(itemView.context.getColor(if (isCurrent) R.color.green_accent else R.color.on_surface_variant))
+                tvTime?.setTextColor(if (isCurrent) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(itemView.context)
+                else itemView.context.getColor(R.color.on_surface_variant))
                 tvTime?.visibility = View.VISIBLE
             } else {
                 tvTime?.visibility = View.GONE

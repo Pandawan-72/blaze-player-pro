@@ -194,6 +194,8 @@
 
                 <View style="@style/BlazeSettingsSeparator" />
 
+                <include android:id="@+id/settingAccentColor" layout="@layout/item_setting" />
+                <View style="@style/BlazeSettingsSeparator" />
                 <include android:id="@+id/settingShowHidden" layout="@layout/item_setting" />
                 <View style="@style/BlazeSettingsSeparator" />
                 <include android:id="@+id/settingHaptic" layout="@layout/item_setting" />
@@ -276,7 +278,7 @@
                     android:layout_marginEnd="16dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_refresh"
-                    android:tint="@color/green_accent" />
+                    android:tint="?attr/colorPrimary" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -284,7 +286,7 @@
                     android:fontFamily="sans-serif-condensed"
                     android:includeFontPadding="false"
                     android:text="@string/restore_purchases"
-                    android:textColor="@color/green_accent"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
@@ -308,7 +310,7 @@
                     android:layout_marginEnd="16dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_star"
-                    android:tint="@color/green_accent" />
+                    android:tint="?attr/colorPrimary" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -324,7 +326,7 @@
                         android:includeFontPadding="false"
                         android:maxLines="1"
                         android:text="@string/settings_rate_app"
-                        android:textColor="@color/green_accent"
+                        android:textColor="?attr/colorPrimary"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 

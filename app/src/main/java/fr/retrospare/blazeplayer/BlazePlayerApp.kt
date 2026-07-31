@@ -26,6 +26,9 @@ class BlazePlayerApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Le contexte Application peut lui aussi inflater certains drawables (services, caches,
+        // notifications). On lui applique donc la même palette que les activités.
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         AdaptiveButtonTextManager.initialize(this)
         HapticFeedbackManager.initialize(this)
         CrashReporter.install(this)

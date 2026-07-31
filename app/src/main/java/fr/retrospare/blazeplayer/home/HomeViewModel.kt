@@ -28,6 +28,7 @@ class HomeViewModel @Inject constructor(
     private val initialHistoryItems: List<MediaItem> = mediaRepository.getRecentItemsSnapshot()
         .filter { !it.mimeType.startsWith("audio/") }
         .map { fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorate(it) }
+        .sortedByDescending { it.lastPlayedAt }
 
     private val _lastPlayedItem = MutableStateFlow<MediaItem?>(initialHistoryItems.firstOrNull())
     val lastPlayedItem: StateFlow<MediaItem?> = _lastPlayedItem.asStateFlow()
@@ -38,6 +39,11 @@ class HomeViewModel @Inject constructor(
     private val _recentLocalItems = MutableStateFlow(initialHistoryItems)
     val recentLocalItems: StateFlow<List<MediaItem>> = _recentLocalItems.asStateFlow()
 
+    /** Devient vrai uniquement après la première lecture DataStore. Le miroir SharedPreferences
+     * sert au préchauffage, mais l'UI attend ce signal avant de révéler la grille pour ne jamais
+     * montrer brièvement un ordre obsolète. */
+    private val _historyAuthoritative = MutableStateFlow(false)
+    val historyAuthoritative: StateFlow<Boolean> = _historyAuthoritative.asStateFlow()
 
     private val _showNetwork = MutableStateFlow(true)
     val showNetwork: StateFlow<Boolean> = _showNetwork.asStateFlow()
@@ -47,7 +53,7 @@ class HomeViewModel @Inject constructor(
 
     private var allItems: List<MediaItem> = initialHistoryItems
 
-    private val _currentTabIndex = MutableStateFlow(0)
+    private val _currentTabIndex = MutableStateFlow(1)
     val currentTabIndex: StateFlow<Int> = _currentTabIndex.asStateFlow()
 
     private var historyLoadGeneration: Long = 0L
@@ -70,11 +76,14 @@ class HomeViewModel @Inject constructor(
                 // persistées dans MediaItem. L'utilisateur voit donc l'historique dès que le
                 // snapshot SharedPreferences/DataStore arrive, sans attendre MediaStore ni le
                 // cache de métadonnées disque.
-                val videoOnly = items.filter { !it.mimeType.startsWith("audio/") }
+                val videoOnly = items
+                    .filter { !it.mimeType.startsWith("audio/") }
+                    .sortedByDescending { it.lastPlayedAt }
                 val immediateItems = videoOnly.map {
                     fr.retrospare.blazeplayer.player.VideoMetadataExtractor.fastDecorate(it)
                 }
                 publishHistory(immediateItems)
+                _historyAuthoritative.value = true
 
                 // Réchauffe en parallèle les miniatures déjà présentes sur disque. Cela donne une
                 // longueur d'avance au premier bind RecyclerView sans ouvrir de vidéo ni de NAS.

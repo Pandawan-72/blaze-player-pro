@@ -37,11 +37,12 @@ class AudioProSettingsActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
     private var refreshAfterWatchedBrowser = false
     private val accentColor by lazy { resolveAccentColor() }
-    private val heroAccentColor by lazy { ContextCompat.getColor(this, R.color.green_accent) }
+    private val heroAccentColor by lazy { fr.retrospare.blazeplayer.theme.AccentColorManager.accent(this) }
     private val textMain by lazy { ContextCompat.getColor(this, R.color.on_background) }
     private val textMuted by lazy { ContextCompat.getColor(this, R.color.on_surface_variant) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         super.onCreate(savedInstanceState)
         if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
                 this,

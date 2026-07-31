@@ -86,7 +86,7 @@
                 android:gravity="center"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="10dp"
-                android:textColor="@color/green_accent"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -159,7 +159,7 @@
                         android:background="@drawable/bg_icon_green"
                         android:padding="8dp"
                         android:src="@drawable/ic_network"
-                        android:tint="@color/green_accent" />
+                        android:tint="?attr/colorPrimary" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -177,7 +177,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/paywall_pro_price"
-                        android:textColor="@color/green_accent"
+                        android:textColor="?attr/colorPrimary"
                         android:textSize="17sp"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-condensed" />
@@ -256,7 +256,7 @@
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="@color/black"
-                app:backgroundTint="@color/green_accent"
+                app:backgroundTint="?attr/colorPrimary"
                 app:cornerRadius="22dp" />
 
             <com.google.android.material.button.MaterialButton

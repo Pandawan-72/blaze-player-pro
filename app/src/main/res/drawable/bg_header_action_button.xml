@@ -7,7 +7,7 @@
                 android:startColor="#1C2638"
                 android:endColor="#090E18" />
             <corners android:radius="18dp" />
-            <stroke android:width="0.8dp" android:color="#4521E69A" />
+            <stroke android:width="0.8dp" android:color="?attr/blazeAccentSoft" />
         </shape>
     </item>
     <item android:left="1dp" android:top="1dp" android:right="1dp" android:bottom="1dp">

@@ -12,7 +12,7 @@ import fr.retrospare.blazeplayer.R
 object AudioPremiumUi {
 
     fun resolveAccentColor(context: Context): Int {
-        val blazeGreen = ContextCompat.getColor(context, R.color.green_accent)
+        val blazeGreen = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context)
         val prefs = AudioProSettings.prefs(context)
         if (!prefs.getBoolean(AudioProSettings.KEY_DYNAMIC_THEME, true)) return blazeGreen
 

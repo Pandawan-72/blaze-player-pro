@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Couleurs dérivées de l'accent sélectionné. Elles permettent aux drawables XML de
+         conserver exactement leur structure tout en changeant de teinte avec le thème. -->
+    <attr name="blazeAccentStroke" format="color" />
+    <attr name="blazeAccentSoft" format="color" />
+    <attr name="blazeAccentSubtle" format="color" />
+    <attr name="blazeAccentStrong" format="color" />
+    <attr name="blazeAccentContainerStrong" format="color" />
+    <attr name="blazeAccentDarkBorder" format="color" />
+    <attr name="blazeOnAccent" format="color" />
+</resources>

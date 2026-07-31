@@ -10,7 +10,7 @@
         <clip>
             <shape>
                 <size android:height="2dp" />
-                <solid android:color="#70A4F7F3" />
+                <solid android:color="?attr/blazeAccentStroke" />
             </shape>
         </clip>
     </item>
@@ -18,7 +18,7 @@
         <clip>
             <shape>
                 <size android:height="2dp" />
-                <gradient android:startColor="#B8FFFF" android:centerColor="#6EF8F1" android:endColor="#0AAEA6" android:angle="0" />
+                <gradient android:startColor="?attr/colorPrimary" android:centerColor="?attr/colorPrimary" android:endColor="?attr/blazeAccentDarkBorder" android:angle="0" />
             </shape>
         </clip>
     </item>

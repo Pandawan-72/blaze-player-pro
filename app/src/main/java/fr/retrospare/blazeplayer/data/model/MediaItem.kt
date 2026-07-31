@@ -27,6 +27,50 @@ data class MediaItem(
      */
     val libraryPath: String = ""
 ) {
+    /**
+     * Nom affichable complet. Certains serveurs UPnP fournissent un titre sans suffixe alors que
+     * le conteneur est connu séparément. L'ajouter ici garantit que le titre affiché et tronqué
+     * tient bien compte du conteneur, sans dupliquer une extension déjà présente.
+     */
+    val displayNameWithContainer: String
+        get() {
+            val cleanName = name.trim()
+            if (cleanName.isEmpty()) return cleanName
+
+            // Utiliser une extension stable dès le premier affichage. Les métadonnées détaillées
+            // peuvent arriver après le nom dans l'historique ; si le titre change à ce moment-là,
+            // un TextView long est remesuré et produit un scintillement visible. Le nom puis le
+            // chemin constituent donc les fallbacks avant la valeur enrichie.
+            fun validExtension(raw: String): String = raw
+                .trim()
+                .removePrefix(".")
+                .takeIf { it.length in 2..5 && it.all { char -> char.isLetterOrDigit() } }
+                .orEmpty()
+
+            val extensionFromName = validExtension(
+                cleanName.substringBefore('?').substringBefore('#').substringAfterLast('.', "")
+            )
+            val extensionFromPath = validExtension(
+                path.substringBefore('?').substringBefore('#').substringAfterLast('.', "")
+            )
+            val extensionFromMime = when {
+                mimeType.contains("matroska", ignoreCase = true) -> "mkv"
+                mimeType.contains("webm", ignoreCase = true) -> "webm"
+                mimeType.contains("quicktime", ignoreCase = true) -> "mov"
+                mimeType.contains("x-msvideo", ignoreCase = true) -> "avi"
+                mimeType.contains("mp4", ignoreCase = true) -> "mp4"
+                else -> ""
+            }
+            val cleanExtension = extensionFromName
+                .ifEmpty { extensionFromPath }
+                .ifEmpty { validExtension(extension) }
+                .ifEmpty { extensionFromMime }
+
+            if (cleanExtension.isEmpty()) return cleanName
+            val suffix = ".${cleanExtension}"
+            return if (cleanName.endsWith(suffix, ignoreCase = true)) cleanName else cleanName + suffix
+        }
+
     val formattedDuration: String
         get() {
             if (duration <= 0) return ""

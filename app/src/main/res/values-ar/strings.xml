@@ -510,7 +510,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="toast_video_queue_no_video_selected">اختر فيديو واحدًا على الأقل</string>
     <string name="toast_video_queue_cleared">تم مسح قائمة انتظار الفيديو</string>
     <string name="toast_video_queue_item_removed">تمت إزالة الفيديو من قائمة الانتظار</string>
-    <string name="content_desc_video_queue">قائمة انتظار الفيديو</string>
+    <string name="content_desc_video_queue">قائمة الانتظار</string>
     <string name="content_desc_close_video_queue">إغلاق قائمة انتظار الفيديو</string>
     <string name="add_to_playlist_fixed_short">إضافة إلى قائمة تشغيل</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -835,6 +835,7 @@ Retro-Spare Dev / Anthony Gentil
     <string name="slideshow_picker_selected_count">عرض الشرائح: %1$d • للإضافة: %2$d</string>
     <string name="slideshow_added_count">تمت إضافة %1$d صورة إلى عرض الشرائح</string>
 
+    <string name="slideshow_picker_instruction">حدد الصور التي تريد تضمينها في عرض الشرائح</string>
     <string name="slideshow_picker_folders">المجلدات</string>
 
     <string name="karaoke_sync_offset_value">مزامنة %1$s%2$d مللي ثانية</string>
@@ -879,4 +880,50 @@ Retro-Spare Dev / Anthony Gentil
     <string name="audio_artist_photo_restored">تمت استعادة الصورة التلقائية</string>
     <string name="audio_artist_photo_update_failed">لا يمكن استخدام هذه الصورة</string>
     <string name="audio_now_playing">قيد التشغيل</string>
+
+    <string name="history_recent_video_count_zero">0 فيديو حديث</string>
+    <string name="history_resume_section_title">متابعة المشاهدة</string>
+    <string name="history_recently_watched">شوهدت مؤخرًا</string>
+    <string name="history_resume_at">استئناف عند %1$s</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="zero">لا توجد فيديوهات حديثة</item>
+        <item quantity="one">فيديو حديث واحد</item>
+        <item quantity="two">فيديوهان حديثان</item>
+        <item quantity="few">%1$d فيديوهات حديثة</item>
+        <item quantity="many">%1$d فيديو حديثًا</item>
+        <item quantity="other">%1$d فيديو حديث</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="zero">لا توجد فيديوهات</item>
+        <item quantity="one">فيديو واحد</item>
+        <item quantity="two">فيديوهان</item>
+        <item quantity="few">%1$d فيديوهات</item>
+        <item quantity="many">%1$d فيديو</item>
+        <item quantity="other">%1$d فيديو</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">إعادة التسمية</string>
+    <string name="browser_rename_video_title">إعادة تسمية الفيديو</string>
+    <string name="browser_rename_video_hint">الاسم الجديد</string>
+    <string name="browser_rename_extension_preserved">سيتم الاحتفاظ بالامتداد %1$s.</string>
+    <string name="browser_rename_video_success">تمت إعادة تسمية الفيديو.</string>
+    <string name="browser_rename_video_error">تعذرت إعادة تسمية هذا الفيديو.</string>
+    <string name="browser_rename_video_invalid_name">أدخل اسم ملف صالحًا.</string>
+    <string name="browser_rename_video_already_exists">يوجد ملف بهذا الاسم بالفعل.</string>
+    <string name="browser_rename_video_network_read_only">خادم الشبكة هذا لا يسمح بإعادة تسمية مقاطع الفيديو.</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">لون التمييز</string>
+    <string name="settings_accent_color_desc">يستبدل اللون الأخضر الخاص بـ Blaze في التطبيق بالكامل</string>
+    <string name="dialog_choose_accent_color">اختر لون التمييز</string>
+    <string name="accent_color_green">أخضر Blaze</string>
+    <string name="accent_color_blue">أزرق محيطي</string>
+    <string name="accent_color_purple">بنفسجي</string>
+    <string name="accent_color_pink">وردي</string>
+    <string name="accent_color_orange">برتقالي</string>
+    <string name="accent_color_red">أحمر</string>
+    <string name="accent_color_turquoise">فيروزي</string>
+    <string name="accent_color_gold">ذهبي</string>
 </resources>

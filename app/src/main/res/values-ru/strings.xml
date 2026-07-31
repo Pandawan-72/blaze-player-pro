@@ -525,7 +525,7 @@
     <string name="toast_video_queue_no_video_selected">Выберите хотя бы одно видео</string>
     <string name="toast_video_queue_cleared">Очередь видео очищена</string>
     <string name="toast_video_queue_item_removed">Видео удалено из очереди</string>
-    <string name="content_desc_video_queue">Очередь видео</string>
+    <string name="content_desc_video_queue">Очередь</string>
     <string name="content_desc_close_video_queue">Закрыть очередь видео</string>
     <string name="audio_library_title">Библиотека</string>
     <string name="audio_open_full_player">Открыть аудиоплеер</string>
@@ -849,6 +849,7 @@
     <string name="slideshow_picker_selected_count">Слайд-шоу: %1$d • Добавить: %2$d</string>
     <string name="slideshow_added_count">Добавлено фото в слайд-шоу: %1$d</string>
 
+    <string name="slideshow_picker_instruction">Выберите изображения, которые нужно добавить в слайд-шоу</string>
     <string name="slideshow_picker_folders">Папки</string>
 
     <string name="karaoke_sync_offset_value">Синхр. %1$s%2$d мс</string>
@@ -885,4 +886,46 @@
     <string name="audio_artist_photo_restored">Автоматическое фото восстановлено</string>
     <string name="audio_artist_photo_update_failed">Это изображение нельзя использовать</string>
     <string name="audio_now_playing">Сейчас играет</string>
+
+    <string name="history_recent_video_count_zero">0 недавних видео</string>
+    <string name="history_resume_section_title">Продолжить просмотр</string>
+    <string name="history_recently_watched">Недавно просмотренные</string>
+    <string name="history_resume_at">Продолжить с %1$s</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="one">%1$d недавнее видео</item>
+        <item quantity="few">%1$d недавних видео</item>
+        <item quantity="many">%1$d недавних видео</item>
+        <item quantity="other">%1$d недавнего видео</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="one">%1$d видео</item>
+        <item quantity="few">%1$d видео</item>
+        <item quantity="many">%1$d видео</item>
+        <item quantity="other">%1$d видео</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">Переименовать</string>
+    <string name="browser_rename_video_title">Переименовать видео</string>
+    <string name="browser_rename_video_hint">Новое имя</string>
+    <string name="browser_rename_extension_preserved">Расширение %1$s будет сохранено.</string>
+    <string name="browser_rename_video_success">Видео переименовано.</string>
+    <string name="browser_rename_video_error">Не удалось переименовать это видео.</string>
+    <string name="browser_rename_video_invalid_name">Введите допустимое имя файла.</string>
+    <string name="browser_rename_video_already_exists">Файл с таким именем уже существует.</string>
+    <string name="browser_rename_video_network_read_only">Этот сетевой сервер не позволяет переименовывать видео.</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">Цвет акцента</string>
+    <string name="settings_accent_color_desc">Заменяет зелёный Blaze во всём приложении</string>
+    <string name="dialog_choose_accent_color">Выбрать цвет акцента</string>
+    <string name="accent_color_green">Зелёный Blaze</string>
+    <string name="accent_color_blue">Океанский синий</string>
+    <string name="accent_color_purple">Фиолетовый</string>
+    <string name="accent_color_pink">Розовый</string>
+    <string name="accent_color_orange">Оранжевый</string>
+    <string name="accent_color_red">Красный</string>
+    <string name="accent_color_turquoise">Бирюзовый</string>
+    <string name="accent_color_gold">Золотой</string>
 </resources>

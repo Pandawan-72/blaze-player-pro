@@ -4,6 +4,8 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,6 +20,7 @@ object SettingsDialog {
         title: String,
         choices: List<String>,
         selectedIndex: Int,
+        swatchColors: List<Int>? = null,
         onSelected: (Int) -> Unit
     ) {
         val dialog = BottomSheetDialog(context, R.style.ThemeOverlay_BlazePlayer_BottomSheet)
@@ -27,7 +30,7 @@ object SettingsDialog {
 
         val recycler = view.findViewById<RecyclerView>(R.id.recyclerChoices)
         recycler.layoutManager = LinearLayoutManager(context)
-        recycler.adapter = ChoiceAdapter(choices, selectedIndex) { index ->
+        recycler.adapter = ChoiceAdapter(choices, selectedIndex, swatchColors) { index ->
             onSelected(index)
             dialog.dismiss()
         }
@@ -41,6 +44,7 @@ object SettingsDialog {
 class ChoiceAdapter(
     private val choices: List<String>,
     private var selectedIndex: Int,
+    private val swatchColors: List<Int>? = null,
     private val onSelected: (Int) -> Unit
 ) : RecyclerView.Adapter<ChoiceAdapter.ViewHolder>() {
 
@@ -49,6 +53,19 @@ class ChoiceAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.tvChoice.text = choices[position]
+        val swatchColor = swatchColors?.getOrNull(position)
+        if (swatchColor != null) {
+            holder.colorSwatch.visibility = View.VISIBLE
+            val strokeWidth = (holder.itemView.resources.displayMetrics.density + 0.5f).toInt().coerceAtLeast(1)
+            holder.colorSwatch.background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(swatchColor)
+                setStroke(strokeWidth, Color.argb(90, 255, 255, 255))
+            }
+        } else {
+            holder.colorSwatch.visibility = View.GONE
+            holder.colorSwatch.background = null
+        }
         holder.ivCheck.visibility = if (position == selectedIndex) View.VISIBLE else View.INVISIBLE
         holder.itemView.setOnClickListener { onSelected(position) }
     }
@@ -56,6 +73,7 @@ class ChoiceAdapter(
     override fun getItemCount() = choices.size
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val colorSwatch: View = view.findViewById(R.id.viewColorSwatch)
         val tvChoice: TextView = view.findViewById(R.id.tvChoice)
         val ivCheck: ImageView = view.findViewById(R.id.ivCheck)
     }

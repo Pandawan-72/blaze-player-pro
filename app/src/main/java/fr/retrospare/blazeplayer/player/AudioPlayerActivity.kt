@@ -26,6 +26,7 @@ class AudioPlayerActivity : AppCompatActivity() {
     private var containerId: Int = View.NO_ID
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         super.onCreate(savedInstanceState)
         if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
                 this,

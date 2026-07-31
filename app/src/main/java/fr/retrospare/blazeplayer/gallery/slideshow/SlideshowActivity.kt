@@ -197,6 +197,7 @@ class SlideshowActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_slideshow)
 

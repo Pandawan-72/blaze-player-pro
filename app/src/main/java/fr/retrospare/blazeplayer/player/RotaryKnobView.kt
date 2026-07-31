@@ -81,7 +81,7 @@ class RotaryKnobView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
         strokeWidth = 5f * density
-        color = ContextCompat.getColor(context, R.color.green_accent)
+        color = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context)
     }
 
     // Rendu métallique volontairement épuré : une ombre, une bague et une face bombée. On évite

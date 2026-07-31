@@ -86,7 +86,7 @@ object SleepTimerDialog {
             addView(hoursField, LinearLayout.LayoutParams(dp(106), dp(88)))
             addView(TextView(context).apply {
                 text = ":"
-                setTextColor(context.getColor(R.color.green_accent))
+                setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context))
                 textSize = 43f
                 gravity = Gravity.CENTER
                 typeface = Typeface.MONOSPACE
@@ -123,7 +123,7 @@ object SleepTimerDialog {
         root.addView(error)
 
         val status = TextView(context).apply {
-            setTextColor(context.getColor(R.color.green_accent))
+            setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context))
             textSize = 13f
             gravity = Gravity.CENTER
             setPadding(0, dp(12), 0, dp(12))

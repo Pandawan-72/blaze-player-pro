@@ -48,7 +48,7 @@ object DialogButtonStyler {
         button.setAllCaps(false)
         ButtonTextFitter.fit(button, minSp = 9, maxSp = 14)
         button.typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
-        button.setTextColor(ContextCompat.getColor(ctx, R.color.green_accent))
+        button.setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(ctx))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             button.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.TRANSPARENT)
             button.stateListAnimator = null

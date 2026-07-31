@@ -76,7 +76,7 @@ class EqBandView @JvmOverloads constructor(
         }
 
         // Thumb
-        thumbPaint.color = ContextCompat.getColor(context, R.color.green_accent)
+        thumbPaint.color = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context)
         canvas.drawCircle(cx, thumbY, thumbRadius, thumbPaint)
 
         // Thumb inner
@@ -89,7 +89,7 @@ class EqBandView @JvmOverloads constructor(
         return when {
             db > 8 -> 0xFFE05252.toInt()
             db > 4 -> 0xFFF0B429.toInt()
-            db > 0 -> 0xFF3DD68C.toInt()
+            db > 0 -> fr.retrospare.blazeplayer.theme.AccentColorManager.accent(context)
             db == 0 -> 0xFF888888.toInt()
             db > -4 -> 0xFF378ADD.toInt()
             else -> 0xFF8264DC.toInt()

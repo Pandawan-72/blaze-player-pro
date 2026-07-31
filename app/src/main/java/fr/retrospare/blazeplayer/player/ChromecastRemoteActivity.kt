@@ -68,6 +68,7 @@ class ChromecastRemoteActivity : AppCompatActivity() {
         )
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         super.onCreate(savedInstanceState)
         binding = ActivityChromecastRemoteBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -364,7 +365,8 @@ class ChromecastRemoteActivity : AppCompatActivity() {
         if (connected && controller == null && controllerFuture == null) connectToVideoService()
         setControlsEnabled(connected)
 
-        val ledColor = ContextCompat.getColor(this, if (connected) R.color.green_accent else R.color.red_accent)
+        val ledColor = if (connected) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(this)
+        else ContextCompat.getColor(this, R.color.red_accent)
         binding.tvLedStatus.text = getString(
             if (connected) R.string.cast_remote_led_on else R.string.cast_remote_led_off
         )

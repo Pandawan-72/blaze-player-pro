@@ -510,7 +510,7 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="toast_video_queue_no_video_selected">कम से कम एक वीडियो चुनें</string>
     <string name="toast_video_queue_cleared">वीडियो कतार साफ़ की गई</string>
     <string name="toast_video_queue_item_removed">वीडियो कतार से हटाया गया</string>
-    <string name="content_desc_video_queue">वीडियो कतार</string>
+    <string name="content_desc_video_queue">कतार</string>
     <string name="content_desc_close_video_queue">वीडियो कतार बंद करें</string>
     <string name="add_to_playlist_fixed_short">प्लेलिस्ट में जोड़ें</string>
     <string name="app_name_audio">Blaze Audio</string>
@@ -835,6 +835,7 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="slideshow_picker_selected_count">स्लाइडशो: %1$d • जोड़ने के लिए: %2$d</string>
     <string name="slideshow_added_count">%1$d फ़ोटो स्लाइडशो में जोड़ी गईं</string>
 
+    <string name="slideshow_picker_instruction">स्लाइडशो में शामिल करने के लिए चित्र चुनें</string>
     <string name="slideshow_picker_folders">फ़ोल्डर</string>
 
     <string name="karaoke_sync_offset_value">सिंक %1$s%2$d मि.से.</string>
@@ -879,4 +880,42 @@ Android के लिए आपका मीडिया प्लेयर</str
     <string name="audio_artist_photo_restored">स्वचालित फ़ोटो बहाल की गई</string>
     <string name="audio_artist_photo_update_failed">इस चित्र का उपयोग नहीं किया जा सकता</string>
     <string name="audio_now_playing">अभी चल रहा है</string>
+
+    <string name="history_recent_video_count_zero">0 हाल के वीडियो</string>
+    <string name="history_resume_section_title">देखना जारी रखें</string>
+    <string name="history_recently_watched">हाल ही में देखे गए</string>
+    <string name="history_resume_at">%1$s से फिर शुरू करें</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="one">%1$d हाल का वीडियो</item>
+        <item quantity="other">%1$d हाल के वीडियो</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="one">%1$d वीडियो</item>
+        <item quantity="other">%1$d वीडियो</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">नाम बदलें</string>
+    <string name="browser_rename_video_title">वीडियो का नाम बदलें</string>
+    <string name="browser_rename_video_hint">नया नाम</string>
+    <string name="browser_rename_extension_preserved">%1$s एक्सटेंशन सुरक्षित रहेगा।</string>
+    <string name="browser_rename_video_success">वीडियो का नाम बदल दिया गया।</string>
+    <string name="browser_rename_video_error">इस वीडियो का नाम नहीं बदला जा सका।</string>
+    <string name="browser_rename_video_invalid_name">मान्य फ़ाइल नाम दर्ज करें।</string>
+    <string name="browser_rename_video_already_exists">इस नाम की फ़ाइल पहले से मौजूद है।</string>
+    <string name="browser_rename_video_network_read_only">यह नेटवर्क सर्वर वीडियो का नाम बदलने की अनुमति नहीं देता।</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">एक्सेंट रंग</string>
+    <string name="settings_accent_color_desc">पूरे ऐप में Blaze हरे रंग को बदलता है</string>
+    <string name="dialog_choose_accent_color">एक्सेंट रंग चुनें</string>
+    <string name="accent_color_green">Blaze हरा</string>
+    <string name="accent_color_blue">समुद्री नीला</string>
+    <string name="accent_color_purple">बैंगनी</string>
+    <string name="accent_color_pink">गुलाबी</string>
+    <string name="accent_color_orange">नारंगी</string>
+    <string name="accent_color_red">लाल</string>
+    <string name="accent_color_turquoise">फिरोज़ी</string>
+    <string name="accent_color_gold">सुनहरा</string>
 </resources>

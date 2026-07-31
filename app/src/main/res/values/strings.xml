@@ -538,7 +538,7 @@ Code : %2$s</string>
     <string name="toast_video_queue_no_video_selected">Sélectionne au moins une vidéo</string>
     <string name="toast_video_queue_cleared">File d’attente vidéo vidée</string>
     <string name="toast_video_queue_item_removed">Vidéo retirée de la file d’attente</string>
-    <string name="content_desc_video_queue">File d’attente vidéo</string>
+    <string name="content_desc_video_queue">File d’attente</string>
     <string name="content_desc_close_video_queue">Fermer la file d’attente vidéo</string>
     <string name="audio_library_title">Bibliothèque</string>
     <string name="audio_open_full_player">Ouvrir le lecteur audio</string>
@@ -839,6 +839,7 @@ Code : %2$s</string>
     <string name="slideshow_picker_selected_count">Diapo : %1$d • À ajouter : %2$d</string>
     <string name="slideshow_added_count">%1$d photo(s) ajoutée(s) au diapo</string>
 
+    <string name="slideshow_picker_instruction">Sélectionnez les images à intégrer dans le diaporama</string>
     <string name="slideshow_picker_folders">Dossiers</string>
 
     <!-- Page artiste et photographie Wikimedia -->
@@ -864,4 +865,42 @@ Code : %2$s</string>
     <string name="audio_artist_photo_restored">Photo automatique rétablie</string>
     <string name="audio_artist_photo_update_failed">Impossible d’utiliser cette image</string>
     <string name="audio_now_playing">Lecture en cours</string>
+
+    <string name="history_recent_video_count_zero">0 vidéo récente</string>
+    <string name="history_resume_section_title">Reprendre la lecture</string>
+    <string name="history_recently_watched">Récemment regardées</string>
+    <string name="history_resume_at">Reprendre à %1$s</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="one">%1$d vidéo récente</item>
+        <item quantity="other">%1$d vidéos récentes</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="one">%1$d vidéo</item>
+        <item quantity="other">%1$d vidéos</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">Renommer</string>
+    <string name="browser_rename_video_title">Renommer la vidéo</string>
+    <string name="browser_rename_video_hint">Nouveau nom</string>
+    <string name="browser_rename_extension_preserved">L’extension %1$s sera conservée.</string>
+    <string name="browser_rename_video_success">Vidéo renommée.</string>
+    <string name="browser_rename_video_error">Impossible de renommer cette vidéo.</string>
+    <string name="browser_rename_video_invalid_name">Saisissez un nom de fichier valide.</string>
+    <string name="browser_rename_video_already_exists">Un fichier portant ce nom existe déjà.</string>
+    <string name="browser_rename_video_network_read_only">Ce serveur réseau ne permet pas de renommer les vidéos.</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">Couleur d’accentuation</string>
+    <string name="settings_accent_color_desc">Remplace le vert Blaze dans toute l’application</string>
+    <string name="dialog_choose_accent_color">Choisir la couleur d’accentuation</string>
+    <string name="accent_color_green">Vert Blaze</string>
+    <string name="accent_color_blue">Bleu océan</string>
+    <string name="accent_color_purple">Violet</string>
+    <string name="accent_color_pink">Rose</string>
+    <string name="accent_color_orange">Orange</string>
+    <string name="accent_color_red">Rouge</string>
+    <string name="accent_color_turquoise">Turquoise</string>
+    <string name="accent_color_gold">Or</string>
 </resources>

@@ -89,6 +89,7 @@ class PhotoEditorActivity : AppCompatActivity() {
     private val filterThumbViews = mutableListOf<View>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(fr.retrospare.blazeplayer.theme.AccentColorManager.normalTheme(this))
         super.onCreate(savedInstanceState)
         if (!fr.retrospare.blazeplayer.paywall.AccessGateUi.enforceNow(
                 this,
@@ -244,7 +245,7 @@ class PhotoEditorActivity : AppCompatActivity() {
     /** Entoure en vert le bouton de ratio actif, remet les autres à leur liseret neutre — le
      *  bouton actif n'était auparavant visuellement pas distinguable des autres. */
     private fun selectRatioButton(selected: com.google.android.material.button.MaterialButton) {
-        val green = androidx.core.content.ContextCompat.getColor(this, R.color.green_accent)
+        val green = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(this)
         val neutral = android.graphics.Color.parseColor("#33FFFFFF")
         ratioButtons.forEach { button ->
             val isSelected = button === selected
@@ -308,7 +309,7 @@ class PhotoEditorActivity : AppCompatActivity() {
     private fun setupBlurControls() {
         blurOverlay.onSelectionChanged = { if (blurEnabled) refreshBlurPreview() }
 
-        val green = androidx.core.content.ContextCompat.getColor(this, R.color.green_accent)
+        val green = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(this)
         val neutral = android.graphics.Color.parseColor("#33FFFFFF")
 
         fun selectEffectButton(selected: com.google.android.material.button.MaterialButton) {
@@ -346,7 +347,7 @@ class PhotoEditorActivity : AppCompatActivity() {
         })
     }
     private fun selectDefaultBlurControls() {
-        val green = androidx.core.content.ContextCompat.getColor(this, R.color.green_accent)
+        val green = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(this)
         val neutral = android.graphics.Color.parseColor("#33FFFFFF")
         listOf(btnEffectBlur, btnEffectMosaic).forEach { button ->
             val isSelected = button === btnEffectBlur
@@ -438,7 +439,7 @@ class PhotoEditorActivity : AppCompatActivity() {
      *  auparavant seul l'onglet "Filtres" (actif par défaut à l'ouverture) avait cette couleur
      *  posée en dur dans le XML ; changer d'onglet ne mettait rien à jour. */
     private fun updateTabTint(activePanel: View) {
-        val green = androidx.core.content.ContextCompat.getColor(this, R.color.green_accent)
+        val green = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(this)
         val neutral = androidx.core.content.ContextCompat.getColor(this, R.color.on_surface_variant)
         val activeTab = when (activePanel) {
             filterPanel -> R.id.tabFilters

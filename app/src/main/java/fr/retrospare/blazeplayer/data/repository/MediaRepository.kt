@@ -38,13 +38,13 @@ class MediaRepository @Inject constructor(
     )
 
     fun getRecentItems(): Flow<List<MediaItem>> = flow {
-        val snapshot = getRecentItemsSnapshot()
-        if (snapshot.isNotEmpty()) emit(snapshot)
-
+        // Le ViewModel est déjà initialisé synchroniquement avec getRecentItemsSnapshot(). Ne pas
+        // réémettre ce miroir ici permet à la première émission de ce Flow de représenter
+        // exclusivement la valeur DataStore définitive, ce qui évite un ancien ordre affiché puis
+        // remplacé quelques centaines de millisecondes plus tard.
         dataStore.data
             .map { prefs -> parseItems(prefs[recentItemsKey]) }
             .collect { items ->
-                // Priorité au rendu : l'UI reçoit DataStore avant la resynchronisation du miroir.
                 emit(items)
                 writeMirror(items)
             }
@@ -76,13 +76,21 @@ class MediaRepository @Inject constructor(
         updatedItems?.let(::writeMirror)
     }
 
-    suspend fun updateProgress(path: String, position: Long) {
+    suspend fun updateProgress(path: String, position: Long, durationMs: Long = 0L) {
         var updatedItems: List<MediaItem>? = null
         dataStore.edit { prefs ->
             val current = parseItems(prefs[recentItemsKey]).toMutableList()
             val idx = current.indexOfFirst { it.path == path }
             if (idx >= 0) {
-                current[idx] = current[idx].copy(lastPosition = position)
+                val durationSeconds = if (durationMs > 0L) {
+                    ((durationMs + 500L) / 1000L).coerceAtLeast(1L)
+                } else {
+                    current[idx].duration
+                }
+                current[idx] = current[idx].copy(
+                    lastPosition = position,
+                    duration = durationSeconds
+                )
                 prefs[recentItemsKey] = gson.toJson(current)
                 updatedItems = current
             }
@@ -125,9 +133,12 @@ class MediaRepository @Inject constructor(
 
     private fun writeMirror(items: List<MediaItem>) {
         try {
+            // Ce miroir alimente la toute première frame de l'accueil. commit() garantit que
+            // l'ordre le plus récent est réellement sur disque avant un éventuel redémarrage du
+            // processus ; apply() pouvait laisser apparaître brièvement un ancien ordre.
             mirrorPrefs.edit()
                 .putString(RECENT_MIRROR_KEY, gson.toJson(items.take(MAX_RECENT_ITEMS)))
-                .apply()
+                .commit()
         } catch (_: Exception) {
             // Le miroir est uniquement une optimisation : DataStore reste la source de vérité.
         }

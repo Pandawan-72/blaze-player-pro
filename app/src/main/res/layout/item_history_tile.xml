@@ -49,13 +49,22 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <TextView
+                <fr.retrospare.blazeplayer.ui.StrictTwoLineTextView
                     android:id="@+id/tvFileName"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="34dp"
+                    android:breakStrategy="simple"
                     android:ellipsize="end"
                     android:fontFamily="sans-serif-condensed"
-                    android:maxLines="1"
+                    android:gravity="center_vertical|start"
+                    android:hyphenationFrequency="none"
+                    android:includeFontPadding="false"
+                    android:lines="2"
+                    android:maxLines="2"
+                    android:minLines="2"
+                    android:lineSpacingExtra="0dp"
+                    android:lineSpacingMultiplier="1.0"
+                    android:scrollHorizontally="false"
                     android:shadowColor="#CC000000"
                     android:shadowDx="0"
                     android:shadowDy="1"

@@ -36,6 +36,7 @@ import fr.retrospare.blazeplayer.databinding.FragmentHomeBinding
 import fr.retrospare.blazeplayer.player.PlayerRouter
 import fr.retrospare.blazeplayer.player.AudioPlayerFragment
 import fr.retrospare.blazeplayer.ui.ThumbnailUtils
+import fr.retrospare.blazeplayer.ui.StrictTwoLineTextView
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -91,8 +92,30 @@ class HomeFragment : Fragment() {
     private var videoHistoryRefreshJob: kotlinx.coroutines.Job? = null
     private var videoHistoryRefreshGeneration: Long = 0L
     private var historyAdapter: HistoryAdapter? = null
+    /** Tant que le premier historique définitif n'est pas prêt, la grille reste invisible. Cela
+     * évite d'afficher brièvement les seules vidéos locales avant que les droits Pro ne rendent
+     * les dernières vidéos SMB/UPnP disponibles et ne les insèrent en tête. */
+    private var initialVideoHistoryPresentationPending: Boolean = true
+    private var hasReceivedVideoHistorySnapshot: Boolean = false
+    private var authoritativeVideoHistoryReady: Boolean = false
+    private var lastKnownVideoHistoryProAccess: Boolean? = null
+
+    /**
+     * PlayerActivity sauvegarde immédiatement la position dans blaze_positions avant même que
+     * DataStore ait fini de republier l'entrée d'historique. La rangée « Reprendre la lecture »
+     * lit donc cette source instantanée en complément de MediaItem.lastPosition : elle apparaît
+     * systématiquement au retour du lecteur, y compris pour un ancien historique dont la position
+     * n'avait pas encore été recopiée dans le repository.
+     */
+    private val videoResumePositions by lazy(LazyThreadSafetyMode.NONE) {
+        requireContext().getSharedPreferences("blaze_positions", android.content.Context.MODE_PRIVATE)
+    }
+
     private var resetVideoHistoryToTopPending: Boolean = false
     private var videoHistoryTopResetJob: kotlinx.coroutines.Job? = null
+    /** Vrai uniquement entre l'ouverture d'une vidéo depuis l'historique et le retour du lecteur.
+     *  Cela évite de réarmer le recentrage différé lors d'un simple changement d'onglet. */
+    private var resetVideoHistoryOnNextResumeAfterPlayback: Boolean = false
     private var historySelectionTab: Int? = null
     private val selectedHistoryPaths = linkedSetOf<String>()
     private var pendingAudioTabAfterPermission = false
@@ -242,6 +265,7 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        fr.retrospare.blazeplayer.theme.AccentColorManager.applyLogoHue(binding.ivLogo)
         // Applique uniquement l'inset du haut (status bar) : le bas est déjà géré une seule fois
         // par MainActivity pour toute la navigation, pour éviter un double padding sous la barre
         // de menu (qui la poussait trop haut et faisait chevaucher le mini player).
@@ -250,7 +274,19 @@ class HomeFragment : Fragment() {
             v.setPadding(0, statusBar.top, 0, 0)
             insets
         }
-        currentTabIndex = viewModel.currentTabIndex.value
+        val forceBlazeVideoOnLaunch = requireActivity().intent?.getBooleanExtra(
+            fr.retrospare.blazeplayer.MainActivity.EXTRA_FORCE_BLAZE_VIDEO_ON_START,
+            false
+        ) == true
+        if (forceBlazeVideoOnLaunch) {
+            requireActivity().intent?.removeExtra(
+                fr.retrospare.blazeplayer.MainActivity.EXTRA_FORCE_BLAZE_VIDEO_ON_START
+            )
+            currentTabIndex = 1
+            viewModel.onTabSelected(1)
+        } else {
+            currentTabIndex = viewModel.currentTabIndex.value
+        }
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (historySelectionTab != null) {
@@ -263,33 +299,15 @@ class HomeFragment : Fragment() {
                 isEnabled = true
             }
         })
-        // Différé : setUpMediaRouteButton() déclenche en interne CastContext.getSharedInstance(),
-        // un appel synchrone connu pour provoquer des ANR sur le thread principal (même cause que
-        // le correctif appliqué dans PlayerActivity). On évite qu'il bloque la mise en place
-        // initiale de la vue, qui se répète à chaque recréation de HomeFragment.
-        view.post {
-            if (!isAdded) return@post
-            try {
-                // Même dialog custom que dans le lecteur : quand une session Cast est active,
-                // le second appui sur l'icône de l'accueil ouvre le panneau Blaze au lieu du
-                // vieux contrôleur MediaRouter gris/vert. Le sélecteur d'appareils initial
-                // reste celui du SDK Google Cast.
-                binding.btnCast.setDialogFactory(fr.retrospare.blazeplayer.cast.BlazeMediaRouteDialogFactory())
-                com.google.android.gms.cast.framework.CastButtonFactory
-                    .setUpMediaRouteButton(requireContext(), binding.btnCast)
-            } catch (e: Exception) {
-                binding.btnCast.visibility = android.view.View.GONE
-            }
-        }
-
-        // "Caster l'écran du téléphone" : ouvre directement les paramètres système Android de
-        // diffusion d'écran, plutôt qu'un pipeline maison (capture MediaProjection + encodage
-        // vidéo temps réel + serveur de streaming live) — l'API officielle de Google pour ça
-        // (CastRemoteDisplay) est abandonnée depuis plusieurs années, et reconstruire l'équivalent
-        // soi-même serait un chantier bien plus lourd que tout le reste de l'app, avec un risque
-        // élevé de ne pas fonctionner de façon fiable. Android sait déjà le faire nativement.
-        binding.btnCastRemote.setOnClickListener {
-            startActivity(android.content.Intent(requireContext(), fr.retrospare.blazeplayer.player.ChromecastRemoteActivity::class.java))
+        // Le bouton Chromecast ouvre directement la télécommande Blaze. Cette télécommande
+        // permet aussi de choisir un appareil et de démarrer une session Cast.
+        binding.btnCast.setOnClickListener {
+            startActivity(
+                android.content.Intent(
+                    requireContext(),
+                    fr.retrospare.blazeplayer.player.ChromecastRemoteActivity::class.java
+                )
+            )
         }
 
         binding.btnScreenCast.setOnClickListener {
@@ -319,13 +337,22 @@ class HomeFragment : Fragment() {
             if (currentTabIndex == 3) saveCurrentGalleryScrollPosition()
             findNavController().navigate(fr.retrospare.blazeplayer.R.id.action_home_to_settings)
         }
+        // Vue technique historique : le véritable bouton Réglages est désormais fixe en haut à droite.
+        binding.btnSettingsOtherTabs.setOnClickListener { binding.btnSettings.performClick() }
         setupTabs()
         monitorTrialExpiryWhileVisible()
         setupButtons()
+        setupHeaderActionsScrollHint()
         setupGalleryTab()
         setupHistoryRecycler()
+        // Le StateFlow possède déjà le miroir synchrone de l'historique. On l'injecte avant la
+        // première frame afin d'éviter qu'onResume() ne traite d'abord une liste vide.
+        allVideoHistoryItems = viewModel.recentLocalItems.value
+        hasReceivedVideoHistorySnapshot = true
+        authoritativeVideoHistoryReady = viewModel.historyAuthoritative.value
+        if (authoritativeVideoHistoryReady) refreshAccessibleVideoHistory(allVideoHistoryItems)
         // Neutralise aussi une éventuelle position RecyclerView restaurée par Android avant que
-        // les premiers éléments asynchrones de l'historique ne soient disponibles.
+        // le premier historique définitif ne soit présenté.
         resetVideoHistoryScrollToTop()
         observeViewModel()
         updateVersionBadge()
@@ -376,13 +403,16 @@ class HomeFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         enforceCurrentTabAccess()
-        refreshAccessibleVideoHistory()
-        // Au retour du lecteur vidéo, l'historique est réordonné de façon asynchrone pour placer
-        // le média qui vient d'être lu en tête. RecyclerView essaie alors de conserver l'ancienne
-        // tuile visible comme ancre, ce qui peut faire commencer la grille à la deuxième ligne.
-        // Maintenir brièvement l'ancre sur la position 0 couvre aussi les émissions successives
-        // de l'historique (snapshot immédiat, droits Pro, enrichissement des métadonnées).
-        if (currentTabIndex == 1) resetVideoHistoryScrollToTop()
+        if (hasReceivedVideoHistorySnapshot && authoritativeVideoHistoryReady) {
+            refreshAccessibleVideoHistory()
+        }
+        // Ne recentre l'historique qu'après un véritable retour du lecteur vidéo. Un simple
+        // passage Gallery/Audio/Réseau -> Blaze Video ne doit jamais programmer de scroll différé,
+        // sinon la première interaction de l'utilisateur est annulée et la liste remonte seule.
+        if (currentTabIndex == 1 && resetVideoHistoryOnNextResumeAfterPlayback) {
+            resetVideoHistoryOnNextResumeAfterPlayback = false
+            resetVideoHistoryScrollToTop()
+        }
         updateVersionBadge()
         consumePendingBlazeGalleryLaunchInHome()
         consumePendingBlazeAudioLaunchInHome()
@@ -570,7 +600,6 @@ class HomeFragment : Fragment() {
                 viewModel.onTabSelected(index)
                 if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
-                if (index == 1) resetVideoHistoryScrollToTop()
                 if (index == 2) showNetworkHelpOnce()
             }
         }
@@ -676,11 +705,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateHeaderCastButtons(tabIndex: Int) {
-        val showCastButtons = tabIndex == 1
-        val visibility = if (showCastButtons) View.VISIBLE else View.GONE
-        binding.btnCast.visibility = visibility
-        binding.btnScreenCast.visibility = visibility
-        binding.btnCastRemote.visibility = visibility
+        val showVideoActions = tabIndex == 1
+        // Les actions fixes de Blaze Video restent en haut à droite :
+        // Historique, Cast phone screen, Chromecast, puis Réglages.
+        binding.btnHistoryLocal.visibility = if (showVideoActions) View.VISIBLE else View.GONE
+        binding.btnScreenCast.visibility = if (showVideoActions) View.VISIBLE else View.GONE
+        binding.btnCast.visibility = if (showVideoActions) View.VISIBLE else View.GONE
+        binding.btnSettings.visibility = View.VISIBLE
+        binding.btnSettingsOtherTabs.visibility = View.GONE
         binding.btnNetworkHelp.visibility = if (tabIndex == 2) View.VISIBLE else View.GONE
     }
 
@@ -733,12 +765,12 @@ class HomeFragment : Fragment() {
                 proPlus -> {
                     binding.tvVersionBadge.text = getString(R.string.version_badge_pro_plus)
                     binding.tvVersionBadge.setBackgroundResource(R.drawable.bg_pro_badge)
-                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
+                    binding.tvVersionBadge.setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
                 }
                 pro -> {
                     binding.tvVersionBadge.text = getString(R.string.version_badge_pro)
                     binding.tvVersionBadge.setBackgroundResource(R.drawable.bg_pro_badge)
-                    binding.tvVersionBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
+                    binding.tvVersionBadge.setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
                 }
                 else -> {
                     binding.tvVersionBadge.text = getString(R.string.version_badge_free)
@@ -761,8 +793,9 @@ class HomeFragment : Fragment() {
         setupGalleryDragSelection()
     }
 
-    /** Câble une seule fois les 2 icônes de bascule Photo/Vidéo de l'accueil Blaze Gallery et
-     *  applique leur couleur initiale (vert = actif, gris = inactif). */
+    /** Câble une seule fois les deux sélecteurs Photo/Vidéo placés dans la barre d’actions
+     *  de l’accueil Blaze Gallery, immédiatement à gauche du bouton « + dossier », puis applique
+     *  leur couleur initiale (vert = actif, gris = inactif). */
     private fun setupGalleryTypeToggle() {
         binding.btnGalleryTypePhoto.setOnClickListener { switchGalleryMediaType(GalleryMediaType.PHOTO) }
         binding.btnGalleryTypeVideo.setOnClickListener { switchGalleryMediaType(GalleryMediaType.VIDEO) }
@@ -779,15 +812,15 @@ class HomeFragment : Fragment() {
     }
 
     private fun refreshGalleryTypeToggleColors() {
-        val activeColor = ContextCompat.getColor(requireContext(), R.color.green_accent)
+        val activeColor = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
         val inactiveColor = ContextCompat.getColor(requireContext(), R.color.on_surface_variant)
         binding.btnGalleryTypePhoto.setColorFilter(if (currentGalleryMediaType == GalleryMediaType.PHOTO) activeColor else inactiveColor)
         binding.btnGalleryTypeVideo.setColorFilter(if (currentGalleryMediaType == GalleryMediaType.VIDEO) activeColor else inactiveColor)
     }
 
     /** Le sélecteur Photo/Vidéo n'est visible qu'à l'accueil de Blaze Gallery (liste des
-     *  dossiers) : il disparaît dès qu'on entre dans un dossier, la corbeille, ou un mode de
-     *  sélection multiple, exactement comme le reste de la barre d'action de cet écran. */
+     *  dossiers), juste avant « + dossier » : il disparaît dès qu'on entre dans un dossier,
+     *  la corbeille ou un mode de sélection multiple. */
     private fun updateGalleryTypeToggle(visible: Boolean) {
         val visibility = if (visible) View.VISIBLE else View.GONE
         binding.galleryTypeHeaderToggle.visibility = visibility
@@ -798,7 +831,9 @@ class HomeFragment : Fragment() {
     /** Place la navigation Retour au début de l'en-tête, juste avant le titre courant. */
     private fun configureGalleryHeaderBack(visible: Boolean, onClick: (() -> Unit)? = null) {
         binding.btnGalleryBack.visibility = if (visible) View.VISIBLE else View.GONE
-        binding.ivSectionGallery.visibility = if (visible) View.GONE else View.VISIBLE
+        // L'icône et le libellé génériques « Gallery » ne sont plus affichés à l'accueil.
+        // Dans un dossier, la corbeille ou une sélection, seul le titre contextuel est conservé.
+        binding.ivSectionGallery.visibility = View.GONE
         binding.btnGalleryBack.setOnClickListener(
             if (visible && onClick != null) View.OnClickListener { onClick() } else null
         )
@@ -930,6 +965,7 @@ class HomeFragment : Fragment() {
         binding.emptyStateGallery.visibility = View.VISIBLE
         binding.tvEmptyStateGallery.text = getString(R.string.permission_gallery_required)
         configureGalleryHeaderBack(false)
+        binding.tvSectionGallery.visibility = View.GONE
         binding.btnGallerySecondary.visibility = View.GONE
         binding.btnGalleryPrimary.visibility = View.GONE
         binding.btnGalleryDiapo.visibility = View.GONE
@@ -1001,9 +1037,9 @@ class HomeFragment : Fragment() {
         setGallerySecondaryCompact(false)
         binding.btnGallerySecondary.contentDescription = null
         binding.btnGallerySecondary.setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface))
-        binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_accent))
+        binding.btnGallerySecondary.iconTint = android.content.res.ColorStateList.valueOf(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
         binding.btnGallerySecondary.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
-        binding.btnGallerySecondary.strokeColor = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_accent_stroke))
+        binding.btnGallerySecondary.strokeColor = android.content.res.ColorStateList.valueOf(fr.retrospare.blazeplayer.theme.AccentColorManager.accentStroke(requireContext()))
         binding.btnGallerySecondary.strokeWidth = dp(1)
     }
 
@@ -1108,8 +1144,10 @@ class HomeFragment : Fragment() {
         binding.tvSectionGallery.text = if (galleryCustomThumbnailMode) {
             getString(R.string.custom_thumbnail_pick_folder)
         } else {
-            getString(R.string.gallery_folders)
+            ""
         }
+        binding.tvSectionGallery.visibility =
+            if (galleryCustomThumbnailMode) View.VISIBLE else View.GONE
         // Le sélecteur Photo/Vidéo n'a de sens qu'à l'accueil de la galerie ; en mode sélection
         // de miniature personnalisée, on reste forcé sur Photo (voir startCustomThumbnailSelection).
         updateGalleryTypeToggle(visible = !galleryCustomThumbnailMode)
@@ -1229,8 +1267,20 @@ class HomeFragment : Fragment() {
         } else {
             bucketName
         }
-        binding.listGallery.visibility = View.VISIBLE
+        binding.tvSectionGallery.visibility = View.VISIBLE
+        // En quittant la grille des dossiers, ne jamais laisser son ancien adapter visible pendant
+        // le chargement MediaStore. Sur la toute première ouverture d'un dossier, l'ancien adapter
+        // restait dessiné pendant quelques centaines de millisecondes après le passage à 4 colonnes :
+        // les aperçus de dossiers et leur icône se superposaient alors brièvement aux photos.
+        // On masque donc la RecyclerView, détache immédiatement l'adapter des dossiers et purge son
+        // pool avant d'installer le vrai layout photo. La grille ne sera révélée qu'avec un adapter
+        // de médias déjà attaché (cache ou résultat MediaStore).
+        binding.emptyStateGallery.visibility = View.GONE
         binding.listGallery.apply {
+            stopScroll()
+            visibility = View.INVISIBLE
+            adapter = null
+            recycledViewPool.clear()
             setHasFixedSize(true)
             setItemViewCacheSize(72)
             recycledViewPool.setMaxRecycledViews(VIEW_TYPE_MEDIA, 96)
@@ -1917,7 +1967,9 @@ class HomeFragment : Fragment() {
     private fun applyCustomThumbnailFromGallery(photo: MediaItem) {
         val target = pendingCustomThumbnailVideo ?: return
         val ok = fr.retrospare.blazeplayer.ui.ThumbnailUtils.setCustomVideoThumbnail(requireContext(), target.path, Uri.parse(photo.path))
-        if (ok) historyAdapter?.invalidateThumbnail(target.path)
+        if (ok) {
+            historyAdapter?.invalidateThumbnail(target.path)
+        }
         android.widget.Toast.makeText(
             requireContext(),
             getString(if (ok) R.string.custom_thumbnail_saved else R.string.custom_thumbnail_error),
@@ -2137,6 +2189,7 @@ class HomeFragment : Fragment() {
         updateGalleryTypeToggle(visible = false)
         binding.btnGalleryDiapo.visibility = View.GONE
         binding.tvSectionGallery.text = getString(R.string.gallery_trash)
+        binding.tvSectionGallery.visibility = View.VISIBLE
         configureGalleryHeaderBack(true) { showGalleryFolders() }
         binding.btnGallerySecondary.visibility = View.GONE
         binding.btnGalleryPrimary.visibility = View.VISIBLE
@@ -2310,6 +2363,7 @@ class HomeFragment : Fragment() {
             styleGalleryTrashButton(false)
         }
         binding.tvSectionGallery.text = getString(R.string.gallery_selected_count, selectedGalleryPhotos.size)
+        binding.tvSectionGallery.visibility = View.VISIBLE
     }
 
     private fun launchSlideshowFolderPicker() {
@@ -2447,6 +2501,7 @@ class HomeFragment : Fragment() {
     private inner class PhotoViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
         val ivThumbnail: ImageView = view.findViewById(R.id.ivThumbnail)
         val cbSelected: android.widget.CheckBox = view.findViewById(R.id.cbSelected)
+        val bottomMenuOverlay: View = view.findViewById(R.id.photoBottomMenuOverlay)
         val btnMore: View = view.findViewById(R.id.btnMore)
     }
 
@@ -2536,16 +2591,18 @@ class HomeFragment : Fragment() {
         private fun mediaItemAt(position: Int): MediaItem = requireNotNull(mediaItemAtAdapterPosition(position))
 
         private fun bindPhotoSelection(holder: PhotoViewHolder, item: MediaItem) {
-            holder.cbSelected.visibility = if (gallerySelectionMode && !trashMode) View.VISIBLE else View.GONE
+            val showSelection = gallerySelectionMode && !trashMode
+            holder.cbSelected.visibility = if (showSelection) View.VISIBLE else View.GONE
             holder.cbSelected.isChecked = selectedGalleryPhotos.contains(item.path)
-            holder.btnMore.visibility = if (gallerySelectionMode && !trashMode) View.GONE else View.VISIBLE
+            holder.btnMore.visibility = if (showSelection) View.GONE else View.VISIBLE
+            holder.bottomMenuOverlay.visibility = if (showSelection) View.GONE else View.VISIBLE
         }
 
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
             return when (viewType) {
                 VIEW_TYPE_MONTH_HEADER -> GalleryMonthHeaderViewHolder(layoutInflater.inflate(R.layout.item_gallery_month_header, parent, false))
                 VIEW_TYPE_MEDIA -> PhotoViewHolder(layoutInflater.inflate(R.layout.item_gallery_photo, parent, false))
-                else -> FolderViewHolder(layoutInflater.inflate(R.layout.item_gallery_folder_tile, parent, false))
+                else -> FolderViewHolder(layoutInflater.inflate(R.layout.item_gallery_home_folder_tile, parent, false))
             }
         }
 
@@ -2911,7 +2968,6 @@ class HomeFragment : Fragment() {
                 hideAudioTab()
                 if (index == 2) requestNetworkPermissionsIfNeeded()
                 updateSectionTitles(index)
-                if (index == 1) resetVideoHistoryScrollToTop()
                 if (index == 2) showNetworkHelpOnce()
             }
         }
@@ -2923,7 +2979,6 @@ class HomeFragment : Fragment() {
         hideAudioTab()
         viewModel.onTabSelected(1)
         updateSectionTitles(1)
-        resetVideoHistoryScrollToTop()
     }
 
     private fun hideAudioTab() {
@@ -3022,23 +3077,30 @@ class HomeFragment : Fragment() {
         recycler.stopScroll()
         recycler.clearFocus()
 
-        fun applyTopPosition() {
-            if (_binding == null || currentTabIndex != 1) return
-            if ((recycler.adapter?.itemCount ?: 0) <= 0) return
+        // Au démarrage, updateRecycler() se charge de mesurer la liste invisible, de l'ancrer à
+        // zéro puis de la révéler. Des passes différées ici recréeraient précisément le sursaut que
+        // l'on cherche à supprimer.
+        if (initialVideoHistoryPresentationPending) {
+            recycler.visibility = View.INVISIBLE
             (recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager)
                 ?.scrollToPositionWithOffset(0, 0)
-                ?: recycler.scrollToPosition(0)
+            return
         }
 
-        // Premier repositionnement dès que le layout courant est prêt.
+        fun applyTopPosition() {
+            if (_binding == null || currentTabIndex != 1 || !resetVideoHistoryToTopPending) return
+            if ((recycler.adapter?.itemCount ?: 0) > 0) {
+                (recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager)
+                    ?.scrollToPositionWithOffset(0, 0)
+                    ?: recycler.scrollToPosition(0)
+            }
+        }
+
         recycler.post {
             applyTopPosition()
             recycler.postOnAnimation { applyTopPosition() }
         }
 
-        // Les mises à jour de l'historique peuvent arriver sur plusieurs frames au retour du
-        // lecteur. Ces passages couvrent DiffUtil et l'enrichissement immédiat sans laisser la
-        // grille s'ancrer sur l'ancienne première tuile.
         videoHistoryTopResetJob = viewLifecycleOwner.lifecycleScope.launch {
             val passesMs = longArrayOf(80L, 180L, 360L, 700L, 1100L)
             var previous = 0L
@@ -3100,6 +3162,7 @@ class HomeFragment : Fragment() {
                 viewModel.onTabSelected(1)
             }
         }
+        binding.headerControlsLocalScroll.post { refreshHeaderActionsScrollHint() }
         updateHistoryDeleteOverlay()
     }
 
@@ -3115,11 +3178,48 @@ class HomeFragment : Fragment() {
             // par la couleur Blaze de son icône et de son libellé.
             tab.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_tab_inactive)
             tab.isSelected = isActive
-            tabTexts[i].setTextColor(ContextCompat.getColor(requireContext(),
-                if (isActive) R.color.green_accent else R.color.on_surface_variant))
-            tabIcons[i].setColorFilter(ContextCompat.getColor(requireContext(),
-                if (isActive) R.color.green_accent else R.color.on_surface_variant))
+            tabTexts[i].setTextColor(
+                if (isActive) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
+                else ContextCompat.getColor(requireContext(), R.color.on_surface_variant)
+            )
+            tabIcons[i].setColorFilter(
+                if (isActive) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
+                else ContextCompat.getColor(requireContext(), R.color.on_surface_variant)
+            )
         }
+    }
+
+    /**
+     * Rend la ligne d'actions Blaze Video immédiatement compréhensible sur les petits écrans.
+     * Le dégradé de droite n'est visible que lorsqu'il reste réellement des boutons hors champ ;
+     * il disparaît au bout de la ligne. Un dégradé plus discret apparaît à gauche dès que
+     * l'utilisateur a commencé à faire défiler les actions.
+     */
+    private fun setupHeaderActionsScrollHint() {
+        val scroll = binding.headerControlsLocalScroll
+
+        scroll.setOnScrollChangeListener { _, _, _, _, _ ->
+            refreshHeaderActionsScrollHint()
+        }
+
+        val refreshOnLayout = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            scroll.post { refreshHeaderActionsScrollHint() }
+        }
+        scroll.addOnLayoutChangeListener(refreshOnLayout)
+        binding.headerControlsLocalContent.addOnLayoutChangeListener(refreshOnLayout)
+
+        scroll.post { refreshHeaderActionsScrollHint() }
+    }
+
+    private fun refreshHeaderActionsScrollHint() {
+        if (_binding == null) return
+
+        val controlsVisible = binding.headerControlsLocal.visibility == View.VISIBLE
+        val scroll = binding.headerControlsLocalScroll
+        binding.headerControlsLocalStartFade.visibility =
+            if (controlsVisible && scroll.canScrollHorizontally(-1)) View.VISIBLE else View.GONE
+        binding.headerControlsLocalEndFade.visibility =
+            if (controlsVisible && scroll.canScrollHorizontally(1)) View.VISIBLE else View.GONE
     }
 
     private fun setupButtons() {
@@ -3274,14 +3374,19 @@ class HomeFragment : Fragment() {
     private fun setupVideoQueueButtons() {
         val localBtn = binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueLocal)
         val networkBtn = binding.root.findViewById<android.view.View>(fr.retrospare.blazeplayer.R.id.btnVideoQueueNetwork)
-        val localHasItems = fr.retrospare.blazeplayer.player.VideoQueueManager
-            .getQueue(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO).isNotEmpty()
-        val networkHasItems = fr.retrospare.blazeplayer.player.VideoQueueManager
-            .getQueue(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO).isNotEmpty()
-        localBtn?.isSelected = localHasItems
-        networkBtn?.isSelected = networkHasItems
+        val localQueue = fr.retrospare.blazeplayer.player.VideoQueueManager
+            .getQueue(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.LOCAL_VIDEO)
+        val networkQueue = fr.retrospare.blazeplayer.player.VideoQueueManager
+            .getQueue(requireContext(), fr.retrospare.blazeplayer.playlist.PlaylistCategory.NETWORK_VIDEO)
+        localBtn?.isSelected = localQueue.isNotEmpty()
+        networkBtn?.isSelected = networkQueue.isNotEmpty()
         localBtn?.alpha = 1f
         networkBtn?.alpha = 1f
+
+        binding.tvVideoQueueCountLocal.apply {
+            text = localQueue.size.toString()
+            visibility = if (localQueue.isEmpty()) View.GONE else View.VISIBLE
+        }
     }
 
 
@@ -3407,7 +3512,7 @@ class HomeFragment : Fragment() {
         fun addActionButton(label: String, enabled: Boolean = true, onClick: () -> Unit) {
             root.addView(TextView(requireContext()).apply {
                 text = label
-                setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
+                setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
                 textSize = 13f
                 typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                 gravity = android.view.Gravity.CENTER
@@ -3526,20 +3631,41 @@ class HomeFragment : Fragment() {
     }
 
     private fun refreshAccessibleVideoHistory(items: List<MediaItem> = allVideoHistoryItems) {
-        if (_binding == null || !isAdded) return
+        if (_binding == null || !isAdded || !hasReceivedVideoHistorySnapshot || !authoritativeVideoHistoryReady) return
 
         val snapshot = items.toList()
         val generation = ++videoHistoryRefreshGeneration
         videoHistoryRefreshJob?.cancel()
 
-        // Les vidéos locales sont accessibles en Free : on peut donc les afficher immédiatement,
-        // sans attendre la lecture asynchrone des droits. Pour un compte Pro, les éléments réseau
-        // sont ajoutés juste après la résolution de l'accès.
         val localOnly = snapshot.filterNot { item ->
             item.isNetwork || fr.retrospare.blazeplayer.paywall.FeatureAccess.isNetworkMediaPath(item.path)
         }
-        latestLocalHistoryItems = localOnly
-        updateRecycler(binding.listLocal, localOnly)
+        val containsNetworkHistory = localOnly.size != snapshot.size
+
+        fun publish(hasPro: Boolean) {
+            if (_binding == null || !isAdded || generation != videoHistoryRefreshGeneration) return
+            lastKnownVideoHistoryProAccess = hasPro
+            val visible = if (hasPro) snapshot else localOnly
+            latestLocalHistoryItems = visible
+            updateRecycler(binding.listLocal, visible)
+        }
+
+        // Sans élément réseau, aucun contrôle d'accès n'est nécessaire : la bonne liste peut être
+        // présentée dès la première frame.
+        if (!containsNetworkHistory) {
+            latestLocalHistoryItems = localOnly
+            updateRecycler(binding.listLocal, localOnly)
+            return
+        }
+
+        // Après la première résolution, réutilise immédiatement le droit connu pour les émissions
+        // de métadonnées suivantes. La vérification asynchrone reste effectuée afin de réagir à un
+        // achat, une restauration ou une expiration d'essai.
+        lastKnownVideoHistoryProAccess?.let { knownAccess ->
+            val visible = if (knownAccess) snapshot else localOnly
+            latestLocalHistoryItems = visible
+            updateRecycler(binding.listLocal, visible)
+        }
 
         videoHistoryRefreshJob = viewLifecycleOwner.lifecycleScope.launch {
             val hasPro = try {
@@ -3549,18 +3675,7 @@ class HomeFragment : Fragment() {
             } catch (_: Exception) {
                 false
             }
-
-            // Une demande plus récente a remplacé celle-ci pendant la suspension DataStore : ne
-            // jamais laisser cet ancien résultat réécrire l'historique actuellement affiché.
-            if (_binding == null || !isAdded || generation != videoHistoryRefreshGeneration) {
-                return@launch
-            }
-
-            val visible = if (hasPro) snapshot else localOnly
-            latestLocalHistoryItems = visible
-            if (visible != localOnly) {
-                updateRecycler(binding.listLocal, visible)
-            }
+            publish(hasPro)
         }
     }
 
@@ -3574,8 +3689,18 @@ class HomeFragment : Fragment() {
                 }
                 launch {
                     viewModel.recentLocalItems.collect { items ->
+                        hasReceivedVideoHistorySnapshot = true
                         allVideoHistoryItems = items
-                        refreshAccessibleVideoHistory(items)
+                        if (authoritativeVideoHistoryReady) refreshAccessibleVideoHistory(items)
+                    }
+                }
+                launch {
+                    viewModel.historyAuthoritative.collect { ready ->
+                        if (!ready) return@collect
+                        authoritativeVideoHistoryReady = true
+                        hasReceivedVideoHistorySnapshot = true
+                        allVideoHistoryItems = viewModel.recentLocalItems.value
+                        refreshAccessibleVideoHistory(allVideoHistoryItems)
                     }
                 }
             }
@@ -3583,49 +3708,144 @@ class HomeFragment : Fragment() {
     }
 
     private fun openHistoryItem(item: MediaItem) {
+        resetVideoHistoryOnNextResumeAfterPlayback = true
         PlayerRouter.open(requireContext(), item.path, item.name)
+    }
+
+    private fun cancelDeferredVideoHistoryTopResetFromUserInput() {
+        // Le verrou initial est géré séparément avant que la grille soit révélée. Une fois la
+        // liste visible, le moindre geste utilisateur devient prioritaire sur tout recentrage
+        // différé encore en attente après le retour du lecteur.
+        if (initialVideoHistoryPresentationPending) return
+        resetVideoHistoryToTopPending = false
+        videoHistoryTopResetJob?.cancel()
+        videoHistoryTopResetJob = null
     }
 
     private fun setupHistoryRecycler() {
         if (historyAdapter != null) return
-        historyAdapter = HistoryAdapter()
+
+        // L’ancienne rangée « Reprendre la lecture » n’est plus utilisée : toutes les vidéos,
+        // y compris celles commencées, restent dans l’historique principal.
+        historyAdapter = HistoryAdapter().also {
+            // Android ne doit jamais restaurer une ancienne ancre avant que la liste définitive
+            // soit positionnée en haut. La restauration est réactivée après le premier rendu.
+            it.stateRestorationPolicy = androidx.recyclerview.widget.RecyclerView.Adapter.StateRestorationPolicy.PREVENT
+        }
         binding.listLocal.apply {
-            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 3)
+            layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 2).apply {
+                stackFromEnd = false
+            }
             adapter = historyAdapter
-            // Les animations de changement font brièvement disparaître/réapparaître les ImageView
-            // quand une durée ou un badge est enrichi. Pour l'historique, le rendu immédiat est
-            // préférable à un fondu de quelques dizaines de millisecondes.
             itemAnimator = null
-            setHasFixedSize(true)
-            setItemViewCacheSize(18)
+            setHasFixedSize(false)
+            setItemViewCacheSize(16)
+            addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(
+                    recyclerView: androidx.recyclerview.widget.RecyclerView,
+                    newState: Int
+                ) {
+                    if (newState == androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_DRAGGING) {
+                        cancelDeferredVideoHistoryTopResetFromUserInput()
+                    }
+                }
+            })
+            visibility = View.INVISIBLE
+            val density = resources.displayMetrics.density
+            setPadding((2f * density).toInt(), 0, (2f * density).toInt(), (24f * density).toInt())
         }
     }
 
     private fun updateRecycler(recycler: androidx.recyclerview.widget.RecyclerView, items: List<MediaItem>) {
         val historyTabForRecycler = 1
-        val emptyState = binding.emptyStateLocal
-        if (items.isEmpty() && historySelectionTab == historyTabForRecycler) clearHistorySelection()
-        historyAdapter?.submitHistory(items)
-        recycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
-        emptyState.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
-        if (resetVideoHistoryToTopPending && currentTabIndex == 1 && items.isNotEmpty()) {
-            // DiffUtil peut préserver l'ancienne ancre après l'insertion du dernier média en tête.
-            // Réappliquer directement la position 0, sans relancer la fenêtre de temporisation.
+
+        val normalizedItems = items.map { item ->
+            val effectivePosition = historyResumePositionMs(item)
+            val effectiveDurationMs = historyDurationMs(item)
+            val effectiveDurationSeconds = if (effectiveDurationMs > 0L) {
+                ((effectiveDurationMs + 500L) / 1000L).coerceAtLeast(1L)
+            } else {
+                item.duration
+            }
+            if (effectivePosition != item.lastPosition || effectiveDurationSeconds != item.duration) {
+                item.copy(lastPosition = effectivePosition, duration = effectiveDurationSeconds)
+            } else {
+                item
+            }
+        }
+
+        val hasAnyHistory = normalizedItems.isNotEmpty()
+        val globalLastPlayedPath = normalizedItems.maxByOrNull { it.lastPlayedAt }?.path
+
+        if (!hasAnyHistory && historySelectionTab == historyTabForRecycler) clearHistorySelection()
+        historyAdapter?.submitHistory(normalizedItems, globalLastPlayedPath)
+
+        binding.recentHistoryHeader.visibility = View.VISIBLE
+        binding.tvRecentHistoryCount.text = resources.getQuantityString(
+            R.plurals.history_section_video_count,
+            normalizedItems.size,
+            normalizedItems.size
+        )
+
+        if (!hasAnyHistory) {
+            recycler.visibility = View.GONE
+            binding.emptyStateLocal.visibility = View.VISIBLE
+            if (initialVideoHistoryPresentationPending) {
+                initialVideoHistoryPresentationPending = false
+                historyAdapter?.stateRestorationPolicy =
+                    androidx.recyclerview.widget.RecyclerView.Adapter.StateRestorationPolicy.ALLOW
+            }
+            return
+        }
+
+        binding.emptyStateLocal.visibility = View.GONE
+
+        fun forceTopPosition() {
+            recycler.stopScroll()
+            (recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager)
+                ?.scrollToPositionWithOffset(0, 0)
+                ?: recycler.scrollToPosition(0)
+        }
+
+        if (initialVideoHistoryPresentationPending) {
+            // La grille est mesurée hors écran, ancrée à 0, puis révélée seulement à la frame où
+            // les deux premières vidéos sont déjà les bonnes. Aucun ancien rang ne peut apparaître.
+            recycler.visibility = View.INVISIBLE
+            forceTopPosition()
             recycler.post {
-                (recycler.layoutManager as? androidx.recyclerview.widget.GridLayoutManager)
-                    ?.scrollToPositionWithOffset(0, 0)
-                    ?: recycler.scrollToPosition(0)
+                if (_binding == null || currentTabIndex != 1 || !initialVideoHistoryPresentationPending) {
+                    return@post
+                }
+                forceTopPosition()
+                recycler.postOnAnimation {
+                    if (_binding == null || currentTabIndex != 1 || !initialVideoHistoryPresentationPending) {
+                        return@postOnAnimation
+                    }
+                    forceTopPosition()
+                    initialVideoHistoryPresentationPending = false
+                    resetVideoHistoryToTopPending = false
+                    videoHistoryTopResetJob?.cancel()
+                    historyAdapter?.stateRestorationPolicy =
+                        androidx.recyclerview.widget.RecyclerView.Adapter.StateRestorationPolicy.ALLOW
+                    recycler.visibility = View.VISIBLE
+                }
+            }
+        } else {
+            recycler.visibility = View.VISIBLE
+            if (resetVideoHistoryToTopPending && currentTabIndex == 1) {
+                forceTopPosition()
+                recycler.post { forceTopPosition() }
             }
         }
     }
 
-    private class HistoryViewHolder(itemView: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(itemView) {
+    private class HistoryViewHolder(itemView: View) :
+        androidx.recyclerview.widget.RecyclerView.ViewHolder(itemView) {
         val lastPlayedBorder: View = itemView.findViewById(R.id.lastPlayedBorder)
-        val fileName: TextView = itemView.findViewById(R.id.tvFileName)
+        val fileName: StrictTwoLineTextView = itemView.findViewById(R.id.tvFileName)
         val duration: TextView = itemView.findViewById(R.id.tvDuration)
+        val resolution: TextView? = itemView.findViewById(R.id.tvResolution)
         val sourceBadge: ImageView? = itemView.findViewById(R.id.ivSourceBadge)
-        val format: TextView = itemView.findViewById(R.id.tvFormat)
-        val resolution: TextView = itemView.findViewById(R.id.tvResolution)
         val thumbnail: ImageView = itemView.findViewById(R.id.ivThumbnail)
         val playOverlay: ImageView? = itemView.findViewById(R.id.ivPlayOverlay)
         val checkBox: android.widget.CheckBox? = itemView.findViewById(R.id.cbHistorySelect)
@@ -3633,37 +3853,122 @@ class HomeFragment : Fragment() {
         var thumbnailJob: kotlinx.coroutines.Job? = null
     }
 
-    private inner class HistoryAdapter : androidx.recyclerview.widget.RecyclerView.Adapter<HistoryViewHolder>() {
+    private fun historyDurationPreferenceKey(path: String): String = "$path#duration_ms"
+
+    private fun historyDurationMs(item: MediaItem): Long {
+        // La durée réellement vue par Media3 est la source la plus précise. Elle évite qu'une
+        // métadonnée MediaStore arrondie ou encore non enrichie fausse le pourcentage affiché.
+        val playerDurationMs = try {
+            videoResumePositions.getLong(historyDurationPreferenceKey(item.path), 0L)
+        } catch (_: Exception) {
+            0L
+        }
+        if (playerDurationMs > 0L) return playerDurationMs
+        return item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L
+    }
+
+    private fun historyResumePositionMs(item: MediaItem): Long {
+        // SharedPreferences est écrit synchroniquement à la fermeture du lecteur. Lorsqu'une clé
+        // existe, elle doit remplacer DataStore et non être fusionnée avec maxOf(): après un
+        // redémarrage volontaire depuis le début, maxOf() conservait à tort l'ancienne position
+        // plus avancée et produisait une barre beaucoup trop longue.
+        return try {
+            if (videoResumePositions.contains(item.path)) {
+                videoResumePositions.getLong(item.path, 0L).coerceAtLeast(0L)
+            } else {
+                item.lastPosition.coerceAtLeast(0L)
+            }
+        } catch (_: Exception) {
+            item.lastPosition.coerceAtLeast(0L)
+        }
+    }
+
+    private fun historyQualityLabel(rawResolution: String?): String {
+        val raw = rawResolution?.trim().orEmpty()
+        if (raw.isEmpty()) return ""
+        val normalized = raw.uppercase(Locale.ROOT)
+        when {
+            normalized.contains("8K") -> return "8K"
+            normalized.contains("4K") || normalized.contains("UHD") -> return "4K"
+            normalized.contains("QHD") || normalized.contains("2K") -> return "QHD"
+            normalized.contains("FHD") -> return "FHD"
+            normalized == "HD" || normalized.contains("720P") -> return "HD"
+        }
+        val match = Regex("(\\d{3,5})\\s*[x×]\\s*(\\d{3,5})", RegexOption.IGNORE_CASE)
+            .find(raw)
+        val height = match?.groupValues?.getOrNull(2)?.toIntOrNull()
+        return when {
+            height == null -> raw.take(7)
+            height >= 4320 -> "8K"
+            height >= 2160 -> "4K"
+            height >= 1440 -> "QHD"
+            height >= 1080 -> "FHD"
+            height >= 720 -> "HD"
+            else -> "SD"
+        }
+    }
+
+    private fun bindHistoryVideo(
+        holder: HistoryViewHolder,
+        item: MediaItem,
+        lastPlayedPath: String?,
+        forceThumbnailRefresh: Boolean
+    ) {
+        holder.lastPlayedBorder.visibility =
+            if (item.path == lastPlayedPath) View.VISIBLE else View.GONE
+        val displayTitle = item.displayNameWithContainer
+        holder.fileName.apply {
+            clearAnimation()
+            animate().cancel()
+            setStrictText(displayTitle)
+        }
+        holder.duration.text = item.formattedDuration
+        holder.duration.visibility = if (item.formattedDuration.isBlank()) View.GONE else View.VISIBLE
+
+        val quality = historyQualityLabel(item.resolution)
+        holder.resolution?.apply {
+            text = quality
+            visibility = if (quality.isBlank()) View.GONE else View.VISIBLE
+        }
+
+        val inSelectionMode = historySelectionTab == 1
+        holder.sourceBadge?.apply {
+            bindHistorySourceIcon(this, item)
+            // La case de sélection occupe aussi l'angle supérieur gauche : masquer seulement le
+            // badge pendant la sélection évite leur superposition, puis le restaurer ensuite.
+            visibility = if (inSelectionMode) View.GONE else View.VISIBLE
+        }
+
+        bindHistoryThumbnail(holder, item, forceThumbnailRefresh)
+
+        holder.checkBox?.visibility = if (inSelectionMode) View.VISIBLE else View.GONE
+        holder.checkBox?.isChecked = selectedHistoryPaths.contains(item.path)
+        holder.checkBox?.setOnClickListener { toggleHistorySelection(item) }
+        holder.itemView.setOnClickListener {
+            if (inSelectionMode) toggleHistorySelection(item) else openHistoryItem(item)
+        }
+
+        holder.more?.visibility = if (inSelectionMode) View.GONE else View.VISIBLE
+        holder.more?.setOnClickListener { anchor -> showHistoryItemMenu(anchor, item) }
+    }
+
+
+
+    private inner class HistoryAdapter :
+        androidx.recyclerview.widget.RecyclerView.Adapter<HistoryViewHolder>() {
+
         private var items: List<MediaItem> = emptyList()
         private var lastPlayedPath: String? = null
         private val invalidatedThumbnailPaths = linkedSetOf<String>()
 
-        fun submitHistory(newItems: List<MediaItem>) {
+        init {
+            setHasStableIds(true)
+        }
+
+        fun submitHistory(newItems: List<MediaItem>, globalLastPlayedPath: String?) {
             val snapshot = newItems.toList()
-            if (items == snapshot) return
             val oldItems = items
-            val newLastPlayed = snapshot.maxByOrNull { it.lastPlayedAt }?.path
-
-            // Les enrichissements de durée/résolution gardent presque toujours exactement le même
-            // ordre. Éviter DiffUtil dans ce cas permet de mettre à jour seulement les quelques
-            // tuiles modifiées, sans recalcul ni rebinding global de la grille.
-            if (oldItems.size == snapshot.size &&
-                oldItems.indices.all { oldItems[it].path == snapshot[it].path }
-            ) {
-                items = snapshot
-                val previousLastPlayed = lastPlayedPath
-                lastPlayedPath = newLastPlayed
-                oldItems.indices.forEach { index ->
-                    val lastBorderChanged =
-                        (oldItems[index].path == previousLastPlayed) !=
-                            (snapshot[index].path == newLastPlayed)
-                    if (oldItems[index] != snapshot[index] || lastBorderChanged) {
-                        notifyItemChanged(index)
-                    }
-                }
-                return
-            }
-
+            val previousLastPlayed = lastPlayedPath
             val diff = androidx.recyclerview.widget.DiffUtil.calculateDiff(
                 object : androidx.recyclerview.widget.DiffUtil.Callback() {
                     override fun getOldListSize(): Int = oldItems.size
@@ -3674,76 +3979,36 @@ class HomeFragment : Fragment() {
                     override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
                         val old = oldItems[oldItemPosition]
                         val new = snapshot[newItemPosition]
-                        val oldWasLast = old.path == lastPlayedPath
-                        val newIsLast = new.path == newLastPlayed
+                        val oldWasLast = old.path == previousLastPlayed
+                        val newIsLast = new.path == globalLastPlayedPath
                         return old == new && oldWasLast == newIsLast
                     }
                 },
                 true
             )
             items = snapshot
-            lastPlayedPath = newLastPlayed
+            lastPlayedPath = globalLastPlayedPath
             diff.dispatchUpdatesTo(this)
         }
 
         override fun getItemCount(): Int = items.size
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HistoryViewHolder {
-            return HistoryViewHolder(
-                layoutInflater.inflate(R.layout.item_history_tile, parent, false)
+        override fun getItemId(position: Int): Long =
+            items[position].path.hashCode().toLong() and 0x7FFFFFFFL
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HistoryViewHolder =
+            HistoryViewHolder(
+                layoutInflater.inflate(R.layout.item_history_recent_card, parent, false)
             )
-        }
 
         override fun onBindViewHolder(holder: HistoryViewHolder, position: Int) {
             val item = items[position]
-            holder.lastPlayedBorder.visibility =
-                if (item.path == lastPlayedPath) View.VISIBLE else View.GONE
-            holder.fileName.text = item.name
-            holder.duration.text = item.formattedDuration
-            holder.sourceBadge?.let { bindHistorySourceIcon(it, item) }
-
-            val ext = containerBadgeFrom(item)
-            val isAudioItem = item.mimeType.startsWith("audio/") ||
-                item.extension.lowercase() in setOf("mp3", "flac", "aac", "ogg", "opus", "wav", "m4a", "wma", "ape", "wv", "aiff", "alac")
-            if (isAudioItem) {
-                fr.retrospare.blazeplayer.player.AudioQualityBadgeBinder.bind(
-                    holder.format,
-                    holder.resolution,
-                    item.path,
-                    item.name,
-                    ext,
-                    knownDurationMs = item.duration.takeIf { it > 0L }?.times(1000L) ?: 0L,
-                    knownSizeBytes = item.size
-                )
-            } else {
-                if (ext.isNotEmpty()) {
-                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(holder.format, ext)
-                    holder.format.visibility = View.VISIBLE
-                } else {
-                    holder.format.visibility = View.GONE
-                }
-                if (!item.resolution.isNullOrEmpty()) {
-                    holder.resolution.text = item.resolution
-                    fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(holder.resolution)
-                    holder.resolution.visibility = View.VISIBLE
-                } else {
-                    holder.resolution.visibility = View.GONE
-                }
-            }
-
-            val forceThumbnailRefresh = invalidatedThumbnailPaths.remove(item.path)
-            bindHistoryThumbnail(holder, item, forceThumbnailRefresh)
-
-            val inSelectionMode = historySelectionTab == 1
-            holder.checkBox?.visibility = if (inSelectionMode) View.VISIBLE else View.GONE
-            holder.checkBox?.isChecked = selectedHistoryPaths.contains(item.path)
-            holder.checkBox?.setOnClickListener { toggleHistorySelection(item) }
-            holder.itemView.setOnClickListener {
-                if (inSelectionMode) toggleHistorySelection(item) else openHistoryItem(item)
-            }
-
-            holder.more?.visibility = if (inSelectionMode) View.GONE else View.VISIBLE
-            holder.more?.setOnClickListener { anchor -> showHistoryItemMenu(anchor, item) }
+            bindHistoryVideo(
+                holder = holder,
+                item = item,
+                lastPlayedPath = lastPlayedPath,
+                forceThumbnailRefresh = invalidatedThumbnailPaths.remove(item.path)
+            )
         }
 
         override fun onViewRecycled(holder: HistoryViewHolder) {
@@ -3811,19 +4076,13 @@ class HomeFragment : Fragment() {
                     true
                 }
                 2 -> {
-                    fr.retrospare.blazeplayer.ui.VideoInfoDialog.show(
+                    fr.retrospare.blazeplayer.ui.VideoInfoDialog.showHistorySummary(
                         context = requireContext(),
-                        scope = viewLifecycleOwner.lifecycleScope,
-                        title = item.name,
-                        mediaPath = item.path,
-                        displayName = item.name,
-                        extension = item.extension.uppercase(),
-                        itemSizeBytes = item.size,
+                        displayName = item.displayNameWithContainer,
+                        extension = item.extension,
                         itemDurationSeconds = item.duration,
-                        resolution = item.resolution,
                         videoCodec = item.videoCodec,
-                        audioCodec = item.audioCodec,
-                        fullExtract = false
+                        audioCodec = item.audioCodec
                     )
                     true
                 }

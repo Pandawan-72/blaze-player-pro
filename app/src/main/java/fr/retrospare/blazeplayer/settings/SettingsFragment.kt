@@ -1,7 +1,6 @@
 package fr.retrospare.blazeplayer.settings
 
 
-import fr.retrospare.blazeplayer.ui.showPremium
 import android.os.Bundle
 import android.content.res.ColorStateList
 import android.text.SpannableStringBuilder
@@ -26,6 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.BuildConfig
 import fr.retrospare.blazeplayer.databinding.FragmentSettingsBinding
+import fr.retrospare.blazeplayer.ui.showPremium
 
 @AndroidEntryPoint
 class SettingsFragment : Fragment() {
@@ -43,7 +43,7 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         fr.retrospare.blazeplayer.player.AudioPremiumUi.applyDynamicHero(
             binding.settingsHero,
-            ContextCompat.getColor(requireContext(), R.color.green_accent)
+            fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
         )
         binding.btnBack.setOnClickListener { findNavController().popBackStack() }
         binding.btnBecomePro.setOnClickListener {
@@ -149,6 +149,8 @@ class SettingsFragment : Fragment() {
 
 
         // INTERFACE
+        setupAccentColorSetting()
+
         setupToggle(
             binding.settingShowHidden.root,
             R.drawable.ic_settings,
@@ -201,7 +203,7 @@ class SettingsFragment : Fragment() {
 
             AppCompatResources.getDrawable(requireContext(), R.drawable.ic_heart_filled)?.let { heart ->
                 val tintedHeart = DrawableCompat.wrap(heart.mutate())
-                DrawableCompat.setTint(tintedHeart, ContextCompat.getColor(requireContext(), R.color.green_accent))
+                DrawableCompat.setTint(tintedHeart, fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
                 val size = (20 * resources.displayMetrics.density).toInt()
                 tintedHeart.setBounds(0, 0, size, size)
 
@@ -249,6 +251,56 @@ class SettingsFragment : Fragment() {
         ) {
             sendContactEmail("dev@retro-spare.fr")
         }
+        }
+    }
+
+
+    private fun setupAccentColorSetting() {
+        val option = fr.retrospare.blazeplayer.theme.AccentColorManager.current(requireContext())
+        setupAction(
+            binding.settingAccentColor.root,
+            R.drawable.ic_palette,
+            getString(R.string.settings_accent_color),
+            getString(option.labelRes)
+        ) {
+            showAccentColorPicker()
+        }
+        val accentColor = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
+        // La palette reste teintée, et une pastille pleine donne un aperçu immédiat plus lisible.
+        binding.settingAccentColor.root.findViewById<ImageView>(R.id.ivIcon).imageTintList =
+            ColorStateList.valueOf(accentColor)
+        binding.settingAccentColor.root.findViewById<View>(R.id.viewColorSwatch).apply {
+            visibility = View.VISIBLE
+            val strokeWidth = (resources.displayMetrics.density + 0.5f).toInt().coerceAtLeast(1)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(accentColor)
+                setStroke(strokeWidth, android.graphics.Color.argb(90, 255, 255, 255))
+            }
+        }
+    }
+
+    private fun showAccentColorPicker() {
+        val context = requireContext()
+        val options = fr.retrospare.blazeplayer.theme.AccentColorManager.Option.values().toList()
+        val current = fr.retrospare.blazeplayer.theme.AccentColorManager.current(context)
+        val labels = options.map { getString(it.labelRes) }
+        val selectedIndex = options.indexOf(current).coerceAtLeast(0)
+
+        SettingsDialog.showChoice(
+            context = context,
+            title = getString(R.string.dialog_choose_accent_color),
+            choices = labels,
+            selectedIndex = selectedIndex,
+            swatchColors = options.map { ContextCompat.getColor(context, it.colorRes) }
+        ) { index ->
+            val selected = options.getOrNull(index)
+            if (selected != null && selected != current &&
+                fr.retrospare.blazeplayer.theme.AccentColorManager.set(context, selected)
+            ) {
+                // La recréation réinflate toutes les vues avec la nouvelle palette dès le choix.
+                requireActivity().recreate()
+            }
         }
     }
 
@@ -348,7 +400,7 @@ class SettingsFragment : Fragment() {
     }
 
     private fun applyAudioStyleToggle(sw: MaterialSwitch) {
-        val accent = ContextCompat.getColor(requireContext(), R.color.green_accent)
+        val accent = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
         val checkedTrack = ColorStateList.valueOf(fr.retrospare.blazeplayer.player.AudioDynamicColor.mix(0xFF101827.toInt(), accent, 0.36f))
         val uncheckedTrack = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface_variant))
         val disabledTrack = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.surface))

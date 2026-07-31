@@ -14,13 +14,15 @@ import fr.retrospare.blazeplayer.player.AudioLibraryBackgroundDispatchers
 import fr.retrospare.blazeplayer.player.AudioLibraryWorkState
 import fr.retrospare.blazeplayer.player.AudioArtworkResolver
 import fr.retrospare.blazeplayer.player.AudioQualityBadgeBinder
+import fr.retrospare.blazeplayer.ui.StrictTwoLineTextView
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class BrowserAdapter(
     val onFolderClick: (MediaItem) -> Unit,
     val onFileClick: (MediaItem) -> Unit,
-    val onRemoveFromHistory: ((MediaItem) -> Unit)? = null
+    val onRemoveFromHistory: ((MediaItem) -> Unit)? = null,
+    val onRenameRequested: ((MediaItem) -> Unit)? = null
 ) : ListAdapter<MediaItem, RecyclerView.ViewHolder>(DiffCallback()) {
 
     companion object {
@@ -111,7 +113,7 @@ class BrowserAdapter(
         val item = getItem(position)
         when (holder) {
             is FolderViewHolder -> holder.bind(item, onFolderClick)
-            is FileViewHolder -> holder.bind(item, onFileClick, onRemoveFromHistory, selectionMode, selectedItems, onSelectionChanged)
+            is FileViewHolder -> holder.bind(item, onFileClick, onRemoveFromHistory, onRenameRequested, selectionMode, selectedItems, onSelectionChanged)
         }
     }
 
@@ -181,7 +183,7 @@ class BrowserAdapter(
     }
 
     inner class FileViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val tvName: TextView = view.findViewById(R.id.tvFileName)
+        private val tvName: StrictTwoLineTextView = view.findViewById(R.id.tvFileName)
         private val tvResolution: TextView = view.findViewById(R.id.tvResolution)
         private val scope = kotlinx.coroutines.MainScope()
         var thumbnailJob: kotlinx.coroutines.Job? = null
@@ -189,18 +191,21 @@ class BrowserAdapter(
         private val tvDuration: TextView = view.findViewById(R.id.tvDuration)
         private val progressFill: View = view.findViewById(R.id.progressFill)
         private val btnMore: ImageView = view.findViewById(R.id.btnMore)
+        private val thumbnailContainer: View? = view.findViewById(R.id.thumbnailContainer)
         private val ivThumbnail: ImageView = view.findViewById(R.id.ivThumbnail)
         private val ivPlayOverlay: ImageView = view.findViewById(R.id.ivPlayOverlay)
         private val tvVideoCodec: TextView = view.findViewById(R.id.tvVideoCodec)
         private val tvAudioCodec: TextView = view.findViewById(R.id.tvAudioCodec)
         private val tvAudioQuality: TextView = view.findViewById(R.id.tvAudioQuality)
 
-        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
+        fun bind(item: MediaItem, onClick: (MediaItem) -> Unit, onRemove: ((MediaItem) -> Unit)? = null, onRename: ((MediaItem) -> Unit)? = null, isSelectionMode: Boolean = false, selected: MutableSet<String> = mutableSetOf(), onSelectionChanged: ((Set<String>) -> Unit)? = null) {
             val key = selectionKey(item)
-            tvName.text = item.name
+            val displayTitle = item.displayNameWithContainer
+            tvName.setStrictText(displayTitle)
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyContainerBadge(tvFormat, item.extension)
-            tvFormat.visibility = if (item.extension.isNotEmpty()) View.VISIBLE else View.GONE
+            tvFormat.visibility = if (tvFormat.text.isNotBlank()) View.VISIBLE else View.GONE
             tvDuration.text = item.formattedDuration
+            tvDuration.visibility = if (item.formattedDuration.isNotBlank()) View.VISIBLE else View.GONE
 
             // Résolution - calcule depuis item.resolution comme les autres badges
             val rawRes = item.resolution ?: ""
@@ -219,10 +224,10 @@ class BrowserAdapter(
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvResolution)
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvVideoCodec)
             fr.retrospare.blazeplayer.ui.BadgeStyle.applyTechnicalBadge(tvAudioCodec)
-            tvVideoCodec.text = item.videoCodec ?: ""
-            tvVideoCodec.visibility = if (!item.videoCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
-            tvAudioCodec.text = item.audioCodec ?: ""
-            tvAudioCodec.visibility = if (!item.audioCodec.isNullOrEmpty()) View.VISIBLE else View.GONE
+            tvVideoCodec.text = item.videoCodec?.trim().orEmpty()
+            tvVideoCodec.visibility = if (tvVideoCodec.text.isNotBlank()) View.VISIBLE else View.GONE
+            tvAudioCodec.text = item.audioCodec?.trim().orEmpty()
+            tvAudioCodec.visibility = if (tvAudioCodec.text.isNotBlank()) View.VISIBLE else View.GONE
             val isAudio = item.mimeType.startsWith("audio/") || item.extension.lowercase() in setOf("mp3","flac","aac","ogg","opus","wav","m4a","wma","ape","dts","ac3","mka","wv","aiff","alac")
             if (isAudio) {
                 // Pour l'audio, le conteneur et la qualité restent côte à côte dans la rangée.
@@ -250,45 +255,80 @@ class BrowserAdapter(
                 progressFill.visibility = View.GONE
             }
 
-            // Miniature navigateur : pour les vidéos, on n'extrait plus jamais une frame ici.
-            // On affiche uniquement une miniature personnalisée ou un snapshot capturé pendant
-            // la lecture. L'extraction de frame à l'affichage était trop coûteuse et provoquait
-            // des saccades, surtout sur MP4/SMB. L'audio garde son extraction artwork dédiée.
+            // En liste vidéo, on garde une petite frame portrait à droite. Elle est extraite à
+            // 5 secondes (donc dans les dix premières secondes), puis mise en cache par
+            // ThumbnailUtils. L'espace de la miniature est fixe : son arrivée ne remesure jamais
+            // le titre ni les badges et ne peut donc pas recréer de scintillement pendant le scroll.
             thumbnailJob?.cancel()
-            (ivThumbnail.parent as? View)?.visibility = View.VISIBLE
-            ivThumbnail.setImageDrawable(null)
-            ivThumbnail.setBackgroundResource(R.drawable.bg_thumbnail)
-            ivThumbnail.scaleType = ImageView.ScaleType.CENTER
-            ivThumbnail.setImageResource(R.drawable.ic_video_camera)
-            ivPlayOverlay.visibility = View.VISIBLE
+            thumbnailJob = null
             ivThumbnail.setTag(R.id.ivThumbnail, item.path)
-            if (isAudio) ivThumbnail.setImageResource(R.drawable.ic_music_note_large)
-            val cachedThumb = if (isAudio) {
-                // Bind RecyclerView strictement RAM : aucune lecture disque/compression JPEG sur le
-                // thread principal pendant qu'un morceau peut jouer en arrière-plan.
-                AudioArtworkResolver.memoryCachedBitmap(item.path)
-            } else {
-                fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailBitmap(itemView.context, item.path)
-            }
-            if (cachedThumb != null) {
-                ivThumbnail.setImageBitmap(cachedThumb)
-                ivThumbnail.scaleType = ImageView.ScaleType.CENTER_CROP
-                ivThumbnail.setBackgroundColor(0x00000000)
-            } else if (isAudio) {
-                thumbnailJob = scope.launch {
-                    val bitmap = withContext(AudioLibraryBackgroundDispatchers.visibleArtwork) {
-                        AudioArtworkResolver.cachedBitmap(itemView.context, item.path)?.let { return@withContext it }
-                        if (AudioLibraryWorkState.isPlaybackProtected()) {
-                            AudioLibraryWorkState.awaitPlaybackIdle()
-                        } else {
-                            AudioLibraryWorkState.awaitPlaybackCriticalWindowEnd()
-                        }
-                        AudioArtworkResolver.resolveBitmap(itemView.context, item.path)
-                    }
-                    if (ivThumbnail.getTag(R.id.ivThumbnail) == item.path && bitmap != null) {
-                        ivThumbnail.setImageBitmap(bitmap)
+            if (!isGridMode) {
+                val showVideoThumbnail = !isAudio
+                thumbnailContainer?.visibility = if (showVideoThumbnail) View.VISIBLE else View.GONE
+                ivPlayOverlay.visibility = View.GONE
+                if (showVideoThumbnail) {
+                    ivThumbnail.visibility = View.VISIBLE
+                    ivThumbnail.setImageResource(R.drawable.ic_video_camera)
+                    ivThumbnail.scaleType = ImageView.ScaleType.CENTER
+                    ivThumbnail.setBackgroundResource(R.drawable.bg_thumbnail)
+                    val cachedThumb = fr.retrospare.blazeplayer.ui.ThumbnailUtils.peekMemoryEarlyVideoFrameBitmap(item.path)
+                    if (cachedThumb != null) {
+                        ivThumbnail.setImageBitmap(cachedThumb)
                         ivThumbnail.scaleType = ImageView.ScaleType.CENTER_CROP
                         ivThumbnail.setBackgroundColor(0x00000000)
+                    } else {
+                        thumbnailJob = scope.launch {
+                            fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadEarlyVideoFrame(
+                                context = itemView.context,
+                                path = item.path,
+                                imageView = ivThumbnail,
+                                timeUs = 5_000_000L
+                            )
+                        }
+                    }
+                }
+            } else {
+                thumbnailContainer?.visibility = View.VISIBLE
+                ivThumbnail.visibility = View.VISIBLE
+                ivThumbnail.setImageDrawable(null)
+                ivThumbnail.setBackgroundResource(R.drawable.bg_thumbnail)
+                ivThumbnail.scaleType = ImageView.ScaleType.CENTER
+                ivThumbnail.setImageResource(if (isAudio) R.drawable.ic_music_note_large else R.drawable.ic_video_camera)
+                ivPlayOverlay.visibility = View.VISIBLE
+                val cachedThumb = if (isAudio) {
+                    AudioArtworkResolver.memoryCachedBitmap(item.path)
+                } else {
+                    fr.retrospare.blazeplayer.ui.ThumbnailUtils.getCachedThumbnailBitmap(itemView.context, item.path)
+                }
+                if (cachedThumb != null) {
+                    ivThumbnail.setImageBitmap(cachedThumb)
+                    ivThumbnail.scaleType = ImageView.ScaleType.CENTER_CROP
+                    ivThumbnail.setBackgroundColor(0x00000000)
+                } else if (isAudio) {
+                    thumbnailJob = scope.launch {
+                        val bitmap = withContext(AudioLibraryBackgroundDispatchers.visibleArtwork) {
+                            AudioArtworkResolver.cachedBitmap(itemView.context, item.path)?.let { return@withContext it }
+                            if (AudioLibraryWorkState.isPlaybackProtected()) {
+                                AudioLibraryWorkState.awaitPlaybackIdle()
+                            } else {
+                                AudioLibraryWorkState.awaitPlaybackCriticalWindowEnd()
+                            }
+                            AudioArtworkResolver.resolveBitmap(itemView.context, item.path)
+                        }
+                        if (ivThumbnail.getTag(R.id.ivThumbnail) == item.path && bitmap != null) {
+                            ivThumbnail.setImageBitmap(bitmap)
+                            ivThumbnail.scaleType = ImageView.ScaleType.CENTER_CROP
+                            ivThumbnail.setBackgroundColor(0x00000000)
+                        }
+                    }
+                } else {
+                    thumbnailJob = scope.launch {
+                        fr.retrospare.blazeplayer.ui.ThumbnailUtils.loadThumbnail(
+                            context = itemView.context,
+                            path = item.path,
+                            imageView = ivThumbnail,
+                            timeUs = 5_000_000L
+                        )
                     }
                 }
             }
@@ -313,7 +353,10 @@ class BrowserAdapter(
                 val popup = android.widget.PopupMenu(v.context, v)
                 popup.menu.add(0, 1, 0, v.context.getString(R.string.action_play))
                 popup.menu.add(0, 2, 1, v.context.getString(R.string.action_information))
-                                popup.setOnMenuItemClickListener { mi ->
+                if (!isAudio && onRename != null) {
+                    popup.menu.add(0, 3, 2, v.context.getString(R.string.browser_rename_video_action))
+                }
+                popup.setOnMenuItemClickListener { mi ->
                     fr.retrospare.blazeplayer.ui.HapticFeedbackManager.perform(v)
                     when (mi.itemId) {
                         1 -> { onClick(item); true }
@@ -321,9 +364,9 @@ class BrowserAdapter(
                             fr.retrospare.blazeplayer.ui.VideoInfoDialog.show(
                                 context = v.context,
                                 scope = scope,
-                                title = item.name,
+                                title = item.displayNameWithContainer,
                                 mediaPath = item.path,
-                                displayName = item.name,
+                                displayName = item.displayNameWithContainer,
                                 extension = item.extension.uppercase(),
                                 itemSizeBytes = item.size,
                                 itemDurationSeconds = item.duration,
@@ -332,6 +375,10 @@ class BrowserAdapter(
                                 audioCodec = item.audioCodec,
                                 fullExtract = false
                             )
+                            true
+                        }
+                        3 -> {
+                            onRename?.invoke(item)
                             true
                         }
                         else -> false

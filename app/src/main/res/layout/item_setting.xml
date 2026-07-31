@@ -53,6 +53,14 @@
 
     </LinearLayout>
 
+    <View
+        android:id="@+id/viewColorSwatch"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:layout_marginStart="8dp"
+        android:contentDescription="@null"
+        android:visibility="gone" />
+
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/switchToggle"
         android:layout_width="wrap_content"

@@ -16,6 +16,80 @@
     <color name="red_accent">#F05A5A</color>
     <color name="purple_accent">#8D75FF</color>
 
+
+    <!-- Palette d'accentuation personnalisable -->
+    <color name="accent_green">#21E69A</color>
+    <color name="accent_green_stroke">#8A21E69A</color>
+    <color name="accent_green_soft">#4521E69A</color>
+    <color name="accent_green_subtle">#1821E69A</color>
+    <color name="accent_green_strong">#D121E69A</color>
+    <color name="accent_green_container">#09251B</color>
+    <color name="accent_green_container_strong">#173D2D</color>
+    <color name="accent_green_dark_border">#08704D</color>
+
+    <color name="accent_blue">#46A6FF</color>
+    <color name="accent_blue_stroke">#8A46A6FF</color>
+    <color name="accent_blue_soft">#4546A6FF</color>
+    <color name="accent_blue_subtle">#1846A6FF</color>
+    <color name="accent_blue_strong">#D146A6FF</color>
+    <color name="accent_blue_container">#0A1D31</color>
+    <color name="accent_blue_container_strong">#173653</color>
+    <color name="accent_blue_dark_border">#145B98</color>
+
+    <color name="accent_purple">#9A7BFF</color>
+    <color name="accent_purple_stroke">#8A9A7BFF</color>
+    <color name="accent_purple_soft">#459A7BFF</color>
+    <color name="accent_purple_subtle">#189A7BFF</color>
+    <color name="accent_purple_strong">#D19A7BFF</color>
+    <color name="accent_purple_container">#1A1433</color>
+    <color name="accent_purple_container_strong">#35285C</color>
+    <color name="accent_purple_dark_border">#5E48A9</color>
+
+    <color name="accent_pink">#FF5CA8</color>
+    <color name="accent_pink_stroke">#8AFF5CA8</color>
+    <color name="accent_pink_soft">#45FF5CA8</color>
+    <color name="accent_pink_subtle">#18FF5CA8</color>
+    <color name="accent_pink_strong">#D1FF5CA8</color>
+    <color name="accent_pink_container">#32101F</color>
+    <color name="accent_pink_container_strong">#572039</color>
+    <color name="accent_pink_dark_border">#A53669</color>
+
+    <color name="accent_orange">#FF9F43</color>
+    <color name="accent_orange_stroke">#8AFF9F43</color>
+    <color name="accent_orange_soft">#45FF9F43</color>
+    <color name="accent_orange_subtle">#18FF9F43</color>
+    <color name="accent_orange_strong">#D1FF9F43</color>
+    <color name="accent_orange_container">#321D0B</color>
+    <color name="accent_orange_container_strong">#553517</color>
+    <color name="accent_orange_dark_border">#9C5B1D</color>
+
+    <color name="accent_red">#F05A5A</color>
+    <color name="accent_red_stroke">#8AF05A5A</color>
+    <color name="accent_red_soft">#45F05A5A</color>
+    <color name="accent_red_subtle">#18F05A5A</color>
+    <color name="accent_red_strong">#D1F05A5A</color>
+    <color name="accent_red_container">#311111</color>
+    <color name="accent_red_container_strong">#542020</color>
+    <color name="accent_red_dark_border">#933737</color>
+
+    <color name="accent_turquoise">#00C2C7</color>
+    <color name="accent_turquoise_stroke">#8A00C2C7</color>
+    <color name="accent_turquoise_soft">#4500C2C7</color>
+    <color name="accent_turquoise_subtle">#1800C2C7</color>
+    <color name="accent_turquoise_strong">#D100C2C7</color>
+    <color name="accent_turquoise_container">#06282A</color>
+    <color name="accent_turquoise_container_strong">#10464A</color>
+    <color name="accent_turquoise_dark_border">#087B80</color>
+
+    <color name="accent_gold">#F4B72E</color>
+    <color name="accent_gold_stroke">#8AF4B72E</color>
+    <color name="accent_gold_soft">#45F4B72E</color>
+    <color name="accent_gold_subtle">#18F4B72E</color>
+    <color name="accent_gold_strong">#D1F4B72E</color>
+    <color name="accent_gold_container">#302407</color>
+    <color name="accent_gold_container_strong">#514018</color>
+    <color name="accent_gold_dark_border">#8F6A13</color>
+
     <!-- Texte -->
     <color name="on_background">#F1F5FA</color>
     <color name="on_surface">#DDE4EE</color>

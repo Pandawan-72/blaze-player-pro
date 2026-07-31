@@ -45,6 +45,7 @@ class SearchFragment : Fragment() {
             onFileClick = { item -> PlayerRouter.open(requireContext(), item.path, item.name) }
         )
         binding.recyclerSearch.layoutManager = LinearLayoutManager(requireContext())
+        binding.recyclerSearch.itemAnimator = null
         binding.recyclerSearch.adapter = adapter
 
         binding.btnBack.setOnClickListener { parentFragmentManager.popBackStack() }

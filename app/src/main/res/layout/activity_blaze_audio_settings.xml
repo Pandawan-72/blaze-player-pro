@@ -83,7 +83,7 @@
                                 android:includeFontPadding="false"
                                 android:paddingHorizontal="8dp"
                                 android:text="@string/version_badge_pro_plus"
-                                android:textColor="@color/green_accent"
+                                android:textColor="?attr/colorPrimary"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
 

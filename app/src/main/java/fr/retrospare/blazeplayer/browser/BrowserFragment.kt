@@ -1,10 +1,16 @@
 package fr.retrospare.blazeplayer.browser
 
+import android.app.Activity
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -14,11 +20,13 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import fr.retrospare.blazeplayer.R
 import fr.retrospare.blazeplayer.data.model.MediaItem
 import fr.retrospare.blazeplayer.databinding.FragmentBrowserBinding
 import fr.retrospare.blazeplayer.player.PlayerRouter
+import fr.retrospare.blazeplayer.ui.showPremium
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -40,6 +48,18 @@ class BrowserFragment : Fragment() {
     private val breadcrumbParts = mutableListOf<BrowserCrumb>()
     private var globalSearchJob: kotlinx.coroutines.Job? = null
     private var searchGeneration = 0
+
+    private data class PendingVideoRename(val item: MediaItem, val baseName: String)
+    private var pendingVideoRename: PendingVideoRename? = null
+    private val renamePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        val pending = pendingVideoRename
+        pendingVideoRename = null
+        if (result.resultCode == Activity.RESULT_OK && pending != null && isAdded && _binding != null) {
+            executeVideoRename(pending.item, pending.baseName)
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentBrowserBinding.inflate(inflater, container, false)
@@ -157,10 +177,106 @@ class BrowserFragment : Fragment() {
     private fun setupRecyclerView() {
         adapter = BrowserAdapter(
             onFolderClick = { item -> openFolderLikeItem(item) },
-            onFileClick = { item -> PlayerRouter.open(requireContext(), item.path, item.name) }
+            onFileClick = { item -> PlayerRouter.open(requireContext(), item.path, item.name) },
+            onRenameRequested = { item -> showRenameVideoDialog(item) }
         )
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        // Les métadonnées arrivent progressivement. Sans animateur de changement, la mise à jour
+        // des badges ne fait plus clignoter/recomposer visuellement le titre long.
+        binding.recyclerView.itemAnimator = null
         binding.recyclerView.adapter = adapter
+    }
+
+    private fun showRenameVideoDialog(item: MediaItem) {
+        val extension = VideoFileRenamer.originalExtension(item)
+        val currentBaseName = VideoFileRenamer.originalBaseName(item)
+        val density = resources.displayMetrics.density
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((20 * density).toInt(), (4 * density).toInt(), (20 * density).toInt(), 0)
+        }
+        val input = EditText(requireContext()).apply {
+            setSingleLine(true)
+            setText(currentBaseName)
+            setSelection(text.length)
+            hint = getString(R.string.browser_rename_video_hint)
+            setSelectAllOnFocus(true)
+        }
+        container.addView(input, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+        if (extension.isNotBlank()) {
+            container.addView(TextView(requireContext()).apply {
+                text = getString(R.string.browser_rename_extension_preserved, ".$extension")
+                textSize = 11f
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.on_surface_variant))
+                setPadding(0, (4 * density).toInt(), 0, 0)
+            })
+        }
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.browser_rename_video_title)
+            .setView(container)
+            .setNegativeButton(R.string.action_cancel, null)
+            .setPositiveButton(R.string.action_save, null)
+            .showPremium()
+
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val baseName = VideoFileRenamer.normalizeBaseName(input.text?.toString().orEmpty(), extension)
+            if (!VideoFileRenamer.isValidBaseName(baseName)) {
+                input.error = getString(R.string.browser_rename_video_invalid_name)
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            executeVideoRename(item, baseName)
+        }
+        input.requestFocus()
+        dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
+    }
+
+    private fun executeVideoRename(item: MediaItem, baseName: String) {
+        if (!isAdded || _binding == null) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            when (val result = VideoFileRenamer.rename(requireContext(), item, baseName)) {
+                VideoFileRenamer.Result.Success -> {
+                    Toast.makeText(requireContext(), R.string.browser_rename_video_success, Toast.LENGTH_SHORT).show()
+                    refreshCurrentBrowserLocation()
+                }
+                VideoFileRenamer.Result.AlreadyExists -> {
+                    Toast.makeText(requireContext(), R.string.browser_rename_video_already_exists, Toast.LENGTH_LONG).show()
+                }
+                VideoFileRenamer.Result.ReadOnlyNetwork -> {
+                    Toast.makeText(requireContext(), R.string.browser_rename_video_network_read_only, Toast.LENGTH_LONG).show()
+                }
+                is VideoFileRenamer.Result.PermissionRequired -> {
+                    pendingVideoRename = PendingVideoRename(item, baseName)
+                    runCatching {
+                        renamePermissionLauncher.launch(
+                            IntentSenderRequest.Builder(result.intentSender).build()
+                        )
+                    }.onFailure {
+                        pendingVideoRename = null
+                        Toast.makeText(requireContext(), R.string.browser_rename_video_error, Toast.LENGTH_LONG).show()
+                    }
+                }
+                is VideoFileRenamer.Result.Failure -> {
+                    android.util.Log.w("BrowserFragment", "Video rename failed", result.error)
+                    Toast.makeText(requireContext(), R.string.browser_rename_video_error, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun refreshCurrentBrowserLocation() {
+        when (sourceMode) {
+            SourceMode.LOCAL -> viewModel.loadLocalFiles(viewModel.currentPath.value)
+            SourceMode.NETWORK -> {
+                val share = viewModel.currentShare
+                if (share != null) viewModel.loadNetworkFiles(share, viewModel.currentPath.value)
+                else viewModel.loadNetworkShares()
+            }
+        }
     }
 
     private fun openFolderLikeItem(item: MediaItem) {
@@ -218,12 +334,12 @@ class BrowserFragment : Fragment() {
                 if (settingEnabled) {
                     binding.btnToggleAudio.alpha = 0.3f
                     binding.btnToggleAudio.isEnabled = false
-                    binding.btnToggleAudio.setColorFilter(resources.getColor(R.color.green_accent, null))
+                    binding.btnToggleAudio.setColorFilter(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
                 } else {
                     binding.btnToggleAudio.alpha = 1f
                     binding.btnToggleAudio.isEnabled = true
                     binding.btnToggleAudio.setColorFilter(
-                        if (active) resources.getColor(R.color.green_accent, null)
+                        if (active) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
                         else resources.getColor(R.color.on_surface_variant, null)
                     )
                 }
@@ -360,8 +476,11 @@ class BrowserFragment : Fragment() {
         fun style(button: MaterialButton, selected: Boolean) {
             button.setTextColor(ContextCompat.getColor(requireContext(), if (selected) R.color.black else R.color.on_surface))
             button.iconTint = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), if (selected) R.color.black else R.color.on_surface))
-            button.backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), if (selected) R.color.green_accent else R.color.surface_variant))
-            button.strokeColor = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.green_accent_stroke))
+            button.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                if (selected) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
+                else ContextCompat.getColor(requireContext(), R.color.surface_variant)
+            )
+            button.strokeColor = android.content.res.ColorStateList.valueOf(fr.retrospare.blazeplayer.theme.AccentColorManager.accentStroke(requireContext()))
             button.strokeWidth = if (selected) 0 else (resources.displayMetrics.density).toInt().coerceAtLeast(1)
         }
         style(binding.btnLocal, sourceMode == SourceMode.LOCAL)
@@ -424,7 +543,10 @@ class BrowserFragment : Fragment() {
                 text = part.name
                 textSize = 12f
                 val isLast = index == allParts.lastIndex
-                setTextColor(resources.getColor(if (isLast) R.color.green_accent else R.color.on_surface_variant, null))
+                setTextColor(
+                    if (isLast) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
+                    else resources.getColor(R.color.on_surface_variant, null)
+                )
                 setPadding(8, 6, 8, 6)
                 setOnClickListener {
                     if (!isLast) {

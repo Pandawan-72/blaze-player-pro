@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="5dp">
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/historyCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:foreground="?attr/selectableItemBackground"
+        app:cardBackgroundColor="@color/surface"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/outline_variant"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <fr.retrospare.blazeplayer.ui.LandscapeThumbnailFrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_thumbnail">
+
+                <ImageView
+                    android:id="@+id/ivThumbnail"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@null"
+                    android:scaleType="centerCrop" />
+
+                <ImageView
+                    android:id="@+id/ivPlayOverlay"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:layout_gravity="center"
+                    android:alpha="0.86"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_play_small" />
+
+                <ImageView
+                    android:id="@+id/ivSourceBadge"
+                    android:layout_width="30dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="top|start"
+                    android:layout_margin="7dp"
+                    android:background="@drawable/bg_history_source_badge"
+                    android:elevation="3dp"
+                    android:padding="5dp"
+                    android:scaleType="centerInside"
+                    android:tint="#FFFFFFFF"
+                    tools:src="@drawable/ic_sd_card" />
+
+                <TextView
+                    android:id="@+id/tvResolution"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="7dp"
+                    android:background="@drawable/bg_history_quality_badge"
+                    android:fontFamily="sans-serif-condensed"
+                    android:includeFontPadding="false"
+                    android:paddingHorizontal="5dp"
+                    android:paddingVertical="2dp"
+                    android:textColor="@color/on_background"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:text="FHD"
+                    tools:visibility="visible" />
+
+                <TextView
+                    android:id="@+id/tvDuration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="7dp"
+                    android:background="@drawable/bg_history_duration_badge"
+                    android:fontFamily="sans-serif-condensed"
+                    android:includeFontPadding="false"
+                    android:paddingHorizontal="5dp"
+                    android:paddingVertical="2dp"
+                    android:textColor="@color/on_background"
+                    android:textSize="10sp"
+                    tools:text="08:21" />
+            </fr.retrospare.blazeplayer.ui.LandscapeThumbnailFrameLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="46dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingEnd="2dp">
+
+                <fr.retrospare.blazeplayer.ui.StrictTwoLineTextView
+                    android:id="@+id/tvFileName"
+                    android:layout_width="0dp"
+                    android:layout_height="34dp"
+                    android:layout_weight="1"
+                    android:breakStrategy="simple"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-condensed"
+                    android:gravity="center_vertical|start"
+                    android:hyphenationFrequency="none"
+                    android:includeFontPadding="false"
+                    android:lines="2"
+                    android:maxLines="2"
+                    android:minLines="2"
+                    android:lineSpacingExtra="0dp"
+                    android:lineSpacingMultiplier="1.0"
+                    android:scrollHorizontally="false"
+                    android:textColor="@color/on_background"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="Festival sur la plage" />
+
+                <ImageButton
+                    android:id="@+id/btnMore"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/content_desc_options"
+                    android:padding="7dp"
+                    android:src="@drawable/ic_more_vert"
+                    android:tint="@color/on_surface" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <CheckBox
+        android:id="@+id/cbHistorySelect"
+        style="@style/Widget.BlazePlayer.MultiSelectCheckBox"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="6dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/lastPlayedBorder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_history_card_last_played"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone" />
+</FrameLayout>

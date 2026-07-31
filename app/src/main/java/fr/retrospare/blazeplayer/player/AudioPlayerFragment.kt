@@ -553,6 +553,7 @@ class AudioPlayerFragment : Fragment() {
         binding.ivArtwork.elevation = 0f
         binding.ivArtwork.translationZ = 0f
         binding.ivArtwork.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+        showFirstUseAudioArtworkIfNeeded()
         binding.karaokeArtworkFrame.radiusDp = 23f
         binding.karaokeArtworkOverlay.radiusDp = 23f
         binding.ivKaraokeArtwork.radiusDp = 23f
@@ -1635,6 +1636,42 @@ class AudioPlayerFragment : Fragment() {
         }
     }
 
+    /**
+     * Premier état du lecteur audio : tant que l'utilisateur n'a encore lancé aucun morceau,
+     * la pochette portrait affiche l'icône Blaze Player au lieu de laisser le carré vide.
+     *
+     * L'historique et la file sauvegardée servent aussi de garde-fou pour les utilisateurs ayant
+     * déjà utilisé Blaze Audio avant l'ajout de ce marqueur lors d'une mise à jour de l'application.
+     */
+    private fun showFirstUseAudioArtworkIfNeeded() {
+        val context = context ?: return
+        val prefs = context.getSharedPreferences(AUDIO_FIRST_USE_PREFS, android.content.Context.MODE_PRIVATE)
+        val alreadyMarked = prefs.getBoolean(KEY_FIRST_AUDIO_TRACK_STARTED, false)
+        val alreadyHasHistory = AudioPlaybackHistory.load(context).isNotEmpty()
+        val alreadyHasSavedQueue = AudioRepository.loadState(context).items.isNotEmpty()
+        if (alreadyMarked || alreadyHasHistory || alreadyHasSavedQueue) {
+            if (!alreadyMarked && (alreadyHasHistory || alreadyHasSavedQueue)) {
+                prefs.edit().putBoolean(KEY_FIRST_AUDIO_TRACK_STARTED, true).apply()
+            }
+            return
+        }
+
+        _binding?.ivArtwork?.apply {
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setImageResource(fr.retrospare.blazeplayer.R.drawable.blaze_player_audio_first_cover)
+            fr.retrospare.blazeplayer.theme.AccentColorManager.applyLogoHue(this)
+        }
+    }
+
+    /** Dès qu'un vrai MediaItem audio existe, le visuel de première utilisation ne doit plus revenir. */
+    private fun markFirstAudioTrackStarted() {
+        val context = context ?: return
+        context.getSharedPreferences(AUDIO_FIRST_USE_PREFS, android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_FIRST_AUDIO_TRACK_STARTED, true)
+            .apply()
+    }
+
     private fun syncSelection() {
         val ctrl = controller ?: return
         if (!::playlistAdapter.isInitialized) return
@@ -1644,6 +1681,11 @@ class AudioPlayerFragment : Fragment() {
     private fun syncMetadata() {
         val ctrl = controller ?: return
         val mediaItem = ctrl.currentMediaItem ?: return
+        markFirstAudioTrackStarted()
+        _binding?.ivArtwork?.apply {
+            clearColorFilter()
+            scaleType = ImageView.ScaleType.CENTER_CROP
+        }
         val meta = mediaItem.mediaMetadata
 
         val pathForMeta = originalPathOf(mediaItem)
@@ -3485,10 +3527,10 @@ class AudioPlayerFragment : Fragment() {
                     binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant)) }
                 1 -> { controller?.repeatMode = Player.REPEAT_MODE_ALL
                     binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat)
-                    binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)) }
+                    binding.btnRepeat.setColorFilter(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())) }
                 2 -> { controller?.repeatMode = Player.REPEAT_MODE_ONE
                     binding.btnRepeat.setImageResource(fr.retrospare.blazeplayer.R.drawable.ic_repeat_one)
-                    binding.btnRepeat.setColorFilter(requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)) }
+                    binding.btnRepeat.setColorFilter(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())) }
             }
             savePlaylistFromController()
         }
@@ -3499,7 +3541,7 @@ class AudioPlayerFragment : Fragment() {
             controller?.shuffleModeEnabled = isShuffled
             savePlaylistFromController()
             binding.btnShuffle.setColorFilter(
-                if (isShuffled) requireContext().getColor(fr.retrospare.blazeplayer.R.color.green_accent)
+                if (isShuffled) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
                 else requireContext().getColor(fr.retrospare.blazeplayer.R.color.on_surface_variant)
             )
         }
@@ -3608,7 +3650,8 @@ class AudioPlayerFragment : Fragment() {
         val b = _binding ?: return
         val active = remainingMs > 0L
         (b.btnSleepTimer.getChildAt(0) as? android.widget.ImageView)?.setColorFilter(
-            requireContext().getColor(if (active) R.color.green_accent else R.color.on_surface_variant)
+            if (active) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
+            else requireContext().getColor(R.color.on_surface_variant)
         )
         sleepTimerIndicatorJob?.cancel()
         if (active) {
@@ -4081,7 +4124,7 @@ class AudioPlayerFragment : Fragment() {
             isAllCaps = false
             textSize = 13f
             setIconResource(icon)
-            iconTint = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.green_accent))
+            iconTint = ColorStateList.valueOf(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
             setTextColor(Color.WHITE)
             backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.surface_variant))
             strokeColor = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.outline_variant))
@@ -4149,7 +4192,7 @@ class AudioPlayerFragment : Fragment() {
             CrashReporter.log(requireContext(), "Blaze Party QR generation failed for payload length=${payload.length}", e)
             root.addView(TextView(requireContext()).apply {
                 text = payload
-                setTextColor(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.green_accent))
+                setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(0, dp(16), 0, dp(12))
@@ -4163,7 +4206,7 @@ class AudioPlayerFragment : Fragment() {
         })
         root.addView(TextView(requireContext()).apply {
             text = getString(fr.retrospare.blazeplayer.R.string.blaze_party_host_waiting)
-            setTextColor(ContextCompat.getColor(requireContext(), fr.retrospare.blazeplayer.R.color.green_accent))
+            setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
             textSize = 12f
             gravity = Gravity.CENTER
             setPadding(0, dp(12), 0, 0)
@@ -4758,6 +4801,8 @@ class AudioPlayerFragment : Fragment() {
 
 
     companion object {
+        private const val AUDIO_FIRST_USE_PREFS = "blaze_audio_first_use"
+        private const val KEY_FIRST_AUDIO_TRACK_STARTED = "first_audio_track_started"
         private const val LYRICS_CLOCK_SYNC_INTERVAL_MS = 120L
         private const val VISUALIZER_WATCHDOG_INTERVAL_MS = 1_500L
         private const val VISUALIZER_STALE_AFTER_MS = 5_500L

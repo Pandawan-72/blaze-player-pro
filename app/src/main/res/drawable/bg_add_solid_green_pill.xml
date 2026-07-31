@@ -9,16 +9,16 @@
     </item>
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <gradient android:angle="315" android:startColor="#28D99A" android:endColor="#10B773" />
+            <gradient android:angle="315" android:startColor="?attr/colorPrimary" android:endColor="?attr/blazeAccentDarkBorder" />
             <corners android:radius="22dp" />
-            <stroke android:width="1dp" android:color="#B8C9FFEA" />
+            <stroke android:width="1dp" android:color="#B8FFFFFF" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <gradient android:angle="315" android:startColor="#4AF0B8" android:centerColor="#25DB98" android:endColor="#12BD76" />
+            <gradient android:angle="315" android:startColor="?attr/colorPrimary" android:centerColor="?attr/colorPrimary" android:endColor="?attr/blazeAccentDarkBorder" />
             <corners android:radius="22dp" />
-            <stroke android:width="1dp" android:color="#8FEAFFF7" />
+            <stroke android:width="1dp" android:color="#8FFFFFFF" />
         </shape>
     </item>
 </selector>

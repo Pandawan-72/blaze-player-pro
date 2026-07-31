@@ -66,7 +66,7 @@
         android:layout_width="match_parent"
         android:layout_height="2dp"
         android:indeterminate="true"
-        android:indeterminateTint="@color/green_accent"
+        android:indeterminateTint="?attr/colorPrimary"
         style="@style/Widget.AppCompat.ProgressBar.Horizontal"
         android:visibility="gone" />
 

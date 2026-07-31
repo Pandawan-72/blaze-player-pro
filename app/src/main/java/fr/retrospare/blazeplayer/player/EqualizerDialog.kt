@@ -217,10 +217,8 @@ class EqualizerDialog(
     private fun refreshEqStatus(enabled: Boolean) {
         binding.tvEqStatus.setText(if (enabled) R.string.eq_status_on else R.string.eq_status_off)
         binding.tvEqStatus.setTextColor(
-            ContextCompat.getColor(
-                requireContext(),
-                if (enabled) R.color.green_accent else R.color.on_surface_variant
-            )
+            if (enabled) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
+            else ContextCompat.getColor(requireContext(), R.color.on_surface_variant)
         )
     }
 
@@ -240,7 +238,7 @@ class EqualizerDialog(
             val tvDb = TextView(requireContext()).apply {
                 text = compactDb(initialLevels.getOrElse(band) { 0 })
                 textSize = 9f
-                setTextColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
+                setTextColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
                 gravity = Gravity.CENTER
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -300,7 +298,7 @@ class EqualizerDialog(
                 chipBackgroundColor = ColorStateList(
                     arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
                     intArrayOf(
-                        ContextCompat.getColor(requireContext(), R.color.green_accent),
+                        fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()),
                         ContextCompat.getColor(requireContext(), R.color.surface_variant)
                     )
                 )
@@ -386,7 +384,7 @@ class EqualizerDialog(
             binding.tvBalanceValue.text = formatBalance(value)
         }
         binding.tvBalanceValue.text = formatBalance(eqManager.getSavedBalance())
-        binding.knobBalance.setAccentColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
+        binding.knobBalance.setAccentColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
 
         configureKnob(
             binding.knobStereo,
@@ -425,7 +423,7 @@ class EqualizerDialog(
             binding.tvPreampKnobValue.text = formatDb(value)
         }
         binding.tvPreampKnobValue.text = formatDb(eqManager.getSavedPreamp())
-        binding.knobPreamp.setAccentColor(ContextCompat.getColor(requireContext(), R.color.green_accent))
+        binding.knobPreamp.setAccentColor(fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext()))
 
         configureKnob(
             binding.knobCompressor,
@@ -613,10 +611,8 @@ class EqualizerDialog(
             getString(R.string.eq_mono)
         }
         binding.btnMono.iconTint = ColorStateList.valueOf(
-            ContextCompat.getColor(
-                requireContext(),
-                if (enabled) R.color.green_accent else R.color.on_surface_variant
-            )
+            if (enabled) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
+            else ContextCompat.getColor(requireContext(), R.color.on_surface_variant)
         )
     }
 
@@ -642,7 +638,7 @@ class EqualizerDialog(
     }
 
     private fun applyAudioStyleToggle(sw: MaterialSwitch) {
-        val accent = ContextCompat.getColor(requireContext(), R.color.green_accent)
+        val accent = fr.retrospare.blazeplayer.theme.AccentColorManager.accent(requireContext())
         val trackStates = arrayOf(
             intArrayOf(android.R.attr.state_checked, android.R.attr.state_enabled),
             intArrayOf(-android.R.attr.state_checked, android.R.attr.state_enabled),

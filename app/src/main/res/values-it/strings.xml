@@ -507,7 +507,7 @@ Token: %2$s</string>
     <string name="toast_video_queue_no_video_selected">Seleziona almeno un video</string>
     <string name="toast_video_queue_cleared">Coda video svuotata</string>
     <string name="toast_video_queue_item_removed">Video rimosso dalla coda</string>
-    <string name="content_desc_video_queue">Coda video</string>
+    <string name="content_desc_video_queue">Coda</string>
     <string name="content_desc_close_video_queue">Chiudi la coda video</string>
     <string name="audio_library_title">Libreria</string>
     <string name="audio_open_full_player">Apri il lettore audio</string>
@@ -829,6 +829,7 @@ Token: %2$s</string>
     <string name="slideshow_picker_selected_count">Presentazione: %1$d • Da aggiungere: %2$d</string>
     <string name="slideshow_added_count">%1$d foto aggiunte alla presentazione</string>
 
+    <string name="slideshow_picker_instruction">Seleziona le immagini da includere nella presentazione</string>
     <string name="slideshow_picker_folders">Cartelle</string>
 
     <string name="karaoke_sync_offset_value">Sync %1$s%2$d ms</string>
@@ -865,4 +866,42 @@ Token: %2$s</string>
     <string name="audio_artist_photo_restored">Foto automatica ripristinata</string>
     <string name="audio_artist_photo_update_failed">Impossibile utilizzare questa immagine</string>
     <string name="audio_now_playing">In riproduzione</string>
+
+    <string name="history_recent_video_count_zero">0 video recenti</string>
+    <string name="history_resume_section_title">Riprendi la riproduzione</string>
+    <string name="history_recently_watched">Visti di recente</string>
+    <string name="history_resume_at">Riprendi da %1$s</string>
+    <plurals name="history_recent_video_count">
+        <item quantity="one">%1$d video recente</item>
+        <item quantity="other">%1$d video recenti</item>
+    </plurals>
+    <plurals name="history_section_video_count">
+        <item quantity="one">%1$d video</item>
+        <item quantity="other">%1$d video</item>
+    </plurals>
+
+
+    <!-- Video browser rename -->
+    <string name="browser_rename_video_action">Rinomina</string>
+    <string name="browser_rename_video_title">Rinomina video</string>
+    <string name="browser_rename_video_hint">Nuovo nome</string>
+    <string name="browser_rename_extension_preserved">L’estensione %1$s verrà mantenuta.</string>
+    <string name="browser_rename_video_success">Video rinominato.</string>
+    <string name="browser_rename_video_error">Impossibile rinominare questo video.</string>
+    <string name="browser_rename_video_invalid_name">Inserisci un nome file valido.</string>
+    <string name="browser_rename_video_already_exists">Esiste già un file con questo nome.</string>
+    <string name="browser_rename_video_network_read_only">Questo server di rete non consente di rinominare i video.</string>
+
+    <!-- Couleur d’accentuation personnalisable -->
+    <string name="settings_accent_color">Colore di accento</string>
+    <string name="settings_accent_color_desc">Sostituisce il verde Blaze in tutta l’app</string>
+    <string name="dialog_choose_accent_color">Scegli il colore di accento</string>
+    <string name="accent_color_green">Verde Blaze</string>
+    <string name="accent_color_blue">Blu oceano</string>
+    <string name="accent_color_purple">Viola</string>
+    <string name="accent_color_pink">Rosa</string>
+    <string name="accent_color_orange">Arancione</string>
+    <string name="accent_color_red">Rosso</string>
+    <string name="accent_color_turquoise">Turchese</string>
+    <string name="accent_color_gold">Oro</string>
 </resources>

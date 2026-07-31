@@ -45,7 +45,8 @@ class NetworkSharesAdapter(
             val isUpnp = share.type == ShareType.UPNP
             tvBadgeType.text = if (isUpnp) "UPnP" else share.type.name
             tvBadgeType.setTextColor(
-                ContextCompat.getColor(itemView.context, if (isUpnp) R.color.green_accent else R.color.blue_accent)
+                if (isUpnp) fr.retrospare.blazeplayer.theme.AccentColorManager.accent(itemView.context)
+                else ContextCompat.getColor(itemView.context, R.color.blue_accent)
             )
             tvStatus.text = ""
 
